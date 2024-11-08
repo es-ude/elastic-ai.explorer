@@ -2,10 +2,10 @@
 name = "elastic-ai-explorer"
 version = "0.1.0"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
-authors = ["Christopher Ringhofer <christopher.ringhofer@uni-due.de>"]
+authors = ["Intelligent Embedded Systems Lab - University Duisburg Essen"]
 license = "LICENSE"
 readme = "README.md"
-packages = []
+packages = [{ include = "elasticai/" }]
 
 [tool.poetry.dependencies]
 python = "~3.11"
