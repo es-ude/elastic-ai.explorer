@@ -1,5 +1,6 @@
 import torch.nn as nn
 from nni.nas.nn.pytorch import ParametrizedModule
+
 class MutableLinear(ParametrizedModule):
     def __init__(self, input, output):
         super().__init__()
