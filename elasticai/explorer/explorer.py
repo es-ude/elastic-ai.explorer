@@ -1,3 +1,4 @@
+import time
 import nni
 import torch
 import torch.nn as nn
@@ -69,5 +70,6 @@ if __name__ == '__main__':
 
     for model_dict in exp.export_top_models(formatter='dict'):
         print(model_dict)
-        with open("models.json", "w") as f:
+        with open("models/models.json", "w") as f:
             json.dump(model_dict, f)
+        time.sleep(100000)
