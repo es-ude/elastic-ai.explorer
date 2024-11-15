@@ -13,7 +13,7 @@ elasticai-creator = {git = "https://github.com/es-ude/elastic-ai.creator", rev =
 setuptools = "^67.5.1"
 mypy = "^1.1.1"
 pytest-cov = "^4.1.0"
-torchvision = "0.20.0"
+torchvision = "0.16.0"
 pytorch-lightning = "2.3.1"
 
 [tool.poetry.group.nomac.dependencies]
