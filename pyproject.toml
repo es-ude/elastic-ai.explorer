@@ -9,13 +9,15 @@ packages = [{ include = "elasticai/" }]
 
 [tool.poetry.dependencies]
 python = "~3.11"
-nni = ">=3.0"
-elasticai-creator = {git = "https://github.com/es-ude/elastic-ai.creator", rev = "main"}
+elasticai-creator = {git = "https://github.com/es-ude/elastic-ai.creator", rev = "develop"}
 setuptools = "^67.5.1"
 mypy = "^1.1.1"
 pytest-cov = "^4.1.0"
-torchvision = "0.15.1"
+torchvision = "0.20.0"
 pytorch-lightning = "2.3.1"
+
+[tool.poetry.group.nomac.dependencies]
+nni = ">=3.0"
 
 [tool.poetry.group.dev.dependencies]
 python-language-server = "^0.36.2"
