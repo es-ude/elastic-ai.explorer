@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import nni
 from nni.nas.nn.pytorch import  ModelSpace
-from mutable_types import  MutableLinear
+from elasticai.explorer.mutable_types import  MutableLinear
 
 
 class MLP(ModelSpace):

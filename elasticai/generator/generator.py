@@ -1,0 +1,20 @@
+from abc import ABC, abstractmethod
+
+import torch
+from torch import nn
+
+
+class Generator(ABC):
+    @abstractmethod
+    def generate(self, model : nn.Module, path: str):
+        pass
+
+
+class PIGenerator(Generator):
+    def generate(self, model: nn.Module, path: str):
+        ts_model= torch.jit.script(model)
+        ts_model.save(path+".pt")
+
+
+
+
