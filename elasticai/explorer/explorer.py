@@ -9,7 +9,6 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 import json
 
-from elasticai.generator.generator import PIGenerator
 from elasticai.explorer.search_space import MLP
 
 def train_epoch(model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch):
