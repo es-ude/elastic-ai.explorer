@@ -1,0 +1,48 @@
+from typing import Any
+from nni.nas.nn.pytorch import ModelSpace
+from nni.nas.profiler.pytorch.flops import FlopsProfiler
+from elasticai.explorer.mutable_types import MutableLinear, MutableDropout
+from torchvision.transforms import transforms
+from torchvision.datasets import MNIST
+from torch.utils.data import DataLoader
+# '''
+# Registers the shape formulas neccessary for estimation of flops
+# '''
+# def register_shape_formula_mutables():
+    
+#     register_shape_inference_formula(MutableLinear, linear_formula)
+#     register_shape_inference_formula(MutableDropout, keep_shape_formula)
+
+
+'''
+Wrapper for FlopsProfiler could extend in future
+'''
+class FlopsEstimator():
+    def __init__(self, model_space: ModelSpace, *args: Any, **kwargs: Any):
+        self.model_space = model_space
+        self.data_loader = self.prepare_dataloader()
+
+    def prepare_dataloader(self):
+        transf = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        data_loader = DataLoader(MNIST("data/mnist", download=True, transform=transf), batch_size=1, shuffle=True)
+        return data_loader
+    
+    def estimate_flops(self):
+        
+        data_sample, _target= next(iter(self.data_loader))
+
+        #profiler = FlopsProfiler(self.model_space.freeze({"h1": 256, "h2": 128}), sample)
+
+        profiler = FlopsProfiler(self.model_space, data_sample)
+        print("General Flops, Formular: ", profiler.expression)
+
+        for model_sample in self.model_space.grid():
+
+            profiler = FlopsProfiler(model_sample, data_sample)
+            print("Flops for",model_sample ,": ", profiler.expression)
+        
+        
+
+
+
+        

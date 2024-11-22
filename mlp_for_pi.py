@@ -7,8 +7,8 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer import explorer
 from elasticai.generator.generator import PIGenerator
-
-from nni.nas.profiler.pytorch.flops import FlopsProfiler
+from elasticai.explorer.cost_estimator import FlopsEstimator
+from elasticai.explorer.search_space import MLP
 
 def test(model, test_loader):
     test_loss = 0
@@ -50,24 +50,19 @@ def train(model: torch.nn.Module):
         train_epoch(model, device, train_loader, optimizer, epoch)
 
 
-#Try to estimate flops of the given model
-def estimate_flops(model, dataloader):
-
-    sample, target= next(iter(dataloader))
-    profiler = FlopsProfiler(model, sample)
-
-    print("Flops: ", profiler.expression)
-
 
     
 
 if __name__ == '__main__':
+
+    flops_estimator = FlopsEstimator(model_space= MLP())  
+    flops_estimator.estimate_flops()
     transf = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
     top_models=explorer.search()
     test_loader = DataLoader(MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64)
     for i, top_model in enumerate(top_models):
         
-        estimate_flops(top_model, test_loader)
+        
         train(top_model)
         test(top_model, test_loader)
         generator= PIGenerator()
