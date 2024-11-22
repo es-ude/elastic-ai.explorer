@@ -12,10 +12,10 @@ class MLP(ModelSpace):
 
         h1 = nni.choice("h1", [256, 512])
         h2 = nni.choice("h2", [128, 512])
-        self.fc1 = MutableLinear(28 * 28, h1)
-        self.fc2 = MutableLinear(h1, h2)
-        self.fc3 = MutableLinear(h2, 10)
-        self.dropout = MutableDropout(0.2)
+        self.fc1 = layers.MutableLinear(28 * 28, h1)
+        self.fc2 = layers.MutableLinear(h1, h2)
+        self.fc3 = layers.MutableLinear(h2, 10)
+        self.dropout = layers.MutableDropout(0.2)
 
         
 
