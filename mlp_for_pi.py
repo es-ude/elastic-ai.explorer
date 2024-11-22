@@ -10,7 +10,7 @@ def find_and_generate_for_pi():
     top_models=explorer.search()
     for i, top_model in enumerate(top_models):
         
-        estimate_flops(top_model, test_loader)
+        
         train(top_model)
         test(top_model)
         ts_model=explorer.generate_for_hw_platform(top_model, path="models/ts_models/model " +str(i) )
