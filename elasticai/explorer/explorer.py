@@ -1,4 +1,3 @@
-import time
 import nni
 import torch
 import torch.nn as nn
@@ -10,7 +9,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 import json
 
-from search_space import MLP
+from elasticai.explorer.search_space import MLP
 
 def train_epoch(model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch):
     loss_fn = nn.CrossEntropyLoss()
@@ -60,16 +59,18 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(accuracy)
 
 
-if __name__ == '__main__':
+def search():
     model_space = MLP()
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(model_space, evaluator, search_strategy)
     exp.config.max_trial_number = 3
     exp.run(port=8081)
-
+    top_models = exp.export_top_models(top_k=1, formatter="instance")
     for model_dict in exp.export_top_models(formatter='dict'):
         print(model_dict)
         with open("models/models.json", "w") as f:
             json.dump(model_dict, f)
-        time.sleep(100000)
+    return top_models
+
+
