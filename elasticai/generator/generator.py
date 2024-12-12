@@ -6,7 +6,7 @@ from torch import nn
 
 class Generator(ABC):
     @abstractmethod
-    def generate(self, model : nn.Module, path: str):
+    def generate(self, model : nn.Module, path: str)-> any:
         pass
 
 
