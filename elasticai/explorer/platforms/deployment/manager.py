@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from python_on_whales import docker
 
+CONTEXT_PATH="../../../../docker"
 
 class HWManager(ABC):
     @abstractmethod
@@ -10,6 +11,7 @@ class HWManager(ABC):
 class PIHWManager(HWManager):
 
     def __init__(self):
+
        if not docker.images("cross"):
            self.build_compiler()
 
@@ -17,12 +19,12 @@ class PIHWManager(HWManager):
         pass
 
     def build_compiler(self):
-        docker.build(".../../../../docker", file="../../../../docker/Dockerfile.picross", tags="cross")
+        docker.build(CONTEXT_PATH, file=CONTEXT_PATH+"/Dockerfile.picross", tags="cross")
 
 
 
     def compile_code(self):
-        docker.build("../../../../docker", file="../../../../docker/Dockerfile.loader", output={"type": "local", "dest": "../docker/bin"})
+        docker.build(CONTEXT_PATH, file=CONTEXT_PATH+"/Dockerfile.loader", output={"type": "local", "dest": CONTEXT_PATH+"/bin"})
 
 
 
