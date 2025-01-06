@@ -6,8 +6,8 @@
 #include <cinttypes>
 #include <chrono>
 
-#define NUM_WARMUP_RUNS 1000
-#define NUM_MEASURE_RUNS 10000
+#define NUM_WARMUP_RUNS 5
+#define NUM_MEASURE_RUNS 10
 
 
 int main(int argc, const char *argv[]) {
@@ -47,8 +47,9 @@ int main(int argc, const char *argv[]) {
     auto t1 = std::chrono::high_resolution_clock::now();
     auto elapsed = t1 - t0;
     uint64_t microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+    microseconds=microseconds/NUM_MEASURE_RUNS;
 
     std::cout << "Inference Time: " << microseconds << " us" << std::endl;
-    std::cout << "Output:" << std::endl;
-    std::cout << output.toTensor() << std::endl;
+//    std::cout << "Output:" << std::endl;
+//    std::cout << output.toTensor() << std::endl;
 }

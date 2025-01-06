@@ -1,4 +1,5 @@
 import os
+import re
 from abc import ABC, abstractmethod
 
 from fabric.testing.fixtures import connection
@@ -34,17 +35,23 @@ class PIHWManager(HWManager):
 
     def deploy_model_on_pi(self):
         ...
-def connect_to_pi():
+
+def parse_measurements(results)->int:
+    experiment_result = re.search("Inference Time: (.*) us", results.stdout)
+    return int(experiment_result.group(1))
+
+def run_measurements()->int:
     connection= Connection(host="transpi5.local", user="ies")
     print(connection.put("../../../../docker/bin/measure_latency"))
     print(connection.put("../../../../models/ts_models/model_0.pt"))
     result = Connection(host="transpi5.local", user="ies").run('./measure_latency model_0.pt', hide=False)
+    if result.ok:
+       measurements= parse_measurements(result)
+    else:
+        connection.close()
+        raise Exception(result.stderr)
+    connection.close()
+    return measurements
 
-    msg = "Ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}"
-
-    print(msg.format(result))
 if __name__ == '__main__':
-    manager = PIHWManager()
-    manager.compile_code()
-    connect_to_pi()
-   # manager.deploy_on_pi()
+    run_measurements()
