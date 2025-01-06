@@ -1,17 +1,31 @@
 from typing import Optional
 
+from torch import nn
+
 from elasticai.explorer import hw_nas
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
+from elasticai.explorer.platforms.generator.generator import Generator
+from elasticai.explorer.search_space import MLP
 
-from elasticai.generator.generator import Generator
 
 
 class Explorer:
 
     def __init__(self, knowledge_repository: KnowledgeRepository):
+        self.default_model: Optional[nn.Module] = None
         self.target_hw: Optional[HWPlatform] = None
         self.knowledge_repository = knowledge_repository
         self.generator= None
+        self.search_space=None
+
+
+    def set_default_model(self, model:nn.Module):
+        self.default_model=model
+
+    def generate_search_space(self):
+       self.search_space=MLP()
+
+
 
 
     def choose_target_hw(self, name: str):
@@ -19,7 +33,7 @@ class Explorer:
         self.generator: Generator =self.target_hw.model_generator()
 
     def search(self):
-        top_models=hw_nas.search()
+        top_models=hw_nas.search(self.search_space)
         return top_models
 
     def generate_for_hw_platform(self, model, path):

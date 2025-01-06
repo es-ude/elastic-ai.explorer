@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Type
 
-from elasticai.generator.generator import Generator, PIGenerator
+from elasticai.explorer.platforms.generator.generator import Generator, PIGenerator
 
 
 @dataclass
