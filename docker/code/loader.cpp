@@ -28,7 +28,8 @@ int main(int argc, const char* argv[]) {
     return -1;
   }
 
-
+  torch::NoGradGuard no_grad;
+  module.eval();
   auto test_dataset = torch::data::datasets::MNIST(
                         data_path, torch::data::datasets::MNIST::Mode::kTest)
                           .map(torch::data::transforms::Normalize<>(0.1307, 0.3081))
@@ -39,7 +40,9 @@ int main(int argc, const char* argv[]) {
   auto test_loader =
       torch::data::make_data_loader(std::move(test_dataset), 64);
 
-
+  double test_loss = 0;
+  int32_t correct = 0;
+  size_t dataset_size = 10000;
   for (const auto& batch : *test_loader) {
     auto data = batch.data.to("cpu"), targets = batch.target.to("cpu");
 
@@ -50,19 +53,25 @@ int main(int argc, const char* argv[]) {
 
     std::cout << output.slice(/*dim=*/1, /*start=*/0, /*end=*/5) << '\n';
 
-    // test_loss += torch::nll_loss(
-    //                 output,
-    //                 targets,
-    //                 /*weight=*/{},
-    //                 torch::Reduction::Sum)
-    //                 .template item<float>();
-    // auto pred = output.argmax(1);
-    // correct += pred.eq(targets).sum().template item<int64_t>();
+    test_loss += torch::nll_loss(
+                    output,
+                    targets,
+                    /*weight=*/{},
+                    torch::Reduction::Sum)
+                    .template item<float>();
+    auto pred = output.argmax(1);
+    correct += pred.eq(targets).sum().template item<int64_t>();
   }
 
-
-
+  test_loss /= dataset_size;
+  std::printf(
+  "\nTest set: Average loss: %.4f | Accuracy: %.3f\n",
+  test_loss,
+  static_cast<double>(correct) / dataset_size);
+  
   std::cout << "ok\n";
+
+  std::cout << correct;
 
   // Create a vector of inputs.
   // std::vector<torch::jit::IValue> inputs;
