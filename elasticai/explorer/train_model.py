@@ -8,7 +8,7 @@ from torchvision.transforms import transforms
 def test(model):
     transf = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
     test_loader = DataLoader(MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64)
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = "cpu" #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     test_loss = 0
     correct = 0
     model.eval()
@@ -53,7 +53,7 @@ def train_epoch(
 
 
 def train(model: torch.nn.Module):
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = "cpu" #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
