@@ -55,7 +55,7 @@ class PIHWManager(HWManager):
             path_to_program = CONTEXT_PATH + "/bin"
         with Connection(
                 host=self.connection_info.host, user=self.connection_info.user
-        ) as conn:  # "transpi5.local"
+        ) as conn:
             conn.put(path_to_program)
 
     def deploy_model(self, path_to_model: str) -> int:
