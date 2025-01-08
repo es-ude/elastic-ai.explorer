@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.train_model import train, test
 
+root_dir = Path(__file__).resolve().parent
 
 def find_and_generate_for_pi():
     knowledge_repository= KnowledgeRepository()
@@ -9,13 +12,16 @@ def find_and_generate_for_pi():
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
     top_models=explorer.search()
+    measurements=[]
     for i, top_model in enumerate(top_models):
         train(top_model)
         test(top_model)
-        ts_model=explorer.generate_for_hw_platform(top_model, path="models/ts_models/model_" +str(i) )
-        test(ts_model)
+        model_path=str(root_dir)+ "/models/ts_models/model_" +str(i)
+        ts_model=explorer.generate_for_hw_platform(top_model, model_path )
+        measurements.append(explorer.run_measurement(model_path+".pt"))
 
 
+    print(measurements)
 
 if __name__ == '__main__':
     find_and_generate_for_pi()
