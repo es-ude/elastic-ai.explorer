@@ -1,7 +1,7 @@
+import math
 from typing import Any
 from nni.nas.nn.pytorch import ModelSpace
 from nni.nas.profiler.pytorch.flops import FlopsProfiler
-from elasticai.explorer.mutable_types import MutableLinear, MutableDropout
 from torchvision.transforms import transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
@@ -27,7 +27,7 @@ class FlopsEstimator():
         data_loader = DataLoader(MNIST("data/mnist", download=True, transform=transf), batch_size=1, shuffle=True)
         return data_loader
     
-    def estimate_flops(self):
+    def estimate_flops(self) -> int:
         
         data_sample, _target= next(iter(self.data_loader))
 
@@ -36,10 +36,16 @@ class FlopsEstimator():
         profiler = FlopsProfiler(self.model_space, data_sample)
         print("General Flops, Formular: ", profiler.expression)
 
+        flops = 0
         for model_sample in self.model_space.grid():
 
             profiler = FlopsProfiler(model_sample, data_sample)
-            print("Flops for",model_sample ,": ", profiler.expression)
+            print("Flops for",model_sample ,": ", math.log10(profiler.expression) * 0.5)
+
+            flops = profiler.expression
+        
+        return profiler.expression
+        
         
         
 
