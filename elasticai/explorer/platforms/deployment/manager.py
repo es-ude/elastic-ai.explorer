@@ -1,6 +1,7 @@
 import os
 import re
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from fabric import Connection
 from python_on_whales import docker
@@ -10,7 +11,16 @@ from settings import ROOT_DIR
 CONTEXT_PATH = ROOT_DIR / "docker"
 
 
+@dataclass
+class ConnectionData:
+    host: str
+    user: str
+
+
 class HWManager(ABC):
+    def __init__(self, connection_info: ConnectionData):
+        self.connection_info: ConnectionData = connection_info
+
     @abstractmethod
     def deploy_model(self, path_to_model) -> int:
         pass
@@ -22,7 +32,8 @@ class HWManager(ABC):
 
 class PIHWManager(HWManager):
 
-    def __init__(self):
+    def __init__(self, connection_info: ConnectionData):
+        super().__init__(connection_info)
         if not docker.images("cross"):
             self.build_compiler()
 
@@ -42,11 +53,15 @@ class PIHWManager(HWManager):
         if path_to_program is None:
             self.compile_code()
             path_to_program = CONTEXT_PATH + "/bin"
-        with Connection(host="transpi5.local", user="ies") as conn:
+        with Connection(
+                host=self.connection_info.host, user=self.connection_info.user
+        ) as conn:  # "transpi5.local"
             conn.put(path_to_program)
 
     def deploy_model(self, path_to_model: str) -> int:
-        with Connection(host="transpi5.local", user="ies") as conn:
+        with Connection(
+                host=self.connection_info.host, user=self.connection_info.user
+        ) as conn:
             conn.put(path_to_model)
 
             results = conn.run(self._getcommand(path_to_model), hide=False)

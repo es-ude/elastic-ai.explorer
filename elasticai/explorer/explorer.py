@@ -28,7 +28,9 @@ class Explorer:
     def choose_target_hw(self, name: str):
         self.target_hw: HWPlatform = self.knowledge_repository.fetch_hw_info(name)
         self.generator: Generator = self.target_hw.model_generator()
-        self.hw_manager: HWManager = self.target_hw.platform_manager()
+        self.hw_manager: HWManager = self.target_hw.platform_manager(
+            self.target_hw.available_device
+        )
 
     def search(self):
         top_models = hw_nas.search(self.search_space)
