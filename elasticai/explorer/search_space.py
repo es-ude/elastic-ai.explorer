@@ -1,14 +1,13 @@
+import nni
 import torch.nn as nn
 import torch.nn.functional as F
-import nni
-from nni.nas.nn.pytorch import  ModelSpace
+from nni.nas.nn.pytorch import ModelSpace
 from nni.nas.nn.pytorch.layers import MutableLinear
 
 
 class MLP(ModelSpace):
     def __init__(self):
         super().__init__()
-
         h1 = nni.choice("h1", [256, 512])
         h2 = nni.choice("h2", [128, 512])
         self.fc1 = MutableLinear(28 * 28, h1)
