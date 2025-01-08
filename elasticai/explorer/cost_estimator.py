@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 Wrapper for FlopsProfiler could extend in future
 '''
 class FlopsEstimator():
-    def __init__(self, model_space: ModelSpace, *args: Any, **kwargs: Any):
+    def __init__(self, model_space: ModelSpace):
         self.model_space = model_space
         self.data_loader = self.prepare_dataloader()
 
@@ -25,18 +25,11 @@ class FlopsEstimator():
         
         data_sample, _target= next(iter(self.data_loader))
 
-        #profiler = FlopsProfiler(self.model_space.freeze({"h1": 256, "h2": 128}), sample)
-
         profiler = FlopsProfiler(self.model_space, data_sample)
-        print("General Flops, Formular: ", profiler.expression)
 
-        flops = 0
         for model_sample in self.model_space.grid():
 
             profiler = FlopsProfiler(model_sample, data_sample)
-            print("Flops for",model_sample ,": ", math.log10(profiler.expression) * 0.5)
-
-            flops = profiler.expression
         
         return profiler.expression
         
