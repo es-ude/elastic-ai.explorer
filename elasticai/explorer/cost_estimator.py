@@ -5,13 +5,7 @@ from nni.nas.profiler.pytorch.flops import FlopsProfiler
 from torchvision.transforms import transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
-# '''
-# Registers the shape formulas neccessary for estimation of flops
-# '''
-# def register_shape_formula_mutables():
-    
-#     register_shape_inference_formula(MutableLinear, linear_formula)
-#     register_shape_inference_formula(MutableDropout, keep_shape_formula)
+
 
 
 '''
