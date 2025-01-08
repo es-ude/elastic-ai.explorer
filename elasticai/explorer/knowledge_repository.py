@@ -16,7 +16,14 @@ class HWPlatform:
 class KnowledgeRepository:
     def __init__(self):
         self.supported_hw_platforms = {}
-        self.register_hw_platform(HWPlatform("rpi5", "Raspberry PI 5 with A76 processor and 8GB RAM", PIGenerator, PIHWManager))
+        self.register_hw_platform(
+            HWPlatform(
+                "rpi5",
+                "Raspberry PI 5 with A76 processor and 8GB RAM",
+                PIGenerator,
+                PIHWManager,
+            )
+        )
 
     def register_hw_platform(self, platform: HWPlatform):
         self.supported_hw_platforms[platform.name] = platform
