@@ -55,7 +55,7 @@ def evaluate_model(model: torch.nn.Module):
     ##Cost-Estimation
     #flops as proxy metric for latency
     flops_estimator = FlopsEstimator(model_space= model)  
-    flops = flops_estimator.estimate_flops()
+    flops = flops_estimator.estimate_flops_single_module()
 
     #set device to cpu to prevent memory error
     #TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi

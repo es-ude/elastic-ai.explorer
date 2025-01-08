@@ -21,20 +21,35 @@ class FlopsEstimator():
         data_loader = DataLoader(MNIST("data/mnist", download=True, transform=transf), batch_size=1, shuffle=True)
         return data_loader
     
-    def estimate_flops(self) -> int:
+    def estimate_flops_grid(self):
+        """
+        Print FLOPS-Information over the whole searchspace.
+        """
         
         data_sample, _target= next(iter(self.data_loader))
 
         profiler = FlopsProfiler(self.model_space, data_sample)
 
+        print("General Flops, Formular: ", profiler.expression)
         for model_sample in self.model_space.grid():
 
             profiler = FlopsProfiler(model_sample, data_sample)
+            print("Flops for",model_sample ,": ", profiler.expression)
         
+        
+    
+    def estimate_flops_single_module(self) -> int:
+        """Computes FLOPS for a single module. 
+
+        Returns:
+            int: The FLOPS-estimate
+        """
+        
+        data_sample, _target= next(iter(self.data_loader))
+        model_sample = next(iter(self.model_space.grid()))
+        profiler = FlopsProfiler(model_sample, data_sample)
+
         return profiler.expression
-        
-        
-        
 
 
 
