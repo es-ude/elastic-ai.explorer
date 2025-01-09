@@ -4,7 +4,7 @@ from torch import nn
 
 from elasticai.explorer import hw_nas
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.manager import HWManager
+from elasticai.explorer.platforms.deployment.manager import HWManager, ConnectionData
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
 
@@ -28,9 +28,7 @@ class Explorer:
     def choose_target_hw(self, name: str):
         self.target_hw: HWPlatform = self.knowledge_repository.fetch_hw_info(name)
         self.generator: Generator = self.target_hw.model_generator()
-        self.hw_manager: HWManager = self.target_hw.platform_manager(
-            self.target_hw.available_device
-        )
+        self.hw_manager: HWManager = self.target_hw.platform_manager()
 
     def search(self):
         top_models = hw_nas.search(self.search_space)
@@ -41,6 +39,7 @@ class Explorer:
 
     def run_measurement(
             self,
+            connection_info: ConnectionData,
             path_to_model,
     ) -> int:
-        return self.hw_manager.deploy_model(path_to_model)
+        return self.hw_manager.deploy_model_and_evaluate(connection_info, path_to_model)

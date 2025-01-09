@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Type
 
-from elasticai.explorer.platforms.deployment.manager import HWManager, ConnectionData
+from elasticai.explorer.platforms.deployment.manager import HWManager
 from elasticai.explorer.platforms.generator.generator import Generator
 
 
@@ -11,7 +11,6 @@ class HWPlatform:
     info: str
     model_generator: Type[Generator]
     platform_manager: Type[HWManager]
-    available_device: ConnectionData
 
 
 class KnowledgeRepository:
