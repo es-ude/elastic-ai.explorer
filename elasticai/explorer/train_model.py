@@ -12,12 +12,15 @@ def test(model):
     test_loader = DataLoader(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
 
     test_loss = 0
     correct = 0
     model.eval()
     with torch.no_grad():
         for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
             output = model(data)
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()

@@ -1,4 +1,5 @@
 import json
+import math
 
 import nni
 import torch
@@ -10,6 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from elasticai.explorer.cost_estimator import FlopsEstimator
 
 def train_epoch(
         model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
@@ -57,7 +59,18 @@ def test_epoch(model, device, test_loader):
 
 def evaluate_model(model: torch.nn.Module):
     global accuracy
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    ##Parameter
+    flops_weight = 0.5
+    n_epochs = 3
+
+    ##Cost-Estimation
+    #flops as proxy metric for latency
+    flops_estimator = FlopsEstimator(model_space= model)
+    flops = flops_estimator.estimate_flops_single_module()
+
+    #set device to cpu to prevent memory error
+    #TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi
+    device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
@@ -72,19 +85,22 @@ def evaluate_model(model: torch.nn.Module):
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
 
-    for epoch in range(3):
+    metric = {"default": 0, "accuracy" : 0, "flops log10": math.log10(flops)}
+    for epoch in range(n_epochs):
         train_epoch(model, device, train_loader, optimizer, epoch)
-        accuracy = test_epoch(model, device, test_loader)
-        nni.report_intermediate_result(accuracy)
 
-    nni.report_final_result(accuracy)
+        metric["accuracy"] = test_epoch(model, device, test_loader)
 
+        metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
+        nni.report_intermediate_result(metric)
+
+    nni.report_final_result(metric)
 
 def search(search_space):
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
-    exp.config.max_trial_number = 3
+    exp.config.max_trial_number = 4
     exp.run(port=8081)
     top_models = exp.export_top_models(top_k=1, formatter="instance")
     for model_dict in exp.export_top_models(formatter="dict"):
