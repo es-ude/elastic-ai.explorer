@@ -29,10 +29,7 @@ def find_and_generate_for_pi(knowledge_repository, device_connection):
         train(model)
         test(model)
         model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i)
-        ts_model = explorer.generate_for_hw_platform(model, model_path)
-        measurements.append(
-            explorer.run_measurement(device_connection, model_path + ".pt")
-        )
+        explorer.generate_for_hw_platform(model, model_path)
 
     print(measurements)
 
@@ -54,5 +51,5 @@ def prepare_pi():
 
 if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
-    device_connection = ConnectionData("transpi5.local", "ies")
-    find_and_generate_for_pi(knowledge_repo, device_connection)
+    #device_connection = ConnectionData("transpi5.local", "ies")
+    find_and_generate_for_pi(knowledge_repo, None)
