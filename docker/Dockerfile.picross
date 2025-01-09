@@ -48,7 +48,7 @@ RUN apt-get update && \
     libopenmpi-dev:$LIB_ARCH
 
 
-    ENV CMAKE_VERSION=3.31.1
+ENV CMAKE_VERSION=3.31.1
 
 RUN export CMAKE_DIR=cmake-$CMAKE_VERSION && \
   export CMAKE_ARCH=$CMAKE_DIR.tar.gz && \
