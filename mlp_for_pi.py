@@ -9,6 +9,8 @@ def find_and_generate_for_pi():
     explorer.choose_target_hw("rpi5")
     top_models=explorer.search()
     for i, top_model in enumerate(top_models):
+        
+        
         train(top_model)
         test(top_model)
         ts_model=explorer.generate_for_hw_platform(top_model, path="models/ts_models/model " +str(i) )
