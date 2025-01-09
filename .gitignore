@@ -6,6 +6,20 @@ __pycache__/
 # C extensions
 *.so
 
+# dataset folder
+data/
+docker/bin
+/docker/code/libtorch
+
+#libtorch 
+docker/code/libtorch
+
+#bin 
+docker/bin
+
+#models
+models/
+
 # Distribution / packaging
 .Python
 build/
@@ -129,6 +143,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.python-version
 
 # Spyder project settings
 .spyderproject
@@ -159,4 +174,7 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
+
+#Vscode
+.vscode/
