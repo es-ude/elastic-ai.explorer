@@ -8,6 +8,8 @@ __pycache__/
 
 # dataset folder
 data/
+docker/bin
+/docker/code/libtorch
 
 #libtorch 
 docker/code/libtorch
