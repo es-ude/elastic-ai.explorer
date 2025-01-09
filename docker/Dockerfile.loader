@@ -1,0 +1,19 @@
+FROM cross AS builder
+
+COPY ./code/measure_latency.cpp /code/
+COPY ./code/CMakeLists.txt /code/
+ADD  ./code/libtorch /code/libtorch
+
+ENV BIN_DIR=/tmp/bin
+ENV BUILD_DIR=/code/build
+
+RUN mkdir -p $BIN_DIR && mkdir -p $BUILD_DIR && \
+    cd $BUILD_DIR && \
+    cmake -DCMAKE_PREFIX_PATH=/code/libtorch \
+    -DCMAKE_TOOLCHAIN_FILE=$CROSS_TOOLCHAIN \
+    .. && \
+    cmake --build . --config Release  && \
+    cp ./measure_latency $BIN_DIR/
+
+FROM scratch
+COPY --from=builder /tmp/bin /
