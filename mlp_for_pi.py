@@ -34,6 +34,9 @@ def find_and_generate_for_pi(knowledge_repository, device_connection):
             explorer.run_measurement(device_connection, model_path + ".pt")
         )
 
+    measurements.append(
+            explorer.verify_accuracy(device_connection, model_path + ".pt")
+        )
     print(measurements)
 
 
@@ -46,6 +49,17 @@ def take_measurements(knowledge_repository, connection_data):
         measurements.append(explorer.run_measurement(connection_data, model_path))
     print(measurements)
 
+def verify_model(knowledge_repository, connection_data):
+    explorer = Explorer(knowledge_repository)
+    explorer.choose_target_hw("rpi5")
+    measurements = []
+    model_path = str(ROOT_DIR) + "/models/ts_models/model_0"
+    data_path = str(ROOT_DIR) + "/data"
+    measurements.append(
+            explorer.verify_accuracy(device_connection, model_path + ".pt", data_path)
+        )
+    print(measurements)
+
 
 def prepare_pi():
     hw_manager = PIHWManager()
@@ -54,5 +68,7 @@ def prepare_pi():
 
 if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
-    device_connection = ConnectionData("transpi5.local", "ies")
-    find_and_generate_for_pi(knowledge_repo, device_connection)
+    device_connection = ConnectionData("transfair.local", "robin")
+    verify_model(knowledge_repo, device_connection)
+    #take_measurements(knowledge_repo, device_connection)
+    #find_and_generate_for_pi(knowledge_repo, None)

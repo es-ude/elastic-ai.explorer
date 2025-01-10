@@ -22,14 +22,25 @@ class HWManager(ABC):
 
     @abstractmethod
     def deploy_model_and_evaluate(
-            self, connection_info: ConnectionData, path_to_model
+        self, connection_info: ConnectionData, path_to_model
     ) -> int:
         pass
 
     @abstractmethod
     def install_model_runner_on_target(
-            self, connection_info: ConnectionData, path_to_program=None
+        self, connection_info: ConnectionData, path_to_program=None
     ):
+        pass
+
+    @abstractmethod
+    def install_verification_on_target(self, connection_info: ConnectionData, path_to_program: str = None
+    ):
+        pass
+
+    @abstractmethod
+    def deploy_model_and_verify(
+        self, connection_info: ConnectionData, path_to_model: str
+    ) -> int:
         pass
 
 
@@ -52,34 +63,72 @@ class PIHWManager(HWManager):
         )
 
     def install_model_runner_on_target(
-            self, connection_info: ConnectionData, path_to_program: str = None
+        self, connection_info: ConnectionData, path_to_program: str = None
     ):
         if path_to_program is None:
+            path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
+        if not os.path.exists(path_to_program):
             self.compile_code()
-            path_to_program = CONTEXT_PATH + "/bin"
+
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_program)
 
+
+    def install_verification_on_target(self, connection_info: ConnectionData, path_to_program: str = None, path_to_data: str = None):
+        if path_to_program is None:
+            path_to_program = str(CONTEXT_PATH) + "/bin/loader"
+        if path_to_data is None:
+            path_to_data = str(CONTEXT_PATH) + "/data.zip"
+        if not os.path.exists(path_to_program):
+            self.compile_code()
+        with Connection(host=connection_info.host, user=connection_info.user) as conn:
+            conn.put(path_to_program)
+            conn.put(path_to_data)
+            conn.run("unzip -q data.zip")
+            
+
     def deploy_model_and_evaluate(
-            self, connection_info: ConnectionData, path_to_model: str
+        self, connection_info: ConnectionData, path_to_model: str
     ) -> int:
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_model)
 
-            result = conn.run(self._getcommand(path_to_model), hide=False)
+            result = conn.run(self._getcommand_eval(path_to_model), hide=False)
             if self._wasSuccessful(result):
-                measurement = self._parse_measurement(result)
+                measurement = self._parse_measurement_eval(result)
             else:
                 raise Exception(result.stderr)
         return measurement
 
-    def _getcommand(self, path_to_model: str):
+    def deploy_model_and_verify(
+        self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
+    ) -> int:
+        with Connection(host=connection_info.host, user=connection_info.user) as conn:
+            conn.put(path_to_model)
+
+            result = conn.run(self._getcommand_verify(path_to_model, path_to_data), hide=False)
+            if self._wasSuccessful(result):
+                measurement = self._parse_measurement_verify(result)
+            else:
+                raise Exception(result.stderr)
+        return measurement
+
+    def _getcommand_eval(self, path_to_model: str):
         _, tail = os.path.split(path_to_model)
         return "./measure_latency {}".format(tail)
 
-    def _parse_measurement(self, result: Result) -> int:
+    def _getcommand_verify(self, path_to_model: str, path_to_data: str):
+        _, model_tail = os.path.split(path_to_model)
+        _, data_tail = os.path.split(path_to_data)
+        return "./loader {} {}".format(model_tail, data_tail)
+
+    def _parse_measurement_eval(self, result: Result) -> int:
         experiment_result = re.search("Inference Time: (.*) us", result.stdout)
         return int(experiment_result.group(1))
+
+    def _parse_measurement_verify(self, result: Result) -> float:
+        experiment_result = re.search("Accuracy: (.*)%", result.stdout)
+        return experiment_result.group(1)
 
     def _wasSuccessful(self, result: Result) -> bool:
         return result.ok
