@@ -1,4 +1,4 @@
-FROM crosstest AS builder
+FROM cross AS builder
 
 COPY ./code/measure_latency.cpp /code/
 COPY ./code/loader.cpp /code/
