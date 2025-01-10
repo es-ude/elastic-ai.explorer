@@ -52,7 +52,7 @@ int main(int argc, const char* argv[]) {
 
     auto output = module.forward(inputs).toTensor();
 
-    std::cout << output.slice(/*dim=*/1, /*start=*/0, /*end=*/5) << '\n';
+    //std::cout << output.slice(/*dim=*/1, /*start=*/0, /*end=*/5) << '\n';
 
     test_loss += torch::nll_loss(
                     output,
@@ -67,17 +67,6 @@ int main(int argc, const char* argv[]) {
   }
 
   test_loss /= dataset_size;
-  std::printf(
-  "\nTest set: Average loss: %.4f | Accuracy: %.3f\n",
-  test_loss,
-  static_cast<double>(correct) / dataset_size);
-
-
-  
-  std::cout << "ok\n" << std::endl;
-
-  std::cout << "Correct classifications: " << correct << std::endl;
-
-  std::cout << "Counter: " << counter << std::endl;
+  std::printf("Accuracy: %.3f\n", static_cast<double>(correct) / dataset_size);
 
 }
