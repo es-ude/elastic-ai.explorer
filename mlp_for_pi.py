@@ -53,10 +53,10 @@ def verify_model(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     measurements = []
-    model_path = str(ROOT_DIR) + "/models/ts_models/model_0"
+    model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
     measurements.append(
-            explorer.verify_accuracy(device_connection, model_path + ".pt", data_path)
+            explorer.verify_accuracy(device_connection, model_path , data_path)
         )
     print(measurements)
 
@@ -70,5 +70,5 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData("transfair.local", "robin")
     verify_model(knowledge_repo, device_connection)
-    #take_measurements(knowledge_repo, device_connection)
+    take_measurements(knowledge_repo, device_connection)
     #find_and_generate_for_pi(knowledge_repo, None)

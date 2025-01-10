@@ -78,13 +78,13 @@ class PIHWManager(HWManager):
         if path_to_program is None:
             path_to_program = str(CONTEXT_PATH) + "/bin/loader"
         if path_to_data is None:
-            path_to_data = str(CONTEXT_PATH) + "/data.zip"
+            path_to_data = str(CONTEXT_PATH) + "/data/mnist.zip"
         if not os.path.exists(path_to_program):
             self.compile_code()
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_program)
             conn.put(path_to_data)
-            conn.run("unzip -q data.zip")
+            conn.run(f"unzip -q -o {os.path.split(path_to_data)[-1]}")
             
 
     def deploy_model_and_evaluate(
@@ -127,7 +127,7 @@ class PIHWManager(HWManager):
         return int(experiment_result.group(1))
 
     def _parse_measurement_verify(self, result: Result) -> float:
-        experiment_result = re.search("Accuracy: (.*)%", result.stdout)
+        experiment_result = re.search("Accuracy: (.*)", result.stdout)
         return experiment_result.group(1)
 
     def _wasSuccessful(self, result: Result) -> bool:
