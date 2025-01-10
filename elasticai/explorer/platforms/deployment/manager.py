@@ -39,7 +39,7 @@ class HWManager(ABC):
 
     @abstractmethod
     def deploy_model_and_verify(
-        self, connection_info: ConnectionData, path_to_model: str
+        self, connection_info: ConnectionData, path_to_model: str,  path_to_data: str
     ) -> int:
         pass
 
@@ -67,7 +67,6 @@ class PIHWManager(HWManager):
     ):
         if path_to_program is None:
             path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
-        if not os.path.exists(path_to_program):
             self.compile_code()
 
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
@@ -77,10 +76,11 @@ class PIHWManager(HWManager):
     def install_verification_on_target(self, connection_info: ConnectionData, path_to_program: str = None, path_to_data: str = None):
         if path_to_program is None:
             path_to_program = str(CONTEXT_PATH) + "/bin/loader"
+            self.compile_code()
+            
         if path_to_data is None:
             path_to_data = str(CONTEXT_PATH) + "/data/mnist.zip"
-        if not os.path.exists(path_to_program):
-            self.compile_code()
+            
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_program)
             conn.put(path_to_data)
