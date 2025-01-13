@@ -19,6 +19,7 @@ class Explorer:
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
 
+
     def set_default_model(self, model: nn.Module):
         self.default_model = model
 
@@ -30,8 +31,8 @@ class Explorer:
         self.generator: Generator = self.target_hw.model_generator()
         self.hw_manager: HWManager = self.target_hw.platform_manager()
 
-    def search(self):
-        top_models = hw_nas.search(self.search_space)
+    def search(self, max_search_trials):
+        top_models = hw_nas.search(self.search_space, max_search_trials)
         return top_models
 
     def generate_for_hw_platform(self, model, path):
@@ -52,5 +53,5 @@ class Explorer:
         path_to_model,
         path_to_data
     ) -> int:
-        self.hw_manager.install_verification_on_target(connection_info)
-        return self.hw_manager.deploy_model_and_verify(connection_info, path_to_model, path_to_data)
+        self.hw_manager.install_accuracy_measurement_on_target(connection_info)
+        return self.hw_manager.deploy_model_and_measure_accuracy(connection_info, path_to_model, path_to_data)

@@ -4,10 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
-// int test(::DataLoader& data_loader){
 
-  
-// }
 
 int main(int argc, const char* argv[]) {
   if (argc != 3) {

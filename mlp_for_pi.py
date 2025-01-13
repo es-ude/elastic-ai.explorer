@@ -19,23 +19,24 @@ def setup_knowledge_repository():
     return knowledge_repository
 
 
-def find_and_generate_for_pi(knowledge_repository, device_connection):
+def find_and_generate_for_pi(knowledge_repository, device_connection, max_search_trials):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search()
+    top_models = explorer.search(max_search_trials)
     measurements = []
     for i, model in enumerate(top_models):
-        train(model)
+        train(model, 3)
         test(model)
-        model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i)
-        ts_model = explorer.generate_for_hw_platform(model, model_path)
+        model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
+        data_path = str(ROOT_DIR) + "/data"
+        explorer.generate_for_hw_platform(model, model_path)
         measurements.append(
-            explorer.run_measurement(device_connection, model_path + ".pt")
+            explorer.run_measurement(device_connection, model_path)
         )
 
     measurements.append(
-            explorer.verify_accuracy(device_connection, model_path + ".pt")
+            explorer.verify_accuracy(device_connection, model_path, data_path)
         )
     print(measurements)
 
@@ -67,8 +68,16 @@ def prepare_pi():
 
 
 if __name__ == "__main__":
+    ##Params
+    host = "transfair.local"
+    user = "robin"
+    max_search_trials = 1
+
+
+
     knowledge_repo = setup_knowledge_repository()
-    device_connection = ConnectionData("transfair.local", "robin")
-    verify_model(knowledge_repo, device_connection)
-    take_measurements(knowledge_repo, device_connection)
+    device_connection = ConnectionData(host, user)
+    find_and_generate_for_pi(knowledge_repo, device_connection, max_search_trials)
+    #verify_model(knowledge_repo, device_connection)
+    #take_measurements(knowledge_repo, device_connection)
     #find_and_generate_for_pi(knowledge_repo, None)
