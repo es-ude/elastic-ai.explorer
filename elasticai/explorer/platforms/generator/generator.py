@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch import nn
 import os
-import datetime
+from pathlib import Path
 
 
 class Generator(ABC):
@@ -15,14 +15,18 @@ class Generator(ABC):
 class PIGenerator(Generator):
     def generate(self, model: nn.Module, path: str):
         model.eval()
-        dir_path = os.path.dirname(os.path.realpath(path))
-        file_name = os.path.basename(path)
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
+
+        try:
+            dir_path = os.path.dirname(os.path.realpath(path))
+            if not os.path.exists(dir_path):
+                    os.makedirs(dir_path)
+            ts_model= torch.jit.script(model)
+            path = Path(path).with_suffix(".pt")
+            ts_model.save(path)
+        except:
+            print("Could not create or find path to model.")
+            exit(-1)
+
         
-        now = datetime.datetime.now()
-        current_timestamp =now.strftime('%Y-%m-%dT%H:%M:%S')
-        ts_model= torch.jit.script(model)
-        ts_model.save(dir_path + file_name + "_" + str(current_timestamp) + ".pt")
         
         return ts_model
