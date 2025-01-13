@@ -52,7 +52,7 @@ def train_epoch(
             )
 
 
-def train(model: torch.nn.Module):
+def train(model: torch.nn.Module, epochs = 5):
     device = "cpu" #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -64,5 +64,5 @@ def train(model: torch.nn.Module):
         batch_size=64,
         shuffle=True,
     )
-    for epoch in range(5):
+    for epoch in range(epochs):
         train_epoch(model, device, train_loader, optimizer, epoch)

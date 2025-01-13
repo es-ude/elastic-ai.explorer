@@ -1,7 +1,7 @@
 FROM cross AS builder
 
 COPY ./code/measure_latency.cpp /code/
-COPY ./code/loader.cpp /code/
+COPY ./code/measure_accuracy.cpp /code/
 COPY ./code/CMakeLists.txt /code/
 ADD  ./code/libtorch /code/libtorch
 
@@ -15,7 +15,7 @@ RUN mkdir -p $BIN_DIR && mkdir -p $BUILD_DIR && \
     .. && \
     cmake --build . --config Release  && \
     cp ./measure_latency $BIN_DIR/ &&\
-    cp ./loader $BIN_DIR/
+    cp ./measure_accuracy $BIN_DIR/
 
 
 FROM scratch
