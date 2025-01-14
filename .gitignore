@@ -11,6 +11,8 @@ __pycache__/
 docker/bin
 /docker/code/libtorch
 
+#plots
+plots/
 #libtorch 
 docker/code/libtorch
 
