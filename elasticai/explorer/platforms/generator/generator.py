@@ -16,17 +16,13 @@ class PIGenerator(Generator):
     def generate(self, model: nn.Module, path: str):
         model.eval()
 
-        try:
-            dir_path = os.path.dirname(os.path.realpath(path))
-            if not os.path.exists(dir_path):
-                    os.makedirs(dir_path)
-            ts_model= torch.jit.script(model)
-            path = Path(path).with_suffix(".pt")
-            ts_model.save(path)
-        except:
-            print("Could not create or find path to model.")
-            exit(-1)
-
+        dir_path = os.path.dirname(os.path.realpath(path))
         
+        if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
+        ts_model= torch.jit.script(model)
+        path = Path(os.path.realpath(path)).with_suffix(".pt")
+        ts_model.save(path)
         
         return ts_model
