@@ -1,4 +1,4 @@
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.knowledge_repository import KnowledgeRepository, SearchMetrics
 import matplotlib.pyplot as plt
 import numpy as np
 from settings import ROOT_DIR
@@ -6,8 +6,9 @@ from settings import ROOT_DIR
 CONTEXT_PATH = ROOT_DIR / "plots"
 class Visualizer:
 
-    def __init__(self, data):
-        self.data = np.array(data)
+    def __init__(self, metrics: SearchMetrics):
+        self.data = metrics.structured_metrics
+        self.index = metrics.sample_list
 
     def plot_all_results(self, figure_size = [15, 20], filename = None):
         plt.figure()
@@ -22,12 +23,12 @@ class Visualizer:
         indices = np.arange(0, len(self.data[0][0][:]), 1)
 
         #Accuracy Estimate vs Accuracy on Pi
-        ax1.bar(x=indices, height = self.data[0][0][:], width = bar_width,label= "Accuracy in %")
-        ax1.bar(x=indices+bar_width, height = self.data[0][1][:], width = bar_width,label= "Accuracyasdasda in %")
+        ax1.bar(x=indices, height = self.data[0][0][:], width = bar_width,label= "Estimated Accuracy in %")
+        ax1.bar(x=indices+bar_width, height = self.data[0][1][:], width = bar_width,label= "Measured Accuracy in %")
 
         #FLOPS Proxy vs Latency on Pi
-        ax2.bar(x=indices, height = self.data[1][0][:], width = bar_width,label= "Latenzy in Mircosec.")
-        ax2.bar(x=indices+bar_width, height = self.data[1][1][:], width = bar_width,label= "FLOPs Estimation log(10)")
+        ax2.bar(x=indices, height = self.data[1][0][:], width = bar_width,label= "FLOPs Estimation in Log10")
+        ax2.bar(x=indices+bar_width, height = self.data[1][1][:], width = bar_width,label= "Latency in Mircosec.")
 
         #Combined Metric, accuracy-estimation and flops estimation
         ax3.bar(x=indices, height = self.data[2][0][:], width = bar_width, label= "Combined Metric")
@@ -42,3 +43,11 @@ class Visualizer:
             plt.savefig(str(CONTEXT_PATH) + "/" + filename + ".png")
         else:
             plt.show()
+
+
+
+
+
+            
+
+        

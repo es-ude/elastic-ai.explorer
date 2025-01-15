@@ -94,17 +94,69 @@ def evaluate_model(model: torch.nn.Module):
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
 
+
+    metric["id"] = nni.get_trial_id()
+    
     nni.report_final_result(metric)
 
+    data = json.load(open('metrics/metrics.json'))
+
+    # convert data to list if not
+    if type(data) is dict:
+        data = []
+
+        # append new item to data
+    data.append(metric)
+
+    # write list to file
+    with open('metrics/metrics.json', 'w') as outfile:
+        json.dump(data, outfile)
+    
+
+
 def search(search_space, max_search_trials = 6):
+
+    #clear logging data
+    empty_dict = {}
+    with open("models/models.json", "w") as f:
+        json.dump(empty_dict, f)
+    with open("metrics/metrics.json", "w") as f:
+        json.dump(empty_dict, f)
+
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
     exp.config.max_trial_number = max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=1, formatter="instance")
-    for model_dict in exp.export_top_models(formatter="dict"):
-        print(model_dict)
-        with open("models/models.json", "w") as f:
-            json.dump(model_dict, f)
+    top_models = exp.export_top_models(top_k=4, formatter="instance")
+    
+
+    ###TODO get trial id for the top_k models
+    # state_dict = exp.strategy.state_dict()
+
+    # print(state_dict['dedup_history'])
+    # data = []
+    # for model_dict in exp.export_top_models(top_k=4, formatter="dict"):
+
+    #     data.append(model_dict)
+
+    # # write list to file
+    # with open('models/models.json', 'w') as outfile:
+    #     json.dump(data, outfile)
+    
+    samples = []
+    with open("metrics/metrics.json", "r") as f:
+        
+        
+        metrics = json.load(f)
+        for trial in metrics:
+            id = trial["id"]
+            trial_job = exp.get_trial_job(id).hyperParameters[0].parameters["sample"]
+            samples.append(trial_job)
+
+    with open('models/models.json', 'w') as outfile:
+        json.dump(samples, outfile)
+    
+    
+
     return top_models

@@ -1,8 +1,9 @@
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
+from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform, SearchMetrics
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, ConnectionData
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
+from elasticai.explorer.visualizer import Visualizer
 from settings import ROOT_DIR
 
 
