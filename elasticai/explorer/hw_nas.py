@@ -61,7 +61,7 @@ def evaluate_model(model: torch.nn.Module):
     global accuracy
     ##Parameter
     flops_weight = 0.5
-    n_epochs = 3
+    n_epochs = 2
 
     ##Cost-Estimation
     #flops as proxy metric for latency
@@ -96,11 +96,11 @@ def evaluate_model(model: torch.nn.Module):
 
     nni.report_final_result(metric)
 
-def search(search_space):
+def search(search_space, max_search_trials = 6):
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
-    exp.config.max_trial_number = 4
+    exp.config.max_trial_number = max_search_trials
     exp.run(port=8081)
     top_models = exp.export_top_models(top_k=1, formatter="instance")
     for model_dict in exp.export_top_models(formatter="dict"):
