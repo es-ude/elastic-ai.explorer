@@ -1,4 +1,4 @@
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, SearchMetrics
+from elasticai.explorer.knowledge_repository import KnowledgeRepository, Metrics
 import matplotlib.pyplot as plt
 import numpy as np
 from settings import ROOT_DIR
@@ -6,7 +6,7 @@ from settings import ROOT_DIR
 CONTEXT_PATH = ROOT_DIR / "plots"
 class Visualizer:
 
-    def __init__(self, metrics: SearchMetrics):
+    def __init__(self, metrics: Metrics):
         self.data = metrics.structured_metrics
         self.labels = metrics.structured_samples
 

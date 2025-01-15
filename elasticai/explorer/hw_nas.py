@@ -69,7 +69,6 @@ def evaluate_model(model: torch.nn.Module):
     flops = flops_estimator.estimate_flops_single_module()
 
     #set device to cpu to prevent memory error
-    #TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi
     device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -130,6 +129,7 @@ def search(search_space, max_search_trials = 6):
     exp.run(port=8081)
     top_models = exp.export_top_models(top_k=4, formatter="instance")
     
+    #TODO get all information search metrics, ids and samples here so that they are in order
     
     samples = []
     with open("metrics/metrics.json", "r") as f:
