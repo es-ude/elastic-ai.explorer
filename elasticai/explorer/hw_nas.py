@@ -96,7 +96,7 @@ def evaluate_model(model: torch.nn.Module):
 
     nni.report_final_result(metric)
 
-def search(search_space, max_search_trials = None):
+def search(search_space, max_search_trials = 6):
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
