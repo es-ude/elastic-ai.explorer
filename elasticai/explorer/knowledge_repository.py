@@ -29,10 +29,12 @@ class KnowledgeRepository:
 
 
 
-class SearchMetrics:
-    def __init__(self, path_to_metrics, path_to_samples):
+class Metrics:
+    def __init__(self, path_to_metrics: str, path_to_samples: str, accuracy_list: list, latency_list: list):
         self.raw_metrics = path_to_metrics
-        self.metric_list = None
+        self.raw_accuracies = accuracy_list
+        self.raw_latencies = latency_list
+
         with open(path_to_metrics, "r") as f:
             self.metric_list = json.load(f)
 
@@ -41,8 +43,8 @@ class SearchMetrics:
 
         self._structure()
 
-        print(self.metric_list)
-        print(self.sample_list)
+        # print(self.metric_list)
+        # print(self.sample_list)
 
         print(self.structured_metrics)
     
@@ -61,4 +63,10 @@ class SearchMetrics:
 
         for sample in self.sample_list:
             self.structured_samples.append(str(sample))
-        
+
+        for n, accuracy in enumerate(self.raw_accuracies):
+            self.structured_metrics[0][1][n] = float(accuracy) * 100
+            self.structured_metrics[2][1][n] = float(accuracy) * 100
+
+        for n, latency in enumerate(self.raw_latencies):
+            self.structured_metrics[1][1][n] = float(latency)/1000

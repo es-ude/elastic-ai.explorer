@@ -1,5 +1,5 @@
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform, SearchMetrics
+from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform, Metrics
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, ConnectionData
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
@@ -20,12 +20,12 @@ def setup_knowledge_repository():
     return knowledge_repository
 
 
-def find_generate_measure_for_pi(knowledge_repository, device_connection, max_search_trials):
+def find_generate_measure_for_pi(knowledge_repository, device_connection, max_search_trials) -> Metrics:
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
     top_models = explorer.search(max_search_trials)
-
+    
     explorer.hw_setup_on_target(device_connection)
     measurements_latency = []
     measurements_accuracy = []
@@ -42,9 +42,13 @@ def find_generate_measure_for_pi(knowledge_repository, device_connection, max_se
             explorer.run_accuracy_measurement(device_connection, model_path, data_path)
         )
     
-    print("Accuracy: ", explorer.run_accuracy_measurement(device_connection, model_path, data_path))
+
+
+    print("Accuracy: ", measure_accuracy)
         
-    print("Latency in Microseconds: ", measurements)
+    print("Latency in Microseconds: ", measure_latency)
+
+    return Metrics("metrics/metrics.json","models/models.json", measurements_accuracy, measurements_latency)
 
 
 def measure_latency(knowledge_repository, connection_data):
@@ -78,15 +82,15 @@ if __name__ == "__main__":
     ##Params
     host = "transfair.local"
     user = "robin"
-    max_search_trials = 2
+    max_search_trials = 4
 
 
 
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
-    #find_generate_measure_for_pi(knowledge_repo, device_connection, max_search_trials)
+    metry = find_generate_measure_for_pi(knowledge_repo, device_connection, max_search_trials)
     
-    metry = SearchMetrics("metrics/metrics.json","models/models.json")
+    
     visu = Visualizer(metry)
     visu.plot_all_results(filename="ploty")
     #measure_accuracy(knowledge_repo, device_connection)
