@@ -53,7 +53,7 @@ class Explorer:
         self.hw_manager.deploy_model(connection_info, path_to_model)
         return self.hw_manager.measure_latency(connection_info, path_to_model)
 
-    def verify_accuracy(
+    def run_accuracy_measurement(
         self,
         connection_info: ConnectionData,
         path_to_model,

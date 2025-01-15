@@ -27,19 +27,22 @@ def find_generate_measure_for_pi(knowledge_repository, device_connection, max_se
     top_models = explorer.search(max_search_trials)
 
     explorer.hw_setup_on_target(device_connection)
-    measurements = []
+    measurements_latency = []
+    measurements_accuracy = []
     for i, model in enumerate(top_models):
         train(model, 3)
         test(model)
         model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
-        measurements.append(
+        measurements_latency.append(
             explorer.run_latency_measurement(device_connection, model_path)
         )
-
+        measurements_accuracy.append(
+            explorer.run_accuracy_measurement(device_connection, model_path, data_path)
+        )
     
-    print("Accuracy: ", explorer.verify_accuracy(device_connection, model_path, data_path))
+    print("Accuracy: ", explorer.run_accuracy_measurement(device_connection, model_path, data_path))
         
     print("Latency in Microseconds: ", measurements)
 
@@ -62,7 +65,7 @@ def measure_accuracy(knowledge_repository, connection_data):
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
     
-    print("Accuracy: ", explorer.verify_accuracy(device_connection, model_path, data_path))
+    print("Accuracy: ", explorer.run_accuracy_measurement(device_connection, model_path, data_path))
         
 
 
@@ -75,13 +78,17 @@ if __name__ == "__main__":
     ##Params
     host = "transfair.local"
     user = "robin"
-    max_search_trials = 1
+    max_search_trials = 2
 
 
 
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
-    find_generate_measure_for_pi(knowledge_repo, device_connection, max_search_trials)
+    #find_generate_measure_for_pi(knowledge_repo, device_connection, max_search_trials)
+    
+    metry = SearchMetrics("metrics/metrics.json","models/models.json")
+    visu = Visualizer(metry)
+    visu.plot_all_results(filename="ploty")
     #measure_accuracy(knowledge_repo, device_connection)
     #measure_latency(knowledge_repo, device_connection)
     
