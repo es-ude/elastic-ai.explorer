@@ -41,7 +41,7 @@ class Explorer:
     def hw_setup_on_target(self,
         connection_info: ConnectionData,
     ):
-        self.hw_manager.install_model_runner_on_target(connection_info)
+        self.hw_manager.install_latency_measurement_on_target(connection_info)
         self.hw_manager.install_accuracy_measurement_on_target(connection_info)
 
     def run_measurement(

@@ -27,7 +27,7 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def install_model_runner_on_target(
+    def install_latency_measurement_on_target(
         self, connection_info: ConnectionData, path_to_program=None
     ):
         pass
@@ -62,7 +62,7 @@ class PIHWManager(HWManager):
             output={"type": "local", "dest": CONTEXT_PATH / "bin"},
         )
 
-    def install_model_runner_on_target(
+    def install_latency_measurement_on_target(
         self, connection_info: ConnectionData, path_to_program: str = None
     ):
         if path_to_program is None:
