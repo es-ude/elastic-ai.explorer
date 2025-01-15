@@ -19,7 +19,7 @@ def setup_knowledge_repository():
     return knowledge_repository
 
 
-def find_and_generate_for_pi(knowledge_repository, device_connection, max_search_trials):
+def find_generate_measure_for_pi(knowledge_repository, device_connection, max_search_trials):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
@@ -37,13 +37,13 @@ def find_and_generate_for_pi(knowledge_repository, device_connection, max_search
             explorer.run_latency_measurement(device_connection, model_path)
         )
 
-    measurements.append(
-            explorer.verify_accuracy(device_connection, model_path, data_path)
-        )
-    print(measurements)
+    
+    print("Accuracy: ", explorer.verify_accuracy(device_connection, model_path, data_path))
+        
+    print("Latency in Microseconds: ", measurements)
 
 
-def take_measurements(knowledge_repository, connection_data):
+def measure_latency(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     measurements = []
@@ -53,17 +53,16 @@ def take_measurements(knowledge_repository, connection_data):
         measurements.append(explorer.run_latency_measurement(connection_data, model_path))
     print(measurements)
 
-def verify_model(knowledge_repository, connection_data):
+def measure_accuracy(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target(device_connection)
     measurements = []
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
-    measurements.append(
-            explorer.verify_accuracy(device_connection, model_path , data_path)
-        )
-    print(measurements)
+    
+    print("Accuracy: ", explorer.verify_accuracy(device_connection, model_path, data_path))
+        
 
 
 def prepare_pi():
@@ -81,7 +80,7 @@ if __name__ == "__main__":
 
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
-    find_and_generate_for_pi(knowledge_repo, device_connection, max_search_trials)
-    #verify_model(knowledge_repo, device_connection)
-    #take_measurements(knowledge_repo, device_connection)
-    #find_and_generate_for_pi(knowledge_repo, None)
+    find_generate_measure_for_pi(knowledge_repo, device_connection, max_search_trials)
+    #measure_accuracy(knowledge_repo, device_connection)
+    #measure_latency(knowledge_repo, device_connection)
+    
