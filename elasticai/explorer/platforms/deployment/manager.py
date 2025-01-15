@@ -145,22 +145,5 @@ class PIHWManager(HWManager):
         return measurement
     
 
-    # def _getcommand_latency(self, path_to_model: str):
-    #     _, tail = os.path.split(path_to_model)
-    #     return "./measure_latency {}".format(tail)
-
-    # def _getcommand_accuracy(self, path_to_model: str, path_to_data: str):
-    #     _, model_tail = os.path.split(path_to_model)
-    #     _, data_tail = os.path.split(path_to_data)
-    #     return "./measure_accuracy {} {}".format(model_tail, data_tail)
-
-    # def _parse_measurement_latency(self, result: Result) -> int:
-    #     experiment_result = re.search("Inference Time: (.*) us", result.stdout)
-    #     return int(experiment_result.group(1))
-
-    # def _parse_measurement_accuracy(self, result: Result) -> float:
-    #     experiment_result = re.search("Accuracy: (.*)", result.stdout)
-    #     return experiment_result.group(1)
-
     def _wasSuccessful(self, result: Result) -> bool:
         return result.ok
