@@ -24,6 +24,8 @@ def find_and_generate_for_pi(knowledge_repository, device_connection, max_search
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
     top_models = explorer.search(max_search_trials)
+
+    explorer.hw_setup_on_target(device_connection)
     measurements = []
     for i, model in enumerate(top_models):
         train(model, 3)
@@ -46,6 +48,7 @@ def take_measurements(knowledge_repository, connection_data):
     explorer.choose_target_hw("rpi5")
     measurements = []
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
+    explorer.hw_setup_on_target(device_connection)
     for i in range(20):
         measurements.append(explorer.run_measurement(connection_data, model_path))
     print(measurements)
@@ -53,6 +56,7 @@ def take_measurements(knowledge_repository, connection_data):
 def verify_model(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
+    explorer.hw_setup_on_target(device_connection)
     measurements = []
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"

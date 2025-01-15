@@ -37,6 +37,12 @@ class Explorer:
 
     def generate_for_hw_platform(self, model, path):
         return self.generator.generate(model, path)
+    
+    def hw_setup_on_target(self,
+        connection_info: ConnectionData,
+    ):
+        self.hw_manager.install_model_runner_on_target(connection_info)
+        self.hw_manager.install_accuracy_measurement_on_target(connection_info)
 
     def run_measurement(
         self,
@@ -44,7 +50,7 @@ class Explorer:
         path_to_model,
     ) -> int:
         
-        self.hw_manager.install_model_runner_on_target(connection_info)
+        
         return self.hw_manager.deploy_model_and_evaluate(connection_info, path_to_model)
 
     def verify_accuracy(
@@ -53,5 +59,5 @@ class Explorer:
         path_to_model,
         path_to_data
     ) -> int:
-        self.hw_manager.install_accuracy_measurement_on_target(connection_info)
+        
         return self.hw_manager.deploy_model_and_measure_accuracy(connection_info, path_to_model, path_to_data)
