@@ -51,7 +51,7 @@ def measure_latency(knowledge_repository, connection_data):
     explorer.hw_setup_on_target(device_connection)
     for i in range(20):
         measurements.append(explorer.run_latency_measurement(connection_data, model_path))
-    print(measurements)
+    print("Latencies: ", measurements)
 
 def measure_accuracy(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
