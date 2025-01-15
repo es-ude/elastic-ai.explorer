@@ -21,7 +21,7 @@ class ConnectionData:
 class HWManager(ABC):
 
     @abstractmethod
-    def deploy_model_and_evaluate(
+    def measure_latency(
         self, connection_info: ConnectionData, path_to_model
     ) -> int:
         pass
@@ -38,8 +38,13 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def deploy_model_and_measure_accuracy(
+    def measure_accuracy(
         self, connection_info: ConnectionData, path_to_model: str,  path_to_data: str
+    ) -> int:
+        pass
+    @abstractmethod
+    def deploy_model(
+        self, connection_info: ConnectionData, path_to_model: str
     ) -> int:
         pass
 
@@ -88,12 +93,13 @@ class PIHWManager(HWManager):
 
     
 
-    def deploy_model_and_evaluate(
+    def measure_latency(
         self, connection_info: ConnectionData, path_to_model: str
     ) -> int:
         
-        self._deploy_model(connection_info, path_to_model)
+        
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
+        
             result = conn.run(self._getcommand_eval(path_to_model), hide=True)
             if self._wasSuccessful(result):
                 measurement = self._parse_measurement_eval(result)
@@ -101,12 +107,12 @@ class PIHWManager(HWManager):
                 raise Exception(result.stderr)
         return measurement
 
-    def deploy_model_and_measure_accuracy(
+    def measure_accuracy(
         self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
     ) -> int:
         
-        self._deploy_model(connection_info, path_to_model)
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
+            
             result = conn.run(self._getcommand_verify(path_to_model, path_to_data), hide=True)
             if self._wasSuccessful(result):
                 measurement = self._parse_measurement_verify(result)
@@ -114,8 +120,7 @@ class PIHWManager(HWManager):
                 raise Exception(result.stderr)
         return measurement
     
-    def _deploy_model(self, connection_info: ConnectionData, path_to_model: str):
-        
+    def deploy_model(self, connection_info: ConnectionData, path_to_model: str):
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_model)
             
