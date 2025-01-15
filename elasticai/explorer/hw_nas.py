@@ -61,7 +61,7 @@ def evaluate_model(model: torch.nn.Module):
     global accuracy
     ##Parameter
     flops_weight = 0.5
-    n_epochs = 3
+    n_epochs = 1
 
     ##Cost-Estimation
     #flops as proxy metric for latency
