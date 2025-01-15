@@ -49,15 +49,16 @@ class SearchMetrics:
     def _structure(self):
 
         number_of_models = len(self.sample_list)
-        self.structured_metrics =  np.reshape(np.arange(0,3*2*number_of_models,1), [3,2,number_of_models])
-
+        self.structured_metrics =  np.reshape(np.arange(0,3*2*number_of_models,1, dtype=float), [3,2,number_of_models])
+        self.structured_samples = []
         #first dimension accuracy, Latency, Combined
         #second dimension estimation, measured
         #third dimension sample number 
         for n, metric in enumerate(self.metric_list):
-
             self.structured_metrics[0][0][n] = metric["accuracy"]
             self.structured_metrics[1][0][n] = metric["flops log10"]
             self.structured_metrics[2][0][n] = metric["default"]
-        
+
+        for sample in self.sample_list:
+            self.structured_samples.append(str(sample))
         

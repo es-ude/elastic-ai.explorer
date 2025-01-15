@@ -130,19 +130,6 @@ def search(search_space, max_search_trials = 6):
     exp.run(port=8081)
     top_models = exp.export_top_models(top_k=4, formatter="instance")
     
-
-    ###TODO get trial id for the top_k models
-    # state_dict = exp.strategy.state_dict()
-
-    # print(state_dict['dedup_history'])
-    # data = []
-    # for model_dict in exp.export_top_models(top_k=4, formatter="dict"):
-
-    #     data.append(model_dict)
-
-    # # write list to file
-    # with open('models/models.json', 'w') as outfile:
-    #     json.dump(data, outfile)
     
     samples = []
     with open("metrics/metrics.json", "r") as f:
