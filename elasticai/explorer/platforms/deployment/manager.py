@@ -96,15 +96,9 @@ class PIHWManager(HWManager):
     def measure_latency(
         self, connection_info: ConnectionData, path_to_model: str
     ) -> int:
-        
-        
+    
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
-        
-            result = conn.run(self._getcommand_eval(path_to_model), hide=True)
-            if self._wasSuccessful(result):
-                measurement = self._parse_measurement_eval(result)
-            else:
-                raise Exception(result.stderr)
+            measurement = self._run_latency(conn, path_to_model)
         return measurement
 
     def measure_accuracy(
@@ -112,35 +106,61 @@ class PIHWManager(HWManager):
     ) -> int:
         
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
-            
-            result = conn.run(self._getcommand_verify(path_to_model, path_to_data), hide=True)
-            if self._wasSuccessful(result):
-                measurement = self._parse_measurement_verify(result)
-            else:
-                raise Exception(result.stderr)
+            measurement = self._run_accuracy(conn, path_to_model, path_to_data)
         return measurement
     
+
     def deploy_model(self, connection_info: ConnectionData, path_to_model: str):
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_model)
-            
 
-    def _getcommand_eval(self, path_to_model: str):
-        _, tail = os.path.split(path_to_model)
-        return "./measure_latency {}".format(tail)
 
-    def _getcommand_verify(self, path_to_model: str, path_to_data: str):
+    def _run_accuracy(self, conn: Connection, path_to_model: str, path_to_data: str) -> float:
+
         _, model_tail = os.path.split(path_to_model)
         _, data_tail = os.path.split(path_to_data)
-        return "./measure_accuracy {} {}".format(model_tail, data_tail)
+        command  = "./measure_accuracy {} {}".format(model_tail, data_tail)
+    
+        result = conn.run(command, hide=True)
+        if self._wasSuccessful(result):
+            experiment_result = re.search("Accuracy: (.*)", result.stdout)
+            measurement = experiment_result.group(1)
+        else:
+            raise Exception(result.stderr)
+        return measurement
+    
 
-    def _parse_measurement_eval(self, result: Result) -> int:
-        experiment_result = re.search("Inference Time: (.*) us", result.stdout)
-        return int(experiment_result.group(1))
 
-    def _parse_measurement_verify(self, result: Result) -> float:
-        experiment_result = re.search("Accuracy: (.*)", result.stdout)
-        return experiment_result.group(1)
+    def _run_latency(self, conn: Connection, path_to_model: str) -> int:
+
+        _, tail = os.path.split(path_to_model)
+        command =  "./measure_latency {}".format(tail)
+    
+        result = conn.run(command, hide=True)
+        if self._wasSuccessful(result):
+            experiment_result = re.search("Inference Time: (.*) us", result.stdout)
+            measurement = int(experiment_result.group(1))
+        else:
+            raise Exception(result.stderr)
+        return measurement
+    
+
+    # def _getcommand_latency(self, path_to_model: str):
+    #     _, tail = os.path.split(path_to_model)
+    #     return "./measure_latency {}".format(tail)
+
+    # def _getcommand_accuracy(self, path_to_model: str, path_to_data: str):
+    #     _, model_tail = os.path.split(path_to_model)
+    #     _, data_tail = os.path.split(path_to_data)
+    #     return "./measure_accuracy {} {}".format(model_tail, data_tail)
+
+    # def _parse_measurement_latency(self, result: Result) -> int:
+    #     experiment_result = re.search("Inference Time: (.*) us", result.stdout)
+    #     return int(experiment_result.group(1))
+
+    # def _parse_measurement_accuracy(self, result: Result) -> float:
+    #     experiment_result = re.search("Accuracy: (.*)", result.stdout)
+    #     return experiment_result.group(1)
 
     def _wasSuccessful(self, result: Result) -> bool:
         return result.ok
