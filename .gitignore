@@ -13,6 +13,10 @@ docker/bin
 
 #plots
 plots/
+
+#metrics
+metrics/
+
 #libtorch 
 docker/code/libtorch
 
