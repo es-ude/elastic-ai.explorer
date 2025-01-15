@@ -21,15 +21,31 @@ class ConnectionData:
 class HWManager(ABC):
 
     @abstractmethod
-    def deploy_model_and_evaluate(
-            self, connection_info: ConnectionData, path_to_model
+    def measure_latency(
+        self, connection_info: ConnectionData, path_to_model
     ) -> int:
         pass
 
     @abstractmethod
-    def install_model_runner_on_target(
-            self, connection_info: ConnectionData, path_to_program=None
+    def install_latency_measurement_on_target(
+        self, connection_info: ConnectionData, path_to_program=None
     ):
+        pass
+
+    @abstractmethod
+    def install_accuracy_measurement_on_target(self, connection_info: ConnectionData, path_to_program: str = None
+    ):
+        pass
+
+    @abstractmethod
+    def measure_accuracy(
+        self, connection_info: ConnectionData, path_to_model: str,  path_to_data: str
+    ) -> int:
+        pass
+    @abstractmethod
+    def deploy_model(
+        self, connection_info: ConnectionData, path_to_model: str
+    ) -> int:
         pass
 
 
@@ -51,35 +67,83 @@ class PIHWManager(HWManager):
             output={"type": "local", "dest": CONTEXT_PATH / "bin"},
         )
 
-    def install_model_runner_on_target(
-            self, connection_info: ConnectionData, path_to_program: str = None
+    def install_latency_measurement_on_target(
+        self, connection_info: ConnectionData, path_to_program: str = None
     ):
         if path_to_program is None:
+            path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
             self.compile_code()
-            path_to_program = CONTEXT_PATH + "/bin"
+
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_program)
 
-    def deploy_model_and_evaluate(
-            self, connection_info: ConnectionData, path_to_model: str
+
+    def install_accuracy_measurement_on_target(self, connection_info: ConnectionData, path_to_program: str = None, path_to_data: str = None):
+        if path_to_program is None:
+            path_to_program = str(CONTEXT_PATH) + "/bin/measure_accuracy"
+            self.compile_code()
+
+        if path_to_data is None:
+            path_to_data = str(CONTEXT_PATH) + "/data/mnist.zip"
+            
+        with Connection(host=connection_info.host, user=connection_info.user) as conn:
+            conn.put(path_to_program)
+            conn.put(path_to_data)
+            conn.run(f"unzip -q -o {os.path.split(path_to_data)[-1]}")
+
+    
+
+    def measure_latency(
+        self, connection_info: ConnectionData, path_to_model: str
     ) -> int:
+    
+        with Connection(host=connection_info.host, user=connection_info.user) as conn:
+            measurement = self._run_latency(conn, path_to_model)
+        return measurement
+
+    def measure_accuracy(
+        self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
+    ) -> int:
+        
+        with Connection(host=connection_info.host, user=connection_info.user) as conn:
+            measurement = self._run_accuracy(conn, path_to_model, path_to_data)
+        return measurement
+    
+
+    def deploy_model(self, connection_info: ConnectionData, path_to_model: str):
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_model)
 
-            result = conn.run(self._getcommand(path_to_model), hide=False)
-            if self._wasSuccessful(result):
-                measurement = self._parse_measurement(result)
-            else:
-                raise Exception(result.stderr)
+
+    def _run_accuracy(self, conn: Connection, path_to_model: str, path_to_data: str) -> float:
+
+        _, model_tail = os.path.split(path_to_model)
+        _, data_tail = os.path.split(path_to_data)
+        command  = "./measure_accuracy {} {}".format(model_tail, data_tail)
+    
+        result = conn.run(command, hide=True)
+        if self._wasSuccessful(result):
+            experiment_result = re.search("Accuracy: (.*)", result.stdout)
+            measurement = experiment_result.group(1)
+        else:
+            raise Exception(result.stderr)
         return measurement
+    
 
-    def _getcommand(self, path_to_model: str):
+
+    def _run_latency(self, conn: Connection, path_to_model: str) -> int:
+
         _, tail = os.path.split(path_to_model)
-        return "./measure_latency {}".format(tail)
-
-    def _parse_measurement(self, result: Result) -> int:
-        experiment_result = re.search("Inference Time: (.*) us", result.stdout)
-        return int(experiment_result.group(1))
+        command =  "./measure_latency {}".format(tail)
+    
+        result = conn.run(command, hide=True)
+        if self._wasSuccessful(result):
+            experiment_result = re.search("Inference Time: (.*) us", result.stdout)
+            measurement = int(experiment_result.group(1))
+        else:
+            raise Exception(result.stderr)
+        return measurement
+    
 
     def _wasSuccessful(self, result: Result) -> bool:
         return result.ok
