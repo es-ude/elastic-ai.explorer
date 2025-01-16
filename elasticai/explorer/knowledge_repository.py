@@ -79,6 +79,6 @@ class Metrics:
             self.structured_est_metrics[0][1][n] = float(accuracy) * 100
             self.structured_est_metrics[2][1][n] = float(accuracy) * 100
 
-        #Latency in ms
+        #Latency in milliseconds
         for n, latency in enumerate(self.raw_measured_latencies):
             self.structured_est_metrics[1][1][n] = float(latency)/1000

@@ -61,10 +61,10 @@ class Visualizer:
 
         #FLOPS Proxy vs Latency on Pi
         axes[1].bar(x=indices, height = self.data[1][0][:], width = bar_width,label= "FLOPs Estimation in Log10")
-        axes[1].bar(x=indices+bar_width, height = self.data[1][1][:], width = bar_width,label= "Latency in Mircosec.")
+        axes[1].bar(x=indices+bar_width, height = self.data[1][1][:], width = bar_width,label= "Latency in Milliseconds")
         axes[1].set_xlabel("Sample")
-        axes[1].set_ylabel("Number FlOPs log10 and Latency in ms")
-        axes[1].set_title(f"Latency Proxy-Estimation vs Measured Latency: Kendall's tau = {kendall_coef_latencies}")
+        axes[1].set_ylabel("Number FLOPs log10 and Latency in ms")
+        axes[1].set_title(f"FLOPs Proxy-Estimation vs Measured Latency: Kendall's tau = {kendall_coef_latencies}")
 
         #Combined Metric, accuracy-estimation and flops estimation
         axes[2].bar(x=indices, height = self.data[2][0][:], width = bar_width, label= "Combined Metric")
