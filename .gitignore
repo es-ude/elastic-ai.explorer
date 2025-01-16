@@ -10,7 +10,7 @@ __pycache__/
 /data/
 docker/bin
 /docker/code/libtorch
-
+.DS_Store
 #plots
 plots/
 
