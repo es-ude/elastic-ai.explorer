@@ -7,6 +7,7 @@ from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatf
 from elasticai.explorer.platforms.deployment.manager import HWManager, ConnectionData
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
+import numpy as np
 
 
 class Explorer:
@@ -48,10 +49,16 @@ class Explorer:
         self,
         connection_info: ConnectionData,
         path_to_model,
+        sample_size = 5
     ) -> int:
         
         self.hw_manager.deploy_model(connection_info, path_to_model)
-        return self.hw_manager.measure_latency(connection_info, path_to_model)
+        latencies = np.zeros(sample_size)
+
+        for i in range(len(latencies)):
+            latencies[i] = float(self.hw_manager.measure_latency(connection_info, path_to_model))
+
+        return latencies.mean(), latencies.std()
 
     def run_accuracy_measurement(
         self,

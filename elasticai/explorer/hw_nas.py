@@ -122,9 +122,6 @@ def search(search_space, max_search_trials = 6, top_k = 4):
     exp.config.max_trial_number = max_search_trials
     exp.run(port=8081)
     top_models = exp.export_top_models(top_k=top_k, formatter="instance")
-
-
-
     top_parameters = exp.export_top_models(top_k=top_k, formatter="dict")
     test_results = exp.export_data()
     
