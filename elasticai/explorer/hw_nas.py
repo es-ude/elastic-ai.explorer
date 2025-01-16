@@ -69,7 +69,6 @@ def evaluate_model(model: torch.nn.Module):
     flops = flops_estimator.estimate_flops_single_module()
 
     #set device to cpu to prevent memory error
-    #TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi
     device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -94,17 +93,57 @@ def evaluate_model(model: torch.nn.Module):
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
 
+
+    #metric["id"] = nni.get_trial_id()
+    
     nni.report_final_result(metric)
 
-def search(search_space, max_search_trials = 6):
+    # data = json.load(open('metrics/metrics.json'))
+
+    # # convert data to list if not
+    # if type(data) is dict:
+    #     data = []
+
+    #     # append new item to data
+    # data.append(metric)
+
+    # # write list to file
+    # with open('metrics/metrics.json', 'w') as outfile:
+    #     json.dump(data, outfile)
+    
+
+
+def search(search_space, max_search_trials = 6, top_k = 4):
+
+
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
     exp.config.max_trial_number = max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=1, formatter="instance")
-    for model_dict in exp.export_top_models(formatter="dict"):
-        print(model_dict)
-        with open("models/models.json", "w") as f:
-            json.dump(model_dict, f)
+    top_models = exp.export_top_models(top_k=top_k, formatter="instance")
+    top_parameters = exp.export_top_models(top_k=top_k, formatter="dict")
+    test_results = exp.export_data()
+    
+
+    #sorting the metrics, parameters in the top_k order
+    parameters = list(range(len(top_parameters)))
+    metrics = list(range(len(top_parameters)))
+    for trial in test_results:
+        for i, top_parameter in enumerate(top_parameters):
+            if trial.parameter["sample"] == top_parameter:
+
+                parameters[i]= trial.parameter["sample"] 
+                
+                metrics[i] = trial.value
+    
+
+    with open('models/models.json', 'w') as outfile:
+        json.dump(parameters, outfile)
+    with open("metrics/metrics.json", "w") as f:
+        json.dump(metrics, f)
+    
+    
+    
+
     return top_models
