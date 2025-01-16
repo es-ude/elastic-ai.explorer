@@ -94,55 +94,58 @@ def evaluate_model(model: torch.nn.Module):
         nni.report_intermediate_result(metric)
 
 
-    metric["id"] = nni.get_trial_id()
+    #metric["id"] = nni.get_trial_id()
     
     nni.report_final_result(metric)
 
-    data = json.load(open('metrics/metrics.json'))
+    # data = json.load(open('metrics/metrics.json'))
 
-    # convert data to list if not
-    if type(data) is dict:
-        data = []
+    # # convert data to list if not
+    # if type(data) is dict:
+    #     data = []
 
-        # append new item to data
-    data.append(metric)
+    #     # append new item to data
+    # data.append(metric)
 
-    # write list to file
-    with open('metrics/metrics.json', 'w') as outfile:
-        json.dump(data, outfile)
+    # # write list to file
+    # with open('metrics/metrics.json', 'w') as outfile:
+    #     json.dump(data, outfile)
     
 
 
-def search(search_space, max_search_trials = 6):
+def search(search_space, max_search_trials = 6, top_k = 4):
 
-    #clear logging data
-    empty_dict = {}
-    with open("models/models.json", "w") as f:
-        json.dump(empty_dict, f)
-    with open("metrics/metrics.json", "w") as f:
-        json.dump(empty_dict, f)
 
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
     exp.config.max_trial_number = max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=4, formatter="instance")
+    top_models = exp.export_top_models(top_k=top_k, formatter="instance")
+
+
+
+    top_parameters = exp.export_top_models(top_k=top_k, formatter="dict")
+    test_results = exp.export_data()
     
-    #TODO get all information search metrics, ids and samples here so that they are in order
+
+    #sorting the metrics, parameters in the top_k order
+    parameters = list(range(len(top_parameters)))
+    metrics = list(range(len(top_parameters)))
+    for trial in test_results:
+        for i, top_parameter in enumerate(top_parameters):
+            if trial.parameter["sample"] == top_parameter:
+
+                parameters[i]= trial.parameter["sample"] 
+                
+                metrics[i] = trial.value
     
-    samples = []
-    with open("metrics/metrics.json", "r") as f:
-        
-        
-        metrics = json.load(f)
-        for trial in metrics:
-            id = trial["id"]
-            trial_job = exp.get_trial_job(id).hyperParameters[0].parameters["sample"]
-            samples.append(trial_job)
 
     with open('models/models.json', 'w') as outfile:
-        json.dump(samples, outfile)
+        json.dump(parameters, outfile)
+    with open("metrics/metrics.json", "w") as f:
+        json.dump(metrics, f)
+    
     
     
 

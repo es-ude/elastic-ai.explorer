@@ -20,6 +20,12 @@ def setup_knowledge_repository():
     return knowledge_repository
 
 
+def find_for_pi(knowledge_repository, max_search_trials):
+    explorer = Explorer(knowledge_repository)
+    explorer.choose_target_hw("rpi5")
+    explorer.generate_search_space()
+    top_models = explorer.search(max_search_trials)
+
 def find_generate_measure_for_pi(knowledge_repository, device_connection, max_search_trials) -> Metrics:
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
@@ -56,7 +62,7 @@ def measure_latency(knowledge_repository, connection_data):
     explorer.choose_target_hw("rpi5")
     measurements = []
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
-    explorer.hw_setup_on_target(device_connection)
+    explorer.hw_setup_on_target(connection_data)
     for i in range(20):
         measurements.append(explorer.run_latency_measurement(connection_data, model_path))
     print("Latencies: ", measurements)
@@ -64,12 +70,12 @@ def measure_latency(knowledge_repository, connection_data):
 def measure_accuracy(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
-    explorer.hw_setup_on_target(device_connection)
+    explorer.hw_setup_on_target(connection_data)
     measurements = []
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
     
-    print("Accuracy: ", explorer.run_accuracy_measurement(device_connection, model_path, data_path))
+    print("Accuracy: ", explorer.run_accuracy_measurement(connection_data, model_path, data_path))
         
 
 
@@ -87,12 +93,12 @@ if __name__ == "__main__":
 
 
     knowledge_repo = setup_knowledge_repository()
-    device_connection = ConnectionData(host, user)
-    metry = find_generate_measure_for_pi(knowledge_repo, device_connection, max_search_trials)
+    #device_connection = ConnectionData(host, user)
+    # metry = find_generate_measure_for_pi(knowledge_repo, device_connection, max_search_trials)
+    find_for_pi(knowledge_repo, max_search_trials)
     
-    
-    visu = Visualizer(metry)
-    visu.plot_all_results(filename="ploty")
+    # visu = Visualizer(metry)
+    # visu.plot_all_results(filename="ploty")
     #measure_accuracy(knowledge_repo, device_connection)
     #measure_latency(knowledge_repo, device_connection)
     
