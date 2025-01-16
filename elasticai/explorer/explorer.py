@@ -1,5 +1,6 @@
 from typing import Optional
 
+import numpy as np
 from torch import nn
 
 from elasticai.explorer import hw_nas
@@ -7,7 +8,6 @@ from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatf
 from elasticai.explorer.platforms.deployment.manager import HWManager, ConnectionData
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
-import numpy as np
 
 
 class Explorer:
@@ -20,7 +20,6 @@ class Explorer:
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
 
-
     def set_default_model(self, model: nn.Module):
         self.default_model = model
 
@@ -32,40 +31,37 @@ class Explorer:
         self.generator: Generator = self.target_hw.model_generator()
         self.hw_manager: HWManager = self.target_hw.platform_manager()
 
-    def search(self, max_search_trials):
-        top_models = hw_nas.search(self.search_space, max_search_trials)
+    def search(self, max_search_trials, top_k):
+        top_models = hw_nas.search(self.search_space, max_search_trials, top_k)
         return top_models
 
     def generate_for_hw_platform(self, model, path):
         return self.generator.generate(model, path)
-    
-    def hw_setup_on_target(self,
-        connection_info: ConnectionData,
+
+    def hw_setup_on_target(
+            self,
+            connection_info: ConnectionData,
     ):
         self.hw_manager.install_latency_measurement_on_target(connection_info)
         self.hw_manager.install_accuracy_measurement_on_target(connection_info)
 
     def run_latency_measurement(
-        self,
-        connection_info: ConnectionData,
-        path_to_model,
-        sample_size = 5
+            self, connection_info: ConnectionData, path_to_model, sample_size=5
     ) -> int:
-        
         self.hw_manager.deploy_model(connection_info, path_to_model)
         latencies = np.zeros(sample_size)
 
         for i in range(len(latencies)):
-            latencies[i] = float(self.hw_manager.measure_latency(connection_info, path_to_model))
+            latencies[i] = float(
+                self.hw_manager.measure_latency(connection_info, path_to_model)
+            )
 
         return latencies.mean(), latencies.std()
 
     def run_accuracy_measurement(
-        self,
-        connection_info: ConnectionData,
-        path_to_model,
-        path_to_data
+            self, connection_info: ConnectionData, path_to_model, path_to_data
     ) -> int:
-        
         self.hw_manager.deploy_model(connection_info, path_to_model)
-        return self.hw_manager.measure_accuracy(connection_info, path_to_model, path_to_data)
+        return self.hw_manager.measure_accuracy(
+            connection_info, path_to_model, path_to_data
+        )
