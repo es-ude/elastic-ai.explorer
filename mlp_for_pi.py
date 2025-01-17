@@ -127,11 +127,11 @@ if __name__ == "__main__":
         os.makedirs("metrics")
 
     ##Params
-    host = "transfair.es.lan"
-    user = "robin"
+    host = "transpi5.local"
+    user = "ies"
     # 60 possible
-    max_search_trials = 4
-    top_k = 4
+    max_search_trials = 10
+    top_k = 3
 
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
