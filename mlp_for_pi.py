@@ -1,4 +1,6 @@
+import logging
 import os
+from logging import config
 
 from scipy.stats import kendalltau
 
@@ -13,6 +15,9 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
 from elasticai.explorer.visualizer import Visualizer
 from settings import ROOT_DIR
+
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
 
 
 def setup_knowledge_repository():
@@ -62,9 +67,9 @@ def find_generate_measure_for_pi(
             explorer.run_accuracy_measurement(device_connection, model_path, data_path)
         )
 
-    print("Accuracy: ", measurements_accuracy)
-
-    print("Latency in Microseconds: ", measurements_latency_mean)
+    logger.info("Accuracy: %s", measurements_accuracy)
+    floats = [float(np_float) for np_float in measurements_latency_mean]
+    logger.info("Latency in Microseconds: %s", floats)
 
     return Metrics(
         "metrics/metrics.json",
@@ -81,8 +86,8 @@ def measure_latency(knowledge_repository, connection_data):
     explorer.hw_setup_on_target(connection_data)
 
     mean, std = explorer.run_latency_measurement(connection_data, model_path)
-    print("Mean Latency: ", mean)
-    print("Std Latency: ", std)
+    logger.info("Mean Latency: %.2f", mean)
+    logger.info("Std Latency: %.2f", std)
 
 
 def measure_accuracy(knowledge_repository, connection_data):
@@ -92,8 +97,8 @@ def measure_accuracy(knowledge_repository, connection_data):
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
 
-    print(
-        "Accuracy: ",
+    logger.info(
+        "Accuracy: %.2f",
         explorer.run_accuracy_measurement(connection_data, model_path, data_path),
     )
 
@@ -116,37 +121,33 @@ def compute_kandell(metrics: Metrics):
 
     # Calculating Kendall Rank correlation
     corr, _ = kendalltau(measured_latency_rank, est_flops_rank)
-    print("Kendall Rank correlation: %.5f" % corr)
+    print(corr)
+    logger.info("Kendall Rank correlation: %.5f", corr)
 
 
-if __name__ == "__main__":
-
+def make_dirs_if_not_exists():
     if not os.path.exists("plots"):
         os.makedirs("plots")
     if not os.path.exists("metrics"):
         os.makedirs("metrics")
 
-    ##Params
+
+if __name__ == "__main__":
+    make_dirs_if_not_exists()
+
     host = "transpi5.local"
     user = "ies"
     # 60 possible
-    max_search_trials = 10
+    max_search_trials = 4
     top_k = 3
-
+    measure_accuracy = 3
+    logger.info("Accuracy: %i", measure_accuracy)
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
     metry = find_generate_measure_for_pi(
         knowledge_repo, device_connection, max_search_trials, top_k
     )
-    # find_for_pi(knowledge_repo, max_search_trials)
-
     visu = Visualizer(metry)
     visu.plot_all_results(filename="ploty")
 
     compute_kandell(metrics=metry)
-
-    # Import required libraries
-
-# This code is contributed by Amiya Rout
-# measure_accuracy(knowledge_repo, device_connection)
-# measure_latency(knowledge_repo, device_connection)
