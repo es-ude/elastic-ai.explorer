@@ -13,8 +13,9 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer.cost_estimator import FlopsEstimator
 
+
 def train_epoch(
-        model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
+    model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
 ):
     loss_fn = nn.CrossEntropyLoss()
     model.train(True)
@@ -64,12 +65,12 @@ def evaluate_model(model: torch.nn.Module):
     n_epochs = 2
 
     ##Cost-Estimation
-    #flops as proxy metric for latency
-    flops_estimator = FlopsEstimator(model_space= model)
-    flops = flops_estimator.estimate_flops_single_module()
+    # flops as proxy metric for latency
+    flops_estimator = FlopsEstimator()
+    flops = flops_estimator.estimate_flops_single_module(model)
 
-    #set device to cpu to prevent memory error
-    #TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi
+    # set device to cpu to prevent memory error
+    # TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi
     device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -85,7 +86,7 @@ def evaluate_model(model: torch.nn.Module):
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
 
-    metric = {"default": 0, "accuracy" : 0, "flops log10": math.log10(flops)}
+    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         train_epoch(model, device, train_loader, optimizer, epoch)
 
@@ -96,7 +97,8 @@ def evaluate_model(model: torch.nn.Module):
 
     nni.report_final_result(metric)
 
-def search(search_space, max_search_trials = 6):
+
+def search(search_space, max_search_trials=6):
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
