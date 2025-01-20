@@ -46,7 +46,7 @@ class Explorer:
         self.hw_manager.install_accuracy_measurement_on_target(connection_info)
 
     def run_latency_measurement(
-            self, connection_info: ConnectionData, path_to_model, sample_size=5
+            self, connection_info: ConnectionData, path_to_model, sample_size=1
     ) -> int:
         self.hw_manager.deploy_model(connection_info, path_to_model)
         latencies = np.zeros(sample_size)
