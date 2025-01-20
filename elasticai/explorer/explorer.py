@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 import numpy as np
@@ -13,6 +14,7 @@ from elasticai.explorer.search_space import MLP
 class Explorer:
 
     def __init__(self, knowledge_repository: KnowledgeRepository):
+        self.logger = logging.getLogger("explorer")
         self.default_model: Optional[nn.Module] = None
         self.target_hw: Optional[HWPlatform] = None
         self.knowledge_repository = knowledge_repository
@@ -25,13 +27,16 @@ class Explorer:
 
     def generate_search_space(self):
         self.search_space = MLP()
+        self.logger.info("Generated search space:\n %s", self.search_space)
 
     def choose_target_hw(self, name: str):
         self.target_hw: HWPlatform = self.knowledge_repository.fetch_hw_info(name)
         self.generator: Generator = self.target_hw.model_generator()
         self.hw_manager: HWManager = self.target_hw.platform_manager()
+        self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
 
     def search(self, max_search_trials, top_k):
+        self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", max_search_trials, top_k)
         top_models = hw_nas.search(self.search_space, max_search_trials, top_k)
         return top_models
 
@@ -42,6 +47,7 @@ class Explorer:
             self,
             connection_info: ConnectionData,
     ):
+        self.logger.info("Setup Hardware target for experiments.")
         self.hw_manager.install_latency_measurement_on_target(connection_info)
         self.hw_manager.install_accuracy_measurement_on_target(connection_info)
 

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("explorer.train_model")
 
 
 def test(model):
@@ -29,7 +29,7 @@ def test(model):
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
     logger.info(
-        "\nTest set: Accuracy: {}/{} ({:.0f}%)\n".format(
+        "Test set: Accuracy: {}/{} ({:.0f}%)\n".format(
             correct, len(test_loader.dataset), accuracy
         )
     )

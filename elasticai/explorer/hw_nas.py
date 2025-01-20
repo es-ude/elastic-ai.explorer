@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 
 import nni
@@ -13,6 +14,9 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer.cost_estimator import FlopsEstimator
 
+logger = logging.getLogger("explorer.nas")
+
+
 def train_epoch(
         model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
 ):
@@ -26,7 +30,7 @@ def train_epoch(
         loss.backward()
         optimizer.step()
         if batch_idx % 10 == 0:
-            print(
+            logger.info(
                 "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                     epoch,
                     batch_idx * len(data),
@@ -49,7 +53,7 @@ def test_epoch(model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
-    print(
+    logger.info(
         "\nTest set: Accuracy: {}/{} ({:.0f}%)\n".format(
             correct, len(test_loader.dataset), accuracy
         )
@@ -60,15 +64,15 @@ def test_epoch(model, device, test_loader):
 def evaluate_model(model: torch.nn.Module):
     global accuracy
     ##Parameter
-    flops_weight = 0.5
+    flops_weight = 0.8
     n_epochs = 2
 
     ##Cost-Estimation
-    #flops as proxy metric for latency
-    flops_estimator = FlopsEstimator(model_space= model)
+    # flops as proxy metric for latency
+    flops_estimator = FlopsEstimator(model_space=model)
     flops = flops_estimator.estimate_flops_single_module()
 
-    #set device to cpu to prevent memory error
+    # set device to cpu to prevent memory error
     device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -84,7 +88,7 @@ def evaluate_model(model: torch.nn.Module):
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
 
-    metric = {"default": 0, "accuracy" : 0, "flops log10": math.log10(flops)}
+    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         train_epoch(model, device, train_loader, optimizer, epoch)
 
@@ -93,29 +97,10 @@ def evaluate_model(model: torch.nn.Module):
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
 
-
-    #metric["id"] = nni.get_trial_id()
-    
     nni.report_final_result(metric)
 
-    # data = json.load(open('metrics/metrics.json'))
 
-    # # convert data to list if not
-    # if type(data) is dict:
-    #     data = []
-
-    #     # append new item to data
-    # data.append(metric)
-
-    # # write list to file
-    # with open('metrics/metrics.json', 'w') as outfile:
-    #     json.dump(data, outfile)
-    
-
-
-def search(search_space, max_search_trials = 6, top_k = 4):
-
-
+def search(search_space, max_search_trials=6, top_k=4):
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
@@ -124,26 +109,20 @@ def search(search_space, max_search_trials = 6, top_k = 4):
     top_models = exp.export_top_models(top_k=top_k, formatter="instance")
     top_parameters = exp.export_top_models(top_k=top_k, formatter="dict")
     test_results = exp.export_data()
-    
 
-    #sorting the metrics, parameters in the top_k order
+    # sorting the metrics, parameters in the top_k order
     parameters = list(range(len(top_parameters)))
     metrics = list(range(len(top_parameters)))
     for trial in test_results:
         for i, top_parameter in enumerate(top_parameters):
             if trial.parameter["sample"] == top_parameter:
+                parameters[i] = trial.parameter["sample"]
 
-                parameters[i]= trial.parameter["sample"] 
-                
                 metrics[i] = trial.value
-    
 
     with open('models/models.json', 'w') as outfile:
         json.dump(parameters, outfile)
     with open("metrics/metrics.json", "w") as f:
         json.dump(metrics, f)
-    
-    
-    
 
     return top_models
