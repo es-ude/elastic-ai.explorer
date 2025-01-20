@@ -1,9 +1,12 @@
 FROM cross AS builder
 
+ARG LIBTORCH_PATH="./code/libtorch"
+
+
 COPY ./code/measure_latency.cpp /code/
 COPY ./code/measure_accuracy.cpp /code/
 COPY ./code/CMakeLists.txt /code/
-ADD  ./code/libtorch /code/libtorch
+ADD  $LIBTORCH_PATH /code/libtorch
 
 ENV BIN_DIR=/tmp/bin
 ENV BUILD_DIR=/code/build

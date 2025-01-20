@@ -19,7 +19,6 @@ class Explorer:
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
 
-
     def set_default_model(self, model: nn.Module):
         self.default_model = model
 
@@ -37,28 +36,31 @@ class Explorer:
 
     def generate_for_hw_platform(self, model, path):
         return self.generator.generate(model, path)
-    
-    def hw_setup_on_target(self,
-        connection_info: ConnectionData,
+
+    def hw_setup_on_target(
+        self, connection_info: ConnectionData, host_path_to_libtorch: str
     ):
-        self.hw_manager.install_latency_measurement_on_target(connection_info)
-        self.hw_manager.install_accuracy_measurement_on_target(connection_info)
+        self.hw_manager.install_latency_measurement_on_target(
+            connection_info, path_to_libtorch=host_path_to_libtorch
+        )
+        self.hw_manager.install_accuracy_measurement_on_target(
+            connection_info, path_to_libtorch=host_path_to_libtorch, rebuild = False
+        )
 
     def run_latency_measurement(
         self,
         connection_info: ConnectionData,
         path_to_model,
     ) -> int:
-        
+
         self.hw_manager.deploy_model(connection_info, path_to_model)
         return self.hw_manager.measure_latency(connection_info, path_to_model)
 
     def verify_accuracy(
-        self,
-        connection_info: ConnectionData,
-        path_to_model,
-        path_to_data
+        self, connection_info: ConnectionData, path_to_model, path_to_data
     ) -> int:
-        
+
         self.hw_manager.deploy_model(connection_info, path_to_model)
-        return self.hw_manager.measure_accuracy(connection_info, path_to_model, path_to_data)
+        return self.hw_manager.measure_accuracy(
+            connection_info, path_to_model, path_to_data
+        )
