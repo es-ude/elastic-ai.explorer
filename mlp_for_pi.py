@@ -65,7 +65,7 @@ def find_generate_measure_for_pi(
 
 def measure_latency(
     knowledge_repository,
-    connection_data,
+    device_connection,
     path_to_libtorch="./code/libtorch",
     pi_type="rpi5",
 ):
@@ -76,21 +76,20 @@ def measure_latency(
     explorer.hw_setup_on_target(device_connection, path_to_libtorch)
     for i in range(20):
         measurements.append(
-            explorer.run_latency_measurement(connection_data, model_path)
+            explorer.run_latency_measurement(device_connection, model_path)
         )
     print("Latencies: ", measurements)
 
 
 def measure_accuracy(
     knowledge_repository,
-    connection_data,
+    device_connection,
     path_to_libtorch="./code/libtorch",
     pi_type="rpi5",
 ):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw(pi_type)
     explorer.hw_setup_on_target(device_connection, path_to_libtorch)
-    measurements = []
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
 
@@ -110,7 +109,8 @@ if __name__ == "__main__":
     user = "transfair"
     max_search_trials = 1
     pi_type = "rpi4"
-    torch_path = "./code/libtorch-v2.5.1-rpi4-bookworm/libtorch"
+    torch_path = "./code/libtorch-v2.5.1-rpi4-bookworm/libtorch" #"./code/libtorch"
+
 
     # knowledge_repo = setup_knowledge_repository_pi5()
     knowledge_repo = setup_knowledge_repository_pi4()
@@ -119,8 +119,8 @@ if __name__ == "__main__":
         knowledge_repo,
         device_connection,
         max_search_trials,
-        pi_type="rpi4",
-        path_to_libtorch="./code/libtorch-v2.5.1-rpi4-bookworm/libtorch",
+        pi_type=pi_type,
+        path_to_libtorch=torch_path,
     )
     # measure_accuracy(knowledge_repo, device_connection, torch_path, pi_type)
     # measure_latency(knowledge_repo, device_connection, torch_path, pi_type)
