@@ -21,9 +21,7 @@ class ConnectionData:
 class HWManager(ABC):
 
     @abstractmethod
-    def measure_latency(
-        self, connection_info: ConnectionData, path_to_model
-    ) -> int:
+    def measure_latency(self, connection_info: ConnectionData, path_to_model) -> int:
         pass
 
     @abstractmethod
@@ -33,19 +31,19 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def install_accuracy_measurement_on_target(self, connection_info: ConnectionData, path_to_program: str = None
+    def install_accuracy_measurement_on_target(
+        self, connection_info: ConnectionData, path_to_program: str = None
     ):
         pass
 
     @abstractmethod
     def measure_accuracy(
-        self, connection_info: ConnectionData, path_to_model: str,  path_to_data: str
+        self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
     ) -> int:
         pass
+
     @abstractmethod
-    def deploy_model(
-        self, connection_info: ConnectionData, path_to_model: str
-    ) -> int:
+    def deploy_model(self, connection_info: ConnectionData, path_to_model: str) -> int:
         pass
 
 
@@ -60,43 +58,55 @@ class PIHWManager(HWManager):
             CONTEXT_PATH, file=CONTEXT_PATH / "Dockerfile.picross", tags="cross"
         )
 
-    def compile_code(self):
+    def compile_code(self, libtorch_path: str):
         docker.build(
             CONTEXT_PATH,
             file=CONTEXT_PATH / "Dockerfile.loader",
             output={"type": "local", "dest": CONTEXT_PATH / "bin"},
+            build_args={"LIBTORCH_PATH": f"{libtorch_path}"},
+        
         )
 
     def install_latency_measurement_on_target(
-        self, connection_info: ConnectionData, path_to_program: str = None
+        self,
+        connection_info: ConnectionData,
+        path_to_program: str = None,
+        path_to_libtorch: str = "./code/libtorch",
+        rebuild: bool = True
     ):
         if path_to_program is None:
             path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
-            self.compile_code()
+            if rebuild:
+                self.compile_code(path_to_libtorch)
 
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_program)
 
-
-    def install_accuracy_measurement_on_target(self, connection_info: ConnectionData, path_to_program: str = None, path_to_data: str = None):
+    def install_accuracy_measurement_on_target(
+        self,
+        connection_info: ConnectionData,
+        path_to_program: str = None,
+        path_to_data: str = None,
+        path_to_libtorch: str = "./code/libtorch",
+        rebuild: bool = True
+    ):
         if path_to_program is None:
             path_to_program = str(CONTEXT_PATH) + "/bin/measure_accuracy"
-            self.compile_code()
+            if rebuild:
+                self.compile_code(path_to_libtorch)
 
         if path_to_data is None:
             path_to_data = str(CONTEXT_PATH) + "/data/mnist.zip"
-            
+
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_program)
             conn.put(path_to_data)
             conn.run(f"unzip -q -o {os.path.split(path_to_data)[-1]}")
 
-    
-
     def measure_latency(
         self, connection_info: ConnectionData, path_to_model: str
     ) -> int:
-    
+
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             measurement = self._run_latency(conn, path_to_model)
         return measurement
@@ -104,23 +114,23 @@ class PIHWManager(HWManager):
     def measure_accuracy(
         self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
     ) -> int:
-        
+
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             measurement = self._run_accuracy(conn, path_to_model, path_to_data)
         return measurement
-    
 
     def deploy_model(self, connection_info: ConnectionData, path_to_model: str):
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             conn.put(path_to_model)
 
-
-    def _run_accuracy(self, conn: Connection, path_to_model: str, path_to_data: str) -> float:
+    def _run_accuracy(
+        self, conn: Connection, path_to_model: str, path_to_data: str
+    ) -> float:
 
         _, model_tail = os.path.split(path_to_model)
         _, data_tail = os.path.split(path_to_data)
-        command  = "./measure_accuracy {} {}".format(model_tail, data_tail)
-    
+        command = "./measure_accuracy {} {}".format(model_tail, data_tail)
+
         result = conn.run(command, hide=True)
         if self._wasSuccessful(result):
             experiment_result = re.search("Accuracy: (.*)", result.stdout)
@@ -128,14 +138,12 @@ class PIHWManager(HWManager):
         else:
             raise Exception(result.stderr)
         return measurement
-    
-
 
     def _run_latency(self, conn: Connection, path_to_model: str) -> int:
 
         _, tail = os.path.split(path_to_model)
-        command =  "./measure_latency {}".format(tail)
-    
+        command = "./measure_latency {}".format(tail)
+
         result = conn.run(command, hide=True)
         if self._wasSuccessful(result):
             experiment_result = re.search("Inference Time: (.*) us", result.stdout)
@@ -143,7 +151,6 @@ class PIHWManager(HWManager):
         else:
             raise Exception(result.stderr)
         return measurement
-    
 
     def _wasSuccessful(self, result: Result) -> bool:
         return result.ok
