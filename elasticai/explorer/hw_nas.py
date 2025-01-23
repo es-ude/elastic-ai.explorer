@@ -64,7 +64,7 @@ def test_epoch(model, device, test_loader):
 def evaluate_model(model: torch.nn.Module):
     global accuracy
     ##Parameter
-    flops_weight = 0.8
+    flops_weight = 3.
     n_epochs = 2
 
     ##Cost-Estimation

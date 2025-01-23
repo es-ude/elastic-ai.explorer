@@ -53,7 +53,6 @@ def find_generate_measure_for_pi(
 
     explorer.hw_setup_on_target(device_connection)
     measurements_latency_mean = []
-    measurements_latency_std = []
     measurements_accuracy = []
 
     for i, model in enumerate(top_models):
