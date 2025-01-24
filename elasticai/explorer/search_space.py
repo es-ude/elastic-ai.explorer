@@ -1,5 +1,4 @@
 import nni
-import torch
 import torch.nn.functional as F
 from nni.nas.nn.pytorch import ModelSpace
 from nni.nas.nn.pytorch.layers import MutableDropout, MutableLinear
@@ -16,7 +15,7 @@ class MLP(ModelSpace):
         self.fc3 = MutableLinear(h2, 10)
         self.dropout = MutableDropout(h3)
 
-    def forward(self, x: torch.Tensor | any) -> torch.Tensor | any:
+    def forward(self):
         x = x.view(-1, 28 * 28)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
