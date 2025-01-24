@@ -1,4 +1,5 @@
 import nni
+import torch
 import torch.nn.functional as F
 from nni.nas.nn.pytorch import ModelSpace
 from nni.nas.nn.pytorch.layers import MutableDropout, MutableLinear
@@ -7,7 +8,6 @@ from nni.nas.nn.pytorch.layers import MutableDropout, MutableLinear
 class MLP(ModelSpace):
     def __init__(self):
         super().__init__()
-
         h1 = nni.choice("layer_1", [4, 32, 64, 512, 4096])
         h2 = nni.choice("layer_2", [4, 32, 64, 4096])
         h3 = nni.choice("dropout", [0.2, 0.25, 0.9])
@@ -16,7 +16,7 @@ class MLP(ModelSpace):
         self.fc3 = MutableLinear(h2, 10)
         self.dropout = MutableDropout(h3)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor | any) -> torch.Tensor | any:
         x = x.view(-1, 28 * 28)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)

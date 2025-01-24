@@ -6,7 +6,7 @@ import plotly.express as px
 from settings import ROOT_DIR
 
 
-def build_search_space_measurements_file(latencies):
+def build_search_space_measurements_file(latencies: list[int]) -> pandas.DataFrame:
     metrics = str(ROOT_DIR) + "/metrics/metrics.json"
     models = str(ROOT_DIR) + "/models/models.json"
     with open(metrics, "r") as f:
@@ -27,7 +27,7 @@ def build_search_space_measurements_file(latencies):
     return data_merged
 
 
-def plot_parallel_coordinates(df):
+def plot_parallel_coordinates(df: pandas.DataFrame):
     fig = px.parallel_coordinates(
         df,
         color="default",
@@ -36,7 +36,7 @@ def plot_parallel_coordinates(df):
     fig.show()
 
 
-def read_csv():
+def read_csv() -> pandas.DataFrame:
     return pandas.read_csv(str(ROOT_DIR) + "/experiment_data_comp_sp.csv")
 
 
