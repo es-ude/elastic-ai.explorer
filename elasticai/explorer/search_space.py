@@ -15,7 +15,7 @@ class MLP(ModelSpace):
         self.fc3 = MutableLinear(h2, 10)
         self.dropout = MutableDropout(h3)
 
-    def forward(self):
+    def forward(self, x):
         x = x.view(-1, 28 * 28)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
