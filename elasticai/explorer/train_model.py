@@ -9,7 +9,7 @@ from torchvision.transforms import transforms
 logger = logging.getLogger("explorer.train_model")
 
 
-def test(model):
+def test(model: torch.nn.Module) -> float:
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
@@ -37,7 +37,7 @@ def test(model):
 
 
 def train_epoch(
-        model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
+        model: torch.nn.Module, device: str, train_loader: DataLoader, optimizer: torch.optim, epoch: int
 ):
     loss_fn = nn.CrossEntropyLoss()
     model.train(True)
@@ -60,7 +60,7 @@ def train_epoch(
             )
 
 
-def train(model: torch.nn.Module, epochs=5):
+def train(model: torch.nn.Module, epochs: int = 5):
     device = "cpu"  # torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)

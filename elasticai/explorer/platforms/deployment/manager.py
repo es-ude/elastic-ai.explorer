@@ -41,7 +41,7 @@ class HWManager(ABC):
     @abstractmethod
     def measure_accuracy(
             self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
-    ) -> int:
+    ) -> float:
         pass
 
     @abstractmethod

@@ -18,7 +18,7 @@ logger = logging.getLogger("explorer.nas")
 
 
 def train_epoch(
-        model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
+        model: torch.nn.Module, device: str, train_loader: DataLoader, optimizer: torch.optim, epoch: int
 ):
     loss_fn = nn.CrossEntropyLoss()
     model.train(True)
@@ -41,7 +41,7 @@ def train_epoch(
             )
 
 
-def test_epoch(model, device, test_loader):
+def test_epoch(model: torch.nn.Module, device: str, test_loader: DataLoader) -> float:
     model.eval()
     test_loss = 0
     correct = 0
@@ -100,7 +100,7 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(metric)
 
 
-def search(search_space, max_search_trials=6, top_k=4):
+def search(search_space: any, max_search_trials: int = 6, top_k: int = 4) -> list[any]:
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
