@@ -119,7 +119,7 @@ def make_dirs_if_not_exists():
 
 if __name__ == "__main__":
     make_dirs_if_not_exists()
-    device = "cpu"#torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     host = "transfair.local"
     user = "robin"
     # 60 possible

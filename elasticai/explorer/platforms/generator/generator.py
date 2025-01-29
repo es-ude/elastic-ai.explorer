@@ -26,6 +26,7 @@ class PIGenerator(Generator):
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+        model.to("cpu")
         ts_model = torch.jit.script(model)
         path = Path(os.path.realpath(path)).with_suffix(".pt")
         self.logger.info("Save model to %s", path)
