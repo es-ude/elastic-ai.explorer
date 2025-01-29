@@ -3,6 +3,7 @@ import os
 from logging import config
 
 import nni
+import torch
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -44,7 +45,7 @@ def find_for_pi(knowledge_repository, max_search_trials, top_k):
 
 
 def find_generate_measure_for_pi(
-        knowledge_repository, device_connection, max_search_trials, top_k
+        knowledge_repository, device_connection, max_search_trials, top_k, host_device: str
 ) -> Metrics:
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
@@ -118,7 +119,7 @@ def make_dirs_if_not_exists():
 
 if __name__ == "__main__":
     make_dirs_if_not_exists()
-
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     host = "transpi5.local"
     user = "ies"
     # 60 possible
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
     metry = find_generate_measure_for_pi(
-        knowledge_repo, device_connection, max_search_trials, top_k
+        knowledge_repo, device_connection, max_search_trials, top_k, host_device = device
     )
     visu = Visualizer(metry)
     visu.plot_all_results(filename="plot")

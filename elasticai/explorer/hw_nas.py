@@ -71,10 +71,9 @@ def evaluate_model(model: torch.nn.Module):
     # flops as proxy metric for latency
     flops_estimator = FlopsEstimator(model_space=model)
     flops = flops_estimator.estimate_flops_single_module()
-
-    # set device to cpu to prevent memory error
-    device = "cpu"
-    model.to(device)
+    
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device= device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
