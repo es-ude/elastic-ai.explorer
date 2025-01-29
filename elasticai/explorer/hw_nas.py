@@ -66,13 +66,14 @@ def evaluate_model(model: torch.nn.Module):
     ##Parameter
     flops_weight = 3.
     n_epochs = 2
-
+    
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     ##Cost-Estimation
     # flops as proxy metric for latency
     flops_estimator = FlopsEstimator(model_space=model)
     flops = flops_estimator.estimate_flops_single_module()
     
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
     model.to(device= device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
@@ -99,7 +100,7 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(metric)
 
 
-def search(search_space, max_search_trials=6, top_k=4):
+def search(search_space, max_search_trials=6, top_k=4, device: str = "cpu"):
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)

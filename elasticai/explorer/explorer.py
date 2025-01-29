@@ -35,9 +35,9 @@ class Explorer:
         self.hw_manager: HWManager = self.target_hw.platform_manager()
         self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
 
-    def search(self, max_search_trials, top_k):
+    def search(self, max_search_trials, top_k, device : str = "cpu"):
         self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", max_search_trials, top_k)
-        top_models = hw_nas.search(self.search_space, max_search_trials, top_k)
+        top_models = hw_nas.search(self.search_space, max_search_trials, top_k, device)
         return top_models
 
     def generate_for_hw_platform(self, model, path):

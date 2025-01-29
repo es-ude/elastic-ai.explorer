@@ -50,15 +50,15 @@ def find_generate_measure_for_pi(
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search(max_search_trials, top_k)
+    top_models = explorer.search(max_search_trials, top_k, host_device)
 
     explorer.hw_setup_on_target(device_connection)
     measurements_latency_mean = []
     measurements_accuracy = []
 
     for i, model in enumerate(top_models):
-        train(model, 3)
-        test(model)
+        train(model, 3, device=host_device)
+        test(model, device= host_device)
         model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
@@ -119,14 +119,14 @@ def make_dirs_if_not_exists():
 
 if __name__ == "__main__":
     make_dirs_if_not_exists()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    host = "transpi5.local"
-    user = "ies"
+    device = "cpu"#torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    host = "transfair.local"
+    user = "robin"
     # 60 possible
     # ca hälfte über 90%
     # 1/3 der modelle unter 70
     # 1/4 der Modelle unter 50
-    max_search_trials = 6
+    max_search_trials = 2
     top_k = 2
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
