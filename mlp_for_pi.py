@@ -2,7 +2,11 @@ import logging
 import os
 from logging import config
 
+from matplotlib import transforms
+from torchvision.datasets import MNIST
 import nni
+import torch
+from torch.utils.data import DataLoader
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -13,7 +17,7 @@ from elasticai.explorer.knowledge_repository import (
 )
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, ConnectionData
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.train_model import train, test
+from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.visualizer import Visualizer
 from settings import ROOT_DIR
 
@@ -55,9 +59,24 @@ def find_generate_measure_for_pi(
     measurements_latency_mean = []
     measurements_accuracy = []
 
+    mlp_trainer = MLPTrainer(device="cpu", optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
+
+    #Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
+    transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    trainloader = DataLoader(
+        MNIST("data/mnist", download=True, transform=transf),
+        batch_size=64,
+        shuffle=True,
+    )
+    testloader = DataLoader(
+        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
+    )
+
     for i, model in enumerate(top_models):
-        train(model, 3)
-        test(model)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
+        mlp_trainer.test(model, testloader=testloader)
         model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
