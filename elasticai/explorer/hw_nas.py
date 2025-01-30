@@ -13,6 +13,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from elasticai.explorer.cost_estimator import FlopsEstimator
+import settings
 
 logger = logging.getLogger("explorer.nas")
 
@@ -120,9 +121,9 @@ def search(search_space, max_search_trials=6, top_k=4):
 
                 metrics[i] = trial.value
 
-    with open('models/models.json', 'w') as outfile:
+    with open(settings.experiment_dir / "models/models.json", 'w') as outfile:
         json.dump(parameters, outfile)
-    with open("metrics/metrics.json", "w") as f:
+    with open(settings.experiment_dir / "metrics/metrics.json", "w") as f:
         json.dump(metrics, f)
 
     return top_models

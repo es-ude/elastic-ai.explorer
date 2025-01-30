@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from logging import config
@@ -16,6 +17,7 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
 from elasticai.explorer.visualizer import Visualizer
 from settings import ROOT_DIR
+import settings
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -58,8 +60,8 @@ def find_generate_measure_for_pi(
     for i, model in enumerate(top_models):
         train(model, 3)
         test(model)
-        model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
-        data_path = str(ROOT_DIR) + "/data"
+        model_path = settings.experiment_dir / f"models/ts_models/model_{str(i)}.pt"
+        data_path = ROOT_DIR / "data"
         explorer.generate_for_hw_platform(model, model_path)
 
         mean, _ = explorer.run_latency_measurement(device_connection, model_path)
@@ -73,8 +75,8 @@ def find_generate_measure_for_pi(
     logger.info("Models:\n %s", df)
 
     return Metrics(
-        "metrics/metrics.json",
-        "models/models.json",
+        settings.experiment_dir / "metrics/metrics.json",
+        settings.experiment_dir / "models/models.json",
         measurements_accuracy,
         measurements_latency_mean,
     )
@@ -83,7 +85,7 @@ def find_generate_measure_for_pi(
 def measure_latency(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
-    model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
+    model_path = settings.experiment_dir / "models/ts_models/model_0.pt"
     explorer.hw_setup_on_target(connection_data)
 
     mean, std = explorer.run_latency_measurement(connection_data, model_path)
@@ -95,8 +97,8 @@ def measure_accuracy(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target(connection_data)
-    model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
-    data_path = str(ROOT_DIR) + "/data"
+    model_path = settings.experiment_dir / "models/ts_models/model_0.pt"
+    data_path = str(ROOT_DIR) + "data"
 
     logger.info(
         "Accuracy: %.2f",
@@ -110,13 +112,17 @@ def prepare_pi():
 
 
 def make_dirs_if_not_exists():
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
-    if not os.path.exists("metrics"):
-        os.makedirs("metrics")
-
+    if not os.path.exists(settings.experiment_dir / "plots"):
+        os.makedirs(settings.experiment_dir / "plots")
+    if not os.path.exists(settings.experiment_dir /"metrics"):
+        os.makedirs(settings.experiment_dir / "metrics")
+    if not os.path.exists(settings.experiment_dir /"models"):
+        os.makedirs(settings.experiment_dir / "models")
 
 if __name__ == "__main__":
+    experiment_name = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
+    settings.experiment_dir = settings.experiment_dir / experiment_name
+
     make_dirs_if_not_exists()
 
     host = "transpi5.local"

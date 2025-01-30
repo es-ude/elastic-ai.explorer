@@ -1,14 +1,15 @@
 import json
+from pathlib import Path
+import sys
 
 import pandas
 import plotly.express as px
 
-from settings import ROOT_DIR
-
+import settings
 
 def build_search_space_measurements_file(latencies):
-    metrics = str(ROOT_DIR) + "/metrics/metrics.json"
-    models = str(ROOT_DIR) + "/models/models.json"
+    metrics = settings.experiment_dir / "metrics/metrics.json"
+    models = settings.experiment_dir / "models/models.json"
     with open(metrics, "r") as f:
         metric_list = json.load(f)
 
@@ -21,7 +22,7 @@ def build_search_space_measurements_file(latencies):
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
 
-    csv_path = str(ROOT_DIR) + "/experiment_data.csv"
+    csv_path = settings.experiment_dir / "experiment_data.csv"
     data_merged.to_csv(csv_path)
 
     return data_merged
@@ -36,10 +37,11 @@ def plot_parallel_coordinates(df):
     fig.show()
 
 
-def read_csv():
-    return pandas.read_csv(str(ROOT_DIR) + "/experiment_data_comp_sp.csv")
+def read_csv(filepath):
+    return pandas.read_csv(filepath)
 
 
 if __name__ == "__main__":
-    df = read_csv()
+    filepath = sys.argv[0]
+    df = read_csv(filepath)
     plot_parallel_coordinates(df)

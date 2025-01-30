@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +7,7 @@ from scipy.stats import kendalltau
 
 from elasticai.explorer.knowledge_repository import Metrics
 from settings import ROOT_DIR
+import settings
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,7 @@ class Visualizer:
         self.data = metrics.structured_est_metrics
         self.labels = metrics.structured_samples
         self.metrics = metrics
-
+    
     def plot_all_results(self, figure_size=[15, 20], filename=None):
         plt.figure()
         fig = plt.figure(num=1, clear=True)
@@ -130,6 +132,6 @@ class Visualizer:
             ax.set_xticklabels(self.labels)
 
         if filename:
-            plt.savefig(str(CONTEXT_PATH) + "/" + filename + ".png")
+            plt.savefig(settings.experiment_dir / f"{filename}.png")
         else:
             plt.show()

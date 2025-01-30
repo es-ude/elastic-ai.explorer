@@ -15,7 +15,7 @@ docker/bin
 plots/
 
 #metrics
-metrics/
+experiments/
 
 #libtorch 
 docker/code/libtorch
