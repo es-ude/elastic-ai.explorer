@@ -13,52 +13,9 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from elasticai.explorer.cost_estimator import FlopsEstimator
+from elasticai.explorer.trainer import MLPTrainer
 
 logger = logging.getLogger("explorer.nas")
-
-
-def train_epoch(
-        model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
-):
-    loss_fn = nn.CrossEntropyLoss()
-    model.train(True)
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = loss_fn(output, target)
-        loss.backward()
-        optimizer.step()
-        if batch_idx % 10 == 0:
-            logger.info(
-                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    epoch,
-                    batch_idx * len(data),
-                    len(train_loader.dataset),
-                    100.0 * batch_idx / len(train_loader),
-                    loss.item(),
-                )
-            )
-
-
-def test_epoch(model, device, test_loader):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
-            pred = output.argmax(dim=1, keepdim=True)
-            correct += pred.eq(target.view_as(pred)).sum().item()
-    test_loss /= len(test_loader.dataset)
-    accuracy = 100.0 * correct / len(test_loader.dataset)
-    logger.info(
-        "\nTest set: Accuracy: {}/{} ({:.0f}%)\n".format(
-            correct, len(test_loader.dataset), accuracy
-        )
-    )
-    return accuracy
 
 
 def evaluate_model(model: torch.nn.Module):
@@ -71,29 +28,27 @@ def evaluate_model(model: torch.nn.Module):
     # flops as proxy metric for latency
     flops_estimator = FlopsEstimator(model_space=model)
     flops = flops_estimator.estimate_flops_single_module()
+    mlp_trainer = MLPTrainer(device="cpu", optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
 
-    # set device to cpu to prevent memory error
-    device = "cpu"
-    model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+    #create test and dataloader from MNIST #TODO create Dataset Class
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    train_loader = DataLoader(
+    trainloader = DataLoader(
         MNIST("data/mnist", download=True, transform=transf),
         batch_size=64,
         shuffle=True,
     )
-    test_loader = DataLoader(
+    testloader = DataLoader(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
-
+        
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
+
     for epoch in range(n_epochs):
-        train_epoch(model, device, train_loader, optimizer, epoch)
-
-        metric["accuracy"] = test_epoch(model, device, test_loader)
-
+        mlp_trainer.train_epoch(model=model, trainloader=trainloader, epoch=epoch)
+        metric["accuracy"] = mlp_trainer.test(model=model, testloader=testloader)
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
 

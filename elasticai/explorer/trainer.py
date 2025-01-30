@@ -17,6 +17,10 @@ class Trainer(ABC):
     def test(self, model: nn.Module, testloader: DataLoader) -> float:
         pass
 
+    @abstractmethod
+    def train_epoch(self, model: nn.Module, trainloader: DataLoader, epoch: int):
+        pass
+
 class MLPTrainer(Trainer):
     def __init__(self, device: str,
                   optimizer: optim, loss_fn = nn.CrossEntropyLoss()):
@@ -24,8 +28,6 @@ class MLPTrainer(Trainer):
         self.device = device
         self.optimizer = optimizer
         self.loss_fn = loss_fn
-        self.trainloader = None
-        self.testloader = None
 
     def train(self, model: nn.Module, trainloader: DataLoader, epochs: int):
         """Train the given model on the traindata
@@ -35,12 +37,9 @@ class MLPTrainer(Trainer):
             trainloader (DataLoader): Data
             epochs (int): epochs
         """
-
-        self.trainloader = trainloader
-        model.to(self.device)
         
         for epoch in range(epochs):
-            self._train_epoch(epoch)
+            self.train_epoch(model=model, trainloader=trainloader, epoch=epoch)
 
     def test(self, model: nn.Module, testloader: DataLoader) -> float:
         """Test the model on the 
@@ -54,6 +53,7 @@ class MLPTrainer(Trainer):
         self.testloader = testloader
         test_loss = 0
         correct = 0
+        model.to(self.device)
         model.eval()
         with torch.no_grad():
             for data, target in self.testloader:
@@ -70,7 +70,7 @@ class MLPTrainer(Trainer):
         )
         return accuracy
 
-    def _train_epoch(self, model: nn.Module, epoch: int):
+    def train_epoch(self, model: nn.Module, trainloader: DataLoader, epoch: int):
         """train for an epoch using
 
         Args:
@@ -90,8 +90,8 @@ class MLPTrainer(Trainer):
                     "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                         epoch,
                         batch_idx * len(data),
-                        len(self.train_loader.dataset),
-                        100.0 * batch_idx / len(self.train_loader),
+                        len(trainloader.dataset),
+                        100.0 * batch_idx / len(trainloader),
                         loss.item(),
                     )
                 )
