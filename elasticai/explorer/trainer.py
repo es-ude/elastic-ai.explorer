@@ -6,7 +6,6 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 
 
-logger = logging.getLogger("explorer.Trainer")
 
 class Trainer(ABC):
     @abstractmethod
@@ -25,6 +24,7 @@ class MLPTrainer(Trainer):
     def __init__(self, device: str,
                   optimizer: optim, loss_fn = nn.CrossEntropyLoss()):
 
+        self.logger = logging.getLogger("explorer.MLPTrainer")
         self.device = device
         self.optimizer = optimizer
         self.loss_fn = loss_fn
@@ -41,6 +41,7 @@ class MLPTrainer(Trainer):
         for epoch in range(epochs):
             self.train_epoch(model=model, trainloader=trainloader, epoch=epoch)
 
+        
     def test(self, model: nn.Module, testloader: DataLoader) -> float:
         """Test the model on the 
 
@@ -50,22 +51,22 @@ class MLPTrainer(Trainer):
         Returns:
             float: Accuracy on test data.
         """
-        self.testloader = testloader
+
         test_loss = 0
         correct = 0
         model.to(self.device)
         model.eval()
         with torch.no_grad():
-            for data, target in self.testloader:
+            for data, target in testloader:
                 data, target = data.to(self.device), target.to(self.device)
                 output = model(data)
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
-        test_loss /= len(self.testloader.dataset)
-        accuracy = 100.0 * correct / len(self.testloader.dataset)
-        logger.info(
+        test_loss /= len(testloader.dataset)
+        accuracy = 100.0 * correct / len(testloader.dataset)
+        self.logger.info(
             "Test set: Accuracy: {}/{} ({:.0f}%)\n".format(
-                correct, len(self.testloader.dataset), accuracy
+                correct, len(testloader.dataset), accuracy
             )
         )
         return accuracy
@@ -78,7 +79,7 @@ class MLPTrainer(Trainer):
         """
         
         model.train(True)
-        for batch_idx, (data, target) in enumerate(self.trainloader):
+        for batch_idx, (data, target) in enumerate(trainloader):
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             output = model(data)
@@ -86,7 +87,7 @@ class MLPTrainer(Trainer):
             loss.backward()
             self.optimizer.step()
             if batch_idx % 10 == 0:
-                logger.debug(
+                self.logger.debug(
                     "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                         epoch,
                         batch_idx * len(data),
@@ -95,3 +96,5 @@ class MLPTrainer(Trainer):
                         loss.item(),
                     )
                 )
+
+        

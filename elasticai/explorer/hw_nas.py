@@ -28,27 +28,30 @@ def evaluate_model(model: torch.nn.Module):
     # flops as proxy metric for latency
     flops_estimator = FlopsEstimator(model_space=model)
     flops = flops_estimator.estimate_flops_single_module()
-    mlp_trainer = MLPTrainer(device="cpu", optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
 
-
-    #create test and dataloader from MNIST #TODO create Dataset Class
+    # set device to cpu to prevent memory error
+    device = "cpu"
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    trainloader = DataLoader(
+    train_loader = DataLoader(
         MNIST("data/mnist", download=True, transform=transf),
         batch_size=64,
         shuffle=True,
     )
-    testloader = DataLoader(
+    test_loader = DataLoader(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
-        
-    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
+    trainer = MLPTrainer(device,optimizer)
 
+    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
-        mlp_trainer.train_epoch(model=model, trainloader=trainloader, epoch=epoch)
-        metric["accuracy"] = mlp_trainer.test(model=model, testloader=testloader)
+        trainer.train_epoch(model,train_loader, epoch)
+
+        metric["accuracy"] = trainer.test(model, test_loader)
+
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
 
@@ -57,6 +60,7 @@ def evaluate_model(model: torch.nn.Module):
 
 def search(search_space, max_search_trials=6, top_k=4):
     search_strategy = strategy.Random()
+    
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
     exp.config.max_trial_number = max_search_trials

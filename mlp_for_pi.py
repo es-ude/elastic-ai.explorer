@@ -2,7 +2,7 @@ import logging
 import os
 from logging import config
 
-from matplotlib import transforms
+from torchvision.transforms import transforms
 from torchvision.datasets import MNIST
 import nni
 import torch
@@ -59,7 +59,7 @@ def find_generate_measure_for_pi(
     measurements_latency_mean = []
     measurements_accuracy = []
 
-    mlp_trainer = MLPTrainer(device="cpu", optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
+    
 
     #Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
     transf = transforms.Compose(
@@ -75,6 +75,7 @@ def find_generate_measure_for_pi(
     )
 
     for i, model in enumerate(top_models):
+        mlp_trainer = MLPTrainer(device="cpu", optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
@@ -138,13 +139,13 @@ def make_dirs_if_not_exists():
 if __name__ == "__main__":
     make_dirs_if_not_exists()
 
-    host = "transpi5.local"
-    user = "ies"
+    host = "transfair.local"
+    user = "robin"
     # 60 possible
     # ca hälfte über 90%
     # 1/3 der modelle unter 70
     # 1/4 der Modelle unter 50
-    max_search_trials = 6
+    max_search_trials = 2
     top_k = 2
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
