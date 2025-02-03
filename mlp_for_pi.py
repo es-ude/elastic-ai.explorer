@@ -27,7 +27,7 @@ logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
-def setup_knowledge_repository():
+def setup_knowledge_repository() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
         HWPlatform(
@@ -40,7 +40,7 @@ def setup_knowledge_repository():
     return knowledge_repository
 
 
-def find_for_pi(knowledge_repository, max_search_trials, top_k):
+def find_for_pi(knowledge_repository: KnowledgeRepository, max_search_trials: int, top_k: int):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
@@ -48,7 +48,8 @@ def find_for_pi(knowledge_repository, max_search_trials, top_k):
 
 
 def find_generate_measure_for_pi(
-        knowledge_repository, device_connection, max_search_trials, top_k
+        knowledge_repository: KnowledgeRepository, device_connection: ConnectionData,
+        max_search_trials: int, top_k: int
 ) -> Metrics:
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
@@ -82,7 +83,7 @@ def find_generate_measure_for_pi(
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
 
-        mean, _ = explorer.run_latency_measurement(device_connection, model_path)
+        mean = explorer.run_latency_measurement(device_connection, model_path)
         measurements_latency_mean.append(mean)
         measurements_accuracy.append(
             explorer.run_accuracy_measurement(device_connection, model_path, data_path)
@@ -100,7 +101,7 @@ def find_generate_measure_for_pi(
     )
 
 
-def measure_latency(knowledge_repository, connection_data):
+def measure_latency(knowledge_repository: KnowledgeRepository, connection_data: ConnectionData):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
