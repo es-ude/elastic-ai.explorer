@@ -58,7 +58,7 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(metric)
 
 
-def search(search_space, max_search_trials=6, top_k=4):
+def search(search_space: any, max_search_trials: int = 6, top_k: int = 4) -> list[any]:
     search_strategy = strategy.Random()
     
     evaluator = FunctionalEvaluator(evaluate_model)
