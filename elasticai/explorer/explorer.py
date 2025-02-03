@@ -35,12 +35,12 @@ class Explorer:
         self.hw_manager: HWManager = self.target_hw.platform_manager()
         self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
 
-    def search(self, max_search_trials, top_k):
+    def search(self, max_search_trials: int, top_k: int) -> list[any]:
         self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", max_search_trials, top_k)
         top_models = hw_nas.search(self.search_space, max_search_trials, top_k)
         return top_models
 
-    def generate_for_hw_platform(self, model, path):
+    def generate_for_hw_platform(self, model, path) -> any:
         return self.generator.generate(model, path)
 
     def hw_setup_on_target(
@@ -52,21 +52,14 @@ class Explorer:
         self.hw_manager.install_accuracy_measurement_on_target(connection_info)
 
     def run_latency_measurement(
-            self, connection_info: ConnectionData, path_to_model, sample_size=1
+            self, connection_info: ConnectionData, path_to_model: str
     ) -> int:
         self.hw_manager.deploy_model(connection_info, path_to_model)
-        latencies = np.zeros(sample_size)
-
-        for i in range(len(latencies)):
-            latencies[i] = float(
-                self.hw_manager.measure_latency(connection_info, path_to_model)
-            )
-
-        return latencies.mean(), latencies.std()
+        return self.hw_manager.measure_latency(connection_info, path_to_model)
 
     def run_accuracy_measurement(
-            self, connection_info: ConnectionData, path_to_model, path_to_data
-    ) -> int:
+            self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
+    ) -> float:
         self.hw_manager.deploy_model(connection_info, path_to_model)
         return self.hw_manager.measure_accuracy(
             connection_info, path_to_model, path_to_data
