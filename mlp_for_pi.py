@@ -63,7 +63,7 @@ def find_generate_measure_for_pi(
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
 
-        mean, _ = explorer.run_latency_measurement(device_connection, model_path)
+        mean = explorer.run_latency_measurement(device_connection, model_path)
         measurements_latency_mean.append(mean)
         measurements_accuracy.append(
             explorer.run_accuracy_measurement(device_connection, model_path, data_path)
