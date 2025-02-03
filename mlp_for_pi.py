@@ -3,6 +3,7 @@ import os
 from logging import config
 
 import nni
+import yaml
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -15,10 +16,13 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager, Connect
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
 from elasticai.explorer.visualizer import Visualizer
+from elasticai.explorer.config import Config, ExperimentConfig
 from settings import ROOT_DIR
+config = None
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+
 
 logger = logging.getLogger("explorer.main")
 
@@ -115,18 +119,31 @@ def make_dirs_if_not_exists():
     if not os.path.exists("metrics"):
         os.makedirs("metrics")
 
+def load_config(config_path: str) -> Config:
+    with open(config_path) as stream:
+        try:
+            config = Config(yaml.safe_load(stream))
+        except yaml.YAMLError as exc:
+            print(exc)
+    return config
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
+    
+    config = load_config("config.yaml")
     make_dirs_if_not_exists()
 
-    host = "transpi5.local"
-    user = "ies"
+    host = config.connection_conf.target_host
+    user = config.connection_conf.target_user
+
+    model = config.model_conf.model_type
+
+
     # 60 possible
     # ca hälfte über 90%
     # 1/3 der modelle unter 70
     # 1/4 der Modelle unter 50
-    max_search_trials = 6
-    top_k = 2
+    max_search_trials = config.experiment_conf.max_search_trials
+    top_k = config.experiment_conf.top_k
     knowledge_repo = setup_knowledge_repository()
     device_connection = ConnectionData(host, user)
     metry = find_generate_measure_for_pi(
