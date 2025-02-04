@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 
 import numpy as np
@@ -7,7 +8,7 @@ from torch import nn
 from elasticai.explorer import hw_nas
 from elasticai.explorer.config import Config
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.manager import HWManager, ConnectionData
+from elasticai.explorer.platforms.deployment.manager import HWManager
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
 
@@ -35,6 +36,10 @@ class Explorer:
         self.connection_conf = config.connection_conf
         self.model_conf = config.model_conf
 
+        #setup neccarssary folderstructure
+        self._make_experiment_dirs()
+
+
     def set_default_model(self, model: nn.Module):
         self.default_model = model
 
@@ -48,9 +53,9 @@ class Explorer:
         self.hw_manager: HWManager = self.target_hw.platform_manager()
         self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
 
-    def search(self, max_search_trials: int, top_k: int) -> list[any]:
-        self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", max_search_trials, top_k)
-        top_models = hw_nas.search(self.search_space, max_search_trials, top_k, device)
+    def search(self) -> list[any]:
+        self.logger.info("Start Hardware NAS with %d number of trials for top %d models ")
+        top_models = hw_nas.search(self.search_space, self.experiment_conf)
         return top_models
 
     def generate_for_hw_platform(self, model, path) -> any:
@@ -58,22 +63,29 @@ class Explorer:
 
     def hw_setup_on_target(
             self,
-            connection_info: ConnectionData,
+            
     ):
         self.logger.info("Setup Hardware target for experiments.")
-        self.hw_manager.install_latency_measurement_on_target(connection_info)
-        self.hw_manager.install_accuracy_measurement_on_target(connection_info)
+        self.hw_manager.install_latency_measurement_on_target(self.connection_conf)
+        self.hw_manager.install_accuracy_measurement_on_target(self.connection_conf)
 
     def run_latency_measurement(
-            self, connection_info: ConnectionData, path_to_model: str
+            self, path_to_model: str
     ) -> int:
-        self.hw_manager.deploy_model(connection_info, path_to_model)
-        return self.hw_manager.measure_latency(connection_info, path_to_model)
+        self.hw_manager.deploy_model(self.connection_conf, path_to_model)
+        return self.hw_manager.measure_latency(self.connection_conf, path_to_model)
 
     def run_accuracy_measurement(
-            self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
+            self,  path_to_model: str, path_to_data: str
     ) -> float:
-        self.hw_manager.deploy_model(connection_info, path_to_model)
+        self.hw_manager.deploy_model(self.connection_conf, path_to_model)
         return self.hw_manager.measure_accuracy(
-            connection_info, path_to_model, path_to_data
+            self.connection_conf, path_to_model, path_to_data
         )
+    def _make_experiment_dirs(self):
+        if not os.path.exists(self.experiment_conf.model_dir):
+            os.makedirs(self.experiment_conf.model_dir)
+        if not os.path.exists(self.experiment_conf.metric_dir):
+            os.makedirs(self.experiment_conf.metric_dir)
+        if not os.path.exists(self.experiment_conf.plot_dir):
+            os.makedirs(self.experiment_conf.plot_dir)

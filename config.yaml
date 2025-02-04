@@ -13,9 +13,13 @@ ExperimentConfig:
   ##The number of top models to be tested on the target device: int.
   top_k: 2
 
+  ##Name of the experiment in nni, also defines where the experiment outputs are saved.
+  ##Careful: If keeping the same name, results are overwriten.
+  experiment_name: "test"
+
 ConnectionConfig:
   ##The Hostname of target device for SSH connection ("****.local" or "IP-address"): str.
-  target_host: "transfair.local"
+  target_name: "transfair.local"
 
   ##The Username/user-account of the target device to connect to: str.
   target_user: "robin"
