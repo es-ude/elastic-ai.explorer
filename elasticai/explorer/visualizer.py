@@ -1,4 +1,5 @@
 import logging
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,15 +33,13 @@ def compute_kandell(list_x: list[any], list_y: list[any]) -> float:
     return corr
 
 
-CONTEXT_PATH = ROOT_DIR / "plots"
-
-
 class Visualizer:
 
-    def __init__(self, metrics: Metrics):
+    def __init__(self, metrics: Metrics, plot_dir: str):
         self.data: list[list[float]] = metrics.structured_est_metrics
         self.labels: list[str]= metrics.structured_samples
         self.metrics: Metrics  = metrics
+        self.plot_dir: str = plot_dir
 
     def plot_all_results(self, figure_size: list[int] = [15, 20], filename: str = ""):
         plt.figure()
@@ -129,7 +128,8 @@ class Visualizer:
             ax.set_xticks(indices + bar_width / 2)
             ax.set_xticklabels(self.labels)
 
+        os.makedirs(self.plot_dir, exist_ok=True)    
         if filename:
-            plt.savefig(str(CONTEXT_PATH) + "/" + filename + ".png")
+            plt.savefig(self.plot_dir / (filename))
         else:
             plt.show()

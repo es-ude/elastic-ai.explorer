@@ -35,9 +35,8 @@ class Explorer:
         self.experiment_conf = config.experiment_conf
         self.connection_conf = config.connection_conf
         self.model_conf = config.model_conf
-
-        #setup neccarssary folderstructure
-        self._make_experiment_dirs()
+        
+        
 
 
     def set_default_model(self, model: nn.Module):
@@ -54,8 +53,11 @@ class Explorer:
         self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
 
     def search(self) -> list[any]:
-        self.logger.info("Start Hardware NAS with %d number of trials for top %d models ")
+        self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", 
+                         self.experiment_conf.max_search_trials, self.experiment_conf.top_k)
         top_models = hw_nas.search(self.search_space, self.experiment_conf)
+        #save actual config with all defaults
+        self.config.dump_as_yaml(self.experiment_conf._experiment_dir)
         return top_models
 
     def generate_for_hw_platform(self, model, path) -> any:
@@ -82,10 +84,3 @@ class Explorer:
         return self.hw_manager.measure_accuracy(
             self.connection_conf, path_to_model, path_to_data
         )
-    def _make_experiment_dirs(self):
-        if not os.path.exists(self.experiment_conf.model_dir):
-            os.makedirs(self.experiment_conf.model_dir)
-        if not os.path.exists(self.experiment_conf.metric_dir):
-            os.makedirs(self.experiment_conf.metric_dir)
-        if not os.path.exists(self.experiment_conf.plot_dir):
-            os.makedirs(self.experiment_conf.plot_dir)
