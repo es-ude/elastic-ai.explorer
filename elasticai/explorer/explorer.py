@@ -50,7 +50,7 @@ class Explorer:
 
     def search(self, max_search_trials: int, top_k: int) -> list[any]:
         self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", max_search_trials, top_k)
-        top_models = hw_nas.search(self.search_space, max_search_trials, top_k)
+        top_models = hw_nas.search(self.search_space, max_search_trials, top_k, device)
         return top_models
 
     def generate_for_hw_platform(self, model, path) -> any:

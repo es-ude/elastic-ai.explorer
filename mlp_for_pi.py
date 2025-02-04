@@ -3,6 +3,7 @@ import os
 from logging import config
 
 import nni
+import torch
 import yaml
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
@@ -60,8 +61,8 @@ def find_generate_measure_for_pi(
     measurements_accuracy = []
 
     for i, model in enumerate(top_models):
-        train(model, 3)
-        test(model)
+        train(model, 3, device=host_device)
+        test(model, device= host_device)
         model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)

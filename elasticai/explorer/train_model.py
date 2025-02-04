@@ -9,16 +9,16 @@ from torchvision.transforms import transforms
 logger = logging.getLogger("explorer.train_model")
 
 
-def test(model: torch.nn.Module) -> float:
+def test(model: torch.nn.Module, device: str = "cpu") -> float:
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
     test_loader = DataLoader(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
-    device = "cpu"
     test_loss = 0
     correct = 0
+    model.to(device)
     model.eval()
     with torch.no_grad():
         for data, target in test_loader:
@@ -41,6 +41,7 @@ def train_epoch(
 ):
     loss_fn = nn.CrossEntropyLoss()
     model.train(True)
+    model.to(device)
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -60,8 +61,7 @@ def train_epoch(
             )
 
 
-def train(model: torch.nn.Module, epochs: int = 5):
-    device = "cpu"  # torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+def train(model: torch.nn.Module, epochs: int = 5, device: str = "cpu"):
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
