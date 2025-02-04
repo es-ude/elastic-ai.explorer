@@ -5,6 +5,7 @@ import numpy as np
 from torch import nn
 
 from elasticai.explorer import hw_nas
+from elasticai.explorer.config import Config
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, ConnectionData
 from elasticai.explorer.platforms.generator.generator import Generator
@@ -13,7 +14,13 @@ from elasticai.explorer.search_space import MLP
 
 class Explorer:
 
-    def __init__(self, knowledge_repository: KnowledgeRepository):
+    def __init__(self, knowledge_repository: KnowledgeRepository, config: Config):
+        """Initializes Explorer instance.
+
+        Args:
+            knowledge_repository (KnowledgeRepository): Gives information on the target platform.
+            config (Config): Consist of experiment_conf, connection_conf and model_conf
+        """
         self.logger = logging.getLogger("explorer")
         self.default_model: Optional[nn.Module] = None
         self.target_hw: Optional[HWPlatform] = None
@@ -21,6 +28,12 @@ class Explorer:
         self.generator = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
+        self.config = config
+        
+        #shortcut to the individual configs
+        self.experiment_conf = config.experiment_conf
+        self.connection_conf = config.connection_conf
+        self.model_conf = config.model_conf
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model

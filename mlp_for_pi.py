@@ -47,14 +47,13 @@ def find_for_pi(knowledge_repository: KnowledgeRepository, max_search_trials: in
     top_models = explorer.search(max_search_trials, top_k)
 
 
-def find_generate_measure_for_pi(
-        knowledge_repository: KnowledgeRepository, device_connection: ConnectionData,
-        max_search_trials: int, top_k: int
+def find_generate_measure_for_pi( 
+        explorer: Explorer,
+        device_connection: ConnectionData,
 ) -> Metrics:
-    explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search(max_search_trials, top_k)
+    top_models = explorer.search()
 
     explorer.hw_setup_on_target(device_connection)
     measurements_latency_mean = []
@@ -125,23 +124,16 @@ if __name__ == "__main__":
     
     
     make_dirs_if_not_exists()
+    config = Config(config_path="config.yaml")
 
-    host = config.connection_conf.target_host
-    user = config.connection_conf.target_user
+    #Changing config in code possible 
+    config.experiment_conf.max_search_trials = 2
 
-    model = config.model_conf.model_type
-
-
-    # 60 possible
-    # ca hälfte über 90%
-    # 1/3 der modelle unter 70
-    # 1/4 der Modelle unter 50
-    max_search_trials = config.experiment_conf.max_search_trials
-    top_k = config.experiment_conf.top_k
     knowledge_repo = setup_knowledge_repository()
-    device_connection = ConnectionData(host, user)
+    explorer = Explorer(knowledge_repo, config=config)
+    device_connection = ConnectionData(explorer.connection_conf.target_host, explorer.connection_conf.target_user)
     metry = find_generate_measure_for_pi(
-        knowledge_repo, device_connection, max_search_trials, top_k
+        explorer, device_connection
     )
     visu = Visualizer(metry)
     visu.plot_all_results(filename="plot")
