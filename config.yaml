@@ -1,16 +1,25 @@
-ExperimentConfig:
-  #Device (cpu, cuda:n) of the host the experiment should use.
-  host_device: "cuda:0" 
+##The config.yaml should have a ExperimentConfig that mainly changes the HW-Nas Behavior,
+##a ConnectionConfig that gives the necessary information to connect to the target-device via ssh
+##and a ModelConfig that defines the type of deep neural network you want to search for. If variables are not
+##specified here, they are set to default values. Only ConnectionConfig has to be fully specified.
 
-  #The search trials the HW-NAS should do at max. 
+ExperimentConfig:
+  ##Processor type (cpu, cuda:n) of the host, the experiment should run on: str.
+  host_processor: "cuda:0" 
+
+  ##The search trials the HW-NAS should do at max: int. 
   max_search_trials: 2
 
-  #The number of top models to be tested on the target device.
+  ##The number of top models to be tested on the target device: int.
   top_k: 2
 
 ConnectionConfig:
+  ##The Hostname of target device for SSH connection ("****.local" or "IP-address"): str.
   target_host: "transfair.local"
+
+  ##The Username/user-account of the target device to connect to: str.
   target_user: "robin"
 
 ModelConfig:
+  ##Model type/architecture to search for
   model_type: "MLP"
