@@ -1,8 +1,17 @@
 import datetime
+
+import yaml
 from settings import ROOT_DIR
 
 class Config:
-    def __init__(self, yaml_dict: dict):
+    def __init__(self, config_path: str):
+
+        with open(config_path) as stream:
+            try:
+                yaml_dict = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
         self.experiment_conf = ExperimentConfig(yaml_dict["ExperimentConfig"])
         self.connection_conf = ConnectionConfig(yaml_dict["ConnectionConfig"])
         self.model_conf = ModelConfig(yaml_dict["ModelConfig"])
