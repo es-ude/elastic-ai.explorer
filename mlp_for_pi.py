@@ -121,7 +121,8 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo, config=config)
     metry = find_generate_measure_for_pi(explorer)
-
+    visu = Visualizer(metry, config.experiment_conf._plot_dir)
+    visu.plot_all_results(filename="plot.png")
 
     measure_accuracy(knowledge_repo, explorer)
     # #For multiple experiments adapt explorer.config

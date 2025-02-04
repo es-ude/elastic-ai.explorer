@@ -36,8 +36,6 @@ class Explorer:
         self.connection_conf = config.connection_conf
         self.model_conf = config.model_conf
         
-        
-
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model

@@ -63,13 +63,12 @@ def test_epoch(model: torch.nn.Module, device: str, test_loader: DataLoader) -> 
     return accuracy
 
 
-def evaluate_model(model: torch.nn.Module, experiment_config):
+def evaluate_model(model: torch.nn.Module, device):
     global accuracy
     ##Parameter
     flops_weight = 3.
     n_epochs = 2
     
-    device = experiment_config.host_processor
     ##Cost-Estimation
     # flops as proxy metric for latency
     flops_estimator = FlopsEstimator(model_space=model)
@@ -104,7 +103,7 @@ def evaluate_model(model: torch.nn.Module, experiment_config):
 
 def search(search_space: any, experiment_conf: ExperimentConfig) -> list[any]:
     search_strategy = strategy.Random()
-    evaluator = FunctionalEvaluator(evaluate_model, experiment_config = experiment_conf)
+    evaluator = FunctionalEvaluator(evaluate_model, device = experiment_conf.host_processor)
     exp = NasExperiment(search_space, evaluator, search_strategy)
     experiment_conf.nni_id = exp.id
     exp.config.max_trial_number = experiment_conf.max_search_trials
