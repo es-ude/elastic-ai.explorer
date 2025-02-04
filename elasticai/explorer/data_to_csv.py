@@ -3,12 +3,13 @@ import json
 import pandas
 import plotly.express as px
 
-from settings import ROOT_DIR
+from elasticai.explorer.config import ExperimentConfig
+from settings import MAIN_EXPERIMENT_DIR
 
 
-def build_search_space_measurements_file(latencies: list[int]) -> pandas.DataFrame:
-    metrics = str(ROOT_DIR) + "/metrics/metrics.json"
-    models = str(ROOT_DIR) + "/models/models.json"
+def build_search_space_measurements_file(latencies: list[int], experiment_conf: ExperimentConfig) -> pandas.DataFrame:
+    metrics = experiment_conf.metric_dir / "metrics.json"
+    models = experiment_conf.model_dir / "models.json"
     with open(metrics, "r") as f:
         metric_list = json.load(f)
 
@@ -21,7 +22,7 @@ def build_search_space_measurements_file(latencies: list[int]) -> pandas.DataFra
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
 
-    csv_path = str(ROOT_DIR) + "/experiment_data.csv"
+    csv_path = experiment_conf.experiment_dir / "experiment_data.csv"
     data_merged.to_csv(csv_path)
 
     return data_merged
@@ -36,10 +37,13 @@ def plot_parallel_coordinates(df: pandas.DataFrame):
     fig.show()
 
 
-def read_csv() -> pandas.DataFrame:
-    return pandas.read_csv(str(ROOT_DIR) + "/experiment_data_comp_sp.csv")
+def read_csv(csv_path) -> pandas.DataFrame:
+    return pandas.read_csv(csv_path)
 
 
 if __name__ == "__main__":
-    df = read_csv()
+
+    experiment_name = str(input("To plot csv data, give experiment name: "))
+    csv_path = MAIN_EXPERIMENT_DIR / experiment_name / "experiment_data.csv"
+    df = read_csv(csv_path)
     plot_parallel_coordinates(df)

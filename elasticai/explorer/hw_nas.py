@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from elasticai.explorer.config import ExperimentConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
 
 logger = logging.getLogger("explorer.nas")
@@ -100,14 +101,14 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(metric)
 
 
-def search(search_space: any, max_search_trials: int = 6, top_k: int = 4) -> list[any]:
+def search(search_space: any, experiment_config: ExperimentConfig) -> list[any]:
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
-    exp = NasExperiment(search_space, evaluator, search_strategy)
-    exp.config.max_trial_number = max_search_trials
+    exp = NasExperiment(search_space, evaluator, search_strategy, id=experiment_config.experiment_name)
+    exp.config.max_trial_number = experiment_config.max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=top_k, formatter="instance")
-    top_parameters = exp.export_top_models(top_k=top_k, formatter="dict")
+    top_models = exp.export_top_models(top_k=experiment_config.top_k, formatter="instance")
+    top_parameters = exp.export_top_models(top_k=experiment_config.top_k, formatter="dict")
     test_results = exp.export_data()
 
     # sorting the metrics, parameters in the top_k order
@@ -120,9 +121,9 @@ def search(search_space: any, max_search_trials: int = 6, top_k: int = 4) -> lis
 
                 metrics[i] = trial.value
 
-    with open('models/models.json', 'w') as outfile:
+    with open(experiment_config.model_dir / 'models.json', 'w') as outfile:
         json.dump(parameters, outfile)
-    with open("metrics/metrics.json", "w") as f:
+    with open(experiment_config.metric_dir / "metrics.json", "w") as f:
         json.dump(metrics, f)
 
     return top_models
