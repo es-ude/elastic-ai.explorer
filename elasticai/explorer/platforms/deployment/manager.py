@@ -41,7 +41,7 @@ class HWManager(ABC):
     @abstractmethod
     def measure_accuracy(
             self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
-    ) -> int:
+    ) -> float:
         pass
 
     @abstractmethod
@@ -125,7 +125,7 @@ class PIHWManager(HWManager):
 
     def measure_accuracy(
             self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
-    ) -> int:
+    ) -> float:
         self.logger.info("Measure accuracy of model on device.")
         with Connection(host=connection_info.host, user=connection_info.user) as conn:
             measurement = self._run_accuracy(conn, path_to_model, path_to_data)

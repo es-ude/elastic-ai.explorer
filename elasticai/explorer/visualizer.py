@@ -10,7 +10,7 @@ from settings import ROOT_DIR
 logger = logging.getLogger(__name__)
 
 
-def compute_kandell(list_x: list, list_y: list) -> float:
+def compute_kandell(list_x: list[any], list_y: list[any]) -> float:
     """Computes Kandell Correlation Coefficient.
 
     Args:
@@ -38,11 +38,11 @@ CONTEXT_PATH = ROOT_DIR / "plots"
 class Visualizer:
 
     def __init__(self, metrics: Metrics):
-        self.data = metrics.structured_est_metrics
-        self.labels = metrics.structured_samples
-        self.metrics = metrics
+        self.data: list[list[float]] = metrics.structured_est_metrics
+        self.labels: list[str]= metrics.structured_samples
+        self.metrics: Metrics  = metrics
 
-    def plot_all_results(self, figure_size=[15, 20], filename=None):
+    def plot_all_results(self, figure_size: list[int] = [15, 20], filename: str = ""):
         plt.figure()
         fig = plt.figure(num=1, clear=True)
         fig.set_size_inches(figure_size[0], figure_size[1], forward=True)
