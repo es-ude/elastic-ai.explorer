@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import os
 
 import nni
 import torch
@@ -62,13 +63,13 @@ def test_epoch(model: torch.nn.Module, device: str, test_loader: DataLoader) -> 
     return accuracy
 
 
-def evaluate_model(model: torch.nn.Module):
+def evaluate_model(model: torch.nn.Module, experiment_config):
     global accuracy
     ##Parameter
     flops_weight = 3.
     n_epochs = 2
     
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = experiment_config.host_processor
     ##Cost-Estimation
     # flops as proxy metric for latency
     flops_estimator = FlopsEstimator(model_space=model)
@@ -101,15 +102,17 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(metric)
 
 
-def search(search_space: any, experiment_config: ExperimentConfig) -> list[any]:
+def search(search_space: any, experiment_conf: ExperimentConfig) -> list[any]:
     search_strategy = strategy.Random()
-    evaluator = FunctionalEvaluator(evaluate_model)
-    exp = NasExperiment(search_space, evaluator, search_strategy, id=experiment_config.experiment_name)
-    exp.config.max_trial_number = experiment_config.max_search_trials
+    evaluator = FunctionalEvaluator(evaluate_model, experiment_config = experiment_conf)
+    exp = NasExperiment(search_space, evaluator, search_strategy)
+    experiment_conf.nni_id = exp.id
+    exp.config.max_trial_number = experiment_conf.max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=experiment_config.top_k, formatter="instance")
-    top_parameters = exp.export_top_models(top_k=experiment_config.top_k, formatter="dict")
+    top_models = exp.export_top_models(top_k=experiment_conf.top_k, formatter="instance")
+    top_parameters = exp.export_top_models(top_k=experiment_conf.top_k, formatter="dict")
     test_results = exp.export_data()
+    exp.stop()
 
     # sorting the metrics, parameters in the top_k order
     parameters = list(range(len(top_parameters)))
@@ -121,9 +124,13 @@ def search(search_space: any, experiment_config: ExperimentConfig) -> list[any]:
 
                 metrics[i] = trial.value
 
-    with open(experiment_config.model_dir / 'models.json', 'w') as outfile:
+    
+    os.makedirs(experiment_conf._model_dir, exist_ok=True)
+    with open(experiment_conf._model_dir / 'models.json', 'w+') as outfile:
         json.dump(parameters, outfile)
-    with open(experiment_config.metric_dir / "metrics.json", "w") as f:
+
+    os.makedirs(experiment_conf._metric_dir, exist_ok=True)
+    with open(experiment_conf._metric_dir / "metrics.json", "w+") as f:
         json.dump(metrics, f)
 
     return top_models

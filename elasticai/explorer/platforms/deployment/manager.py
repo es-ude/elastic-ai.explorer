@@ -141,7 +141,7 @@ class PIHWManager(HWManager):
         result = conn.run(command, hide=True)
         if self._wasSuccessful(result):
             experiment_result = re.search("Accuracy: (.*)", result.stdout)
-            measurement = experiment_result.group(1)
+            measurement = float(experiment_result.group(1))
         else:
             raise Exception(result.stderr)
         return measurement

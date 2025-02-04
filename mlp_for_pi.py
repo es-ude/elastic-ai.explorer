@@ -41,11 +41,11 @@ def setup_knowledge_repository() -> KnowledgeRepository:
     return knowledge_repository
 
 
-def find_for_pi(knowledge_repository: KnowledgeRepository, max_search_trials: int, top_k: int):
-    explorer = Explorer(knowledge_repository)
+def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
+
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search(max_search_trials, top_k)
+    top_models = explorer.search()
 
 
 def find_generate_measure_for_pi( 
@@ -62,7 +62,7 @@ def find_generate_measure_for_pi(
     for i, model in enumerate(top_models):
         train(model, 3, device = explorer.experiment_conf.host_processor)
         test(model, device= explorer.experiment_conf.host_processor)
-        model_path = explorer.experiment_conf.model_dir / ("ts_models/model_" + str(i) + ".pt")
+        model_path = explorer.experiment_conf._model_dir / ("ts_models/model_" + str(i) + ".pt")
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
 
@@ -77,17 +77,17 @@ def find_generate_measure_for_pi(
     logger.info("Models:\n %s", df)
 
     return Metrics(
-        explorer.experiment_conf.metric_dir / "metrics.json",
-        explorer.experiment_conf.model_dir / "models.json",
+        explorer.experiment_conf._metric_dir / "metrics.json",
+        explorer.experiment_conf._model_dir / "models.json",
         measurements_accuracy,
         measurements_latency_mean,
     )
 
 
-def measure_latency(knowledge_repository: KnowledgeRepository):
-    explorer = Explorer(knowledge_repository)
+def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer):
+    
     explorer.choose_target_hw("rpi5")
-    model_path = explorer.experiment_conf.experiment_dir / "models/ts_models/model_0.pt"
+    model_path = explorer.experiment_conf._model_dir / "ts_models/model_0.pt"
     explorer.hw_setup_on_target()
 
     mean, std = explorer.run_latency_measurement(model_path)
@@ -95,13 +95,11 @@ def measure_latency(knowledge_repository: KnowledgeRepository):
     logger.info("Std Latency: %.2f", std)
 
 
-def measure_accuracy(knowledge_repository):
-    explorer = Explorer(knowledge_repository)
+def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer):
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target()
-    model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
+    model_path = explorer.experiment_conf._model_dir / "ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
-
     logger.info(
         "Accuracy: %.2f",
         explorer.run_accuracy_measurement(model_path, data_path),
@@ -122,9 +120,15 @@ if __name__ == "__main__":
 
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo, config=config)
+    metry = find_generate_measure_for_pi(explorer)
 
-    metry = find_generate_measure_for_pi(
-        explorer
-    )
-    visu = Visualizer(metry)
-    visu.plot_all_results(filename="plot")
+
+    measure_accuracy(knowledge_repo, explorer)
+    # #For multiple experiments adapt explorer.config
+    # for i in range(5):
+    #     explorer.experiment_conf.experiment_name = str(i)
+    #     metry = find_generate_measure_for_pi(
+    #         explorer
+    #     )
+    #     visu = Visualizer(metry, explorer.experiment_conf._plot_dir)
+    #     visu.plot_all_results(filename="plot.png")

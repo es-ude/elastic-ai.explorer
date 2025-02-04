@@ -15,7 +15,7 @@ ExperimentConfig:
 
   ##Name of the experiment in nni, also defines where the experiment outputs are saved.
   ##Careful: If keeping the same name, results are overwriten.
-  experiment_name: "test"
+  #experiment_name: None
 
 ConnectionConfig:
   ##The Hostname of target device for SSH connection ("****.local" or "IP-address"): str.
