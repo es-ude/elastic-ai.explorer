@@ -29,9 +29,8 @@ class KnowledgeRepository:
 
 class Metrics:
     def __init__(self, path_to_metrics: str, path_to_samples: str, accuracy_list: list, latency_list: list):
-        self.raw_metrics = path_to_metrics
-        self.raw_measured_accuracies = accuracy_list
-        self.raw_measured_latencies = latency_list
+        self.raw_measured_accuracies: list[float] = accuracy_list
+        self.raw_measured_latencies: list[int] = latency_list
 
         with open(path_to_metrics, "r") as f:
             self.metric_list = json.load(f)
@@ -44,20 +43,20 @@ class Metrics:
     def _structure(self):
 
         number_of_models = len(self.sample_list)
-        self.structured_est_metrics = np.reshape(np.arange(0, 3 * 2 * number_of_models, 1, dtype=float),
+        self.structured_est_metrics: list[list[float]] = np.reshape(np.arange(0, 3 * 2 * number_of_models, 1, dtype=float),
                                                  [3, 2, number_of_models])
-        self.structured_samples = []
-        self.structured_est_flops = []
-        self.structured_est_accuracies = []
-        self.structured_est_combined = []
+        self.structured_samples: list[str]= []
+        self.structured_est_flops: list[float] = []
+        self.structured_est_accuracies: list[float] = []
+        self.structured_est_combined: list[float] = []
 
         # first dimension accuracy, Latency, Combined
         # second dimension estimation, measured
         # third dimension sample number
         for n, metric in enumerate(self.metric_list):
-            self.structured_est_metrics[0][0][n] = metric["accuracy"]
-            self.structured_est_metrics[1][0][n] = metric["flops log10"]
-            self.structured_est_metrics[2][0][n] = metric["default"]
+            self.structured_est_metrics[0][0][n] = float(metric["accuracy"])
+            self.structured_est_metrics[1][0][n] = float(metric["flops log10"])
+            self.structured_est_metrics[2][0][n] = float(metric["default"])
 
             self.structured_est_flops.append(metric["flops log10"])
             self.structured_est_accuracies.append(metric["accuracy"])
