@@ -119,17 +119,10 @@ def make_dirs_if_not_exists():
     if not os.path.exists("metrics"):
         os.makedirs("metrics")
 
-def load_config(config_path: str) -> Config:
-    with open(config_path) as stream:
-        try:
-            config = Config(yaml.safe_load(stream))
-        except yaml.YAMLError as exc:
-            print(exc)
-    return config
 
 if __name__ == "__main__": 
     
-    config = load_config("config.yaml")
+    
     make_dirs_if_not_exists()
 
     host = config.connection_conf.target_host
