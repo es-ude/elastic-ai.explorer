@@ -21,6 +21,8 @@ class Trainer(ABC):
         pass
 
 class MLPTrainer(Trainer):
+    """Trainer class for MLPs written in Pytorch.
+    """
     def __init__(self, device: str,
                   optimizer: optim, loss_fn = nn.CrossEntropyLoss()):
 
@@ -30,12 +32,11 @@ class MLPTrainer(Trainer):
         self.loss_fn = loss_fn
 
     def train(self, model: nn.Module, trainloader: DataLoader, epochs: int):
-        """Train the given model on the traindata
-
+        """
         Args:
-            model (nn.Module): model
-            trainloader (DataLoader): Data
-            epochs (int): epochs
+            model: Model to train.
+            trainloader: Data to train on.
+            epochs: Number of epochs.
         """
         
         for epoch in range(epochs):
@@ -43,10 +44,9 @@ class MLPTrainer(Trainer):
 
         
     def test(self, model: nn.Module, testloader: DataLoader) -> float:
-        """Test the model on the 
-
+        """
         Args:
-            testloader (DataLoader): The data for testing.
+            testloader: The data for testing.
 
         Returns:
             float: Accuracy on test data.
@@ -72,10 +72,10 @@ class MLPTrainer(Trainer):
         return accuracy
 
     def train_epoch(self, model: nn.Module, trainloader: DataLoader, epoch: int):
-        """train for an epoch using
+        """Trains model for only one epoch.
 
         Args:
-            epoch (int): Current epoch
+            epoch: Current epoch number.
         """
         
         model.train(True)
