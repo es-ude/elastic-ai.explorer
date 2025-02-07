@@ -20,6 +20,9 @@ docker/bin
 #models
 models/
 
+#experiments
+experiments/
+
 # Distribution / packaging
 .Python
 build/
