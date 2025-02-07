@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 
 import nni
@@ -13,9 +14,11 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer.cost_estimator import FlopsEstimator
 
+logger = logging.getLogger("explorer.nas")
+
 
 def train_epoch(
-    model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
+        model: torch.nn.Module, device: str, train_loader: DataLoader, optimizer: torch.optim, epoch: int
 ):
     loss_fn = nn.CrossEntropyLoss()
     model.train(True)
@@ -27,7 +30,7 @@ def train_epoch(
         loss.backward()
         optimizer.step()
         if batch_idx % 10 == 0:
-            print(
+            logger.info(
                 "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                     epoch,
                     batch_idx * len(data),
@@ -38,7 +41,7 @@ def train_epoch(
             )
 
 
-def test_epoch(model, device, test_loader):
+def test_epoch(model: torch.nn.Module, device: str, test_loader: DataLoader) -> float:
     model.eval()
     test_loss = 0
     correct = 0
@@ -50,7 +53,7 @@ def test_epoch(model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
-    print(
+    logger.info(
         "\nTest set: Accuracy: {}/{} ({:.0f}%)\n".format(
             correct, len(test_loader.dataset), accuracy
         )
@@ -61,7 +64,7 @@ def test_epoch(model, device, test_loader):
 def evaluate_model(model: torch.nn.Module):
     global accuracy
     ##Parameter
-    flops_weight = 0.5
+    flops_weight = 3.
     n_epochs = 2
 
     ##Cost-Estimation
@@ -70,7 +73,6 @@ def evaluate_model(model: torch.nn.Module):
     flops = flops_estimator.estimate_flops_single_module(model)
 
     # set device to cpu to prevent memory error
-    # TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi
     device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -98,15 +100,29 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(metric)
 
 
-def search(search_space, max_search_trials=6):
+def search(search_space: any, max_search_trials: int = 6, top_k: int = 4) -> list[any]:
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model)
     exp = NasExperiment(search_space, evaluator, search_strategy)
     exp.config.max_trial_number = max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=1, formatter="instance")
-    for model_dict in exp.export_top_models(formatter="dict"):
-        print(model_dict)
-        with open("models/models.json", "w") as f:
-            json.dump(model_dict, f)
+    top_models = exp.export_top_models(top_k=top_k, formatter="instance")
+    top_parameters = exp.export_top_models(top_k=top_k, formatter="dict")
+    test_results = exp.export_data()
+
+    # sorting the metrics, parameters in the top_k order
+    parameters = list(range(len(top_parameters)))
+    metrics = list(range(len(top_parameters)))
+    for trial in test_results:
+        for i, top_parameter in enumerate(top_parameters):
+            if trial.parameter["sample"] == top_parameter:
+                parameters[i] = trial.parameter["sample"]
+
+                metrics[i] = trial.value
+
+    with open('models/models.json', 'w') as outfile:
+        json.dump(parameters, outfile)
+    with open("metrics/metrics.json", "w") as f:
+        json.dump(metrics, f)
+
     return top_models
