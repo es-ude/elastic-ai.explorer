@@ -9,13 +9,8 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch
 
-
-"""
-Wrapper for FlopsProfiler could extend in future
-"""
-
-
 class FlopsEstimator:
+    """Wrapper for FlopsProfiler could extend in future"""
 
     def estimate_flops_single_module(self, model_sample: torch.nn.Module) -> int:
         """Computes FLOPS for a single module.
@@ -27,7 +22,9 @@ class FlopsEstimator:
             int: The FLOPS-estimate
         """
 
-        data_sample = torch.full((1, 1, 28, 28), 1.0)
+        first_parameter = next(model_sample.parameters())
+        input_shape = first_parameter.size()
+        data_sample = torch.full(input_shape, 1.0) 
         profiler = FlopsProfiler(model_sample, data_sample)
 
         return profiler.expression
