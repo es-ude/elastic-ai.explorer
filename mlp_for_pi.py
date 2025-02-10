@@ -124,7 +124,7 @@ if __name__ == "__main__":
     visu = Visualizer(metry, config.experiment_conf._plot_dir)
     visu.plot_all_results(filename="plot.png")
 
-    measure_accuracy(knowledge_repo, explorer)
+    #measure_accuracy(knowledge_repo, explorer)
     # #For multiple experiments adapt explorer.config
     # for i in range(5):
     #     explorer.experiment_conf.experiment_name = str(i)

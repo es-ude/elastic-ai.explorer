@@ -108,8 +108,8 @@ def search(search_space: any, experiment_conf: ExperimentConfig) -> list[any]:
     experiment_conf.nni_id = exp.id
     exp.config.max_trial_number = experiment_conf.max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=experiment_conf.top_k, formatter="instance")
-    top_parameters = exp.export_top_models(top_k=experiment_conf.top_k, formatter="dict")
+    top_models = exp.export_top_models(top_k=experiment_conf.top_n_models, formatter="instance")
+    top_parameters = exp.export_top_models(top_k=experiment_conf.top_n_models, formatter="dict")
     test_results = exp.export_data()
     exp.stop()
 
