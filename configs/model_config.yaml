@@ -1,0 +1,4 @@
+##ModelConfig that defines the type of deep neural network you want to search for.
+ModelConfig:
+  ##Model type/architecture to search for.
+  model_type: "MLP"
