@@ -1,5 +1,4 @@
 ##The ConnectionConfig gives the necessary information to connect to the target-device.
-##If parameters are not specified here, they are set to default values.
 ConnectionConfig:
   ##The Hostname of target device.
   target_name: "transfair.local"

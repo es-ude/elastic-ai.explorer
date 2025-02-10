@@ -123,13 +123,4 @@ def search(search_space: any, experiment_conf: ExperimentConfig) -> list[any]:
 
                 metrics[i] = trial.value
 
-    
-    os.makedirs(experiment_conf._model_dir, exist_ok=True)
-    with open(experiment_conf._model_dir / 'models.json', 'w+') as outfile:
-        json.dump(parameters, outfile)
-
-    os.makedirs(experiment_conf._metric_dir, exist_ok=True)
-    with open(experiment_conf._metric_dir / "metrics.json", "w+") as f:
-        json.dump(metrics, f)
-
-    return top_models
+    return top_models, parameters, metrics
