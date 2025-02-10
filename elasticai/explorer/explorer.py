@@ -14,14 +14,12 @@ from elasticai.explorer.search_space import MLP
 
 
 class Explorer:
+    """
+    The explorer class manages the HW-NAS and the deployment on hardware.
+    It should be initialized with a KnowledgeRepository and config instances, to define the experiment setup.
+    """
 
     def __init__(self, knowledge_repository: KnowledgeRepository, config: Config):
-        """Initializes Explorer instance.
-
-        Args:
-            knowledge_repository (KnowledgeRepository): Gives information on the target platform.
-            config (Config): Consist of experiment_conf, connection_conf and model_conf
-        """
         self.logger = logging.getLogger("explorer")
         self.default_model: Optional[nn.Module] = None
         self.target_hw: Optional[HWPlatform] = None
@@ -30,8 +28,6 @@ class Explorer:
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
         self.config = config
-        
-        #shortcut to the individual configs
         self.experiment_conf = config.experiment_conf
         self.connection_conf = config.connection_conf
         self.model_conf = config.model_conf
