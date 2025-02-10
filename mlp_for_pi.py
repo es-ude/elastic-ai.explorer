@@ -17,7 +17,7 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
 from elasticai.explorer.visualizer import Visualizer
-from elasticai.explorer.config import Config, ExperimentConfig
+from elasticai.explorer.config import Config, ConnectionConfig, ExperimentConfig, ModelConfig
 from settings import ROOT_DIR
 config = None
 
@@ -49,20 +49,22 @@ def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
 
 
 def find_generate_measure_for_pi( 
-        explorer: Explorer
+        explorer: Explorer,
+        connection_conf: ConnectionConfig,
+        experiment_conf: ExperimentConfig
 ) -> Metrics:
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search()
+    top_models = explorer.search(experiment_conf)
 
-    explorer.hw_setup_on_target()
+    explorer.hw_setup_on_target(connection_conf=connection_conf)
     measurements_latency_mean = []
     measurements_accuracy = []
 
     for i, model in enumerate(top_models):
-        train(model, 3, device = explorer.experiment_conf.host_processor)
-        test(model, device= explorer.experiment_conf.host_processor)
-        model_path = explorer.experiment_conf._model_dir / ("ts_models/model_" + str(i) + ".pt")
+        train(model, 3, device = experiment_conf.host_processor)
+        test(model, device= experiment_conf.host_processor)
+        model_path = explorer._model_dir / ("ts_models/model_" + str(i) + ".pt")
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
 
@@ -73,12 +75,12 @@ def find_generate_measure_for_pi(
         )
 
     floats = [float(np_float) for np_float in measurements_latency_mean]
-    df = build_search_space_measurements_file(floats, explorer.experiment_conf)
+    df = build_search_space_measurements_file(floats, explorer)
     logger.info("Models:\n %s", df)
 
     return Metrics(
-        explorer.experiment_conf._metric_dir / "metrics.json",
-        explorer.experiment_conf._model_dir / "models.json",
+        explorer._metric_dir / "metrics.json",
+        explorer._model_dir / "models.json",
         measurements_accuracy,
         measurements_latency_mean,
     )
@@ -87,7 +89,7 @@ def find_generate_measure_for_pi(
 def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer):
     
     explorer.choose_target_hw("rpi5")
-    model_path = explorer.experiment_conf._model_dir / "ts_models/model_0.pt"
+    model_path = explorer._model_dir / "ts_models/model_0.pt"
     explorer.hw_setup_on_target()
 
     mean, std = explorer.run_latency_measurement(model_path)
@@ -98,7 +100,7 @@ def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explore
 def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer):
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target()
-    model_path = explorer.experiment_conf._model_dir / "ts_models/model_0.pt"
+    model_path = explorer._model_dir / "ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
     logger.info(
         "Accuracy: %.2f",
@@ -113,15 +115,16 @@ def prepare_pi():
 
 if __name__ == "__main__": 
     
-    config = Config(config_path="config.yaml")
-
-    #Changing config in code possible 
-    config.experiment_conf.max_search_trials = 2
+    experiment_cfg = ExperimentConfig(config_path="configs/experiment_config.yaml")
+    connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
+    model_cfg = ModelConfig(config_path="configs/model_config.yaml")
 
     knowledge_repo = setup_knowledge_repository()
-    explorer = Explorer(knowledge_repo, config=config)
-    metry = find_generate_measure_for_pi(explorer)
-    visu = Visualizer(metry, config.experiment_conf._plot_dir)
+    explorer = Explorer(knowledge_repo)
+    explorer.set_model_cfg(model_cfg)
+
+    metry = find_generate_measure_for_pi(explorer, connection_cfg, experiment_cfg)
+    visu = Visualizer(metry, explorer._plot_dir)
     visu.plot_all_results(filename="plot.png")
 
 
