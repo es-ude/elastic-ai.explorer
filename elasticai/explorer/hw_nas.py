@@ -105,7 +105,7 @@ def search(search_space: any, experiment_conf: ExperimentConfig) -> list[any]:
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model, device = experiment_conf.host_processor)
     exp = NasExperiment(search_space, evaluator, search_strategy)
-    experiment_conf.nni_id = exp.id
+    experiment_conf._nni_id = exp.id
     exp.config.max_trial_number = experiment_conf.max_search_trials
     exp.run(port=8081)
     top_models = exp.export_top_models(top_k=experiment_conf.top_n_models, formatter="instance")
