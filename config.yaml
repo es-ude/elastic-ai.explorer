@@ -10,7 +10,7 @@ ExperimentConfig:
   ##The search trials the HW-NAS should do at max.
   max_search_trials: 2
 
-  ##The number of top models to be tested on the target device.
+  ##The number of top models returned by HW-NAS.
   top_n_models: 2
 
   ##Name of the experiment in nni, also defines where the experiment outputs are saved.
