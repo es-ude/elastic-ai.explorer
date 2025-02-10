@@ -121,10 +121,6 @@ if __name__ == "__main__":
 
     host = "transpi5.local"
     user = "ies"
-    # 60 possible
-    # ca hälfte über 90%
-    # 1/3 der modelle unter 70
-    # 1/4 der Modelle unter 50
     max_search_trials = 6
     top_k = 2
     knowledge_repo = setup_knowledge_repository()

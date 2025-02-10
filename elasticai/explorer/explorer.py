@@ -48,18 +48,18 @@ class Explorer:
             connection_info: ConnectionData,
     ):
         self.logger.info("Setup Hardware target for experiments.")
-        self.hw_manager.install_latency_measurement_on_target(connection_info)
-        self.hw_manager.install_accuracy_measurement_on_target(connection_info)
+        self.hw_manager.install_latency_measurement_on_target()
+        self.hw_manager.install_accuracy_measurement_on_target()
 
     def run_latency_measurement(
             self, connection_info: ConnectionData, path_to_model, sample_size=1
     ) -> int:
-        self.hw_manager.deploy_model(connection_info, path_to_model)
+        self.hw_manager.deploy_model(path_to_model)
         latencies = np.zeros(sample_size)
 
         for i in range(len(latencies)):
             latencies[i] = float(
-                self.hw_manager.measure_latency(connection_info, path_to_model)
+                self.hw_manager.measure_latency(path_to_model)
             )
 
         return latencies.mean(), latencies.std()
@@ -67,7 +67,5 @@ class Explorer:
     def run_accuracy_measurement(
             self, connection_info: ConnectionData, path_to_model, path_to_data
     ) -> int:
-        self.hw_manager.deploy_model(connection_info, path_to_model)
-        return self.hw_manager.measure_accuracy(
-            connection_info, path_to_model, path_to_data
-        )
+        self.hw_manager.deploy_model(path_to_model)
+        return self.hw_manager.measure_accuracy(path_to_model, path_to_data)

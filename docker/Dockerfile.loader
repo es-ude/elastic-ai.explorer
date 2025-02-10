@@ -1,7 +1,6 @@
 FROM cross AS builder
 
-COPY ./code/measure_latency.cpp /code/
-COPY ./code/measure_accuracy.cpp /code/
+COPY ./code/$PROGRAM_CODE /code/
 COPY ./code/CMakeLists.txt /code/
 ADD  ./code/libtorch /code/libtorch
 
@@ -11,10 +10,11 @@ ENV BUILD_DIR=/code/build
 RUN mkdir -p $BIN_DIR && mkdir -p $BUILD_DIR && \
     cd $BUILD_DIR && \
     cmake -DCMAKE_PREFIX_PATH=/code/libtorch \
+    -DPROGRAM_CODE=$PROGRAM_CODE \
     -DCMAKE_TOOLCHAIN_FILE=$CROSS_TOOLCHAIN \
     .. && \
     cmake --build . --config Release  && \
-    cp ./measure_latency $BIN_DIR/ &&\
+    cp ./ $BIN_DIR/ &&\
     cp ./measure_accuracy $BIN_DIR/
 
 
