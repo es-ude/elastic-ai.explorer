@@ -4,7 +4,6 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from fabric import Connection
 from invoke import Result
 from python_on_whales import docker
 
@@ -22,147 +21,173 @@ class ConnectionData:
 class HWManager(ABC):
 
     @abstractmethod
-    def measure_latency(
-            self, connection_info: ConnectionData, path_to_model
-    ) -> int:
+    def install_latency_measurement_on_target(self, path_to_program=None):
         pass
 
     @abstractmethod
-    def install_latency_measurement_on_target(
-            self, connection_info: ConnectionData, path_to_program=None
-    ):
+    def install_accuracy_measurement_on_target(self, path_to_program: str = None):
         pass
 
     @abstractmethod
-    def install_accuracy_measurement_on_target(self, connection_info: ConnectionData, path_to_program: str = None
-                                               ):
+    def measure_accuracy(self, path_to_model: str, path_to_data: str) -> int:
         pass
 
     @abstractmethod
-    def measure_accuracy(
-            self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
-    ) -> int:
+    def measure_latency(self, path_to_model) -> int:
         pass
 
     @abstractmethod
-    def deploy_model(
-            self, connection_info: ConnectionData, path_to_model: str
-    ) -> int:
+    def install_code_on_target(self, path_to_program: str = None
+                               ):
+        pass
+
+    @abstractmethod
+    def deploy_model(self, path_to_model: str) -> int:
         pass
 
 
-class PIHWManager(HWManager):
-
+class Compiler:
     def __init__(self):
-        self.logger = logging.getLogger("explorer.platforms.deployment.manager.PIHWManager")
-        self.logger.info("Initializing PI Hardware Manager...")
-        if not docker.images("cross"):
-            self.setup_crosscompiler()
+        self.tag: str = "cross"
+        if not self.is_setup():
+            self.setup()
 
-    def setup_crosscompiler(self):
+    def is_setup(self) -> bool:
+        return docker.images(self.tag)
+
+    def setup(self) -> None:
         self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
         docker.build(
-            CONTEXT_PATH, file=CONTEXT_PATH / "Dockerfile.picross", tags="cross"
+            CONTEXT_PATH, file=CONTEXT_PATH / "Dockerfile.picross", tags=self.tag
         )
-        self.logger.info("Crosscompiler available now.")
+        self.logger.debug("Crosscompiler available now.")
 
-    def compile_code(self):
-
+    def compile_code(self, path_to_program: str):
         docker.build(
             CONTEXT_PATH,
             file=CONTEXT_PATH / "Dockerfile.loader",
             output={"type": "local", "dest": CONTEXT_PATH / "bin"},
         )
-        self.logger.info("Compilation finished. Programs available in %s", CONTEXT_PATH / "bin")
+        self.logger.info("Compilation finished. Program available in %s", CONTEXT_PATH / "bin")
 
-    def install_latency_measurement_on_target(
-            self, connection_info: ConnectionData, path_to_program: str = None
-    ):
+
+# class Measurement:
+#     def install_on_target(self):
+#         self.compiler.compile_code(path_to_program)
+#         with Connection(host=connection_info.host, user=connection_info.user) as conn:
+#             conn.put(path_to_program)
+#     def take_on_target(self):
+
+
+class PIHWManager(HWManager):
+
+    def __init__(self, connection_info: ConnectionData):
+        self.logger = logging.getLogger("explorer.platforms.deployment.manager.PIHWManager")
+        self.logger.info("Initializing PI Hardware Manager...")
+        self.compiler = Compiler()
+        self.connection_info: ConnectionData = connection_info
+
+    def install_code_on_target(self, path_to_program: str
+                               ):
+        # if path_to_program is None:
+        #     path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
+
+        self.compiler.compile_code(path_to_program)
+        with self._getConnection() as conn:
+            conn.put(path_to_program)
+
+    def install_latency_measurement_on_target(self, path_to_program: str = None):
         self.logger.info("Install latency measurement code on target...")
         if path_to_program is None:
             self.logger.info("Latency measurement is not compiled yet...")
             path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
             self.logger.info("Compile latency measurement code.")
-            self.compile_code()
+            self.compiler.compile_code(path_to_program)
 
-        with Connection(host=connection_info.host, user=connection_info.user) as conn:
-            self.logger.info("Install program on target. Hostname: %s - User: %s", connection_info.host,
-                             connection_info.user)
+        with self._getConnection() as conn:
+            self.logger.info("Install program on target. Hostname: %s - User: %s", conn.host,
+                             conn.user)
             conn.put(path_to_program)
             self.logger.info("Latency measurements available on Target")
 
     # todo: don't compile both scripts twice...
-    def install_accuracy_measurement_on_target(self, connection_info: ConnectionData, path_to_program: str = None,
-                                               path_to_data: str = None):
+    def install_accuracy_measurement_on_target(self, path_to_program: str = None):
         self.logger.info("Install accuracy measurement code on target...")
         if path_to_program is None:
             self.logger.info("Accuracy measurement is not compiled yet...")
             path_to_program = str(CONTEXT_PATH) + "/bin/measure_accuracy"
             self.logger.info("Compile accuracy measurement code.")
-            self.compile_code()
-
+            self.compiler.compile_code(path_to_program)
+        path_to_data = None  # todo: tf is this
         if path_to_data is None:
             path_to_data = str(CONTEXT_PATH) + "/data/mnist.zip"
             self.logger.info("No path to dataset given. Set dataset path to:  %s", path_to_data)
 
-        with Connection(host=connection_info.host, user=connection_info.user) as conn:
-            self.logger.info("Install accuracy measurement on target. Hostname: %s - User: %s", connection_info.host,
-                             connection_info.user)
+        with self._getConnection() as conn:
+            self.logger.info("Install accuracy measurement on target. Hostname: %s - User: %s", conn.host,
+                             conn.user)
             conn.put(path_to_program)
             self.logger.info("Put dataset on target ")
             conn.put(path_to_data)
             conn.run(f"unzip -q -o {os.path.split(path_to_data)[-1]}")
             self.logger.info("Accuracy measurements available on target")
 
-    def measure_latency(
-            self, connection_info: ConnectionData, path_to_model: str
-    ) -> int:
+    def measure_latency(self, path_to_model: str) -> int:
         self.logger.info("Measure latency of model on device")
-        with Connection(host=connection_info.host, user=connection_info.user) as conn:
-            measurement = self._run_latency(conn, path_to_model)
+        with self._getConnection() as conn:
+            _, tail = os.path.split(path_to_model)
+            cmd = self.build_command("measure_latency", [tail])
+            measurement = self._run_measurement(conn, cmd)
+
         self.logger.debug("Measured latency on device: %dus", measurement)
-        return measurement
+        return measurement  # todo: change type
 
-    def measure_accuracy(
-            self, connection_info: ConnectionData, path_to_model: str, path_to_data: str
-    ) -> int:
+    def measure_accuracy(self, path_to_model: str, path_to_data: str) -> int:
         self.logger.info("Measure accuracy of model on device.")
-        with Connection(host=connection_info.host, user=connection_info.user) as conn:
-            measurement = self._run_accuracy(conn, path_to_model, path_to_data)
-        self.logger.debug("Measured accuracy on device: %0.2f\%", measurement)
-        return measurement
+        with self._getConnection() as conn:
+            _, model_tail = os.path.split(path_to_model)
+            _, data_tail = os.path.split(path_to_data)
+            cmd = self.build_command("measure_accuracy", [model_tail, data_tail])
+            measurement = self._run_measurement(conn, cmd)
 
-    def deploy_model(self, connection_info: ConnectionData, path_to_model: str):
-        with Connection(host=connection_info.host, user=connection_info.user) as conn:
+        self.logger.debug("Measured accuracy on device: %0.2f\%", measurement)
+        return measurement  # todo: change type
+
+    def deploy_model(self, path_to_model: str):
+        with self._getConnection() as conn:
             self.logger.info("Put model %s on target", path_to_model)
             conn.put(path_to_model)
 
-    def _run_accuracy(self, conn: Connection, path_to_model: str, path_to_data: str) -> float:
-
-        _, model_tail = os.path.split(path_to_model)
-        _, data_tail = os.path.split(path_to_data)
-        command = "./measure_accuracy {} {}".format(model_tail, data_tail)
-
+    def _run_measurement(self, conn, command) -> tuple[str, str]:
         result = conn.run(command, hide=True)
         if self._wasSuccessful(result):
-            experiment_result = re.search("Accuracy: (.*)", result.stdout)
-            measurement = experiment_result.group(1)
+            measurement = self._parse_measurement(result)
         else:
             raise Exception(result.stderr)
         return measurement
 
-    def _run_latency(self, conn: Connection, path_to_model: str) -> int:
-
-        _, tail = os.path.split(path_to_model)
-        command = "./measure_latency {}".format(tail)
-
-        result = conn.run(command, hide=True)
-        if self._wasSuccessful(result):
-            experiment_result = re.search("Inference Time: (.*) us", result.stdout)
-            measurement = int(experiment_result.group(1))
-        else:
-            raise Exception(result.stderr)
+    def _parse_measurement(self, result) -> tuple[str, str]:
+        experiment_result = re.search("(.*): (.*)", result.stdout)
+        measurement = (experiment_result.group(1), experiment_result.group(2))
         return measurement
+
+    def build_command(self, name_of_program: str, arguments: list[str]):
+        builder = CommandBuilder(name_of_program)
+        for argument in arguments:
+            builder.add_argument(argument)
+        command = builder.build()
+        return command
 
     def _wasSuccessful(self, result: Result) -> bool:
         return result.ok
+
+
+class CommandBuilder:
+    def __init__(self, name_of_exec: str):
+        self.command: list[str] = ["./{}".format(name_of_exec)]
+
+    def add_argument(self, arg):
+        self.command.append(arg)
+
+    def build(self):
+        return " ".join(self.command)
