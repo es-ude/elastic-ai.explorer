@@ -52,7 +52,7 @@ class Explorer:
 
     def search(self) -> list[any]:
         self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", 
-                         self.experiment_conf.max_search_trials, self.experiment_conf.top_k)
+                         self.experiment_conf.max_search_trials, self.experiment_conf.top_n_models)
         top_models = hw_nas.search(self.search_space, self.experiment_conf)
         #save actual config with all defaults
         self.config.dump_as_yaml(self.experiment_conf._experiment_dir)

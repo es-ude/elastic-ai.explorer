@@ -4,26 +4,26 @@
 ##specified here, they are set to default values. Only ConnectionConfig has to be fully specified.
 
 ExperimentConfig:
-  ##Processor type (cpu, cuda:n) of the host, the experiment should run on: str.
+  ##Processor type (cpu, cuda:n) of the host, the experiment should run on.
   host_processor: "cuda:0" 
 
-  ##The search trials the HW-NAS should do at max: int. 
+  ##The search trials the HW-NAS should do at max.
   max_search_trials: 2
 
-  ##The number of top models to be tested on the target device: int.
-  top_k: 2
+  ##The number of top models to be tested on the target device.
+  top_n_models: 2
 
   ##Name of the experiment in nni, also defines where the experiment outputs are saved.
-  ##Careful: If keeping the same name, results are overwriten.
-  #experiment_name: None
+  ##Careful, if keeping the same name, results are overwriten.
+  #experiment_name: "test"
 
 ConnectionConfig:
-  ##The Hostname of target device for SSH connection ("****.local" or "IP-address"): str.
+  ##The Hostname of target device.
   target_name: "transfair.local"
 
-  ##The Username/user-account of the target device to connect to: str.
+  ##The Username/user-account of the target device to connect to.
   target_user: "robin"
 
 ModelConfig:
-  ##Model type/architecture to search for
+  ##Model type/architecture to search for.
   model_type: "MLP"

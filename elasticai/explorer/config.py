@@ -38,7 +38,7 @@ class ExperimentConfig:
         #set to default value, if yaml dict does not define a value
         self.host_processor: str = yaml_dict.get("host_processor", "cpu")
         self.max_search_trials: int = yaml_dict.get("max_search_trials", 6)
-        self.top_k: int =  yaml_dict.get("top_k", 2)
+        self.top_n_models: int =  yaml_dict.get("top_n_models", 2)
         self.experiment_name: str = yaml_dict.get("experiment_name", f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}")
         self.nni_id: str = None
 
