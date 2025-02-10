@@ -65,6 +65,7 @@ class Explorer:
 
     def set_model_cfg(self, model_cfg: ModelConfig):
         self.model_cfg = model_cfg
+        self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
     def generate_search_space(self):
         self.search_space = MLP()
