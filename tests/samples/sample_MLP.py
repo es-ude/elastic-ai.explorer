@@ -1,7 +1,7 @@
 from torch import nn
 from torch.nn import functional
 
-class test_MLP(nn.Module):
+class sample_MLP(nn.Module):
     def __init__(self):
         super().__init__()
         self.fc1 = nn.Linear(28 * 28, 32)
