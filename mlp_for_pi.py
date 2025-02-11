@@ -17,7 +17,7 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
 from elasticai.explorer.visualizer import Visualizer
-from elasticai.explorer.config import Config, ConnectionConfig, ExperimentConfig, ModelConfig
+from elasticai.explorer.config import Config, ConnectionConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
 config = None
 
@@ -50,20 +50,20 @@ def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
 
 def find_generate_measure_for_pi( 
         explorer: Explorer,
-        connection_conf: ConnectionConfig,
-        experiment_conf: ExperimentConfig
+        connection_cfg: ConnectionConfig,
+        hwnas_cfg: HWNASConfig
 ) -> Metrics:
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search(experiment_conf)
+    top_models = explorer.search(hwnas_cfg)
 
-    explorer.hw_setup_on_target(connection_conf=connection_conf)
+    explorer.hw_setup_on_target(connection_conf=connection_cfg)
     measurements_latency_mean = []
     measurements_accuracy = []
 
     for i, model in enumerate(top_models):
-        train(model, 3, device = experiment_conf.host_processor)
-        test(model, device= experiment_conf.host_processor)
+        train(model, 3, device = hwnas_cfg.host_processor)
+        test(model, device= hwnas_cfg.host_processor)
         model_path = explorer._model_dir / ("ts_models/model_" + str(i) + ".pt")
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
@@ -115,7 +115,7 @@ def prepare_pi():
 
 if __name__ == "__main__": 
     
-    experiment_cfg = ExperimentConfig(config_path="configs/experiment_config.yaml")
+    hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
     connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
     model_cfg = ModelConfig(config_path="configs/model_config.yaml")
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
 
-    metry = find_generate_measure_for_pi(explorer, connection_cfg, experiment_cfg)
+    metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
     visu = Visualizer(metry, explorer._plot_dir)
     visu.plot_all_results(filename="plot.png")
 
