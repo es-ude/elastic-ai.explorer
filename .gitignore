@@ -31,6 +31,9 @@ docker/bin
 #models
 models/
 
+#individual configs
+configs/
+
 # Distribution / packaging
 .Python
 build/
