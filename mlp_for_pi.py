@@ -115,7 +115,8 @@ def make_dirs_if_not_exists():
         os.makedirs("plots")
     if not os.path.exists("metrics"):
         os.makedirs("metrics")
-
+    if not os.path.exists("models"):
+        os.makedirs("models")
 
 if __name__ == "__main__":
     make_dirs_if_not_exists()
