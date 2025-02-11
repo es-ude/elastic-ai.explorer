@@ -9,7 +9,7 @@ import numpy as np
 from torch import nn
 
 from elasticai.explorer import hw_nas
-from elasticai.explorer.config import ConnectionConfig, ModelConfig, ExperimentConfig
+from elasticai.explorer.config import ConnectionConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager
 from elasticai.explorer.platforms.generator.generator import Generator
@@ -37,7 +37,7 @@ class Explorer:
         self.generator = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
-        self.experiment_cfg = None
+        self.hwnas_cfg = None
         self.connection_cfg = None
         self.model_cfg = None
 
@@ -77,12 +77,12 @@ class Explorer:
         self.hw_manager: HWManager = self.target_hw.platform_manager()
         self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
 
-    def search(self, experiment_conf: ExperimentConfig) -> list[any]:
-        self.experiment_cfg = experiment_conf
+    def search(self, hwnas_cfg: HWNASConfig) -> list[any]:
+        self.hwnas_cfg = hwnas_cfg
         self.logger.info("Start Hardware NAS with %d number of trials for top %d models ", 
-                         self.experiment_cfg.max_search_trials, self.experiment_cfg.top_n_models)
+                         self.hwnas_cfg.max_search_trials, self.hwnas_cfg.top_n_models)
         
-        top_models, model_parameters, metrics = hw_nas.search(self.search_space, self.experiment_cfg)
+        top_models, model_parameters, metrics = hw_nas.search(self.search_space, self.hwnas_cfg)
 
         self._save_HWNAS_results(model_parameters, metrics)
         
@@ -97,7 +97,7 @@ class Explorer:
         with open(self._metric_dir / "metrics.json", "w+") as f:
             json.dump(metrics, f)
         
-        self.experiment_cfg.dump_as_yaml(self._experiment_dir / "experiment_config.yaml")
+        self.hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
 
     def generate_for_hw_platform(self, model, path) -> any:
         return self.generator.generate(model, path)

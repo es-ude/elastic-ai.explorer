@@ -3,7 +3,7 @@ import json
 import pandas
 import plotly.express as px
 
-from elasticai.explorer.config import ExperimentConfig
+from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.explorer import Explorer
 from settings import MAIN_EXPERIMENT_DIR
 

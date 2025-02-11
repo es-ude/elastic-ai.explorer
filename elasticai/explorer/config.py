@@ -28,7 +28,7 @@ class Config:
             yaml.dump(yaml.safe_load(str(vars(self))), stream=ff, default_flow_style=False)
             
 
-class ExperimentConfig(Config):
+class HWNASConfig(Config):
     def __init__(self, config_path: str):
         super().__init__(config_path)
 
