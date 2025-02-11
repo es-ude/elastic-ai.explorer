@@ -12,7 +12,7 @@ import torch
 class FlopsEstimator:
     """Wrapper for FlopsProfiler could extend in future"""
 
-    def estimate_flops_single_module(self, model_sample: torch.nn.Module) -> int:
+    def estimate_flops(self, model_sample: torch.nn.Module) -> int:
         """Computes FLOPS for a single module.
 
         Args:
