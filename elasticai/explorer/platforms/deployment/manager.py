@@ -2,20 +2,14 @@ import logging
 import os
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from pathlib import Path
 
-from invoke import Result
 from python_on_whales import docker
 
+from elasticai.explorer.platforms.deployment.device_communication import Host
 from settings import ROOT_DIR
 
 CONTEXT_PATH = ROOT_DIR / "docker"
-
-
-@dataclass
-class ConnectionData:
-    host: str
-    user: str
 
 
 class HWManager(ABC):
@@ -81,11 +75,11 @@ class Compiler:
 
 class PIHWManager(HWManager):
 
-    def __init__(self, connection_info: ConnectionData):
+    def __init__(self, target: Host, compiler: Compiler):
         self.logger = logging.getLogger("explorer.platforms.deployment.manager.PIHWManager")
         self.logger.info("Initializing PI Hardware Manager...")
-        self.compiler = Compiler()
-        self.connection_info: ConnectionData = connection_info
+        self.compiler = compiler
+        self.target: Host = target
 
     def install_code_on_target(self, path_to_program: str
                                ):
@@ -93,8 +87,7 @@ class PIHWManager(HWManager):
         #     path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
 
         self.compiler.compile_code(path_to_program)
-        with self._getConnection() as conn:
-            conn.put(path_to_program)
+        self.target.put_file(path_to_program, ".")
 
     def install_latency_measurement_on_target(self, path_to_program: str = None):
         self.logger.info("Install latency measurement code on target...")
@@ -104,10 +97,7 @@ class PIHWManager(HWManager):
             self.logger.info("Compile latency measurement code.")
             self.compiler.compile_code(path_to_program)
 
-        with self._getConnection() as conn:
-            self.logger.info("Install program on target. Hostname: %s - User: %s", conn.host,
-                             conn.user)
-            conn.put(path_to_program)
+            self.target.put_file(path_to_program, ".")
             self.logger.info("Latency measurements available on Target")
 
     # todo: don't compile both scripts twice...
@@ -132,42 +122,34 @@ class PIHWManager(HWManager):
             conn.run(f"unzip -q -o {os.path.split(path_to_data)[-1]}")
             self.logger.info("Accuracy measurements available on target")
 
-    def measure_latency(self, path_to_model: str) -> int:
+    # todo:measurement object was die parsefunktion beinhaltet
+    def measure_latency(self, path_to_model: Path) -> (str, str):
         self.logger.info("Measure latency of model on device")
-        with self._getConnection() as conn:
-            _, tail = os.path.split(path_to_model)
-            cmd = self.build_command("measure_latency", [tail])
-            measurement = self._run_measurement(conn, cmd)
-
+        _, tail = os.path.split(path_to_model)
+        cmd = self.build_command("measure_latency", [tail])
+        measurement = self.target.run_command(cmd)
+        measurement = self._parse_measurement(measurement)
         self.logger.debug("Measured latency on device: %dus", measurement)
-        return measurement  # todo: change type
+        return measurement
 
-    def measure_accuracy(self, path_to_model: str, path_to_data: str) -> int:
+    def measure_accuracy(self, path_to_model: Path, path_to_data: str) -> (str, str):
         self.logger.info("Measure accuracy of model on device.")
-        with self._getConnection() as conn:
-            _, model_tail = os.path.split(path_to_model)
-            _, data_tail = os.path.split(path_to_data)
-            cmd = self.build_command("measure_accuracy", [model_tail, data_tail])
-            measurement = self._run_measurement(conn, cmd)
+        _, model_tail = os.path.split(path_to_model)
+        _, data_tail = os.path.split(path_to_data)
+        cmd = self.build_command("measure_accuracy", [model_tail, data_tail])
+        measurement = self.target.run_command(cmd)
+        measurement = self._parse_measurement(measurement)
 
         self.logger.debug("Measured accuracy on device: %0.2f\%", measurement)
-        return measurement  # todo: change type
+        return measurement
 
     def deploy_model(self, path_to_model: str):
         with self._getConnection() as conn:
             self.logger.info("Put model %s on target", path_to_model)
             conn.put(path_to_model)
 
-    def _run_measurement(self, conn, command) -> tuple[str, str]:
-        result = conn.run(command, hide=True)
-        if self._wasSuccessful(result):
-            measurement = self._parse_measurement(result)
-        else:
-            raise Exception(result.stderr)
-        return measurement
-
     def _parse_measurement(self, result) -> tuple[str, str]:
-        experiment_result = re.search("(.*): (.*)", result.stdout)
+        experiment_result = re.search("(.*): (.*)", result)
         measurement = (experiment_result.group(1), experiment_result.group(2))
         return measurement
 
@@ -177,9 +159,6 @@ class PIHWManager(HWManager):
             builder.add_argument(argument)
         command = builder.build()
         return command
-
-    def _wasSuccessful(self, result: Result) -> bool:
-        return result.ok
 
 
 class CommandBuilder:
