@@ -43,6 +43,11 @@ class TestExplorerWithoutTarget(unittest.TestCase):
         self.assertTrue(os.path.exists(ts_model_path))
         self.assertTrue(torch.jit.load(SAMPLE_PATH / "models/test.pt")!= None)
 
+    def test_set_default_model(self):
+        model = test_MLP()
+        self.RPI5explorer.set_default_model(model)
+        self.assertEquals(self.RPI5explorer.default_model, model)
+    
 def only_test_search():
     suite = unittest.TestSuite()
     suite.addTest(TestExplorerWithoutTarget('test_search'))
@@ -51,11 +56,16 @@ def only_test_generate_for_hw_platform():
     suite = unittest.TestSuite()
     suite.addTest(TestExplorerWithoutTarget('test_generate_for_hw_platform'))
     return suite
+def only_test_set_default_model():
+    suite = unittest.TestSuite()
+    suite.addTest(TestExplorerWithoutTarget('test_set_default_model'))
+    return suite
 
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
     #runner.run(only_test_generate_for_hw_platform())
     #runner.run(only_test_search())
+    #runner.run(only_test_set_default_model())
     unittest.main()
     
