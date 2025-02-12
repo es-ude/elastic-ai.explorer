@@ -15,8 +15,7 @@ from tests.samples.sample_MLP import sample_MLP
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
 
-class TestExplorerWithTarget(unittest.TestCase):
-
+class TestDeploymentAndMeasurement(unittest.TestCase):
     def setUp(self):
         knowledge_rep = KnowledgeRepository()
         knowledge_rep.register_hw_platform(
@@ -28,18 +27,19 @@ class TestExplorerWithTarget(unittest.TestCase):
         )
         )
         self.RPI5explorer = Explorer(knowledge_rep)
-        self.connectionData = ConnectionData("transfair.local", "robin")    
-
-    def test_hw_setup_on_target(self):
-        model_path = SAMPLE_PATH / "models/ts_models/model_0.pt"
+        self.connectionData = ConnectionData("transfair.local", "robin") 
+        self.RPI5explorer.choose_target_hw("rpi5")
+        self.model_path = SAMPLE_PATH / "models/ts_models/model_0.pt"
         self.RPI5explorer.hw_setup_on_target(self.connectionData)
-        self.assertAlmostEqual(self.RPI5explorer.run_accuracy_measurement(self.connectionData, path_to_model= model_path), 0)
-        self.RPI5explorer.run_latency_measurement(self.connectionData, path_to_model= model_path)
-        print("hi")
 
+    def test_run_accuracy_measurement(self):
+        self.assertIsInstance(self.RPI5explorer.run_accuracy_measurement(self.connectionData, path_to_model= self.model_path, path_to_data="data"), float)
+        
+
+    def test_run_latency_measurement(self):
+        self.assertIsInstance(self.RPI5explorer.run_latency_measurement(self.connectionData, path_to_model= self.model_path), int)
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
-    
     unittest.main()
         
