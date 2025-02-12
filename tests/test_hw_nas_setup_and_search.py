@@ -1,8 +1,6 @@
 import os
 import unittest
-
 import torch
-
 from elasticai.explorer import search_space
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -16,7 +14,9 @@ SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
 
 
-class TestExplorerWithoutTarget(unittest.TestCase):
+class TestHWNasSetupAndSearch(unittest.TestCase):
+    """Integration test of the Explorer HW-NAS pipeline without a target device.
+    """
     def setUp(self):
         knowledge_rep = KnowledgeRepository()
         knowledge_rep.register_hw_platform(
@@ -54,20 +54,18 @@ class TestExplorerWithoutTarget(unittest.TestCase):
         del self.RPI5explorer
         if os.path.exists(self.ts_model_output_path):
             os.remove(self.ts_model_output_path)
-        
-
     
 def only_test_search():
     suite = unittest.TestSuite()
-    suite.addTest(TestExplorerWithoutTarget('test_search'))
+    suite.addTest(TestHWNasSetupAndSearch('test_search'))
     return suite
 def only_test_generate_for_hw_platform():
     suite = unittest.TestSuite()
-    suite.addTest(TestExplorerWithoutTarget('test_generate_for_hw_platform'))
+    suite.addTest(TestHWNasSetupAndSearch('test_generate_for_hw_platform'))
     return suite
 def only_test_set_default_model():
     suite = unittest.TestSuite()
-    suite.addTest(TestExplorerWithoutTarget('test_set_default_model'))
+    suite.addTest(TestHWNasSetupAndSearch('test_set_default_model'))
     return suite
 
 

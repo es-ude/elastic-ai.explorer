@@ -149,7 +149,7 @@ class PIHWManager(HWManager):
             measurement = experiment_result.group(1)
         else:
             raise Exception(result.stderr)
-        return measurement
+        return float(measurement)
 
     def _run_latency(self, conn: Connection, path_to_model: str) -> int:
 
