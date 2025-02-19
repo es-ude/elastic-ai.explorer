@@ -108,7 +108,6 @@ def search(search_space: any, hwnas_cfg: HWNASConfig) -> tuple[list[any],list[an
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model, device = hwnas_cfg.host_processor)
     exp = NasExperiment(search_space, evaluator, search_strategy)
-    hwnas_cfg._nni_id = exp.id
     exp.config.max_trial_number = hwnas_cfg.max_search_trials
     exp.run(port=8081)
     top_models = exp.export_top_models(top_k=hwnas_cfg.top_n_models, formatter="instance")

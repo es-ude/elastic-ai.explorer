@@ -34,12 +34,11 @@ class HWNASConfig(Config):
 
         self.original_yaml_dict = self.original_yaml_dict.get("HWNASConfig", {})
 
-        #sets member variables to the values in yaml dict
         #set to default value, if yaml dict does not define a value
         self.host_processor: str = self.original_yaml_dict.get("host_processor", "cpu")
         self.max_search_trials: int = self.original_yaml_dict.get("max_search_trials", 6)
         self.top_n_models: int =  self.original_yaml_dict.get("top_n_models", 2)
-        self._nni_id: str = None
+
 
 
 
