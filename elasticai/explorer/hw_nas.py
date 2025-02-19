@@ -26,8 +26,8 @@ def evaluate_model(model: torch.nn.Module):
 
     ##Cost-Estimation
     # flops as proxy metric for latency
-    flops_estimator = FlopsEstimator(model_space=model)
-    flops = flops_estimator.estimate_flops_single_module()
+    flops_estimator = FlopsEstimator()
+    flops = flops_estimator.estimate_flops(model)
 
     # set device to cpu to prevent memory error
     device = "cpu"

@@ -112,6 +112,7 @@ def measure_latency(knowledge_repository: KnowledgeRepository, connection_data: 
     logger.info("Std Latency: %.2f", std)
 
 
+
 def measure_accuracy(knowledge_repository, connection_data):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
@@ -135,6 +136,8 @@ def make_dirs_if_not_exists():
         os.makedirs("plots")
     if not os.path.exists("metrics"):
         os.makedirs("metrics")
+    if not os.path.exists("models"):
+        os.makedirs("models")
 
 
 if __name__ == "__main__":
