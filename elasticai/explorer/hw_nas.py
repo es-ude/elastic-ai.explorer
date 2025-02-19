@@ -101,7 +101,10 @@ def evaluate_model(model: torch.nn.Module, device):
     nni.report_final_result(metric)
 
 
-def search(search_space: any, hwnas_cfg: HWNASConfig) -> list[any]:
+def search(search_space: any, hwnas_cfg: HWNASConfig) -> tuple[list[any],list[any],list[any]]:
+    """
+    Returns: top-models, model-parameters, metrics
+    """
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(evaluate_model, device = hwnas_cfg.host_processor)
     exp = NasExperiment(search_space, evaluator, search_strategy)

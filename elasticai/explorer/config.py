@@ -32,7 +32,7 @@ class HWNASConfig(Config):
     def __init__(self, config_path: str):
         super().__init__(config_path)
 
-        self.original_yaml_dict = self.original_yaml_dict.get("ExperimentConfig", {})
+        self.original_yaml_dict = self.original_yaml_dict.get("HWNASConfig", {})
 
         #sets member variables to the values in yaml dict
         #set to default value, if yaml dict does not define a value
