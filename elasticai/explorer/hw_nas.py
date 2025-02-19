@@ -71,11 +71,10 @@ def evaluate_model(model: torch.nn.Module, device):
     
     ##Cost-Estimation
     # flops as proxy metric for latency
-    flops_estimator = FlopsEstimator(model_space=model)
-    flops = flops_estimator.estimate_flops_single_module()
-    
-    
-    model.to(device= device)
+    flops_estimator = FlopsEstimator()
+    flops = flops_estimator.estimate_flops(model)
+
+    model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
