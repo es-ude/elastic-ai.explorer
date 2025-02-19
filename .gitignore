@@ -23,7 +23,7 @@ plots/
 metrics/
 
 #libtorch 
-docker/code/libtorch
+docker/code/libtorch*
 
 #bin 
 docker/bin
@@ -33,6 +33,9 @@ models/
 
 #individual configs
 configs/
+
+#experiments
+experiments/
 
 # Distribution / packaging
 .Python
