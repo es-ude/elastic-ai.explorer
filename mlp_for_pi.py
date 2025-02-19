@@ -64,14 +64,14 @@ def find_generate_measure_for_pi(
     for i, model in enumerate(top_models):
         train(model, 3, device = hwnas_cfg.host_processor)
         test(model, device= hwnas_cfg.host_processor)
-        model_path = explorer.model_dir / ("ts_models/model_" + str(i) + ".pt")
+        model_name = "ts_model_" + str(i) + ".pt"
         data_path = str(ROOT_DIR) + "/data"
-        explorer.generate_for_hw_platform(model, model_path)
+        explorer.generate_for_hw_platform(model, model_name)
 
-        mean = explorer.run_latency_measurement(model_path)
+        mean = explorer.run_latency_measurement(model_name)
         measurements_latency_mean.append(mean)
         measurements_accuracy.append(
-            explorer.run_accuracy_measurement(model_path, data_path)
+            explorer.run_accuracy_measurement(model_name, data_path)
         )
 
     floats = [float(np_float) for np_float in measurements_latency_mean]
@@ -88,25 +88,23 @@ def find_generate_measure_for_pi(
     )
 
 
-def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer):
+def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
     
     explorer.choose_target_hw("rpi5")
-    model_path = explorer.model_dir / "ts_models/model_0.pt"
     explorer.hw_setup_on_target()
 
-    mean, std = explorer.run_latency_measurement(model_path)
+    mean, std = explorer.run_latency_measurement(model_name=model_name)
     logger.info("Mean Latency: %.2f", mean)
     logger.info("Std Latency: %.2f", std)
 
 
-def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer):
+def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target()
-    model_path = explorer.model_dir / "ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
     logger.info(
         "Accuracy: %.2f",
-        explorer.run_accuracy_measurement(model_path, data_path),
+        explorer.run_accuracy_measurement(model_name, data_path),
     )
 
 
