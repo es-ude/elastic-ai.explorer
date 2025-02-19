@@ -112,8 +112,9 @@ class Explorer:
         with open(dir/ filename, 'w+') as outfile:
             json.dump(result, outfile)
 
-    def generate_for_hw_platform(self, model, path) -> any:
-        return self.generator.generate(model, path)
+    def generate_for_hw_platform(self, model: Path, model_name: str) -> any:
+        model_path = self._model_dir / model_name
+        return self.generator.generate(model, model_path)
 
     def hw_setup_on_target(
             self, connection_conf: ConnectionConfig
@@ -126,16 +127,18 @@ class Explorer:
         self.connection_cfg.dump_as_yaml(self._experiment_dir / "connection_config.yaml")
 
     def run_latency_measurement(
-            self, path_to_model: str
+            self, model_name: str
     ) -> int:
-        self.hw_manager.deploy_model(self.connection_cfg, path_to_model)
-        return self.hw_manager.measure_latency(self.connection_cfg, path_to_model)
+        model_path = self._model_dir / model_name
+        self.hw_manager.deploy_model(self.connection_cfg, model_path)
+        return self.hw_manager.measure_latency(self.connection_cfg, model_path)
 
     def run_accuracy_measurement(
-            self,  path_to_model: str, path_to_data: str
+            self, model_name: str, path_to_data: str
     ) -> float:
-        self.hw_manager.deploy_model(self.connection_cfg, path_to_model)
+        model_path = self._model_dir / model_name
+        self.hw_manager.deploy_model(self.connection_cfg, model_path)
         return self.hw_manager.measure_accuracy(
-            self.connection_cfg, path_to_model, path_to_data
+            self.connection_cfg, model_path, path_to_data
         )
   
