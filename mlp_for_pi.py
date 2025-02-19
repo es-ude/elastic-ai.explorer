@@ -64,7 +64,7 @@ def find_generate_measure_for_pi(
     for i, model in enumerate(top_models):
         train(model, 3, device = hwnas_cfg.host_processor)
         test(model, device= hwnas_cfg.host_processor)
-        model_path = explorer._model_dir / ("ts_models/model_" + str(i) + ".pt")
+        model_path = explorer.model_dir / ("ts_models/model_" + str(i) + ".pt")
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_path)
 
@@ -79,8 +79,8 @@ def find_generate_measure_for_pi(
     logger.info("Models:\n %s", df)
 
     return Metrics(
-        explorer._metric_dir / "metrics.json",
-        explorer._model_dir / "models.json",
+        explorer.metric_dir / "metrics.json",
+        explorer.model_dir / "models.json",
         measurements_accuracy,
         measurements_latency_mean,
     )
@@ -89,7 +89,7 @@ def find_generate_measure_for_pi(
 def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer):
     
     explorer.choose_target_hw("rpi5")
-    model_path = explorer._model_dir / "ts_models/model_0.pt"
+    model_path = explorer.model_dir / "ts_models/model_0.pt"
     explorer.hw_setup_on_target()
 
     mean, std = explorer.run_latency_measurement(model_path)
@@ -100,7 +100,7 @@ def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explore
 def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer):
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target()
-    model_path = explorer._model_dir / "ts_models/model_0.pt"
+    model_path = explorer.model_dir / "ts_models/model_0.pt"
     data_path = str(ROOT_DIR) + "/data"
     logger.info(
         "Accuracy: %.2f",
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     explorer.set_model_cfg(model_cfg)
 
     metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
-    visu = Visualizer(metry, explorer._plot_dir)
+    visu = Visualizer(metry, explorer.plot_dir)
     visu.plot_all_results(filename="plot.png")
 
 

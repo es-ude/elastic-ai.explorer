@@ -9,8 +9,8 @@ from settings import MAIN_EXPERIMENT_DIR
 
 
 def build_search_space_measurements_file(latencies: list[int], explorer: Explorer) -> pandas.DataFrame:
-    metrics = explorer._metric_dir / "metrics.json"
-    models = explorer._model_dir / "models.json"
+    metrics = explorer.metric_dir / "metrics.json"
+    models = explorer.model_dir / "models.json"
     with open(metrics, "r") as f:
         metric_list = json.load(f)
 
@@ -23,7 +23,7 @@ def build_search_space_measurements_file(latencies: list[int], explorer: Explore
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
 
-    csv_path = explorer._experiment_dir / "experiment_data.csv"
+    csv_path = explorer.experiment_dir / "experiment_data.csv"
     data_merged.to_csv(csv_path)
 
     return data_merged
