@@ -75,7 +75,9 @@ def find_generate_measure_for_pi(
         )
 
     floats = [float(np_float) for np_float in measurements_latency_mean]
-    df = build_search_space_measurements_file(floats, explorer)
+    df = build_search_space_measurements_file(floats, explorer.metric_dir / "metrics.json",
+                                               explorer.model_dir / "models.json",
+                                               explorer.experiment_dir / "experiment_data.csv")
     logger.info("Models:\n %s", df)
 
     return Metrics(

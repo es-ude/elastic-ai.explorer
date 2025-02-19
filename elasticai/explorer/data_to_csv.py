@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pandas
 import plotly.express as px
@@ -8,13 +9,12 @@ from elasticai.explorer.explorer import Explorer
 from settings import MAIN_EXPERIMENT_DIR
 
 
-def build_search_space_measurements_file(latencies: list[int], explorer: Explorer) -> pandas.DataFrame:
-    metrics = explorer.metric_dir / "metrics.json"
-    models = explorer.model_dir / "models.json"
-    with open(metrics, "r") as f:
+def build_search_space_measurements_file(latencies: list[int], metrics_path: Path, model_parameter_path: Path, csv_path: Path) -> pandas.DataFrame:
+    
+    with open(metrics_path, "r") as f:
         metric_list = json.load(f)
 
-    with open(models, "r") as f:
+    with open(model_parameter_path, "r") as f:
         sample_list = json.load(f)
 
     dataframe = pandas.DataFrame.from_dict(metric_list)
@@ -23,7 +23,6 @@ def build_search_space_measurements_file(latencies: list[int], explorer: Explore
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
 
-    csv_path = explorer.experiment_dir / "experiment_data.csv"
     data_merged.to_csv(csv_path)
 
     return data_merged
