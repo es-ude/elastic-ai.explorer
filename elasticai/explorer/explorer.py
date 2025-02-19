@@ -84,20 +84,17 @@ class Explorer:
         
         top_models, model_parameters, metrics = hw_nas.search(self.search_space, self.hwnas_cfg)
 
-        self._save_HWNAS_results(model_parameters, metrics)
-        
-        return top_models
-
-    def _save_HWNAS_results(self, model_parameters:list, metrics: list):
-        os.makedirs(self._model_dir, exist_ok=True)
-        with open(self._model_dir / 'models.json', 'w+') as outfile:
-            json.dump(model_parameters, outfile)
-
-        os.makedirs(self._metric_dir, exist_ok=True)
-        with open(self._metric_dir / "metrics.json", "w+") as f:
-            json.dump(metrics, f)
-        
+        self._save_list_to_json(model_parameters, dir = self._model_dir, filename= "models.json")
+        self._save_list_to_json(metrics, dir = self._metric_dir, filename = "metrics.json")
         self.hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
+
+        return top_models
+    
+    @staticmethod
+    def _save_list_to_json(result: list, dir: Path, filename: str):
+        os.makedirs(dir, exist_ok=True)
+        with open(dir/ filename, 'w+') as outfile:
+            json.dump(result, outfile)
 
     def generate_for_hw_platform(self, model, path) -> any:
         return self.generator.generate(model, path)
