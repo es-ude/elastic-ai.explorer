@@ -50,6 +50,22 @@ class Explorer:
     def experiment_name(self):
         return self._experiment_name
     
+    @property
+    def experiment_dir(self):
+        return self._experiment_dir
+    
+    @property
+    def model_dir(self):
+        return self._model_dir
+    
+    @property
+    def metric_dir(self):
+        return self._metric_dir
+    
+    @property
+    def plot_dir(self):
+        return self._plot_dir
+    
     @experiment_name.setter
     def experiment_name(self, value):
         """Setting experiment name updates the experiment pathes aswell."""
