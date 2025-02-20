@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from elasticai.explorer.knowledge_repository import Metrics
-from elasticai.explorer.utils import compute_kandell
+from elasticai.explorer.utils import compute_kendall
 from settings import ROOT_DIR
 
 logger = logging.getLogger(__name__)
@@ -30,15 +30,15 @@ class Visualizer:
         bar_width = 0.2
 
         # get Kendall for estimated and measured Accuracies
-        kendall_coef_accuracy = compute_kandell(
+        kendall_coef_accuracy = compute_kendall(
             self.metrics.structured_est_accuracies, self.metrics.raw_measured_accuracies
         )
         # get Kendall for estimated FLOPs and measured latencies
-        kendall_coef_latencies = compute_kandell(
+        kendall_coef_latencies = compute_kendall(
             self.metrics.structured_est_flops, self.metrics.raw_measured_latencies
         )
         # get Kendall for Combined Metric and measured Accuracies
-        kendall_coef_combined = compute_kandell(
+        kendall_coef_combined = compute_kendall(
             self.metrics.structured_est_combined, self.metrics.raw_measured_latencies
         )
 
