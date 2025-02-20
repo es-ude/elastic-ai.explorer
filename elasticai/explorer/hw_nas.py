@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import os
 
 import nni
 import torch
@@ -12,6 +13,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
 
 logger = logging.getLogger("explorer.nas")
@@ -61,19 +63,17 @@ def test_epoch(model: torch.nn.Module, device: str, test_loader: DataLoader) -> 
     return accuracy
 
 
-def evaluate_model(model: torch.nn.Module):
+def evaluate_model(model: torch.nn.Module, device):
     global accuracy
     ##Parameter
     flops_weight = 3.
     n_epochs = 2
-
+    
     ##Cost-Estimation
     # flops as proxy metric for latency
     flops_estimator = FlopsEstimator()
     flops = flops_estimator.estimate_flops(model)
 
-    # set device to cpu to prevent memory error
-    device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
@@ -100,15 +100,19 @@ def evaluate_model(model: torch.nn.Module):
     nni.report_final_result(metric)
 
 
-def search(search_space: any, max_search_trials: int = 6, top_k: int = 4) -> list[any]:
+def search(search_space: any, hwnas_cfg: HWNASConfig) -> tuple[list[any],list[any],list[any]]:
+    """
+    Returns: top-models, model-parameters, metrics
+    """
     search_strategy = strategy.Random()
-    evaluator = FunctionalEvaluator(evaluate_model)
+    evaluator = FunctionalEvaluator(evaluate_model, device = hwnas_cfg.host_processor)
     exp = NasExperiment(search_space, evaluator, search_strategy)
-    exp.config.max_trial_number = max_search_trials
+    exp.config.max_trial_number = hwnas_cfg.max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=top_k, formatter="instance")
-    top_parameters = exp.export_top_models(top_k=top_k, formatter="dict")
+    top_models = exp.export_top_models(top_k=hwnas_cfg.top_n_models, formatter="instance")
+    top_parameters = exp.export_top_models(top_k=hwnas_cfg.top_n_models, formatter="dict")
     test_results = exp.export_data()
+    exp.stop()
 
     # sorting the metrics, parameters in the top_k order
     parameters = list(range(len(top_parameters)))
@@ -120,9 +124,4 @@ def search(search_space: any, max_search_trials: int = 6, top_k: int = 4) -> lis
 
                 metrics[i] = trial.value
 
-    with open('models/models.json', 'w') as outfile:
-        json.dump(parameters, outfile)
-    with open("metrics/metrics.json", "w") as f:
-        json.dump(metrics, f)
-
-    return top_models
+    return top_models, parameters, metrics
