@@ -77,7 +77,7 @@ class MLPTrainer(Trainer):
         Args:
             epoch: Current epoch number.
         """
-        
+        model.to(device=self.device)
         model.train(True)
         for batch_idx, (data, target) in enumerate(trainloader):
             data, target = data.to(self.device), target.to(self.device)
