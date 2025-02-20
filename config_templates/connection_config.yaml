@@ -1,0 +1,8 @@
+#The ConnectionConfig gives the necessary information to connect to the target-device.
+#If parameters are not specified inside the config, they are set to default values.
+ConnectionConfig:
+  #The Hostname of target device.
+  target_name: "<host>"
+
+  #The Username/user-account of the target device to connect to.
+  target_user: "<user>"
