@@ -7,7 +7,7 @@ import plotly.express as px
 from scipy.stats import kendalltau
 
 
-def compute_kandell(list_x: list[any], list_y: list[any]) -> float:
+def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
     """Computes Kandell Correlation Coefficient between list_x and list_y.
 
     Args:
