@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 from torch import nn
 
-from elasticai.explorer import hw_nas
+from elasticai.explorer import hw_nas, utils
 from elasticai.explorer.config import ConnectionConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager
@@ -100,17 +100,11 @@ class Explorer:
         
         top_models, model_parameters, metrics = hw_nas.search(self.search_space, self.hwnas_cfg)
 
-        self._save_list_to_json(model_parameters, dir = self._model_dir, filename= "models.json")
-        self._save_list_to_json(metrics, dir = self._metric_dir, filename = "metrics.json")
+        utils.save_list_to_json(model_parameters, dir = self._model_dir, filename= "models.json")
+        utils.save_list_to_json(metrics, dir = self._metric_dir, filename = "metrics.json")
         self.hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
 
         return top_models
-    
-    @staticmethod
-    def _save_list_to_json(result: list, dir: Path, filename: str):
-        os.makedirs(dir, exist_ok=True)
-        with open(dir/ filename, 'w+') as outfile:
-            json.dump(result, outfile)
 
     def generate_for_hw_platform(self, model: Path, model_name: str) -> any:
         model_path = self._model_dir / model_name

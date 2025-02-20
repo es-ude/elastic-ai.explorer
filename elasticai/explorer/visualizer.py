@@ -3,34 +3,12 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import kendalltau
 
 from elasticai.explorer.knowledge_repository import Metrics
+from elasticai.explorer.utils import compute_kandell
 from settings import ROOT_DIR
 
 logger = logging.getLogger(__name__)
-
-
-def compute_kandell(list_x: list[any], list_y: list[any]) -> float:
-    """Computes Kandell Correlation Coefficient.
-
-    Args:
-        list_x (list): _description_
-        list_y (list): _description_
-
-    Returns:
-        float: _description_
-    """
-
-    # Taking values from the above example in Lists
-    rank_x = [sorted(list_x).index(x) for x in list_x]
-    rank_y = [sorted(list_y).index(x) for x in list_y]
-
-    # Calculating Kendall Rank correlation
-    corr, _ = kendalltau(rank_x, rank_y)
-    logger.info("Kendall Rank correlation: %.5f", corr)
-
-    return corr
 
 
 class Visualizer:
