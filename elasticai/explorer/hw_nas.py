@@ -15,52 +15,10 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
+from elasticai.explorer.trainer import MLPTrainer
 
 logger = logging.getLogger("explorer.nas")
 
-
-def train_epoch(
-        model: torch.nn.Module, device: str, train_loader: DataLoader, optimizer: torch.optim, epoch: int
-):
-    loss_fn = nn.CrossEntropyLoss()
-    model.train(True)
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = loss_fn(output, target)
-        loss.backward()
-        optimizer.step()
-        if batch_idx % 10 == 0:
-            logger.info(
-                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    epoch,
-                    batch_idx * len(data),
-                    len(train_loader.dataset),
-                    100.0 * batch_idx / len(train_loader),
-                    loss.item(),
-                )
-            )
-
-
-def test_epoch(model: torch.nn.Module, device: str, test_loader: DataLoader) -> float:
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
-            pred = output.argmax(dim=1, keepdim=True)
-            correct += pred.eq(target.view_as(pred)).sum().item()
-    test_loss /= len(test_loader.dataset)
-    accuracy = 100.0 * correct / len(test_loader.dataset)
-    logger.info(
-        "\nTest set: Accuracy: {}/{} ({:.0f}%)\n".format(
-            correct, len(test_loader.dataset), accuracy
-        )
-    )
-    return accuracy
 
 
 def evaluate_model(model: torch.nn.Module, device):
@@ -87,12 +45,13 @@ def evaluate_model(model: torch.nn.Module, device):
     test_loader = DataLoader(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
+    trainer = MLPTrainer(device,optimizer)
 
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
-        train_epoch(model, device, train_loader, optimizer, epoch)
+        trainer.train_epoch(model,train_loader, epoch)
 
-        metric["accuracy"] = test_epoch(model, device, test_loader)
+        metric["accuracy"] = trainer.test(model, test_loader)
 
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)

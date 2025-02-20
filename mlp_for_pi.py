@@ -2,9 +2,13 @@ import logging
 import os
 from logging import config
 
+from torchvision.transforms import transforms
+from torchvision.datasets import MNIST
 import nni
 import torch
-import yaml
+from torch.utils.data import DataLoader
+
+
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -15,7 +19,7 @@ from elasticai.explorer.knowledge_repository import (
 )
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.train_model import train, test
+from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.visualizer import Visualizer
 from elasticai.explorer.config import Config, ConnectionConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
@@ -60,10 +64,27 @@ def find_generate_measure_for_pi(
     explorer.hw_setup_on_target(connection_conf=connection_cfg)
     measurements_latency_mean = []
     measurements_accuracy = []
+    
+    
 
+    #Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
+    transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    trainloader = DataLoader(
+        MNIST("data/mnist", download=True, transform=transf),
+        batch_size=64,
+        shuffle=True,
+    )
+    testloader = DataLoader(
+        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
+    )
+
+    retrain_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     for i, model in enumerate(top_models):
-        train(model, 3, device = hwnas_cfg.host_processor)
-        test(model, device= hwnas_cfg.host_processor)
+        mlp_trainer = MLPTrainer(device=retrain_device, optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
+        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
+        mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
         data_path = str(ROOT_DIR) + "/data"
         explorer.generate_for_hw_platform(model, model_name)
