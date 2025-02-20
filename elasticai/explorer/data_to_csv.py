@@ -2,20 +2,19 @@ import json
 from pathlib import Path
 
 import pandas
-import plotly.express as px
 
+from elasticai.explorer import utils
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.utils import plot_parallel_coordinates
 from settings import MAIN_EXPERIMENT_DIR
 
 
 def build_search_space_measurements_file(latencies: list[int], metrics_path: Path, model_parameter_path: Path, csv_path: Path) -> pandas.DataFrame:
     
-    with open(metrics_path, "r") as f:
-        metric_list = json.load(f)
-
-    with open(model_parameter_path, "r") as f:
-        sample_list = json.load(f)
+    
+    metric_list = utils.load_json(metrics_path)
+    sample_list = utils.load_json(model_parameter_path)
 
     dataframe = pandas.DataFrame.from_dict(metric_list)
     dataframe2 = pandas.DataFrame.from_dict(sample_list)
@@ -26,15 +25,6 @@ def build_search_space_measurements_file(latencies: list[int], metrics_path: Pat
     data_merged.to_csv(csv_path)
 
     return data_merged
-
-
-def plot_parallel_coordinates(df: pandas.DataFrame):
-    fig = px.parallel_coordinates(
-        df,
-        color="default",
-        color_continuous_scale=px.colors.diverging.Tealrose,
-    )
-    fig.show()
 
 
 def read_csv(csv_path) -> pandas.DataFrame:
