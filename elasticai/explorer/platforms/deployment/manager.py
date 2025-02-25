@@ -65,14 +65,6 @@ class Compiler:
         self.logger.info("Compilation finished. Program available in %s", CONTEXT_PATH / "bin")
 
 
-# class Measurement:
-#     def install_on_target(self):
-#         self.compiler.compile_code(path_to_program)
-#         with Connection(host=connection_info.host, user=connection_info.user) as conn:
-#             conn.put(path_to_program)
-#     def take_on_target(self):
-
-
 class PIHWManager(HWManager):
 
     def __init__(self, target: Host, compiler: Compiler):

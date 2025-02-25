@@ -2,7 +2,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
-from elasticai.explorer.platforms.deployment.manager import CommandBuilder, PIHWManager, CONTEXT_PATH
+from elasticai.explorer.platforms.deployment.manager import CommandBuilder, PIHWManager, CONTEXT_PATH, MeasurementType, \
+    Measurement
 
 
 class TestPiHWManager(unittest.TestCase):
@@ -37,6 +38,10 @@ class TestPiHWManager(unittest.TestCase):
 
         result = self.hwmanager.measure_accuracy(path_to_model=path, path_to_data="/data")
         self.assertEqual(("Accuracy", "94.5"), result)
+
+    def test_enum(self):
+        measurement = Measurement(MeasurementType.LATENCY)
+        self.assertEqual(measurement.type.value, 1)
 
 
 if __name__ == '__main__':
