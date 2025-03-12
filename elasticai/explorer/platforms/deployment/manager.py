@@ -4,8 +4,7 @@ import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from python_on_whales import docker
-
+from elasticai.explorer.config import ConnectionConfig
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from settings import ROOT_DIR
 
@@ -15,54 +14,38 @@ CONTEXT_PATH = ROOT_DIR / "docker"
 class HWManager(ABC):
 
     @abstractmethod
-    def install_latency_measurement_on_target(self, path_to_program=None):
-        pass
-
-    @abstractmethod
-    def install_accuracy_measurement_on_target(self, path_to_program: str = None):
-        pass
-
-    @abstractmethod
-    def measure_accuracy(self, path_to_model: str, path_to_data: str) -> int:
-        pass
-
-    @abstractmethod
-    def measure_latency(self, path_to_model) -> int:
-        pass
-
-    @abstractmethod
     def install_code_on_target(self, path_to_program: str = None
                                ):
         pass
 
     @abstractmethod
-    def deploy_model(self, path_to_model: str) -> int:
+    def install_latency_measurement_on_target(
+            self, connection_conf: ConnectionConfig, path_to_program=None
+    ):
         pass
 
+    @abstractmethod
+    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None
+                                               ):
+        pass
 
-class Compiler:
-    def __init__(self):
-        self.tag: str = "cross"
-        if not self.is_setup():
-            self.setup()
+    @abstractmethod
+    def deploy_model(
+            self, connection_conf: ConnectionConfig, path_to_model: str
+    ) -> int:
+        pass
 
-    def is_setup(self) -> bool:
-        return docker.images(self.tag)
+    @abstractmethod
+    def measure_latency(
+            self, connection_conf: ConnectionConfig, path_to_model
+    ) -> int:
+        pass
 
-    def setup(self) -> None:
-        self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
-        docker.build(
-            CONTEXT_PATH, file=CONTEXT_PATH / "Dockerfile.picross", tags=self.tag
-        )
-        self.logger.debug("Crosscompiler available now.")
-
-    def compile_code(self, path_to_program: str):
-        docker.build(
-            CONTEXT_PATH,
-            file=CONTEXT_PATH / "Dockerfile.loader",
-            output={"type": "local", "dest": CONTEXT_PATH / "bin"},
-        )
-        self.logger.info("Compilation finished. Program available in %s", CONTEXT_PATH / "bin")
+    @abstractmethod
+    def measure_accuracy(
+            self, connection_conf: ConnectionConfig, path_to_model: str, path_to_data: str
+    ) -> float:
+        pass
 
 
 class PIHWManager(HWManager):
@@ -75,25 +58,22 @@ class PIHWManager(HWManager):
 
     def install_code_on_target(self, path_to_program: str
                                ):
-        # if path_to_program is None:
-        #     path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
-
         self.compiler.compile_code(path_to_program)
         self.target.put_file(path_to_program, ".")
 
-    def install_latency_measurement_on_target(self, path_to_program: str = None):
+    def install_latency_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None):
         self.logger.info("Install latency measurement code on target...")
         if path_to_program is None:
             self.logger.info("Latency measurement is not compiled yet...")
             path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
             self.logger.info("Compile latency measurement code.")
             self.compiler.compile_code(path_to_program)
-
             self.target.put_file(path_to_program, ".")
             self.logger.info("Latency measurements available on Target")
 
     # todo: don't compile both scripts twice...
-    def install_accuracy_measurement_on_target(self, path_to_program: str = None):
+    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None,
+                                               path_to_data: str = None):
         self.logger.info("Install accuracy measurement code on target...")
         if path_to_program is None:
             self.logger.info("Accuracy measurement is not compiled yet...")

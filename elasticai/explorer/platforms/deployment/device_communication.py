@@ -1,15 +1,10 @@
 import logging
-from dataclasses import dataclass
 from socket import error as socket_error
 
 from fabric import Connection
 from paramiko.ssh_exception import AuthenticationException
 
-
-@dataclass
-class ConnectionData:
-    host: str
-    user: str
+from elasticai.explorer.config import ConnectionConfig
 
 
 class SSHException(Exception):
@@ -18,9 +13,9 @@ class SSHException(Exception):
 
 class Host:
     def __init__(self,
-                 connection_info: ConnectionData):
-        self.host_name = connection_info.host
-        self.user = connection_info.user
+                 connection_config: ConnectionConfig):
+        self.host_name = connection_config.target_name
+        self.user = connection_config.target_user
         self.logger = logging.getLogger("explorer.platforms.deployment.device_communication.Host")
 
     def _get_connection(self):

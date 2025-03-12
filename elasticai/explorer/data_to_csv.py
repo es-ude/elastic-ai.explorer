@@ -1,19 +1,20 @@
 import json
+from pathlib import Path
 
 import pandas
-import plotly.express as px
 
-from settings import ROOT_DIR
+from elasticai.explorer import utils
+from elasticai.explorer.config import HWNASConfig
+from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.utils import plot_parallel_coordinates
+from settings import MAIN_EXPERIMENT_DIR
 
 
-def build_search_space_measurements_file(latencies):
-    metrics = str(ROOT_DIR) + "/metrics/metrics.json"
-    models = str(ROOT_DIR) + "/models/models.json"
-    with open(metrics, "r") as f:
-        metric_list = json.load(f)
-
-    with open(models, "r") as f:
-        sample_list = json.load(f)
+def build_search_space_measurements_file(latencies: list[int], metrics_path: Path, model_parameter_path: Path, csv_path: Path) -> pandas.DataFrame:
+    
+    
+    metric_list = utils.load_json(metrics_path)
+    sample_list = utils.load_json(model_parameter_path)
 
     dataframe = pandas.DataFrame.from_dict(metric_list)
     dataframe2 = pandas.DataFrame.from_dict(sample_list)
@@ -21,25 +22,18 @@ def build_search_space_measurements_file(latencies):
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
 
-    csv_path = str(ROOT_DIR) + "/experiment_data.csv"
     data_merged.to_csv(csv_path)
 
     return data_merged
 
 
-def plot_parallel_coordinates(df):
-    fig = px.parallel_coordinates(
-        df,
-        color="default",
-        color_continuous_scale=px.colors.diverging.Tealrose,
-    )
-    fig.show()
-
-
-def read_csv():
-    return pandas.read_csv(str(ROOT_DIR) + "/experiment_data_comp_sp.csv")
+def read_csv(csv_path) -> pandas.DataFrame:
+    return pandas.read_csv(csv_path)
 
 
 if __name__ == "__main__":
-    df = read_csv()
+
+    experiment_name = str(input("To plot csv data, give experiment name: "))
+    csv_path = MAIN_EXPERIMENT_DIR / experiment_name / "experiment_data.csv"
+    df = read_csv(csv_path)
     plot_parallel_coordinates(df)
