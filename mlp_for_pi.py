@@ -2,7 +2,13 @@ import logging
 import os
 from logging import config
 
+from torchvision.transforms import transforms
+from torchvision.datasets import MNIST
 import nni
+import torch
+from torch.utils.data import DataLoader
+
+
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -11,11 +17,14 @@ from elasticai.explorer.knowledge_repository import (
     HWPlatform,
     Metrics,
 )
-from elasticai.explorer.platforms.deployment.manager import PIHWManager, ConnectionData
+from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.train_model import train, test
+from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.visualizer import Visualizer
+from elasticai.explorer.config import Config, ConnectionConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
+
+config = None
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -23,7 +32,7 @@ logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
-def setup_knowledge_repository():
+def setup_knowledge_repository() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
         HWPlatform(
@@ -36,71 +45,87 @@ def setup_knowledge_repository():
     return knowledge_repository
 
 
-def find_for_pi(knowledge_repository, max_search_trials, top_k):
-    explorer = Explorer(knowledge_repository)
+def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
+
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search(max_search_trials, top_k)
+    top_models = explorer.search()
 
 
 def find_generate_measure_for_pi(
-        knowledge_repository, device_connection, max_search_trials, top_k
+        explorer: Explorer,
+        connection_cfg: ConnectionConfig,
+        hwnas_cfg: HWNASConfig
 ) -> Metrics:
-    explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search(max_search_trials, top_k)
+    top_models = explorer.search(hwnas_cfg)
 
-    explorer.hw_setup_on_target(device_connection)
+    explorer.hw_setup_on_target(connection_conf=connection_cfg)
     measurements_latency_mean = []
     measurements_accuracy = []
 
-    for i, model in enumerate(top_models):
-        train(model, 3)
-        test(model)
-        model_path = str(ROOT_DIR) + "/models/ts_models/model_" + str(i) + ".pt"
-        data_path = str(ROOT_DIR) + "/data"
-        explorer.generate_for_hw_platform(model, model_path)
 
-        mean, _ = explorer.run_latency_measurement(device_connection, model_path)
+
+    #Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
+    transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    trainloader = DataLoader(
+        MNIST("data/mnist", download=True, transform=transf),
+        batch_size=64,
+        shuffle=True,
+    )
+    testloader = DataLoader(
+        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
+    )
+
+    retrain_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    for i, model in enumerate(top_models):
+        mlp_trainer = MLPTrainer(device=retrain_device, optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
+        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
+        mlp_trainer.test(model, testloader=testloader)
+        model_name = "ts_model_" + str(i) + ".pt"
+        data_path = str(ROOT_DIR) + "/data"
+        explorer.generate_for_hw_platform(model, model_name)
+
+        mean = explorer.run_latency_measurement(model_name)
         measurements_latency_mean.append(mean)
         measurements_accuracy.append(
-            explorer.run_accuracy_measurement(device_connection, model_path, data_path)
+            explorer.run_accuracy_measurement(model_name, data_path)
         )
 
     floats = [float(np_float) for np_float in measurements_latency_mean]
-    df = build_search_space_measurements_file(floats)
+    df = build_search_space_measurements_file(floats, explorer.metric_dir / "metrics.json",
+                                               explorer.model_dir / "models.json",
+                                               explorer.experiment_dir / "experiment_data.csv")
     logger.info("Models:\n %s", df)
 
     return Metrics(
-        "metrics/metrics.json",
-        "models/models.json",
+        explorer.metric_dir / "metrics.json",
+        explorer.model_dir / "models.json",
         measurements_accuracy,
         measurements_latency_mean,
     )
 
 
-def measure_latency(knowledge_repository, connection_data):
-    explorer = Explorer(knowledge_repository)
-    explorer.choose_target_hw("rpi5")
-    model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
-    explorer.hw_setup_on_target(connection_data)
+def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
 
-    mean, std = explorer.run_latency_measurement(connection_data, model_path)
+    explorer.choose_target_hw("rpi5")
+    explorer.hw_setup_on_target()
+
+    mean, std = explorer.run_latency_measurement(model_name=model_name)
     logger.info("Mean Latency: %.2f", mean)
     logger.info("Std Latency: %.2f", std)
 
 
-def measure_accuracy(knowledge_repository, connection_data):
-    explorer = Explorer(knowledge_repository)
+def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
     explorer.choose_target_hw("rpi5")
-    explorer.hw_setup_on_target(connection_data)
-    model_path = str(ROOT_DIR) + "/models/ts_models/model_0.pt"
+    explorer.hw_setup_on_target()
     data_path = str(ROOT_DIR) + "/data"
-
     logger.info(
         "Accuracy: %.2f",
-        explorer.run_accuracy_measurement(connection_data, model_path, data_path),
+        explorer.run_accuracy_measurement(model_name, data_path),
     )
 
 
@@ -109,24 +134,18 @@ def prepare_pi():
     hw_manager.compile_code()
 
 
-def make_dirs_if_not_exists():
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
-    if not os.path.exists("metrics"):
-        os.makedirs("metrics")
-
-
 if __name__ == "__main__":
-    make_dirs_if_not_exists()
 
-    host = "transpi5.local"
-    user = "ies"
-    max_search_trials = 6
-    top_k = 2
+    hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
+    connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
+    model_cfg = ModelConfig(config_path="configs/model_config.yaml")
+
     knowledge_repo = setup_knowledge_repository()
-    device_connection = ConnectionData(host, user)
-    metry = find_generate_measure_for_pi(
-        knowledge_repo, device_connection, max_search_trials, top_k
-    )
-    visu = Visualizer(metry)
-    visu.plot_all_results(filename="plot")
+    explorer = Explorer(knowledge_repo)
+    explorer.set_model_cfg(model_cfg)
+
+    metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
+    visu = Visualizer(metry, explorer.plot_dir)
+    visu.plot_all_results(filename="plot.png")
+
+
