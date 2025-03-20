@@ -1,5 +1,7 @@
 import json
+import logging
 import math
+import os
 
 import nni
 import torch
@@ -11,10 +13,14 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
 
+logger = logging.getLogger("explorer.nas")
+
+
 def train_epoch(
-        model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
+        model: torch.nn.Module, device: str, train_loader: DataLoader, optimizer: torch.optim, epoch: int
 ):
     loss_fn = nn.CrossEntropyLoss()
     model.train(True)
@@ -26,7 +32,7 @@ def train_epoch(
         loss.backward()
         optimizer.step()
         if batch_idx % 10 == 0:
-            print(
+            logger.info(
                 "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                     epoch,
                     batch_idx * len(data),
@@ -37,7 +43,7 @@ def train_epoch(
             )
 
 
-def test_epoch(model, device, test_loader):
+def test_epoch(model: torch.nn.Module, device: str, test_loader: DataLoader) -> float:
     model.eval()
     test_loss = 0
     correct = 0
@@ -49,7 +55,7 @@ def test_epoch(model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
-    print(
+    logger.info(
         "\nTest set: Accuracy: {}/{} ({:.0f}%)\n".format(
             correct, len(test_loader.dataset), accuracy
         )
@@ -57,20 +63,17 @@ def test_epoch(model, device, test_loader):
     return accuracy
 
 
-def evaluate_model(model: torch.nn.Module):
+def evaluate_model(model: torch.nn.Module, device):
     global accuracy
     ##Parameter
-    flops_weight = 0.5
+    flops_weight = 3.
     n_epochs = 2
-
+    
     ##Cost-Estimation
-    #flops as proxy metric for latency
-    flops_estimator = FlopsEstimator(model_space= model)
-    flops = flops_estimator.estimate_flops_single_module()
+    # flops as proxy metric for latency
+    flops_estimator = FlopsEstimator()
+    flops = flops_estimator.estimate_flops(model)
 
-    #set device to cpu to prevent memory error
-    #TODO find workaround to use gpu on search but cpu on final retraining for deployment on pi
-    device = "cpu"
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
@@ -85,7 +88,7 @@ def evaluate_model(model: torch.nn.Module):
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
 
-    metric = {"default": 0, "accuracy" : 0, "flops log10": math.log10(flops)}
+    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         train_epoch(model, device, train_loader, optimizer, epoch)
 
@@ -96,15 +99,29 @@ def evaluate_model(model: torch.nn.Module):
 
     nni.report_final_result(metric)
 
-def search(search_space, max_search_trials = 6):
+
+def search(search_space: any, hwnas_cfg: HWNASConfig) -> tuple[list[any],list[any],list[any]]:
+    """
+    Returns: top-models, model-parameters, metrics
+    """
     search_strategy = strategy.Random()
-    evaluator = FunctionalEvaluator(evaluate_model)
+    evaluator = FunctionalEvaluator(evaluate_model, device = hwnas_cfg.host_processor)
     exp = NasExperiment(search_space, evaluator, search_strategy)
-    exp.config.max_trial_number = max_search_trials
+    exp.config.max_trial_number = hwnas_cfg.max_search_trials
     exp.run(port=8081)
-    top_models = exp.export_top_models(top_k=1, formatter="instance")
-    for model_dict in exp.export_top_models(formatter="dict"):
-        print(model_dict)
-        with open("models/models.json", "w") as f:
-            json.dump(model_dict, f)
-    return top_models
+    top_models = exp.export_top_models(top_k=hwnas_cfg.top_n_models, formatter="instance")
+    top_parameters = exp.export_top_models(top_k=hwnas_cfg.top_n_models, formatter="dict")
+    test_results = exp.export_data()
+    exp.stop()
+
+    # sorting the metrics, parameters in the top_k order
+    parameters = list(range(len(top_parameters)))
+    metrics = list(range(len(top_parameters)))
+    for trial in test_results:
+        for i, top_parameter in enumerate(top_parameters):
+            if trial.parameter["sample"] == top_parameter:
+                parameters[i] = trial.parameter["sample"]
+
+                metrics[i] = trial.value
+
+    return top_models, parameters, metrics

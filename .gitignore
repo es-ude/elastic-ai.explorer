@@ -10,6 +10,17 @@ __pycache__/
 /data/
 docker/bin
 /docker/code/libtorch
+.DS_Store
+
+#experiments logs
+experiments/
+experiment_data.csv
+
+#plots
+plots/
+
+#metrics
+metrics/
 
 #libtorch 
 docker/code/libtorch*
@@ -19,6 +30,12 @@ docker/bin
 
 #models
 models/
+
+#individual configs
+configs/
+
+#experiments
+experiments/
 
 # Distribution / packaging
 .Python

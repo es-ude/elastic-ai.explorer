@@ -1,16 +1,24 @@
+import logging
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+logger = logging.getLogger("explorer.train_model")
 
-def test(model):
-    transf = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-    test_loader = DataLoader(MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64)
-    device = "cpu" #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+def test(model: torch.nn.Module, device: str = "cpu") -> float:
+    transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    test_loader = DataLoader(
+        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
+    )
     test_loss = 0
     correct = 0
+    model.to(device)
     model.eval()
     with torch.no_grad():
         for data, target in test_loader:
@@ -20,8 +28,8 @@ def test(model):
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
-    print(
-        "\nTest set: Accuracy: {}/{} ({:.0f}%)\n".format(
+    logger.info(
+        "Test set: Accuracy: {}/{} ({:.0f}%)\n".format(
             correct, len(test_loader.dataset), accuracy
         )
     )
@@ -29,10 +37,11 @@ def test(model):
 
 
 def train_epoch(
-        model: torch.nn.Module, device, train_loader: DataLoader, optimizer, epoch
+        model: torch.nn.Module, device: str, train_loader: DataLoader, optimizer: torch.optim, epoch: int
 ):
     loss_fn = nn.CrossEntropyLoss()
     model.train(True)
+    model.to(device)
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -41,7 +50,7 @@ def train_epoch(
         loss.backward()
         optimizer.step()
         if batch_idx % 10 == 0:
-            print(
+            logger.debug(
                 "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                     epoch,
                     batch_idx * len(data),
@@ -52,8 +61,7 @@ def train_epoch(
             )
 
 
-def train(model: torch.nn.Module, epochs = 5):
-    device = "cpu" #torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+def train(model: torch.nn.Module, epochs: int = 5, device: str = "cpu"):
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     transf = transforms.Compose(
