@@ -100,8 +100,8 @@ class Explorer:
         
         top_models, model_parameters, metrics = hw_nas.search(self.search_space, self.hwnas_cfg)
 
-        utils.save_list_to_json(model_parameters, dir = self._model_dir, filename= "models.json")
-        utils.save_list_to_json(metrics, dir = self._metric_dir, filename = "metrics.json")
+        utils.save_list_to_json(model_parameters, path_to_dir = self._model_dir, filename= "models.json")
+        utils.save_list_to_json(metrics, path_to_dir = self._metric_dir, filename = "metrics.json")
         self.hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
 
         return top_models
