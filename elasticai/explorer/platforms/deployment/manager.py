@@ -67,7 +67,7 @@ class PIHWManager(HWManager):
             CONTEXT_PATH,
             file=CONTEXT_PATH / "Dockerfile.loader",
             output={"type": "local", "dest": CONTEXT_PATH / "bin"},
-            build_args={"LIBTORCH_PATH": f"{path_to_libtorch}"},
+            build_args={"HOST_LIBTORCH_PATH": f"{path_to_libtorch}"},
         
         )
         self.logger.info("Compilation finished. Programs available in %s", CONTEXT_PATH / "bin")

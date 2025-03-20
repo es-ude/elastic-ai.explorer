@@ -65,13 +65,13 @@ def find_generate_measure_for_pi(
         explorer: Explorer,
         connection_cfg: ConnectionConfig,
         hwnas_cfg: HWNASConfig,
-        path_to_libtorch="./code/libtorch"
+        host_path_to_libtorch="./code/libtorch"
 ) -> Metrics:
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
-    explorer.hw_setup_on_target(connection_conf=connection_cfg, host_path_to_libtorch=path_to_libtorch)
+    explorer.hw_setup_on_target(connection_conf=connection_cfg, host_path_to_libtorch=host_path_to_libtorch)
     measurements_latency_mean = []
     measurements_accuracy = []
 
@@ -129,7 +129,7 @@ def prepare_pi5():
 
 
 if __name__ == "__main__": 
-    torch_path = "./code/libtorch"
+    host_path_to_libtorch = "./code/libtorch"
     hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
     connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
     model_cfg = ModelConfig(config_path="configs/model_config.yaml")
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
 
-    metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg, path_to_libtorch=torch_path)
+    metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg, host_path_to_libtorch=host_path_to_libtorch)
     visu = Visualizer(metry, explorer.plot_dir)
     visu.plot_all_results(filename="plot.png")
 
