@@ -1,6 +1,7 @@
 import logging
 import os
 from logging import config
+from pathlib import Path
 
 import nni
 import torch
@@ -78,7 +79,7 @@ def find_generate_measure_for_pi(
         train(model, 3, device = hwnas_cfg.host_processor)
         test(model, device= hwnas_cfg.host_processor)
         model_name = "ts_model_" + str(i) + ".pt"
-        data_path = str(ROOT_DIR) + "/data"
+        data_path = ROOT_DIR / "data"
         explorer.generate_for_hw_platform(model, model_name)
 
         mean = explorer.run_latency_measurement(model_name)
@@ -101,7 +102,7 @@ def find_generate_measure_for_pi(
     )
 
 
-def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str, connection_cfg: ConnectionConfig, path_to_libtorch="./code/libtorch",
+def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str, connection_cfg: ConnectionConfig, path_to_libtorch: Path="./code/libtorch",
     pi_type="rpi5"):
     
     explorer.choose_target_hw(pi_type)
@@ -112,7 +113,7 @@ def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explore
     logger.info("Std Latency: %.2f", std)
 
 
-def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name:str, connection_cfg: ConnectionConfig, path_to_libtorch: str ="./code/libtorch", pi_type: str="rpi5"):
+def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name:str, connection_cfg: ConnectionConfig, path_to_libtorch: Path ="./code/libtorch", pi_type: str="rpi5"):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw(pi_type)
     explorer.hw_setup_on_target(connection_cfg, path_to_libtorch)

@@ -8,7 +8,7 @@ from settings import MAIN_EXPERIMENT_DIR
 
 logger = logging.getLogger("explorer.config")
 class Config:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Path):
         with open(config_path) as stream:
             try:
                 self.original_yaml_dict: dict = yaml.safe_load(stream)
@@ -16,7 +16,7 @@ class Config:
                 print(exc)
       
 
-    def dump_as_yaml(self, save_path: str):
+    def dump_as_yaml(self, save_path: Path):
         """Creates a .yaml file of the current config.
 
         Args:
@@ -29,7 +29,7 @@ class Config:
             
 
 class HWNASConfig(Config):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Path):
         super().__init__(config_path)
 
         self.original_yaml_dict = self.original_yaml_dict.get("HWNASConfig", {})
@@ -43,7 +43,7 @@ class HWNASConfig(Config):
 
 
 class ConnectionConfig(Config):
-    def __init__(self,  config_path: str):
+    def __init__(self,  config_path: Path):
         super().__init__(config_path)
         self.original_yaml_dict = self.original_yaml_dict.get("ConnectionConfig", {})
         try:
@@ -54,7 +54,7 @@ class ConnectionConfig(Config):
             exit(-1)
 
 class ModelConfig(Config):
-    def __init__(self,  config_path: str):
+    def __init__(self,  config_path: Path):
         super().__init__(config_path)
         self.original_yaml_dict = self.original_yaml_dict.get("ModelConfig", {})
         self.model_type: str = self.original_yaml_dict["model_type"]
