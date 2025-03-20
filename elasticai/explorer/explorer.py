@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from torch import nn
@@ -106,20 +106,21 @@ class Explorer:
 
         return top_models
 
-    def generate_for_hw_platform(self, model: Path, model_name: str) -> any:
+    def generate_for_hw_platform(self, model: Union[nn.Module, any], model_name: str) -> any:
         model_path = self._model_dir / model_name
         return self.generator.generate(model, model_path)
 
     def hw_setup_on_target(
             self, connection_conf: ConnectionConfig,
-            host_path_to_libtorch: str
-            
+            host_path_to_libtorch: Path
     ):
         """Installs all necessary binaries and resources on the target platform
 
         Args:
             connection_conf (ConnectionConfig): 
-            host_path_to_libtorch (str): Should be a path relative to inside the "elastic-ai.explorer/docker" directory or an absolute path.
+            host_path_to_libtorch (str): Should be a path relative to inside the "elastic-ai.explorer/docker"
+              directory or an absolute path to the precompiled libtorch version. Be careful to select the correct libtorch version.
+            
         """
         self.connection_cfg = connection_conf
         self.logger.info("Setup Hardware target for experiments.")
@@ -139,7 +140,7 @@ class Explorer:
             exit(-1)
 
     def run_accuracy_measurement(
-            self, model_name: str, path_to_data: str
+            self, model_name: str, path_to_data: Path
     ) -> float:
         model_path = self._model_dir / model_name
         if self.connection_cfg:

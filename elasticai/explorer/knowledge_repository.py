@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Type
 
 import numpy as np
@@ -29,7 +30,7 @@ class KnowledgeRepository:
 
 
 class Metrics:
-    def __init__(self, path_to_metrics: str, path_to_samples: str, accuracy_list: list, latency_list: list):
+    def __init__(self, path_to_metrics: Path, path_to_samples: Path, accuracy_list: list, latency_list: list):
         self.raw_measured_accuracies: list[float] = accuracy_list
         self.raw_measured_latencies: list[int] = latency_list
         self.metric_list = utils.load_json(path_to_metrics)
