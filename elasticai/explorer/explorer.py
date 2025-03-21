@@ -112,7 +112,7 @@ class Explorer:
 
     def hw_setup_on_target(
             self, connection_conf: ConnectionConfig,
-            host_path_to_libtorch: Path
+            path_to_compiled_library: Path
     ):
         """Installs all necessary binaries and resources on the target platform
 
@@ -124,8 +124,8 @@ class Explorer:
         """
         self.connection_cfg = connection_conf
         self.logger.info("Setup Hardware target for experiments.")
-        self.hw_manager.install_latency_measurement_on_target(self.connection_cfg, path_to_libtorch= host_path_to_libtorch)
-        self.hw_manager.install_accuracy_measurement_on_target(self.connection_cfg, path_to_libtorch= host_path_to_libtorch, rebuild=False)
+        self.hw_manager.install_latency_measurement_on_target(self.connection_cfg, path_to_compiled_library= path_to_compiled_library)
+        self.hw_manager.install_accuracy_measurement_on_target(self.connection_cfg, path_to_compiled_library= path_to_compiled_library, rebuild=False)
         self.connection_cfg.dump_as_yaml(self._experiment_dir / "connection_config.yaml")
 
     def run_latency_measurement(
