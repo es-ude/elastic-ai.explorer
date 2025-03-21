@@ -25,12 +25,12 @@ class HWManager(ABC):
 
     @abstractmethod
     def install_latency_measurement_on_target(
-            self, connection_conf: ConnectionConfig, path_to_program: Path = None, path_to_libtorch: Path = "./code/libtorch", rebuild: bool = True
+            self, connection_conf: ConnectionConfig, path_to_binary: Path = None, path_to_compiled_library: Path = None, rebuild: bool = True
     ):
         pass
 
     @abstractmethod
-    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: Path = None, path_to_libtorch: Path = "./code/libtorch", rebuild: bool = True
+    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_binary: Path = None, path_to_compiled_library: Path = None, rebuild: bool = True
                                                ):
         pass
 
@@ -76,7 +76,7 @@ class PIHWManager(HWManager):
             self,
         connection_conf: ConnectionConfig,
         path_to_program: Path = None,
-        path_to_libtorch: Path = "./code/libtorch",
+        path_to_compiled_library: Path = "./code/libtorch",
         rebuild: bool = True
     ):
         self.logger.info("Install latency measurement code on target...")
@@ -86,7 +86,7 @@ class PIHWManager(HWManager):
             if rebuild:
                 self.logger.info("Latency measurement is not compiled yet...")
                 self.logger.info("Compile latency measurement code.")
-                self.compile_code(path_to_libtorch)
+                self.compile_code(path_to_compiled_library)
 
         with Connection(host=connection_conf.target_name, user=connection_conf.target_user) as conn:
             self.logger.info("Install program on target. Hostname: %s - User: %s", connection_conf.target_name,
@@ -95,14 +95,14 @@ class PIHWManager(HWManager):
             self.logger.info("Latency measurements available on Target")
 
 
-    def install_accuracy_measurement_on_target(self, connection_info: ConnectionConfig, path_to_program: Path = None, path_to_data: Path = None, path_to_libtorch: Path = "./code/libtorch", rebuild: bool = True):
+    def install_accuracy_measurement_on_target(self, connection_info: ConnectionConfig, path_to_program: Path = None, path_to_data: Path = None, path_to_compiled_library: Path = "./code/libtorch", rebuild: bool = True):
         self.logger.info("Install accuracy measurement code on target...")
         if path_to_program is None:
             path_to_program = CONTEXT_PATH / "bin/measure_accuracy"
             if rebuild:
                 self.logger.info("Accuracy measurement is not compiled yet...")
                 self.logger.info("Compile accuracy measurement code.")
-                self.compile_code(path_to_libtorch)
+                self.compile_code(path_to_compiled_library)
 
         if path_to_data is None:
             path_to_data = CONTEXT_PATH / "data/mnist.zip"
