@@ -1,46 +1,23 @@
 import logging
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import kendalltau
 
 from elasticai.explorer.knowledge_repository import Metrics
+from elasticai.explorer.utils import compute_kendall
 from settings import ROOT_DIR
 
 logger = logging.getLogger(__name__)
 
 
-def compute_kandell(list_x: list[any], list_y: list[any]) -> float:
-    """Computes Kandell Correlation Coefficient.
-
-    Args:
-        list_x (list): _description_
-        list_y (list): _description_
-
-    Returns:
-        float: _description_
-    """
-
-    # Taking values from the above example in Lists
-    rank_x = [sorted(list_x).index(x) for x in list_x]
-    rank_y = [sorted(list_y).index(x) for x in list_y]
-
-    # Calculating Kendall Rank correlation
-    corr, _ = kendalltau(rank_x, rank_y)
-    logger.info("Kendall Rank correlation: %.5f", corr)
-
-    return corr
-
-
-CONTEXT_PATH = ROOT_DIR / "plots"
-
-
 class Visualizer:
 
-    def __init__(self, metrics: Metrics):
+    def __init__(self, metrics: Metrics, plot_dir: str):
         self.data: list[list[float]] = metrics.structured_est_metrics
         self.labels: list[str]= metrics.structured_samples
         self.metrics: Metrics  = metrics
+        self.plot_dir: str = plot_dir
 
     def plot_all_results(self, figure_size: list[int] = [15, 20], filename: str = ""):
         plt.figure()
@@ -53,15 +30,15 @@ class Visualizer:
         bar_width = 0.2
 
         # get Kendall for estimated and measured Accuracies
-        kendall_coef_accuracy = compute_kandell(
+        kendall_coef_accuracy = compute_kendall(
             self.metrics.structured_est_accuracies, self.metrics.raw_measured_accuracies
         )
         # get Kendall for estimated FLOPs and measured latencies
-        kendall_coef_latencies = compute_kandell(
+        kendall_coef_latencies = compute_kendall(
             self.metrics.structured_est_flops, self.metrics.raw_measured_latencies
         )
         # get Kendall for Combined Metric and measured Accuracies
-        kendall_coef_combined = compute_kandell(
+        kendall_coef_combined = compute_kendall(
             self.metrics.structured_est_combined, self.metrics.raw_measured_latencies
         )
 
@@ -129,7 +106,8 @@ class Visualizer:
             ax.set_xticks(indices + bar_width / 2)
             ax.set_xticklabels(self.labels)
 
+        os.makedirs(self.plot_dir, exist_ok=True)    
         if filename:
-            plt.savefig(str(CONTEXT_PATH) + "/" + filename + ".png")
+            plt.savefig(self.plot_dir / (filename))
         else:
             plt.show()

@@ -4,6 +4,7 @@ from typing import Type
 
 import numpy as np
 
+from elasticai.explorer import utils
 from elasticai.explorer.platforms.deployment.manager import HWManager
 from elasticai.explorer.platforms.generator.generator import Generator
 
@@ -31,13 +32,8 @@ class Metrics:
     def __init__(self, path_to_metrics: str, path_to_samples: str, accuracy_list: list, latency_list: list):
         self.raw_measured_accuracies: list[float] = accuracy_list
         self.raw_measured_latencies: list[int] = latency_list
-
-        with open(path_to_metrics, "r") as f:
-            self.metric_list = json.load(f)
-
-        with open(path_to_samples, "r") as f:
-            self.sample_list = json.load(f)
-
+        self.metric_list = utils.load_json(path_to_metrics)
+        self.sample_list = utils.load_json(path_to_samples)
         self._structure()
 
     def _structure(self):
