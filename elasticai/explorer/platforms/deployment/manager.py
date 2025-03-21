@@ -25,13 +25,32 @@ class HWManager(ABC):
 
     @abstractmethod
     def install_latency_measurement_on_target(
-            self, connection_conf: ConnectionConfig, path_to_binary: Path = None, path_to_compiled_library: Path = None, rebuild: bool = True
+            self, connection_conf: ConnectionConfig, path_to_executable: Path = None, path_to_compiled_library: Path = None, rebuild: bool = True
     ):
+        """Installs latency measuremt on target specified in ConnectionConfig. 
+        To do that, additionalen resources can be specified.
+
+        Args:
+            connection_conf (ConnectionConfig):
+            path_to_executable (Path, optional): Path on host to binary for the execution of the latency measurement. Defaults to None.
+            path_to_compiled_library (Path, optional): Path to additional pre-compiled library, if neccessary for execution of binary.
+            rebuild (bool, optional): If true rebuilds the binary by linking to compiled library. Defaults to True.
+        """
         pass
 
     @abstractmethod
-    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_binary: Path = None, path_to_compiled_library: Path = None, rebuild: bool = True
+    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_executable: Path = None, path_to_test_data: Path = None, path_to_compiled_library: Path = None, rebuild: bool = True
                                                ):
+        """Installs accuracy measuremt on target specified in ConnectionConfig. 
+        To do that, additionalen resources can be specified.
+
+        Args:
+            connection_conf (ConnectionConfig):
+            path_to_executable (Path, optional): Path on host to binary for the execution of the latency measurement. Defaults to None.
+            path_to_test_data (Path, optional): Path to test data on which to measure accuracy. Defaults to None. 
+            path_to_compiled_library (Path, optional): Path to additional pre-compiled library, if neccessary for execution of binary.
+            rebuild (bool, optional): If true rebuilds the binary by linking to compiled library, else uses given executable or default executable. Defaults to True.
+        """
         pass
 
     @abstractmethod
@@ -75,14 +94,14 @@ class PIHWManager(HWManager):
     def install_latency_measurement_on_target(
             self,
         connection_conf: ConnectionConfig,
-        path_to_program: Path = None,
+        path_to_executable: Path = None,
         path_to_compiled_library: Path = "./code/libtorch",
         rebuild: bool = True
     ):
         self.logger.info("Install latency measurement code on target...")
-        if path_to_program is None:
+        if path_to_executable is None:
             
-            path_to_program = CONTEXT_PATH / "bin/measure_latency"
+            path_to_executable = CONTEXT_PATH / "bin/measure_latency"
             if rebuild:
                 self.logger.info("Latency measurement is not compiled yet...")
                 self.logger.info("Compile latency measurement code.")
@@ -91,27 +110,27 @@ class PIHWManager(HWManager):
         with Connection(host=connection_conf.target_name, user=connection_conf.target_user) as conn:
             self.logger.info("Install program on target. Hostname: %s - User: %s", connection_conf.target_name,
                              connection_conf.target_user)
-            conn.put(path_to_program)
+            conn.put(path_to_executable)
             self.logger.info("Latency measurements available on Target")
 
 
-    def install_accuracy_measurement_on_target(self, connection_info: ConnectionConfig, path_to_program: Path = None, path_to_data: Path = None, path_to_compiled_library: Path = "./code/libtorch", rebuild: bool = True):
+    def install_accuracy_measurement_on_target(self, connection_info: ConnectionConfig, path_to_executable: Path = None, path_to_test_data: Path = None, path_to_compiled_library: Path = "./code/libtorch", rebuild: bool = True):
         self.logger.info("Install accuracy measurement code on target...")
-        if path_to_program is None:
-            path_to_program = CONTEXT_PATH / "bin/measure_accuracy"
+        if path_to_executable is None:
+            path_to_executable = CONTEXT_PATH / "bin/measure_accuracy"
             if rebuild:
                 self.logger.info("Accuracy measurement is not compiled yet...")
                 self.logger.info("Compile accuracy measurement code.")
                 self.compile_code(path_to_compiled_library)
 
-        if path_to_data is None:
-            path_to_data = CONTEXT_PATH / "data/mnist.zip"
+        if path_to_test_data is None:
+            path_to_test_data = CONTEXT_PATH / "data/mnist.zip"
             
         with Connection(host=connection_info.target_name, user=connection_info.target_user) as conn:
-            conn.put(path_to_program)
+            conn.put(path_to_executable)
             self.logger.info("Put dataset on target ")
-            conn.put(path_to_data)
-            conn.run(f"unzip -q -o {os.path.split(path_to_data)[-1]}")
+            conn.put(path_to_test_data)
+            conn.run(f"unzip -q -o {os.path.split(path_to_test_data)[-1]}")
             self.logger.info("Accuracy measurements available on target")
 
     def measure_latency(

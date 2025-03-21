@@ -71,7 +71,7 @@ def find_generate_measure_for_pi(
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
-    explorer.hw_setup_on_target(connection_conf=connection_cfg, host_path_to_libtorch=host_path_to_libtorch)
+    explorer.hw_setup_on_target(connection_conf=connection_cfg, path_to_compiled_library=host_path_to_libtorch)
     measurements_latency_mean = []
     measurements_accuracy = []
 
