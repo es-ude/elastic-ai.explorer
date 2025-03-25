@@ -42,16 +42,17 @@ class HWNASConfig(Config):
 
 
 
-class ConnectionConfig(Config):
+class DeploymentConfig(Config):
     def __init__(self,  config_path: Path):
         super().__init__(config_path)
-        self.original_yaml_dict = self.original_yaml_dict.get("ConnectionConfig", {})
+        self.original_yaml_dict = self.original_yaml_dict.get("DeploymentConfig", {})
         try:
             self.target_name: str = self.original_yaml_dict["target_name"]
             self.target_user: str = self.original_yaml_dict["target_user"]
         except KeyError:
-            logger.info("ConnectionConfig is not specified completely! Please specify or target connection is not possible.")
+            logger.info("DeploymentConfig is not specified completely! Please specify or target connection is not possible.")
             exit(-1)
+        self.compiled_libary_path: Path | None = self.original_yaml_dict.get("compiled_libary_path", None)
 
 class ModelConfig(Config):
     def __init__(self,  config_path: Path):

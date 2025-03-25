@@ -18,7 +18,7 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.train_model import train, test
 from elasticai.explorer.visualizer import Visualizer
-from elasticai.explorer.config import Config, ConnectionConfig, HWNASConfig, ModelConfig
+from elasticai.explorer.config import Config, DeploymentConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
 config = None
 
@@ -63,15 +63,14 @@ def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
 
 def find_generate_measure_for_pi( 
         explorer: Explorer,
-        connection_cfg: ConnectionConfig,
+        deploy_cfg: DeploymentConfig,
         hwnas_cfg: HWNASConfig,
-        host_path_to_libtorch="./code/libtorch"
 ) -> Metrics:
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
-    explorer.hw_setup_on_target(connection_conf=connection_cfg, path_to_compiled_library=host_path_to_libtorch)
+    explorer.hw_setup_on_target(deploy_cfg=deploy_cfg)
     measurements_latency_mean = []
     measurements_accuracy = []
 
@@ -102,21 +101,21 @@ def find_generate_measure_for_pi(
     )
 
 
-def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str, connection_cfg: ConnectionConfig, path_to_libtorch: Path="./code/libtorch",
+def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str, deploy_cfg: DeploymentConfig,
     pi_type="rpi5"):
     
     explorer.choose_target_hw(pi_type)
-    explorer.hw_setup_on_target(connection_conf=connection_cfg, host_path_to_libtorch=path_to_libtorch)
+    explorer.hw_setup_on_target(deploy_cfg=deploy_cfg)
 
     mean, std = explorer.run_latency_measurement(model_name=model_name)
     logger.info("Mean Latency: %.2f", mean)
     logger.info("Std Latency: %.2f", std)
 
 
-def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name:str, connection_cfg: ConnectionConfig, path_to_libtorch: Path ="./code/libtorch", pi_type: str="rpi5"):
+def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name:str, deploy_cfg: DeploymentConfig, pi_type: str="rpi5"):
     explorer = Explorer(knowledge_repository)
     explorer.choose_target_hw(pi_type)
-    explorer.hw_setup_on_target(connection_cfg, path_to_libtorch)
+    explorer.hw_setup_on_target(deploy_cfg)
     data_path = str(ROOT_DIR) + "/data"
     logger.info(
         "Accuracy: %.2f",
@@ -129,16 +128,15 @@ def prepare_pi5():
 
 
 if __name__ == "__main__": 
-    host_path_to_libtorch = "./code/libtorch"
     hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
-    connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
+    deploy_cfg = DeploymentConfig(config_path="configs/deployment_config.yaml")
     model_cfg = ModelConfig(config_path="configs/model_config.yaml")
 
     knowledge_repo = setup_knowledge_repository_pi5()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
 
-    metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg, host_path_to_libtorch=host_path_to_libtorch)
+    metry = find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
     visu = Visualizer(metry, explorer.plot_dir)
     visu.plot_all_results(filename="plot.png")
 

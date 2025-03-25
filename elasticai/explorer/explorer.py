@@ -9,7 +9,7 @@ import numpy as np
 from torch import nn
 
 from elasticai.explorer import hw_nas, utils
-from elasticai.explorer.config import ConnectionConfig, ModelConfig, HWNASConfig
+from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager
 from elasticai.explorer.platforms.generator.generator import Generator
@@ -38,7 +38,7 @@ class Explorer:
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
         self.hwnas_cfg = None
-        self.connection_cfg = None
+        self.deploy_cfg = None
         self.model_cfg = None
 
         if not experiment_name:
@@ -111,30 +111,27 @@ class Explorer:
         return self.generator.generate(model, model_path)
 
     def hw_setup_on_target(
-            self, connection_conf: ConnectionConfig,
-            path_to_compiled_library: Path
+            self, deploy_cfg: DeploymentConfig
     ):
         """Installs all necessary binaries and resources on the target platform
 
         Args:
-            connection_conf (ConnectionConfig): 
-            host_path_to_libtorch (str): Should be a path relative to inside the "elastic-ai.explorer/docker"
-              directory or an absolute path to the precompiled libtorch version. Be careful to select the correct libtorch version.
+            connection_conf (ConnectionConfig):
             
         """
-        self.connection_cfg = connection_conf
+        self.deploy_cfg = deploy_cfg
         self.logger.info("Setup Hardware target for experiments.")
-        self.hw_manager.install_latency_measurement_on_target(self.connection_cfg, path_to_compiled_library= path_to_compiled_library)
-        self.hw_manager.install_accuracy_measurement_on_target(self.connection_cfg, path_to_compiled_library= path_to_compiled_library, rebuild=False)
-        self.connection_cfg.dump_as_yaml(self._experiment_dir / "connection_config.yaml")
+        self.hw_manager.install_latency_measurement_on_target(self.deploy_cfg)
+        self.hw_manager.install_accuracy_measurement_on_target(self.deploy_cfg, rebuild=False)
+        self.deploy_cfg.dump_as_yaml(self._experiment_dir / "connection_config.yaml")
 
     def run_latency_measurement(
             self, model_name: str
     ) -> int:
         model_path = self._model_dir / model_name
-        if self.connection_cfg:
-            self.hw_manager.deploy_model(self.connection_cfg, model_path)
-            return self.hw_manager.measure_latency(self.connection_cfg, model_path)
+        if self.deploy_cfg:
+            self.hw_manager.deploy_model(self.deploy_cfg, model_path)
+            return self.hw_manager.measure_latency(self.deploy_cfg, model_path)
         else:
             self.logger.error("Hardware was not setup on target before execution. Use Explorer.hw_setup_on_target() first!")
             exit(-1)
@@ -143,10 +140,10 @@ class Explorer:
             self, model_name: str, path_to_data: Path
     ) -> float:
         model_path = self._model_dir / model_name
-        if self.connection_cfg:
-            self.hw_manager.deploy_model(self.connection_cfg, model_path)
+        if self.deploy_cfg:
+            self.hw_manager.deploy_model(self.deploy_cfg, model_path)
             return self.hw_manager.measure_accuracy(
-                self.connection_cfg, model_path, path_to_data
+                self.deploy_cfg, model_path, path_to_data
             )
         else:
             self.logger.error("Hardware was not setup on target before execution. Use Explorer.hw_setup_on_target() first!")
