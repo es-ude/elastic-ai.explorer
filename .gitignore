@@ -36,6 +36,7 @@ configs/
 
 #experiments
 experiments/
+experiment_data.csv
 
 # Distribution / packaging
 .Python
