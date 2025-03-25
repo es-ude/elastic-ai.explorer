@@ -124,7 +124,7 @@ class PIHWManager(HWManager):
         self.logger.info("Measure accuracy of model on device.")
         with Connection(host=connection_conf.target_name, user=connection_conf.target_user) as conn:
             measurement = self._run_accuracy(conn, path_to_model, path_to_data)
-        self.logger.debug("Measured accuracy on device: %0.2f\%", measurement)
+        self.logger.debug("Measured accuracy on device: %0.2f", measurement)
         return measurement
 
     def deploy_model(self, connection_conf: ConnectionConfig, path_to_model: str):
