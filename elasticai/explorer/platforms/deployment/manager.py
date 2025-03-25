@@ -19,19 +19,19 @@ class HWManager(ABC):
 
     @abstractmethod
     def measure_latency(
-            self, deploy_dfg: DeploymentConfig, path_to_model: Path
+            self, deploy_cfg: DeploymentConfig, path_to_model: Path
     ) -> int:
         pass
 
     @abstractmethod
     def install_latency_measurement_on_target(
-            self, deploy_dfg: DeploymentConfig, path_to_executable: Path = None, rebuild: bool = True
+            self, deploy_cfg: DeploymentConfig, path_to_executable: Path = None, rebuild: bool = True
     ):
         """Installs latency measuremt on target specified in DeploymentConfig. 
         To do that, additionalen resources can be specified.
 
         Args:
-            deploy_dfg (DeploymentConfig): Config that parameterizes the deployment.
+            deploy_cfg (DeploymentConfig): Config that parameterizes the deployment.
             path_to_executable (Path, optional): Path on host to binary for the execution of the latency measurement. Defaults to None.
             rebuild (bool, optional): If true rebuilds the binary by linking to compiled library. Defaults to True.
         """
@@ -44,7 +44,7 @@ class HWManager(ABC):
         To do that, additionalen resources can be specified.
 
         Args:
-            deploy_dfg (DeploymentConfig): Config that parameterizes the deployment.
+            deploy_cfg (DeploymentConfig): Config that parameterizes the deployment.
             path_to_executable (Path, optional): Path on host to binary for the execution of the latency measurement. Defaults to None.
             path_to_test_data (Path, optional): Path to test data on which to measure accuracy. Defaults to None. 
             rebuild (bool, optional): If true rebuilds the binary by linking to compiled library, else uses given executable or default executable. Defaults to True.
@@ -53,13 +53,13 @@ class HWManager(ABC):
 
     @abstractmethod
     def measure_accuracy(
-            self, deploy_dfg: DeploymentConfig, path_to_model: Path, path_to_data: Path
+            self, deploy_cfg: DeploymentConfig, path_to_model: Path, path_to_data: Path
     ) -> float:
         pass
 
     @abstractmethod
     def deploy_model(
-            self, deploy_dfg: DeploymentConfig, path_to_model: Path
+            self, deploy_cfg: DeploymentConfig, path_to_model: Path
     ) -> int:
         pass
 
@@ -91,7 +91,7 @@ class PIHWManager(HWManager):
 
     def install_latency_measurement_on_target(
             self,
-        deploy_dfg: DeploymentConfig,
+        deploy_cfg: DeploymentConfig,
         path_to_executable: Path = None,
         rebuild: bool = True
     ):
@@ -102,28 +102,28 @@ class PIHWManager(HWManager):
             if rebuild:
                 self.logger.info("Latency measurement is not compiled yet...")
                 self.logger.info("Compile latency measurement code.")
-                self.compile_code(deploy_dfg.compiled_libary_path)
+                self.compile_code(deploy_cfg.compiled_libary_path)
 
-        with Connection(host=deploy_dfg.target_name, user=deploy_dfg.target_user) as conn:
-            self.logger.info("Install program on target. Hostname: %s - User: %s", deploy_dfg.target_name,
-                             deploy_dfg.target_user)
+        with Connection(host=deploy_cfg.target_name, user=deploy_cfg.target_user) as conn:
+            self.logger.info("Install program on target. Hostname: %s - User: %s", deploy_cfg.target_name,
+                             deploy_cfg.target_user)
             conn.put(path_to_executable)
             self.logger.info("Latency measurements available on Target")
 
 
-    def install_accuracy_measurement_on_target(self, deploy_dfg: DeploymentConfig, path_to_executable: Path = None, path_to_test_data: Path = None, rebuild: bool = True):
+    def install_accuracy_measurement_on_target(self, deploy_cfg: DeploymentConfig, path_to_executable: Path = None, path_to_test_data: Path = None, rebuild: bool = True):
         self.logger.info("Install accuracy measurement code on target...")
         if path_to_executable is None:
             path_to_executable = CONTEXT_PATH / "bin/measure_accuracy"
             if rebuild:
                 self.logger.info("Accuracy measurement is not compiled yet...")
                 self.logger.info("Compile accuracy measurement code.")
-                self.compile_code(deploy_dfg.compiled_libary_path)
+                self.compile_code(deploy_cfg.compiled_libary_path)
 
         if path_to_test_data is None:
             path_to_test_data = CONTEXT_PATH / "data/mnist.zip"
             
-        with Connection(host=deploy_dfg.target_name, user=deploy_dfg.target_user) as conn:
+        with Connection(host=deploy_cfg.target_name, user=deploy_cfg.target_user) as conn:
             conn.put(path_to_executable)
             self.logger.info("Put dataset on target ")
             conn.put(path_to_test_data)
@@ -131,25 +131,25 @@ class PIHWManager(HWManager):
             self.logger.info("Accuracy measurements available on target")
 
     def measure_latency(
-            self, deploy_dfg: DeploymentConfig, path_to_model: Path
+            self, deploy_cfg: DeploymentConfig, path_to_model: Path
     ) -> int:
         self.logger.info("Measure latency of model on device")
-        with Connection(host=deploy_dfg.target_name, user=deploy_dfg.target_user) as conn:
+        with Connection(host=deploy_cfg.target_name, user=deploy_cfg.target_user) as conn:
             measurement = self._run_latency(conn, path_to_model)
         self.logger.debug("Measured latency on device: %dus", measurement)
         return measurement
 
     def measure_accuracy(
-            self, deploy_dfg: DeploymentConfig, path_to_model: Path, path_to_data: Path
+            self, deploy_cfg: DeploymentConfig, path_to_model: Path, path_to_data: Path
     ) -> float:
         self.logger.info("Measure accuracy of model on device.")
-        with Connection(host=deploy_dfg.target_name, user=deploy_dfg.target_user) as conn:
+        with Connection(host=deploy_cfg.target_name, user=deploy_cfg.target_user) as conn:
             measurement = self._run_accuracy(conn, path_to_model, path_to_data)
         self.logger.debug("Measured accuracy on device: %0.2f\%", measurement)
         return measurement
 
-    def deploy_model(self, deploy_dfg: DeploymentConfig, path_to_model: Path):
-        with Connection(host=deploy_dfg.target_name, user=deploy_dfg.target_user) as conn:
+    def deploy_model(self, deploy_cfg: DeploymentConfig, path_to_model: Path):
+        with Connection(host=deploy_cfg.target_name, user=deploy_cfg.target_user) as conn:
             self.logger.info("Put model %s on target", path_to_model)
             conn.put(path_to_model)
 
