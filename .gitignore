@@ -38,7 +38,7 @@ configs/
 experiments/*
 !experiments
 !experiments/only_for_integration_tests
-
+experiment_data.csv
 
 # Distribution / packaging
 .Python
