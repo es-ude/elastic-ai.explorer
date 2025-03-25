@@ -29,7 +29,7 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None
+    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None, path_to_data: str = None
                                                ):
         pass
 
