@@ -1,8 +1,11 @@
 [project]
 name = "elastic-ai-explorer"
 version = "0.1.0"
-description = "Add your description here"
+description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
+authors = ["Intelligent Embedded Systems Lab - University Duisburg Essen"]
 readme = "README.md"
+license = "LICENSE"
+
 requires-python = ">=3.11"
 dependencies = [
     "fabric>=3.2.2",
@@ -14,6 +17,7 @@ dependencies = [
     "torchvision>=0.21.0",
 ]
 
+
 [dependency-groups]
 dev = [
     "black>=25.1.0",
@@ -22,4 +26,10 @@ dev = [
     "python-language-server>=0.36.2",
     "setuptools>=78.1.0",
 ]
+
+
+[tool.pylint]
+max-line-length = 88
+accept-no-raise-doc = "False"
+disable="C0115, C0116, C0114" # disable missing docstring messages as they incourage adding noise comments
 
