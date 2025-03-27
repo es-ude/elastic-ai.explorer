@@ -1,86 +1,25 @@
-[tool.poetry]
+[project]
 name = "elastic-ai-explorer"
 version = "0.1.0"
-description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
-authors = ["Intelligent Embedded Systems Lab - University Duisburg Essen"]
-license = "LICENSE"
+description = "Add your description here"
 readme = "README.md"
-packages = [{ include = "elasticai/" }]
-
-[tool.poetry.dependencies]
-python = "~3.11"
-setuptools = "^67.5.1"
-mypy = "^1.1.1"
-pytest-cov = "^4.1.0"
-torchvision = "0.19.0"
-pytorch-lightning = "2.3.1"
-fabric = "^3.2.2"
-python-on-whales = "^0.74.0"
-matplotlib = "^3.10.0"
-plotly = "^5.24.1"
-
-[tool.poetry.group.nomac.dependencies]
-nni = ">=3.0"
-
-[tool.poetry.group.dev.dependencies]
-python-language-server = "^0.36.2"
-black = ">21.12"
-pre-commit = "^3.0.0"
-prospector = {extras = ["with_mypy"], version = "^1.7.7"}
-import-linter = "^1.7.0"
-pylint = "^2.16.2"
-pytest = "^7.2.2"
-setuptools = "^67.5.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.pylint]
-max-line-length = 88
-accept-no-raise-doc = "False"
-disable="C0115, C0116, C0114" # disable missing docstring messages as they incourage adding noise comments
-
-[tool.black]
-preview = true
-
-[tool.pytest.ini_options]
-minversion = "6.0"
-markers = [
-  "simulation: possibly slow running integration tests including hw simulation"
+requires-python = ">=3.11"
+dependencies = [
+    "fabric>=3.2.2",
+    "matplotlib>=3.10.1",
+    "plotly>=6.0.1",
+    "nni==3.0",
+    "python-on-whales>=0.75.1",
+    "pytorch-lightning>=2.5.1",
+    "torchvision>=0.21.0",
 ]
-testpaths = [
-    "elasticai",
-    "tests",
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "pylint>=3.3.6",
+    "pytest>=8.3.5",
+    "python-language-server>=0.36.2",
+    "setuptools>=78.1.0",
 ]
-python_files = ["*_test.py", "test_*.py"]
 
-[tool.coverage.run]
-omit = []
-source = ["elasticai/explorer"]
-command_line = "-m unittest discover ."
-
-[tool.importlinter]
-root_package = "elasticai"
-contract_types = [
-"package_private_modules: import_contract.PackagePrivateModules"]
-
-[[tool.importlinter.contracts]]
-name = "package private"
-type = "package_private_modules"
-targets = ["elasticai.explorer"]
-sources = ["elasticai.explorer"]
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:tool.poetry.version"]
-major_on_zero = false
-repository = "pypi"
-upload_to_release = true
-build_command = "python3 -m pip install poetry && poetry build"
-branch = "main"
-parser_angular_allowed_types="chore,docs,feat,style,fix,refactor,wip,perf,revert"
-parser_angular_minor_types="feat"
-parser_angular_patch_types="fix,perf"
-
-[tool.isort]
-profile = "black"
