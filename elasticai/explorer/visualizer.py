@@ -1,12 +1,10 @@
 import logging
 import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from elasticai.explorer.knowledge_repository import Metrics
 from elasticai.explorer.utils import compute_kendall
-from settings import ROOT_DIR
 
 logger = logging.getLogger(__name__)
 

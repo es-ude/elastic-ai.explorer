@@ -1,14 +1,9 @@
 import logging
-import os
-from logging import config
-
 from torchvision.transforms import transforms
 from torchvision.datasets import MNIST
 import nni
 import torch
 from torch.utils.data import DataLoader
-
-
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -21,9 +16,8 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.visualizer import Visualizer
-from elasticai.explorer.config import Config, ConnectionConfig, HWNASConfig, ModelConfig
+from elasticai.explorer.config import ConnectionConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
-config = None
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -45,11 +39,11 @@ def setup_knowledge_repository() -> KnowledgeRepository:
     return knowledge_repository
 
 
-def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
+def find_for_pi(explorer: Explorer):
 
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
-    top_models = explorer.search()
+    _top_models = explorer.search()
 
 
 def find_generate_measure_for_pi( 
@@ -109,7 +103,7 @@ def find_generate_measure_for_pi(
     )
 
 
-def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
+def measure_latency(explorer: Explorer, model_name: str):
     
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target()
@@ -119,7 +113,7 @@ def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explore
     logger.info("Std Latency: %.2f", std)
 
 
-def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
+def measure_accuracy(explorer: Explorer, model_name: str):
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target()
     data_path = str(ROOT_DIR) + "/data"

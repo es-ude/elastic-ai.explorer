@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import logging
-from matplotlib import transforms
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader

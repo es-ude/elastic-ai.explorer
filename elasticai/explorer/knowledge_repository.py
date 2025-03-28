@@ -1,7 +1,5 @@
-import json
 from dataclasses import dataclass
 from typing import Type
-
 import numpy as np
 
 from elasticai.explorer import utils

@@ -2,8 +2,6 @@ import logging
 import os
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-
 from fabric import Connection
 from invoke import Result
 from python_on_whales import docker
@@ -124,7 +122,7 @@ class PIHWManager(HWManager):
         self.logger.info("Measure accuracy of model on device.")
         with Connection(host=connection_conf.target_name, user=connection_conf.target_user) as conn:
             measurement = self._run_accuracy(conn, path_to_model, path_to_data)
-        self.logger.debug("Measured accuracy on device: %0.2f\%", measurement)
+        self.logger.debug("Measured accuracy on device: %0.2f", measurement)
         return measurement
 
     def deploy_model(self, connection_conf: ConnectionConfig, path_to_model: str):
@@ -139,7 +137,7 @@ class PIHWManager(HWManager):
         command = "./measure_accuracy {} {}".format(model_tail, data_tail)
 
         result = conn.run(command, hide=True)
-        if self._wasSuccessful(result):
+        if self._was_successful(result):
             experiment_result = re.search("Accuracy: (.*)", result.stdout)
             measurement = float(experiment_result.group(1))
         else:
@@ -152,12 +150,12 @@ class PIHWManager(HWManager):
         command = "./measure_latency {}".format(tail)
 
         result = conn.run(command, hide=True)
-        if self._wasSuccessful(result):
+        if self._was_successful(result):
             experiment_result = re.search("Inference Time: (.*) us", result.stdout)
             measurement = int(experiment_result.group(1))
         else:
             raise Exception(result.stderr)
         return measurement
 
-    def _wasSuccessful(self, result: Result) -> bool:
+    def _was_successful(self, result: Result) -> bool:
         return result.ok

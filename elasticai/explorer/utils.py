@@ -27,14 +27,14 @@ def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
 
     return corr
 
-def save_list_to_json(result: list, dir: Path, filename: str):
-    os.makedirs(dir, exist_ok=True)
-    with open(dir/ filename, 'w+') as outfile:
+def save_list_to_json(result: list, path_to_dir: Path, filename: str):
+    os.makedirs(path_to_dir, exist_ok=True)
+    with open(path_to_dir/ filename, 'w+', encoding="utf-8") as outfile:
         json.dump(result, outfile)
 
 def load_json(path_to_json: Path|str) -> any:
-     with open(path_to_json, "r") as f:
-            return json.load(f)
+    with open(path_to_json, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def plot_parallel_coordinates(df: pandas.DataFrame):
@@ -44,3 +44,4 @@ def plot_parallel_coordinates(df: pandas.DataFrame):
         color_continuous_scale=px.colors.diverging.Tealrose,
     )
     fig.show()
+    

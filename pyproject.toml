@@ -31,5 +31,5 @@ dev = [
 [tool.pylint]
 max-line-length = 88
 accept-no-raise-doc = "False"
-disable="C0115, C0116, C0114" # disable missing docstring messages as they incourage adding noise comments
+disable="C0115, C0116, C0114, E0015, W0621" #disable missing docstring messages as they incourage adding noise comments
 
