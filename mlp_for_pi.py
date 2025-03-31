@@ -1,15 +1,13 @@
 import logging
-import os
 from logging import config
 
-from torchvision.transforms import transforms
-from torchvision.datasets import MNIST
 import nni
 import torch
 from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
+from torchvision.transforms import transforms
 
-
-
+from elasticai.explorer.config import ConnectionConfig, HWNASConfig, ModelConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
@@ -17,11 +15,12 @@ from elasticai.explorer.knowledge_repository import (
     HWPlatform,
     Metrics,
 )
+from elasticai.explorer.platforms.deployment.compile import Compiler
+from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.visualizer import Visualizer
-from elasticai.explorer.config import Config, ConnectionConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
 
 config = None
@@ -40,13 +39,14 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             "Raspberry PI 5 with A76 processor and 8GB RAM",
             PIGenerator,
             PIHWManager,
+            Host,
+            Compiler
         )
     )
     return knowledge_repository
 
 
 def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
-
     explorer.choose_target_hw("rpi5")
     explorer.generate_search_space()
     top_models = explorer.search()
@@ -57,17 +57,15 @@ def find_generate_measure_for_pi(
         connection_cfg: ConnectionConfig,
         hwnas_cfg: HWNASConfig
 ) -> Metrics:
-    explorer.choose_target_hw("rpi5")
+    explorer.choose_target_hw("rpi5", connection_cfg)
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
-    explorer.hw_setup_on_target(connection_conf=connection_cfg)
+    explorer.hw_setup_on_target()
     measurements_latency_mean = []
     measurements_accuracy = []
 
-
-
-    #Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
+    # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
@@ -82,7 +80,7 @@ def find_generate_measure_for_pi(
 
     retrain_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(device=retrain_device, optimizer= torch.optim.Adam(model.parameters(), lr=1e-3))
+        mlp_trainer = MLPTrainer(device=retrain_device, optimizer=torch.optim.Adam(model.parameters(), lr=1e-3))
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
@@ -97,8 +95,8 @@ def find_generate_measure_for_pi(
 
     floats = [float(np_float) for np_float in measurements_latency_mean]
     df = build_search_space_measurements_file(floats, explorer.metric_dir / "metrics.json",
-                                               explorer.model_dir / "models.json",
-                                               explorer.experiment_dir / "experiment_data.csv")
+                                              explorer.model_dir / "models.json",
+                                              explorer.experiment_dir / "experiment_data.csv")
     logger.info("Models:\n %s", df)
 
     return Metrics(
@@ -110,7 +108,6 @@ def find_generate_measure_for_pi(
 
 
 def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
-
     explorer.choose_target_hw("rpi5")
     explorer.hw_setup_on_target()
 
@@ -135,7 +132,6 @@ def prepare_pi():
 
 
 if __name__ == "__main__":
-
     hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
     connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
     model_cfg = ModelConfig(config_path="configs/model_config.yaml")
@@ -147,5 +143,3 @@ if __name__ == "__main__":
     metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
     visu = Visualizer(metry, explorer.plot_dir)
     visu.plot_all_results(filename="plot.png")
-
-

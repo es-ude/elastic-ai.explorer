@@ -26,7 +26,7 @@ class Host:
             with self._get_connection() as conn:
                 self.logger.info("Install program on target. Hostname: %s - User: %s", conn.host,
                                  conn.user)
-                result = conn.run(command, warn=True, hide="True")
+                result = conn.run(command, warn=True, hide=True)
         except (socket_error, AuthenticationException) as exc:
             self._raise_authentication_err(exc)
 
