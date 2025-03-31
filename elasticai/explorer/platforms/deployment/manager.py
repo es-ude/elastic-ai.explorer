@@ -1,50 +1,45 @@
+import json
 import logging
 import os
-import re
 from abc import ABC, abstractmethod
+from enum import Enum
 from pathlib import Path
 
-from elasticai.explorer.config import ConnectionConfig
+from elasticai.explorer.platforms.deployment.compile import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from settings import ROOT_DIR
 
 CONTEXT_PATH = ROOT_DIR / "docker"
 
 
+class Metric(Enum):
+    LATENCY = 1
+    ACCURACY = 2
+
+
 class HWManager(ABC):
 
+    def __init__(self, target: Host, compiler: Compiler):
+        self.compiler = compiler
+        self.target: Host = target
+
     @abstractmethod
-    def install_code_on_target(self, path_to_program: str = None
+    def install_code_on_target(self, name_of_executable, path_to_code: str
                                ):
         pass
 
     @abstractmethod
-    def install_latency_measurement_on_target(
-            self, connection_conf: ConnectionConfig, path_to_program=None
-    ):
-        pass
-
-    @abstractmethod
-    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None
-                                               ):
+    def install_dataset_on_target(self, path_to_dataset):
         pass
 
     @abstractmethod
     def deploy_model(
-            self, connection_conf: ConnectionConfig, path_to_model: str
-    ) -> int:
+            self, path_to_model: str
+    ):
         pass
 
     @abstractmethod
-    def measure_latency(
-            self, connection_conf: ConnectionConfig, path_to_model
-    ) -> int:
-        pass
-
-    @abstractmethod
-    def measure_accuracy(
-            self, connection_conf: ConnectionConfig, path_to_model: str, path_to_data: str
-    ) -> float:
+    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path):
         pass
 
 
@@ -53,46 +48,17 @@ class PIHWManager(HWManager):
     def __init__(self, target: Host, compiler: Compiler):
         self.logger = logging.getLogger("explorer.platforms.deployment.manager.PIHWManager")
         self.logger.info("Initializing PI Hardware Manager...")
-        self.compiler = compiler
-        self.target: Host = target
+        super().__init__(target, compiler)
 
-    def install_code_on_target(self, path_to_program: str
+    def install_code_on_target(self, name_of_executable, path_to_code: str
                                ):
-        self.compiler.compile_code(path_to_program)
-        self.target.put_file(path_to_program, ".")
+        path_to_executable = self.compiler.compile_code(name_of_executable, path_to_code)
+        self.target.put_file(path_to_executable, ".")
 
-    def install_latency_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None):
-        self.logger.info("Install latency measurement code on target...")
-        if path_to_program is None:
-            self.logger.info("Latency measurement is not compiled yet...")
-            path_to_program = str(CONTEXT_PATH) + "/bin/measure_latency"
-            self.logger.info("Compile latency measurement code.")
-            self.compiler.compile_code(path_to_program)
-            self.target.put_file(path_to_program, ".")
-            self.logger.info("Latency measurements available on Target")
-
-    # todo: don't compile both scripts twice...
-    def install_accuracy_measurement_on_target(self, connection_conf: ConnectionConfig, path_to_program: str = None,
-                                               path_to_data: str = None):
-        self.logger.info("Install accuracy measurement code on target...")
-        if path_to_program is None:
-            self.logger.info("Accuracy measurement is not compiled yet...")
-            path_to_program = str(CONTEXT_PATH) + "/bin/measure_accuracy"
-            self.logger.info("Compile accuracy measurement code.")
-            self.compiler.compile_code(path_to_program)
-        path_to_data = None  # todo: tf is this
-        if path_to_data is None:
-            path_to_data = str(CONTEXT_PATH) + "/data/mnist.zip"
-            self.logger.info("No path to dataset given. Set dataset path to:  %s", path_to_data)
-
-        with self._getConnection() as conn:
-            self.logger.info("Install accuracy measurement on target. Hostname: %s - User: %s", conn.host,
-                             conn.user)
-            conn.put(path_to_program)
-            self.logger.info("Put dataset on target ")
-            conn.put(path_to_data)
-            conn.run(f"unzip -q -o {os.path.split(path_to_data)[-1]}")
-            self.logger.info("Accuracy measurements available on target")
+    # todo: probably have to do paths differently
+    def install_dataset_on_target(self, path_to_dataset):
+        self.target.put_file(path_to_dataset, ".")
+        self.target.run_command(f"unzip -q -o {os.path.split(path_to_dataset)[-1]}")
 
     # todo:measurement object was die parsefunktion beinhaltet
     def measure_latency(self, path_to_model: Path) -> (str, str):
@@ -104,26 +70,30 @@ class PIHWManager(HWManager):
         self.logger.debug("Measured latency on device: %dus", measurement)
         return measurement
 
-    def measure_accuracy(self, path_to_model: Path, path_to_data: str) -> (str, str):
-        self.logger.info("Measure accuracy of model on device.")
-        _, model_tail = os.path.split(path_to_model)
-        _, data_tail = os.path.split(path_to_data)
-        cmd = self.build_command("measure_accuracy", [model_tail, data_tail])
+    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path):
+        _, tail = os.path.split(path_to_model)
+        self.logger.info("Measure {} of model on device.".format(metric))
+        cmd = None
+        match metric:
+            case metric.ACCURACY:
+                _, data_tail = os.path.split(path_to_data)
+                cmd = self.build_command("measure_accuracy", [tail, data_tail])
+                print("acc")
+            case metric.LATENCY:
+                cmd = self.build_command("measure_latency", [tail])
+                print("lat")
+
         measurement = self.target.run_command(cmd)
         measurement = self._parse_measurement(measurement)
-
-        self.logger.debug("Measured accuracy on device: %0.2f\%", measurement)
+        self.logger.debug("Measured %s on device: %0.2f\%", metric, measurement)
         return measurement
 
     def deploy_model(self, path_to_model: str):
-        with self._getConnection() as conn:
-            self.logger.info("Put model %s on target", path_to_model)
-            conn.put(path_to_model)
+        self.logger.info("Put model %s on target", path_to_model)
+        self.target.put_file(path_to_model, ".")
 
-    def _parse_measurement(self, result) -> tuple[str, str]:
-        experiment_result = re.search("(.*): (.*)", result)
-        measurement = (experiment_result.group(1), experiment_result.group(2))
-        return measurement
+    def _parse_measurement(self, result: str) -> dict:
+        return json.loads(result)
 
     def build_command(self, name_of_program: str, arguments: list[str]):
         builder = CommandBuilder(name_of_program)
