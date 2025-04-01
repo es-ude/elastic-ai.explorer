@@ -149,4 +149,4 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
-    latency_measurement(explorer, connection_cfg, hwnas_cfg)
+    find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
