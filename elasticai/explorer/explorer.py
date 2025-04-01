@@ -77,7 +77,7 @@ class Explorer:
 
     def set_model_cfg(self, model_cfg: ModelConfig):
         self.model_cfg = model_cfg
-        self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
+        self.model_cfg.dump_as_yaml(str(self._model_dir) + "/model_config.yaml")
 
     def generate_search_space(self):
         self.search_space = MLP()
@@ -90,7 +90,7 @@ class Explorer:
             self.target_hw.communication_protocol(connection_conf),
             self.target_hw.compiler(connection_conf))
         self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
-        connection_conf.dump_as_yaml(self._experiment_dir / "connection_config.yaml")
+        connection_conf.dump_as_yaml(str(self._experiment_dir) + "/connection_config.yaml")
 
     def search(self, hwnas_cfg: HWNASConfig) -> list[any]:
         self.hwnas_cfg = hwnas_cfg
@@ -101,7 +101,7 @@ class Explorer:
 
         utils.save_list_to_json(model_parameters, dir=self._model_dir, filename="models.json")
         utils.save_list_to_json(metrics, dir=self._metric_dir, filename="metrics.json")
-        self.hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
+        self.hwnas_cfg.dump_as_yaml(str(self._experiment_dir) + "/hwnas_config.yaml")
 
         return top_models
 
@@ -118,20 +118,9 @@ class Explorer:
         self.hw_manager.install_dataset_on_target(ROOT_DIR / "docker/data/mnist.zip")
         self.hw_manager.install_code_on_target("measure_accuracy", "measure_accuracy.cpp")
 
-    def run_latency_measurement(
-            self, model_name: str
-    ) -> dict:
+    def run_measurement(self, metric: Metric, model_name: str, path_to_data: Path | None) -> dict:
         model_path = self._model_dir / model_name
         self.hw_manager.deploy_model(model_path)
-        measurement = self.hw_manager.measure_metric(Metric.LATENCY, model_path, path_to_data=None)
-        self.logger.info(measurement)
-        return measurement
-
-    def run_accuracy_measurement(
-            self, model_name: str, path_to_data: str
-    ) -> float:
-        model_path = self._model_dir / model_name
-        self.hw_manager.deploy_model(model_path)
-        measurement = self.hw_manager.measure_metric(Metric.ACCURACY, model_path, path_to_data=path_to_data)
+        measurement = self.hw_manager.measure_metric(metric, model_path, path_to_data=path_to_data)
         self.logger.info(measurement)
         return measurement
