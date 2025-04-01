@@ -20,7 +20,6 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
-from elasticai.explorer.visualizer import Visualizer
 from settings import ROOT_DIR
 
 config = None
@@ -131,6 +130,17 @@ def prepare_pi():
     hw_manager.compile_code()
 
 
+def latency_measurement(explorer: Explorer, connection_config: ConnectionConfig, hwnas_config: HWNASConfig):
+    explorer.choose_target_hw("rpi5", connection_cfg)
+    explorer.generate_search_space()
+    top_models: list = explorer.search(hwnas_cfg)
+    print(top_models)
+    explorer.hw_setup_on_target()
+    for model in top_models:
+        measurement = explorer.run_latency_measurement(model)
+        print(measurement)
+
+
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
     connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
@@ -139,7 +149,4 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
-
-    metry = find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
-    visu = Visualizer(metry, explorer.plot_dir)
-    visu.plot_all_results(filename="plot.png")
+    latency_measurement(explorer, connection_cfg, hwnas_cfg)

@@ -8,7 +8,7 @@ from torch import nn
 from elasticai.explorer import hw_nas, utils
 from elasticai.explorer.config import ConnectionConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.manager import HWManager
+from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
 from settings import MAIN_EXPERIMENT_DIR, ROOT_DIR
@@ -120,16 +120,18 @@ class Explorer:
 
     def run_latency_measurement(
             self, model_name: str
-    ) -> int:
+    ) -> dict:
         model_path = self._model_dir / model_name
-        self.hw_manager.deploy_model(self.connection_cfg, model_path)
-        return self.hw_manager.measure_latency(self.connection_cfg, model_path)
+        self.hw_manager.deploy_model(model_path)
+        measurement = self.hw_manager.measure_metric(Metric.LATENCY, model_path, path_to_data=None)
+        self.logger.info(measurement)
+        return measurement
 
     def run_accuracy_measurement(
             self, model_name: str, path_to_data: str
     ) -> float:
         model_path = self._model_dir / model_name
-        self.hw_manager.deploy_model(self.connection_cfg, model_path)
-        return self.hw_manager.measure_accuracy(
-            self.connection_cfg, model_path, path_to_data
-        )
+        self.hw_manager.deploy_model(model_path)
+        measurement = self.hw_manager.measure_metric(Metric.ACCURACY, model_path, path_to_data=path_to_data)
+        self.logger.info(measurement)
+        return measurement
