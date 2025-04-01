@@ -34,12 +34,12 @@ class HWManager(ABC):
 
     @abstractmethod
     def deploy_model(
-            self, path_to_model: str
+            self, path_to_model: Path
     ):
         pass
 
     @abstractmethod
-    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path):
+    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None):
         pass
 
 
@@ -59,7 +59,7 @@ class PIHWManager(HWManager):
         self.target.put_file(path_to_dataset, ".")
         self.target.run_command(f"unzip -q -o {os.path.split(path_to_dataset)[-1]}")
 
-    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path):
+    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None):
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
         cmd = None
@@ -78,7 +78,7 @@ class PIHWManager(HWManager):
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
 
-    def deploy_model(self, path_to_model: str):
+    def deploy_model(self, path_to_model: Path):
         self.logger.info("Put model %s on target", path_to_model)
         self.target.put_file(path_to_model, ".")
 

@@ -17,7 +17,7 @@ from elasticai.explorer.knowledge_repository import (
 )
 from elasticai.explorer.platforms.deployment.compile import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -45,12 +45,6 @@ def setup_knowledge_repository() -> KnowledgeRepository:
     return knowledge_repository
 
 
-def find_for_pi(knowledge_repository: KnowledgeRepository, explorer: Explorer):
-    explorer.choose_target_hw("rpi5")
-    explorer.generate_search_space()
-    top_models = explorer.search()
-
-
 def find_generate_measure_for_pi(
         explorer: Explorer,
         connection_cfg: ConnectionConfig,
@@ -61,8 +55,8 @@ def find_generate_measure_for_pi(
     top_models = explorer.search(hwnas_cfg)
 
     explorer.hw_setup_on_target()
-    measurements_latency_mean = []
-    measurements_accuracy = []
+    latency_measurements = []
+    accuracy_measurements = []
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
     transf = transforms.Compose(
@@ -83,17 +77,18 @@ def find_generate_measure_for_pi(
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
-        data_path = str(ROOT_DIR) + "/data"
+        data_path = ROOT_DIR / "data"
         explorer.generate_for_hw_platform(model, model_name)
 
-        mean = explorer.run_latency_measurement(model_name)
-        measurements_latency_mean.append(mean)
-        measurements_accuracy.append(
-            explorer.run_accuracy_measurement(model_name, data_path)
+        latency = explorer.run_measurement(Metric.LATENCY, model_name, None)
+        latency_measurements.append(latency)
+        accuracy_measurements.append(
+            explorer.run_measurement(Metric.ACCURACY, model_name, data_path)
         )
 
-    floats = [float(np_float) for np_float in measurements_latency_mean]
-    df = build_search_space_measurements_file(floats, explorer.metric_dir / "metrics.json",
+    latencies = [latency["Latency"]["value"] for latency in latency_measurements]
+    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    df = build_search_space_measurements_file(latencies, explorer.metric_dir / "metrics.json",
                                               explorer.model_dir / "models.json",
                                               explorer.experiment_dir / "experiment_data.csv")
     logger.info("Models:\n %s", df)
@@ -101,44 +96,9 @@ def find_generate_measure_for_pi(
     return Metrics(
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
-        measurements_accuracy,
-        measurements_latency_mean,
+        accuracies,
+        latencies,
     )
-
-
-def measure_latency(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
-    explorer.choose_target_hw("rpi5")
-    explorer.hw_setup_on_target()
-
-    mean, std = explorer.run_latency_measurement(model_name=model_name)
-    logger.info("Mean Latency: %.2f", mean)
-    logger.info("Std Latency: %.2f", std)
-
-
-def measure_accuracy(knowledge_repository: KnowledgeRepository, explorer: Explorer, model_name: str):
-    explorer.choose_target_hw("rpi5")
-    explorer.hw_setup_on_target()
-    data_path = str(ROOT_DIR) + "/data"
-    logger.info(
-        "Accuracy: %.2f",
-        explorer.run_accuracy_measurement(model_name, data_path),
-    )
-
-
-def prepare_pi():
-    hw_manager = PIHWManager()
-    hw_manager.compile_code()
-
-
-def latency_measurement(explorer: Explorer, connection_config: ConnectionConfig, hwnas_config: HWNASConfig):
-    explorer.choose_target_hw("rpi5", connection_cfg)
-    explorer.generate_search_space()
-    top_models: list = explorer.search(hwnas_cfg)
-    print(top_models)
-    explorer.hw_setup_on_target()
-    for model in top_models:
-        measurement = explorer.run_latency_measurement(model)
-        print(measurement)
 
 
 if __name__ == "__main__":
