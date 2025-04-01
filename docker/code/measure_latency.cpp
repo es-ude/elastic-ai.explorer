@@ -49,5 +49,5 @@ int main(int argc, const char *argv[]) {
     uint64_t microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
     microseconds=microseconds/NUM_MEASURE_RUNS;
 
-    std::printf('{ "Latency": { "value":  %u, "unit": "microseconds"}', microseconds);
+    std::printf("{ \"Latency\": { \"value\":  %u, \"unit\": \"microseconds\"}", microseconds);
 }
