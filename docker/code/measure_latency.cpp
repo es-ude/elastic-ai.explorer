@@ -34,8 +34,6 @@ int main(int argc, const char *argv[]) {
 
     c10::IValue output;
 
-    std::cout << "Start inference" << std::endl;
-
     for (uint32_t runIdx = 0; runIdx < NUM_WARMUP_RUNS; runIdx++) {
         output = module.forward(inputs);
     }
@@ -49,5 +47,5 @@ int main(int argc, const char *argv[]) {
     uint64_t microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
     microseconds=microseconds/NUM_MEASURE_RUNS;
 
-    std::printf("{ \"Latency\": { \"value\":  %u, \"unit\": \"microseconds\"}", microseconds);
+    std::printf("{ \"Latency\": { \"value\":  %u, \"unit\": \"microseconds\"}}", microseconds);
 }

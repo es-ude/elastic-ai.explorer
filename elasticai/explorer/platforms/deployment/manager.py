@@ -55,20 +55,9 @@ class PIHWManager(HWManager):
         path_to_executable = self.compiler.compile_code(name_of_executable, path_to_code)
         self.target.put_file(path_to_executable, ".")
 
-    # todo: probably have to do paths differently
     def install_dataset_on_target(self, path_to_dataset):
         self.target.put_file(path_to_dataset, ".")
         self.target.run_command(f"unzip -q -o {os.path.split(path_to_dataset)[-1]}")
-
-    # todo:measurement object was die parsefunktion beinhaltet
-    def measure_latency(self, path_to_model: Path) -> (str, str):
-        self.logger.info("Measure latency of model on device")
-        _, tail = os.path.split(path_to_model)
-        cmd = self.build_command("measure_latency", [tail])
-        measurement = self.target.run_command(cmd)
-        measurement = self._parse_measurement(measurement)
-        self.logger.debug("Measured latency on device: %dus", measurement)
-        return measurement
 
     def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path):
         _, tail = os.path.split(path_to_model)
@@ -85,7 +74,8 @@ class PIHWManager(HWManager):
 
         measurement = self.target.run_command(cmd)
         measurement = self._parse_measurement(measurement)
-        self.logger.debug("Measured %s on device: %0.2f\%", metric, measurement)
+
+        self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
 
     def deploy_model(self, path_to_model: str):
