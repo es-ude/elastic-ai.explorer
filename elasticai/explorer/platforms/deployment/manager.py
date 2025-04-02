@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from fabric import Connection
 from invoke import Result
 from python_on_whales import docker
+from iesude.data import DataSet
+from iesude.data.archives import Zip
 
 from elasticai.explorer.config import ConnectionConfig
 from settings import ROOT_DIR
@@ -95,7 +97,12 @@ class PIHWManager(HWManager):
             self.compile_code()
 
         if path_to_data is None:
+
             path_to_data = str(CONTEXT_PATH) + "/data/mnist.zip"
+            mnist_dataset = DataSet(file_path="mnist.zip", file_type=Zip)
+            mnist_dataset.download(path_to_data)
+
+            
             self.logger.info("No path to dataset given. Set dataset path to:  %s", path_to_data)
 
         with Connection(host=connection_conf.target_name, user=connection_conf.target_user) as conn:

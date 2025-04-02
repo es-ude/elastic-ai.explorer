@@ -1,0 +1,21 @@
+#The DeploymentConfig gives the necessary information to connect to the target-device.
+#If parameters are not specified inside the config, they are set to default values.
+DeploymentConfig:
+  #The Hostname of target device.
+  target_name: "transfair.local"
+
+  #The Username/user-account of the target device to connect to.
+  target_user: "robin"
+
+  #The path (on host) to additional pre-compiled libraries neccessary for execution on target.
+  #Optional.
+  compiled_libary_path: "./code/libtorch"
+
+  #Test Dataset: Path to local one or name one of these available through sciebo: mnist.zip ...
+  test_dataset: "mnist.zip"
+
+
+
+
+
+
