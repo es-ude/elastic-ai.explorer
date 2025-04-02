@@ -29,7 +29,7 @@ docker/code/libtorch*
 docker/bin
 
 #data
-#docker/data
+docker/test_data
 
 #models
 models/

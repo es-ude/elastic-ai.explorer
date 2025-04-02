@@ -14,6 +14,7 @@ from settings import ROOT_DIR
 CONTEXT_PATH = ROOT_DIR / "docker"
 SUPPORTED_DATASETS = ["mnist.zip"]
 
+
 class HWManager(ABC):
 
     @abstractmethod
@@ -109,11 +110,17 @@ class PIHWManager(HWManager):
 
         if deploy_conf.test_dataset in str(SUPPORTED_DATASETS):
             path_to_data = (
-                str(CONTEXT_PATH) + "/data/" + deploy_conf.test_dataset + "/" + deploy_conf.test_dataset
+                str(CONTEXT_PATH)
+                + "/test_data/"
+                + deploy_conf.test_dataset
+                + "/"
+                + deploy_conf.test_dataset
             )
-            mnist_dataset = DataSet(file_path=deploy_conf.test_dataset, file_type=PlainFile)
+            mnist_dataset = DataSet(
+                file_path=deploy_conf.test_dataset, file_type=PlainFile
+            )
             mnist_dataset.download_if_missing(
-                str(CONTEXT_PATH) + "/data/" + deploy_conf.test_dataset 
+                str(CONTEXT_PATH) + "/test_data/" + deploy_conf.test_dataset
             )
         else:
             path_to_data = deploy_conf
