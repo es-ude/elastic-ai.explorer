@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
-from elasticai.explorer.platforms.deployment.compile import Compiler
+from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from settings import ROOT_DIR
 
@@ -24,12 +24,12 @@ class HWManager(ABC):
         self.target: Host = target
 
     @abstractmethod
-    def install_code_on_target(self, name_of_executable, path_to_code: str
+    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str
                                ):
         pass
 
     @abstractmethod
-    def install_dataset_on_target(self, path_to_dataset):
+    def install_dataset_on_target(self, path_to_dataset: str):
         pass
 
     @abstractmethod
@@ -39,7 +39,7 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None):
+    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None) -> dict:
         pass
 
 
@@ -50,16 +50,16 @@ class PIHWManager(HWManager):
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, name_of_executable, path_to_code: str
+    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str
                                ):
-        path_to_executable = self.compiler.compile_code(name_of_executable, path_to_code)
+        path_to_executable = self.compiler.compile_code(name_of_executable, sourcecode_filename)
         self.target.put_file(path_to_executable, ".")
 
-    def install_dataset_on_target(self, path_to_dataset):
+    def install_dataset_on_target(self, path_to_dataset: str):
         self.target.put_file(path_to_dataset, ".")
         self.target.run_command(f"unzip -q -o {os.path.split(path_to_dataset)[-1]}")
 
-    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None):
+    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None) -> dict:
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
         cmd = None
@@ -78,15 +78,15 @@ class PIHWManager(HWManager):
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
 
-    def deploy_model(self, path_to_model: Path):
+    def deploy_model(self, path_to_model: str):
         self.logger.info("Put model %s on target", path_to_model)
         self.target.put_file(path_to_model, ".")
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)
 
-    def build_command(self, name_of_program: str, arguments: list[str]):
-        builder = CommandBuilder(name_of_program)
+    def build_command(self, name_of_executable: str, arguments: list[str]):
+        builder = CommandBuilder(name_of_executable)
         for argument in arguments:
             builder.add_argument(argument)
         command = builder.build()
@@ -100,5 +100,5 @@ class CommandBuilder:
     def add_argument(self, arg):
         self.command.append(arg)
 
-    def build(self):
+    def build(self) -> str:
         return " ".join(self.command)

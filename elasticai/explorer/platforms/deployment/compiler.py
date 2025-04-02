@@ -24,12 +24,12 @@ class Compiler:
         )
         self.logger.debug("Crosscompiler available now.")
 
-    def compile_code(self, name_of_executable: str, path_to_code: str):
+    def compile_code(self, name_of_executable: str, sourcecode_filename: str):
         docker.build(
             self.context_path,
             file=self.context_path / "Dockerfile.loader",
             output={"type": "local", "dest": self.context_path / "bin"},
-            build_args={"NAME_OF_EXECUTABLE": name_of_executable, "PROGRAM_CODE": path_to_code}
+            build_args={"NAME_OF_EXECUTABLE": name_of_executable, "PROGRAM_CODE": sourcecode_filename}
         )
         path_to_executable = self.context_path / "bin" / name_of_executable
         self.logger.info("Compilation finished. Program available in %s", path_to_executable)

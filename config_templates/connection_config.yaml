@@ -7,3 +7,12 @@ ConnectionConfig:
   #The Username/user-account of the target device to connect to.
   target_user: "<user>"
 
+  # Tag of Crosscompiler Image
+  compiler_tag: "cross"
+
+  # Full path to Crosscompiler Docker Image
+  path_to_dockerfile: "<path-to-project>/docker/Dockerfile.picross"
+
+  # Full path to docker buildcontext
+  build_context: "<path-to-project>/docker"
+
