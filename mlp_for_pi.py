@@ -1,4 +1,5 @@
 import logging
+from logging import config
 from torchvision.transforms import transforms
 from torchvision.datasets import MNIST
 import nni
@@ -20,7 +21,7 @@ from elasticai.explorer.config import ConnectionConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
 
 nni.enable_global_logging(False)
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 
 logger = logging.getLogger("explorer.main")
