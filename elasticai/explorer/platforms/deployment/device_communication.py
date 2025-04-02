@@ -21,7 +21,7 @@ class Host:
     def _get_connection(self):
         return Connection(host=self.host_name, user=self.user)
 
-    def run_command(self, command):
+    def run_command(self, command: str) -> str:
         try:
             with self._get_connection() as conn:
                 self.logger.info("Install program on target. Hostname: %s - User: %s", conn.host,
@@ -36,7 +36,7 @@ class Host:
                 '{2}'.format(command, self.host_name, str(result.stderr)))
         return result.stdout
 
-    def put_file(self, local_path, remote_path):
+    def put_file(self, local_path: str, remote_path: str):
         try:
             with self._get_connection() as conn:
                 conn.put(local_path, remote_path)

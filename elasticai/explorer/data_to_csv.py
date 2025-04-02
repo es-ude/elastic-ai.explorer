@@ -1,18 +1,14 @@
-import json
 from pathlib import Path
 
 import pandas
 
 from elasticai.explorer import utils
-from elasticai.explorer.config import HWNASConfig
-from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.utils import plot_parallel_coordinates
 from settings import MAIN_EXPERIMENT_DIR
 
 
-def build_search_space_measurements_file(latencies: list[int], metrics_path: Path, model_parameter_path: Path, csv_path: Path) -> pandas.DataFrame:
-    
-    
+def build_search_space_measurements_file(latencies: list[int], metrics_path: Path, model_parameter_path: Path,
+                                         csv_path: Path) -> pandas.DataFrame:
     metric_list = utils.load_json(metrics_path)
     sample_list = utils.load_json(model_parameter_path)
 
@@ -32,7 +28,6 @@ def read_csv(csv_path) -> pandas.DataFrame:
 
 
 if __name__ == "__main__":
-
     experiment_name = str(input("To plot csv data, give experiment name: "))
     csv_path = MAIN_EXPERIMENT_DIR / experiment_name / "experiment_data.csv"
     df = read_csv(csv_path)

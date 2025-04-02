@@ -15,7 +15,7 @@ from elasticai.explorer.knowledge_repository import (
     HWPlatform,
     Metrics,
 )
-from elasticai.explorer.platforms.deployment.compile import Compiler
+from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator

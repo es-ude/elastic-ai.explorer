@@ -4,7 +4,7 @@ ARG PROGRAM_CODE
 ARG NAME_OF_EXECUTABLE
 COPY ./code/$PROGRAM_CODE /code/
 COPY ./code/CMakeLists.txt /code/
-ADD  ./code/libtorch4 /code/libtorch
+ADD  ./code/libtorch /code/libtorch
 
 ENV BIN_DIR=/tmp/bin
 ENV BUILD_DIR=/code/build

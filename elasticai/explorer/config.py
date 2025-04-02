@@ -3,6 +3,8 @@ import os
 
 import yaml
 
+from settings import ROOT_DIR
+
 logger = logging.getLogger("explorer.config")
 
 
@@ -42,12 +44,14 @@ class ConnectionConfig(Config):
     def __init__(self, config_path: str):
         super().__init__(config_path)
         self.original_yaml_dict = self.original_yaml_dict.get("ConnectionConfig", {})
+        self.compiler_tag: str = self.original_yaml_dict.get("compiler_tag", "cross")
+        self.path_to_dockerfile: str = self.original_yaml_dict.get("path_to_dockerfile",
+                                                                   ROOT_DIR / "docker" / "Dockerfile.picross")
+        self.build_context: str = self.original_yaml_dict.get("build_context", ROOT_DIR / "docker")
         try:
             self.target_name: str = self.original_yaml_dict["target_name"]
             self.target_user: str = self.original_yaml_dict["target_user"]
-            self.compiler_tag: str = self.original_yaml_dict["compiler_tag"]
-            self.path_to_dockerfile: str = self.original_yaml_dict["path_to_dockerfile"]
-            self.build_context: str = self.original_yaml_dict["build_context"]
+
         except KeyError:
             logger.info(
                 "ConnectionConfig is not specified completely! Please specify or target connection is not possible.")
