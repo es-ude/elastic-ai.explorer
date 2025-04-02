@@ -11,7 +11,7 @@ DeploymentConfig:
   #Optional.
   compiled_libary_path: "./code/libtorch"
 
-  #Test Dataset: Path to local one or name one of these available through sciebo: mnist.zip ...
+  #Test Dataset: Path to local .zip or name one of these available through sciebo-IES: mnist.zip ...
   test_dataset: "mnist.zip"
 
 

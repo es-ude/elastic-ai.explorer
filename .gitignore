@@ -28,6 +28,9 @@ docker/code/libtorch*
 #bin 
 docker/bin
 
+#data
+#docker/data
+
 #models
 models/
 
