@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from elasticai.explorer.platforms.deployment.compile import Compiler
+from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH
 
 
