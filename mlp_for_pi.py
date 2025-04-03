@@ -32,7 +32,7 @@ logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
-def setup_knowledge_repository_pi5() -> KnowledgeRepository:
+def setup_knowledge_repository_pi() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
         HWPlatform(
@@ -44,17 +44,15 @@ def setup_knowledge_repository_pi5() -> KnowledgeRepository:
             Compiler,
         )
     )
-    return knowledge_repository
 
-
-def setup_knowledge_repository_pi4():
-    knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
         HWPlatform(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
             PIGenerator,
             PIHWManager,
+            Host,
+            Compiler,
         )
     )
     return knowledge_repository
@@ -128,7 +126,7 @@ if __name__ == "__main__":
     deploy_cfg = DeploymentConfig(config_path="configs/deployment_config.yaml")
     model_cfg = ModelConfig(config_path="configs/model_config.yaml")
 
-    knowledge_repo = setup_knowledge_repository_pi5()
+    knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
     find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
