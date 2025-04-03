@@ -2,14 +2,17 @@ import os
 import unittest
 import torch
 from elasticai.explorer import search_space
-from elasticai.explorer.config import HWNASConfig
+from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
+from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from torch import nn
+from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
+from pathlib import Path
 
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
@@ -19,19 +22,24 @@ class TestHWNasSetupAndSearch:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
     def setUp(self):
-        knowledge_rep = KnowledgeRepository()
-        knowledge_rep.register_hw_platform(
+        knowledge_repository = KnowledgeRepository()
+        knowledge_repository.register_hw_platform(
             HWPlatform(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
                 PIGenerator,
                 PIHWManager,
+                Host,
+                Compiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_rep, "only_for_integration_tests2")
+        self.RPI5explorer = Explorer(knowledge_repository, "only_for_integration_tests")
         self.model_name = "ts_model_0.pt"
         self.hwnas_cfg = HWNASConfig(
-            config_path="tests/integration/test_configs/hwnas_config.yaml"
+            config_path="tests/integration_tests/test_configs/hwnas_config.yaml"
+        )
+        self.deploy_cfg = DeploymentConfig(
+            config_path="tests/integration_tests/test_configs/deployment_config.yaml"
         )
 
     def test_search(self):
@@ -44,7 +52,7 @@ class TestHWNasSetupAndSearch:
 
     def test_generate_for_hw_platform(self):
         self.setUp()
-        self.RPI5explorer.choose_target_hw("rpi5")
+        self.RPI5explorer.choose_target_hw("rpi5", self.deploy_cfg)
         model = sample_MLP()
 
         self.RPI5explorer.generate_for_hw_platform(
@@ -52,32 +60,20 @@ class TestHWNasSetupAndSearch:
         )
         assert (
             os.path.exists(
-                "experiments/only_for_integration_tests2/models/" + self.model_name
+                "experiments/only_for_integration_tests/models/" + self.model_name
             )
             == True
         )
         assert (
             type(
                 torch.jit.load(
-                    "experiments/only_for_integration_tests2/models/" + self.model_name
+                    "experiments/only_for_integration_tests/models/" + self.model_name
                 )
             )
             == torch.jit._script.RecursiveScriptModule
         )
         self.tearDown()
 
-    def test_set_default_model(self):
-        self.setUp()
-        model = sample_MLP()
-        self.RPI5explorer.set_default_model(model)
-        assert self.RPI5explorer.default_model == model
-        self.tearDown()
-
     def tearDown(self):
+        self.RPI5explorer.clear_experiment_folder()
         del self.RPI5explorer
-        if os.path.exists(
-            "experiments/only_for_integration_tests2/models/" + self.model_name
-        ):
-            os.remove(
-                "experiments/only_for_integration_tests2/models/" + self.model_name
-            )
