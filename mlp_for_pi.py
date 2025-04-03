@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import ConnectionConfig, HWNASConfig, ModelConfig
+from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
@@ -39,18 +39,16 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             PIGenerator,
             PIHWManager,
             Host,
-            Compiler
+            Compiler,
         )
     )
     return knowledge_repository
 
 
 def find_generate_measure_for_pi(
-        explorer: Explorer,
-        connection_cfg: ConnectionConfig,
-        hwnas_cfg: HWNASConfig
+    explorer: Explorer, deploy_cfg: DeploymentConfig, hwnas_cfg: HWNASConfig
 ) -> Metrics:
-    explorer.choose_target_hw("rpi5", connection_cfg)
+    explorer.choose_target_hw("rpi5", deploy_cfg)
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
@@ -71,9 +69,12 @@ def find_generate_measure_for_pi(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
 
-    retrain_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    retrain_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(device=retrain_device, optimizer=torch.optim.Adam(model.parameters(), lr=1e-3))
+        mlp_trainer = MLPTrainer(
+            device=retrain_device,
+            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
+        )
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
@@ -88,9 +89,12 @@ def find_generate_measure_for_pi(
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
     accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
-    df = build_search_space_measurements_file(latencies, explorer.metric_dir / "metrics.json",
-                                              explorer.model_dir / "models.json",
-                                              explorer.experiment_dir / "experiment_data.csv")
+    df = build_search_space_measurements_file(
+        latencies,
+        explorer.metric_dir / "metrics.json",
+        explorer.model_dir / "models.json",
+        explorer.experiment_dir / "experiment_data.csv",
+    )
     logger.info("Models:\n %s", df)
 
     return Metrics(
@@ -103,10 +107,10 @@ def find_generate_measure_for_pi(
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
-    connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
+    deploy_cfg = DeploymentConfig(config_path="configs/deployment_config.yaml")
     model_cfg = ModelConfig(config_path="configs/model_config.yaml")
 
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
-    find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
+    find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
