@@ -1,6 +1,6 @@
-#The ConnectionConfig gives the necessary information to connect to the target-device.
+#The DeploymentConfig gives the necessary information to connect to the target-device.
 #If parameters are not specified inside the config, they are set to default values.
-ConnectionConfig:
+DeploymentConfig:
   #The Hostname of target device.
   target_name: "<host>"
 
@@ -8,9 +8,9 @@ ConnectionConfig:
   target_user: "<user>"
 
   #The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
-  #it needs to be in the docker build-context.
-  #Optional.
-  compiled_libary_path: "<path/to/library>"
+  #It needs to be in the docker build-context. Path can be relative to build-context.
+  #Optional. Defaults to "./code/libtorch".
+  compiled_library_path: "<path/to/library>"
 
   # Tag of Crosscompiler Image
   compiler_tag: "cross"

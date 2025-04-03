@@ -1,7 +1,7 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Any
 
 from torch import nn
 
@@ -31,7 +31,7 @@ class Explorer:
         """
         self.logger = logging.getLogger("explorer")
         self.default_model: Optional[nn.Module] = None
-        self.target_hw: Optional[HWPlatform] = None
+        self.target_hw_platform: Optional[HWPlatform] = None
         self.knowledge_repository = knowledge_repository
         self.generator = None
         self.hw_manager: Optional[HWManager] = None
@@ -86,19 +86,21 @@ class Explorer:
         self.search_space = MLP()
         self.logger.info("Generated search space:\n %s", self.search_space)
 
-    def choose_target_hw(self, name: str, deploy_cfg: DeploymentConfig):
-        self.target_hw: HWPlatform = self.knowledge_repository.fetch_hw_info(name)
-        self.generator: Generator = self.target_hw.model_generator()
-        self.hw_manager: HWManager = self.target_hw.platform_manager(
-            self.target_hw.communication_protocol(deploy_cfg),
-            self.target_hw.compiler(deploy_cfg),
+    def choose_target_hw(self, platform_name: str, deploy_cfg: DeploymentConfig):
+        self.target_hw_platform: HWPlatform = self.knowledge_repository.fetch_hw_info(
+            platform_name
+        )
+        self.generator: Generator = self.target_hw_platform.model_generator()
+        self.hw_manager: HWManager = self.target_hw_platform.platform_manager(
+            self.target_hw_platform.communication_protocol(deploy_cfg),
+            self.target_hw_platform.compiler(deploy_cfg),
         )
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
-            name,
-            self.target_hw,
+            platform_name,
+            self.target_hw_platform,
         )
-        deploy_cfg.dump_as_yaml(str(self._experiment_dir) + "/connection_config.yaml")
+        deploy_cfg.dump_as_yaml(str(self._experiment_dir) + "/deployment_config.yaml")
 
     def search(self, hwnas_cfg: HWNASConfig) -> list[any]:
         self.hwnas_cfg = hwnas_cfg
@@ -122,9 +124,7 @@ class Explorer:
 
         return top_models
 
-    def generate_for_hw_platform(
-        self, model: Union[nn.Module, any], model_name: str
-    ) -> any:
+    def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> any:
         model_path = self._model_dir / model_name
         return self.generator.generate(model, model_path)
 

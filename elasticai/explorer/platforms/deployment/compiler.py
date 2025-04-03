@@ -14,7 +14,7 @@ class Compiler:
             deploy_cfg.path_to_dockerfile
         )  # CONTEXT_PATH / "Dockerfile.picross"
         self.context_path: Path = Path(deploy_cfg.build_context)
-        self.libtorch_path: Path = Path(deploy_cfg.compiled_libary_path)
+        self.libtorch_path: Path = Path(deploy_cfg.compiled_library_path)
         if not self.is_setup():
             self.setup()
 
