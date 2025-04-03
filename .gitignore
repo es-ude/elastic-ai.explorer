@@ -35,10 +35,8 @@ models/
 configs/
 
 #experiments
-experiments/*
-!experiments
-!experiments/only_for_integration_tests
-experiment_data.csv
+experiments/
+
 
 # Distribution / packaging
 .Python
