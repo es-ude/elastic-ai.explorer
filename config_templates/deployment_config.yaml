@@ -7,6 +7,16 @@ ConnectionConfig:
   #The Username/user-account of the target device to connect to.
   target_user: "<user>"
 
-  #The path (on host) to additional pre-compiled libraries neccessary for execution on target.
+  #The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
+  #it needs to be in the docker build-context.
   #Optional.
   compiled_libary_path: "<path/to/library>"
+
+  # Tag of Crosscompiler Image
+  compiler_tag: "cross"
+
+  # Full path to Crosscompiler Docker Image
+  path_to_dockerfile: "<path-to-project>/docker/Dockerfile.picross"
+
+  # Full path to docker buildcontext
+  build_context: "<path-to-project>/docker"
