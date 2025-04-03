@@ -20,7 +20,9 @@ class Explorer:
     It should be initialized with a KnowledgeRepository and config instances, to define the experiment setup.
     """
 
-    def __init__(self, knowledge_repository: KnowledgeRepository, experiment_name: str = None):
+    def __init__(
+        self, knowledge_repository: KnowledgeRepository, experiment_name: str = None
+    ):
         """
         Args:
             knowledge_repository
@@ -84,44 +86,63 @@ class Explorer:
         self.search_space = MLP()
         self.logger.info("Generated search space:\n %s", self.search_space)
 
-    def choose_target_hw(self, name: str, connection_conf: ConnectionConfig):
+    def choose_target_hw(self, name: str, deploy_cfg: DeploymentConfig):
         self.target_hw: HWPlatform = self.knowledge_repository.fetch_hw_info(name)
         self.generator: Generator = self.target_hw.model_generator()
         self.hw_manager: HWManager = self.target_hw.platform_manager(
-            self.target_hw.communication_protocol(connection_conf),
-            self.target_hw.compiler(connection_conf))
-        self.logger.info("Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s", name, self.target_hw)
-        connection_conf.dump_as_yaml(str(self._experiment_dir) + "/connection_config.yaml")
+            self.target_hw.communication_protocol(deploy_cfg),
+            self.target_hw.compiler(deploy_cfg),
+        )
+        self.logger.info(
+            "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
+            name,
+            self.target_hw,
+        )
+        deploy_cfg.dump_as_yaml(str(self._experiment_dir) + "/connection_config.yaml")
 
     def search(self, hwnas_cfg: HWNASConfig) -> list[any]:
         self.hwnas_cfg = hwnas_cfg
-        self.logger.info("Start Hardware NAS with %d number of trials for top %d models ",
-                         self.hwnas_cfg.max_search_trials, self.hwnas_cfg.top_n_models)
+        self.logger.info(
+            "Start Hardware NAS with %d number of trials for top %d models ",
+            self.hwnas_cfg.max_search_trials,
+            self.hwnas_cfg.top_n_models,
+        )
 
-        top_models, model_parameters, metrics = hw_nas.search(self.search_space, self.hwnas_cfg)
+        top_models, model_parameters, metrics = hw_nas.search(
+            self.search_space, self.hwnas_cfg
+        )
 
-        utils.save_list_to_json(model_parameters, path_to_dir = self._model_dir, filename= "models.json")
-        utils.save_list_to_json(metrics, path_to_dir = self._metric_dir, filename = "metrics.json")
+        utils.save_list_to_json(
+            model_parameters, path_to_dir=self._model_dir, filename="models.json"
+        )
+        utils.save_list_to_json(
+            metrics, path_to_dir=self._metric_dir, filename="metrics.json"
+        )
         self.hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
 
         return top_models
 
-    def generate_for_hw_platform(self, model: Union[nn.Module, any], model_name: str) -> any:
+    def generate_for_hw_platform(
+        self, model: Union[nn.Module, any], model_name: str
+    ) -> any:
         model_path = self._model_dir / model_name
         return self.generator.generate(model, model_path)
 
-    def hw_setup_on_target(
-            self
-
-    ):
+    def hw_setup_on_target(self):
         self.logger.info("Setup Hardware target for experiments.")
         self.hw_manager.install_code_on_target("measure_latency", "measure_latency.cpp")
         self.hw_manager.install_dataset_on_target(ROOT_DIR / "docker/data/mnist.zip")
-        self.hw_manager.install_code_on_target("measure_accuracy", "measure_accuracy.cpp")
+        self.hw_manager.install_code_on_target(
+            "measure_accuracy", "measure_accuracy.cpp"
+        )
 
-    def run_measurement(self, metric: Metric, model_name: str, path_to_data: Path | None) -> dict:
+    def run_measurement(
+        self, metric: Metric, model_name: str, path_to_data: Path | None
+    ) -> dict:
         model_path = self._model_dir / model_name
         self.hw_manager.deploy_model(model_path)
-        measurement = self.hw_manager.measure_metric(metric, model_path, path_to_data=path_to_data)
+        measurement = self.hw_manager.measure_metric(
+            metric, model_path, path_to_data=path_to_data
+        )
         self.logger.info(measurement)
         return measurement

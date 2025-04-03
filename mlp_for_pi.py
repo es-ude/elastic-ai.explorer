@@ -41,10 +41,11 @@ def setup_knowledge_repository_pi5() -> KnowledgeRepository:
             PIGenerator,
             PIHWManager,
             Host,
-            Compiler
+            Compiler,
         )
     )
     return knowledge_repository
+
 
 def setup_knowledge_repository_pi4():
     knowledge_repository = KnowledgeRepository()
@@ -59,11 +60,10 @@ def setup_knowledge_repository_pi4():
     return knowledge_repository
 
 
-
 def find_generate_measure_for_pi(
-        explorer: Explorer,
-        deploy_cfg: DeploymentConfig,
-        hwnas_cfg: HWNASConfig,
+    explorer: Explorer,
+    deploy_cfg: DeploymentConfig,
+    hwnas_cfg: HWNASConfig,
 ) -> Metrics:
     explorer.choose_target_hw("rpi5", deploy_cfg)
     explorer.generate_search_space()
@@ -86,9 +86,12 @@ def find_generate_measure_for_pi(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
 
-    retrain_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    retrain_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(device=retrain_device, optimizer=torch.optim.Adam(model.parameters(), lr=1e-3))
+        mlp_trainer = MLPTrainer(
+            device=retrain_device,
+            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
+        )
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
@@ -104,9 +107,12 @@ def find_generate_measure_for_pi(
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
     accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
-    df = build_search_space_measurements_file(latencies, explorer.metric_dir / "metrics.json",
-                                              explorer.model_dir / "models.json",
-                                              explorer.experiment_dir / "experiment_data.csv")
+    df = build_search_space_measurements_file(
+        latencies,
+        explorer.metric_dir / "metrics.json",
+        explorer.model_dir / "models.json",
+        explorer.experiment_dir / "experiment_data.csv",
+    )
     logger.info("Models:\n %s", df)
 
     return Metrics(

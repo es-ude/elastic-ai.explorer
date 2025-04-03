@@ -24,8 +24,7 @@ class HWManager(ABC):
         self.target: Host = target
 
     @abstractmethod
-    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str
-                               ):
+    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
         pass
 
     @abstractmethod
@@ -33,33 +32,38 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def deploy_model(
-            self, path_to_model: Path
-    ):
+    def deploy_model(self, path_to_model: Path):
         pass
 
     @abstractmethod
-    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None) -> dict:
+    def measure_metric(
+        self, metric: Metric, path_to_model: Path, path_to_data: Path | None
+    ) -> dict:
         pass
 
 
 class PIHWManager(HWManager):
 
     def __init__(self, target: Host, compiler: Compiler):
-        self.logger = logging.getLogger("explorer.platforms.deployment.manager.PIHWManager")
+        self.logger = logging.getLogger(
+            "explorer.platforms.deployment.manager.PIHWManager"
+        )
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str
-                               ):
-        path_to_executable = self.compiler.compile_code(name_of_executable, sourcecode_filename)
+    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
+        path_to_executable = self.compiler.compile_code(
+            name_of_executable, sourcecode_filename
+        )
         self.target.put_file(path_to_executable, ".")
 
     def install_dataset_on_target(self, path_to_dataset: str):
         self.target.put_file(path_to_dataset, ".")
         self.target.run_command(f"unzip -q -o {os.path.split(path_to_dataset)[-1]}")
 
-    def measure_metric(self, metric: Metric, path_to_model: Path, path_to_data: Path | None) -> dict:
+    def measure_metric(
+        self, metric: Metric, path_to_model: Path, path_to_data: Path | None
+    ) -> dict:
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
         cmd = None

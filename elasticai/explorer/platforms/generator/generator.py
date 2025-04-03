@@ -15,7 +15,9 @@ class Generator(ABC):
 
 class PIGenerator(Generator):
     def __init__(self):
-        self.logger = logging.getLogger("explorer.platforms.generator.generator.PIGenerator")
+        self.logger = logging.getLogger(
+            "explorer.platforms.generator.generator.PIGenerator"
+        )
 
     def generate(self, model: nn.Module, path: Path):
         self.logger.info("Generate torchscript model from %s", model)

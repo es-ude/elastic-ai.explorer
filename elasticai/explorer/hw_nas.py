@@ -20,7 +20,7 @@ logger = logging.getLogger("explorer.nas")
 def evaluate_model(model: torch.nn.Module, device):
     global accuracy
     ##Parameter
-    flops_weight = 3.
+    flops_weight = 3.0
     n_epochs = 2
 
     ##Cost-Estimation
@@ -55,7 +55,9 @@ def evaluate_model(model: torch.nn.Module, device):
     nni.report_final_result(metric)
 
 
-def search(search_space: any, hwnas_cfg: HWNASConfig) -> tuple[list[any], list[any], list[any]]:
+def search(
+    search_space: any, hwnas_cfg: HWNASConfig
+) -> tuple[list[any], list[any], list[any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
@@ -64,12 +66,18 @@ def search(search_space: any, hwnas_cfg: HWNASConfig) -> tuple[list[any], list[a
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials
     experiment.run(port=8081)
-    top_models = experiment.export_top_models(top_k=hwnas_cfg.top_n_models, formatter="instance")
-    top_parameters = experiment.export_top_models(top_k=hwnas_cfg.top_n_models, formatter="dict")
+    top_models = experiment.export_top_models(
+        top_k=hwnas_cfg.top_n_models, formatter="instance"
+    )
+    top_parameters = experiment.export_top_models(
+        top_k=hwnas_cfg.top_n_models, formatter="dict"
+    )
     test_results = experiment.export_data()
     experiment.stop()
 
-    metrics, parameters = _map_trial_params_to_found_models(test_results, top_parameters)
+    metrics, parameters = _map_trial_params_to_found_models(
+        test_results, top_parameters
+    )
 
     return top_models, parameters, metrics
 
