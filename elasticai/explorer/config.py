@@ -61,11 +61,11 @@ class DeploymentConfig(Config):
 
         except KeyError:
             logger.info(
-                "ConnectionConfig is not specified completely! Please specify or target connection is not possible."
+                "DeploymentConfig is not specified completely! Please specify or target connection is not possible."
             )
             exit(-1)
-        self.compiled_libary_path: Path | None = self.original_yaml_dict.get(
-            "compiled_libary_path", None
+        self.compiled_library_path: Path | None = self.original_yaml_dict.get(
+            "compiled_library_path", None
         )
 
 

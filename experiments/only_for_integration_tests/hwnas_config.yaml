@@ -1,7 +1,0 @@
-host_processor: cuda:0
-max_search_trials: 2
-original_yaml_dict:
-  host_processor: cuda:0
-  max_search_trials: 2
-  top_n_models: 2
-top_n_models: 2

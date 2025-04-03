@@ -12,9 +12,9 @@ class SSHException(Exception):
 
 
 class Host:
-    def __init__(self, connection_config: DeploymentConfig):
-        self.host_name = connection_config.target_name
-        self.user = connection_config.target_user
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        self.host_name = deploy_cfg.target_name
+        self.user = deploy_cfg.target_user
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.device_communication.Host"
         )
