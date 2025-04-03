@@ -2,6 +2,7 @@ import datetime
 import logging
 from pathlib import Path
 from typing import Optional
+import shutil
 
 from torch import nn
 
@@ -124,3 +125,7 @@ class Explorer:
         measurement = self.hw_manager.measure_metric(metric, model_path, path_to_data=path_to_data)
         self.logger.info(measurement)
         return measurement
+    
+    def clear_experiment_folder(self):
+        """ Deletes all output files of the current experiment. Use with care, all results of this experiment are lost.""" 
+        shutil.rmtree((self._experiment_dir))
