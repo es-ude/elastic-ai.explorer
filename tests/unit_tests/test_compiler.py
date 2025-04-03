@@ -16,6 +16,7 @@ class TestCompiler(unittest.TestCase):
             compiler_tag="cross",
             path_to_dockerfile=CONTEXT_PATH / "Dockerfile.picross",
             build_context=CONTEXT_PATH,
+            compiled_library_path="./code/libtorch",
         )
         compiler = Compiler(config)
         if not compiler.is_setup():
