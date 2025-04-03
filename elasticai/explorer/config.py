@@ -55,6 +55,14 @@ class DeploymentConfig(Config):
         self.build_context: str = self.original_yaml_dict.get(
             "build_context", ROOT_DIR / "docker"
         )
+        self.compiled_library_path: Path | None = self.original_yaml_dict.get(
+            "compiled_library_path", None
+        )
+
+        self.target_platform_name: str = self.original_yaml_dict.get(
+            "target_platform_name", "rpi5"
+        )
+
         try:
             self.target_name: str = self.original_yaml_dict["target_name"]
             self.target_user: str = self.original_yaml_dict["target_user"]
@@ -64,9 +72,6 @@ class DeploymentConfig(Config):
                 "DeploymentConfig is not specified completely! Please specify or target connection is not possible."
             )
             exit(-1)
-        self.compiled_library_path: Path | None = self.original_yaml_dict.get(
-            "compiled_library_path", None
-        )
 
 
 class ModelConfig(Config):

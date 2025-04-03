@@ -86,9 +86,10 @@ class Explorer:
         self.search_space = MLP()
         self.logger.info("Generated search space:\n %s", self.search_space)
 
-    def choose_target_hw(self, platform_name: str, deploy_cfg: DeploymentConfig):
+    def choose_target_hw(self, deploy_cfg: DeploymentConfig):
+        self.deploy_cfg = deploy_cfg
         self.target_hw_platform: HWPlatform = self.knowledge_repository.fetch_hw_info(
-            platform_name
+            self.deploy_cfg.target_platform_name
         )
         self.generator: Generator = self.target_hw_platform.model_generator()
         self.hw_manager: HWManager = self.target_hw_platform.platform_manager(
@@ -97,7 +98,7 @@ class Explorer:
         )
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
-            platform_name,
+            self.deploy_cfg.target_platform_name,
             self.target_hw_platform,
         )
         deploy_cfg.dump_as_yaml(str(self._experiment_dir) + "/deployment_config.yaml")

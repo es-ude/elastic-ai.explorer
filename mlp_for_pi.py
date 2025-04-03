@@ -1,7 +1,5 @@
 import logging
-from logging import config
-from pathlib import Path
-
+from logging import config as logcfg
 import nni
 import torch
 from torch.utils.data import DataLoader
@@ -20,14 +18,13 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
-from elasticai.explorer.visualizer import Visualizer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
 
 config = None
 
 nni.enable_global_logging(False)
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logcfg.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 
@@ -63,7 +60,7 @@ def find_generate_measure_for_pi(
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
 ) -> Metrics:
-    explorer.choose_target_hw("rpi5", deploy_cfg)
+    explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 

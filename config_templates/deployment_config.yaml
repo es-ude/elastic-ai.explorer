@@ -1,15 +1,18 @@
-#The DeploymentConfig gives the necessary information to connect to the target-device.
-#If parameters are not specified inside the config, they are set to default values.
+# The DeploymentConfig gives the necessary information to connect to the target-device.
+# If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
-  #The Hostname of target device.
+  # The Hostname of target device.
   target_name: "<host>"
 
-  #The Username/user-account of the target device to connect to.
+  # The Username/user-account of the target device to connect to.
   target_user: "<user>"
 
-  #The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
-  #It needs to be in the docker build-context. Path can be relative to build-context.
-  #Optional. Defaults to "./code/libtorch".
+  #Select one of the supported hardware platforms: "rpi4", "rpi5". Defaults to "rpi5".
+  target_platform_name: <platform_name>
+
+  # The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
+  # It needs to be in the docker build-context. Path can be relative to build-context.
+  # Optional. Defaults to "./code/libtorch".
   compiled_library_path: "<path/to/library>"
 
   # Tag of Crosscompiler Image
