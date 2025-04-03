@@ -27,14 +27,17 @@ def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
 
     return corr
 
+
 def save_list_to_json(list: list, path_to_dir: Path, filename: str):
     os.makedirs(path_to_dir, exist_ok=True)
-    with open(path_to_dir/ filename, 'w+') as outfile:
+    with open(path_to_dir / filename, "w+") as outfile:
         json.dump(list, outfile)
 
-def load_json(path_to_json: Path|str) -> any:
-     with open(path_to_json, "r") as f:
-            return json.load(f)
+
+def load_json(path_to_json: Path | str) -> any:
+    with open(path_to_json, "r") as f:
+        return json.load(f)
+
 
 def plot_parallel_coordinates(df: pandas.DataFrame):
     fig = px.parallel_coordinates(

@@ -16,8 +16,8 @@ class Visualizer:
 
     def __init__(self, metrics: Metrics, plot_dir: Path):
         self.data: list[list[float]] = metrics.structured_est_metrics
-        self.labels: list[str]= metrics.structured_samples
-        self.metrics: Metrics  = metrics
+        self.labels: list[str] = metrics.structured_samples
+        self.metrics: Metrics = metrics
         self.plot_dir: Path = plot_dir
 
     def plot_all_results(self, figure_size: list[int] = [15, 20], filename: str = ""):
@@ -107,7 +107,7 @@ class Visualizer:
             ax.set_xticks(indices + bar_width / 2)
             ax.set_xticklabels(self.labels)
 
-        os.makedirs(self.plot_dir, exist_ok=True)    
+        os.makedirs(self.plot_dir, exist_ok=True)
         if filename:
             plt.savefig(self.plot_dir / (filename))
         else:
