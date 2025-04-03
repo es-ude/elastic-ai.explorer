@@ -1,10 +1,11 @@
-import json
 from dataclasses import dataclass
 from typing import Type
 
 import numpy as np
 
 from elasticai.explorer import utils
+from elasticai.explorer.platforms.deployment.compiler import Compiler
+from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import HWManager
 from elasticai.explorer.platforms.generator.generator import Generator
 
@@ -15,6 +16,8 @@ class HWPlatform:
     info: str
     model_generator: Type[Generator]
     platform_manager: Type[HWManager]
+    communication_protocol: Type[Host]
+    compiler: Type[Compiler]
 
 
 class KnowledgeRepository:
@@ -39,9 +42,10 @@ class Metrics:
     def _structure(self):
 
         number_of_models = len(self.sample_list)
-        self.structured_est_metrics: list[list[float]] = np.reshape(np.arange(0, 3 * 2 * number_of_models, 1, dtype=float),
-                                                 [3, 2, number_of_models])
-        self.structured_samples: list[str]= []
+        self.structured_est_metrics: list[list[float]] = np.reshape(
+            np.arange(0, 3 * 2 * number_of_models, 1, dtype=float),
+            [3, 2, number_of_models])
+        self.structured_samples: list[str] = []
         self.structured_est_flops: list[float] = []
         self.structured_est_accuracies: list[float] = []
         self.structured_est_combined: list[float] = []
