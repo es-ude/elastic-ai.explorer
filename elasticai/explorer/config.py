@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
+from typing import Any
 import yaml
 
 from settings import ROOT_DIR
@@ -8,11 +10,19 @@ from settings import ROOT_DIR
 logger = logging.getLogger("explorer.config")
 
 
+@dataclass
+class DockerParameter:
+    compiler_tag: str
+    compiled_library_path: Path
+    path_to_dockerfile: Path
+    build_context: Path
+
+
 class Config:
     def __init__(self, config_path: Path):
         with open(config_path) as stream:
             try:
-                self.original_yaml_dict: dict = yaml.safe_load(stream)
+                self._original_yaml_dict: dict = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
 
@@ -29,43 +39,39 @@ class Config:
                 yaml.safe_load(str(vars(self))), stream=ff, default_flow_style=False
             )
 
+    def parse_optional(self):
+        pass
+
+    # TODO add parse_mandatory for single parameters with individual error message. 
+
 
 class HWNASConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
+        self._original_yaml_dict = self._original_yaml_dict.get("HWNASConfig", {})
+        self.parse_optional()
 
-        self.original_yaml_dict = self.original_yaml_dict.get("HWNASConfig", {})
-
+    def parse_optional(self):
         # set to default value, if yaml dict does not define a value
-        self.host_processor: str = self.original_yaml_dict.get("host_processor", "cpu")
-        self.max_search_trials: int = self.original_yaml_dict.get(
+        self.host_processor: str = self._original_yaml_dict.get("host_processor", "cpu")
+        self.max_search_trials: int = self._original_yaml_dict.get(
             "max_search_trials", 6
         )
-        self.top_n_models: int = self.original_yaml_dict.get("top_n_models", 2)
+        self.top_n_models: int = self._original_yaml_dict.get("top_n_models", 2)
 
 
 class DeploymentConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
-        self.original_yaml_dict = self.original_yaml_dict.get("DeploymentConfig", {})
-        self.compiler_tag: str = self.original_yaml_dict.get("compiler_tag", "cross")
-        self.path_to_dockerfile: str = self.original_yaml_dict.get(
-            "path_to_dockerfile", ROOT_DIR / "docker" / "Dockerfile.picross"
-        )
-        self.build_context: str = self.original_yaml_dict.get(
-            "build_context", ROOT_DIR / "docker"
-        )
-        self.compiled_library_path: Path = self.original_yaml_dict.get(
-            "compiled_library_path", "./code/libtorch"
+        # Get neccessary parameters for deployment with docker.
+        self._original_yaml_dict: dict[Any, Any] = self._original_yaml_dict.get(
+            "DeploymentConfig", {"Docker": {}}
         )
 
-        self.target_platform_name: str = self.original_yaml_dict.get(
-            "target_platform_name", "rpi5"
-        )
-
+        # Get necessary parameters for connection with target.
         try:
-            self.target_name: str = self.original_yaml_dict["target_name"]
-            self.target_user: str = self.original_yaml_dict["target_user"]
+            self.target_name: str = self._original_yaml_dict["target_name"]
+            self.target_user: str = self._original_yaml_dict["target_user"]
 
         except KeyError:
             logger.info(
@@ -73,9 +79,34 @@ class DeploymentConfig(Config):
             )
             exit(-1)
 
+        self.parse_optional()
+
+    def parse_optional(self):
+        self.target_platform_name: str = self._original_yaml_dict.get(
+            "target_platform_name", "rpi5"
+        )
+
+        self.docker = DockerParameter
+        self._docker_yaml_dict = self._original_yaml_dict.get("Docker", {})
+        self.docker.compiler_tag = self._docker_yaml_dict.get("compiler_tag", "cross")
+        self.docker.path_to_dockerfile = Path(
+            self._docker_yaml_dict.get(
+                "path_to_dockerfile", ROOT_DIR / "docker" / "Dockerfile.picross"
+            )
+        )
+        self.docker.build_context = Path(
+            self._docker_yaml_dict.get("build_context", ROOT_DIR / "docker")
+        )
+        self.docker.compiled_library_path = Path(
+            self._docker_yaml_dict.get("compiled_library_path", "./code/libtorch")
+        )
+
 
 class ModelConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
-        self.original_yaml_dict = self.original_yaml_dict.get("ModelConfig", {})
-        self.model_type: str = self.original_yaml_dict["model_type"]
+        self.parse_optional()
+
+    def parse_optional(self):
+        self._original_yaml_dict = self._original_yaml_dict.get("ModelConfig", {})
+        self.model_type: str = self._original_yaml_dict.get("model_type", "MLP")
