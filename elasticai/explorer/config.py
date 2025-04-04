@@ -32,81 +32,72 @@ class Config:
         Args:
             save_path: The full or relative path to save config to.
         """
-
         os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
         with open(save_path, "w+") as ff:
             yaml.dump(
                 yaml.safe_load(str(vars(self))), stream=ff, default_flow_style=False
             )
 
-    def parse_optional(self):
-        pass
+    def _parse_optional(self, parameter_name: str, default: Any):
+        """dict.get() wrapper"""
+        return self._original_yaml_dict.get(parameter_name, default)
 
-    # TODO add parse_mandatory for single parameters with individual error message. 
+    def _parse_mandatory(self, parameter_name: str) -> Any:
+        try:
+            return self._original_yaml_dict[parameter_name]
+        except KeyError:
+            logger.info(
+                f'The mandatory parameters of the {type(self).__name__} are not specified completely! Please specify parameter "{parameter_name}".'
+            )
+            exit(-1)
 
 
 class HWNASConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
-        self._original_yaml_dict = self._original_yaml_dict.get("HWNASConfig", {})
-        self.parse_optional()
-
-    def parse_optional(self):
-        # set to default value, if yaml dict does not define a value
-        self.host_processor: str = self._original_yaml_dict.get("host_processor", "cpu")
-        self.max_search_trials: int = self._original_yaml_dict.get(
-            "max_search_trials", 6
-        )
-        self.top_n_models: int = self._original_yaml_dict.get("top_n_models", 2)
+        self._original_yaml_dict = self._parse_optional("HWNASConfig", {})
+        self.host_processor: str = self._parse_optional("host_processor", "cpu")
+        self.max_search_trials: int = self._parse_optional("max_search_trials", 6)
+        self.top_n_models: int = self._parse_optional("top_n_models", 2)
 
 
 class DeploymentConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
         # Get neccessary parameters for deployment with docker.
-        self._original_yaml_dict: dict[Any, Any] = self._original_yaml_dict.get(
+        self._original_yaml_dict: dict[Any, Any] = self._parse_optional(
             "DeploymentConfig", {"Docker": {}}
         )
 
         # Get necessary parameters for connection with target.
-        try:
-            self.target_name: str = self._original_yaml_dict["target_name"]
-            self.target_user: str = self._original_yaml_dict["target_user"]
+        self.target_name: str = self._parse_mandatory("target_name")
+        self.target_user: str = self._parse_mandatory("target_user")
 
-        except KeyError:
-            logger.info(
-                "DeploymentConfig is not specified completely! Please specify or target connection is not possible."
-            )
-            exit(-1)
-
-        self.parse_optional()
-
-    def parse_optional(self):
-        self.target_platform_name: str = self._original_yaml_dict.get(
+        self.target_platform_name: str = self._parse_optional(
             "target_platform_name", "rpi5"
         )
-
         self.docker = DockerParameter
-        self._docker_yaml_dict = self._original_yaml_dict.get("Docker", {})
-        self.docker.compiler_tag = self._docker_yaml_dict.get("compiler_tag", "cross")
+        self._docker_yaml_dict = self._parse_optional("Docker", {})
+        self.docker.compiler_tag = self._parse_optional_docker("compiler_tag", "cross")
         self.docker.path_to_dockerfile = Path(
-            self._docker_yaml_dict.get(
+            self._parse_optional_docker(
                 "path_to_dockerfile", ROOT_DIR / "docker" / "Dockerfile.picross"
             )
         )
         self.docker.build_context = Path(
-            self._docker_yaml_dict.get("build_context", ROOT_DIR / "docker")
+            self._parse_optional_docker("build_context", ROOT_DIR / "docker")
         )
         self.docker.compiled_library_path = Path(
-            self._docker_yaml_dict.get("compiled_library_path", "./code/libtorch")
+            self._parse_optional_docker("compiled_library_path", "./code/libtorch")
         )
+
+    def _parse_optional_docker(self, parameter_name: str, default: Any) -> Any:
+        """dict.get() wrapper"""
+        return self._docker_yaml_dict.get(parameter_name, default)
 
 
 class ModelConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
-        self.parse_optional()
-
-    def parse_optional(self):
-        self._original_yaml_dict = self._original_yaml_dict.get("ModelConfig", {})
-        self.model_type: str = self._original_yaml_dict.get("model_type", "MLP")
+        self._original_yaml_dict = self._parse_optional("ModelConfig", {})
+        self.model_type: str = self._parse_optional("model_type", "MLP")
