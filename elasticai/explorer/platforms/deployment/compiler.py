@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from python_on_whales import docker
+import python_on_whales
 
 from elasticai.explorer.config import DeploymentConfig
 
@@ -18,7 +19,7 @@ class Compiler:
         if not self.is_setup():
             self.setup()
 
-    def is_setup(self) -> bool:
+    def is_setup(self) -> list[python_on_whales.Image]:
         return docker.images(self.tag)
 
     # todo: docker image in docker_registry
@@ -31,11 +32,11 @@ class Compiler:
         docker.build(
             self.context_path,
             file=self.context_path / "Dockerfile.loader",
-            output={"type": "local", "dest": self.context_path / "bin"},
+            output={"type": "local", "dest": str(self.context_path / "bin")},
             build_args={
                 "NAME_OF_EXECUTABLE": name_of_executable,
                 "PROGRAM_CODE": sourcecode_filename,
-                "HOST_LIBTORCH_PATH": self.libtorch_path,
+                "HOST_LIBTORCH_PATH": str(self.libtorch_path),
             },
         )
         path_to_executable = self.context_path / "bin" / name_of_executable

@@ -28,7 +28,7 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def install_dataset_on_target(self, path_to_dataset: str):
+    def install_dataset_on_target(self, path_to_dataset: Path):
         pass
 
     @abstractmethod
@@ -55,10 +55,10 @@ class PIHWManager(HWManager):
         path_to_executable = self.compiler.compile_code(
             name_of_executable, sourcecode_filename
         )
-        self.target.put_file(path_to_executable, ".")
+        self.target.put_file(str(path_to_executable), ".")
 
-    def install_dataset_on_target(self, path_to_dataset: str):
-        self.target.put_file(path_to_dataset, ".")
+    def install_dataset_on_target(self, path_to_dataset: Path):
+        self.target.put_file(str(path_to_dataset), ".")
         self.target.run_command(f"unzip -q -o {os.path.split(path_to_dataset)[-1]}")
 
     def measure_metric(
@@ -69,7 +69,7 @@ class PIHWManager(HWManager):
         cmd = None
         match metric:
             case metric.ACCURACY:
-                _, data_tail = os.path.split(path_to_data)
+                _, data_tail = os.path.split(str(path_to_data))
                 cmd = self.build_command("measure_accuracy", [tail, data_tail])
                 print("acc")
             case metric.LATENCY:
@@ -82,9 +82,9 @@ class PIHWManager(HWManager):
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
 
-    def deploy_model(self, path_to_model: str):
+    def deploy_model(self, path_to_model: Path):
         self.logger.info("Put model %s on target", path_to_model)
-        self.target.put_file(path_to_model, ".")
+        self.target.put_file(str(path_to_model), ".")
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)

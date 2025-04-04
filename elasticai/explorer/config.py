@@ -61,8 +61,8 @@ class DeploymentConfig(Config):
         self.build_context: str = self.original_yaml_dict.get(
             "build_context", ROOT_DIR / "docker"
         )
-        self.compiled_library_path: Path | None = self.original_yaml_dict.get(
-            "compiled_library_path", None
+        self.compiled_library_path: Path = self.original_yaml_dict.get(
+            "compiled_library_path", "./code/libtorch"
         )
 
         self.target_platform_name: str = self.original_yaml_dict.get(
