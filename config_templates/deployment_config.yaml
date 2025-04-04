@@ -1,4 +1,4 @@
-# The DeploymentConfig gives the necessary information to connect to the target-device.
+# The DeploymentConfig gives the necessary information to connect to the target-device and deploy the model(s) on it.
 # If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
   # The Hostname of target device.
@@ -11,7 +11,7 @@ DeploymentConfig:
   target_platform_name: <platform_name>
 
   # The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
-  # It needs to be in the docker build-context. Path can be relative to build-context.
+  # It needs to be in the docker build-context. Path must be relative to build-context.
   # Optional. Defaults to "./code/libtorch".
   compiled_library_path: "<path/to/library>"
 
