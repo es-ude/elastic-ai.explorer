@@ -17,11 +17,12 @@ from settings import MAIN_EXPERIMENT_DIR, ROOT_DIR
 class Explorer:
     """
     The explorer class manages the HW-NAS and the deployment on hardware.
-    It should be initialized with a KnowledgeRepository and config instances, to define the experiment setup.
     """
 
     def __init__(
-        self, knowledge_repository: KnowledgeRepository, experiment_name: str = None
+        self,
+        knowledge_repository: KnowledgeRepository,
+        experiment_name: str | None = None,
     ):
         """
         Args:
@@ -36,8 +37,6 @@ class Explorer:
         self.generator = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space = None
-        self.hwnas_cfg = None
-        self.deploy_cfg = None
         self.model_cfg = None
 
         if not experiment_name:
@@ -80,39 +79,22 @@ class Explorer:
 
     def set_model_cfg(self, model_cfg: ModelConfig):
         self.model_cfg = model_cfg
-        self.model_cfg.dump_as_yaml(str(self._model_dir) + "/model_config.yaml")
+        self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
     def generate_search_space(self):
         self.search_space = MLP()
         self.logger.info("Generated search space:\n %s", self.search_space)
 
-    def choose_target_hw(self, deploy_cfg: DeploymentConfig):
-        self.deploy_cfg = deploy_cfg
-        self.target_hw_platform: HWPlatform = self.knowledge_repository.fetch_hw_info(
-            self.deploy_cfg.target_platform_name
-        )
-        self.generator: Generator = self.target_hw_platform.model_generator()
-        self.hw_manager: HWManager = self.target_hw_platform.platform_manager(
-            self.target_hw_platform.communication_protocol(deploy_cfg),
-            self.target_hw_platform.compiler(deploy_cfg),
-        )
-        self.logger.info(
-            "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
-            self.deploy_cfg.target_platform_name,
-            self.target_hw_platform,
-        )
-        deploy_cfg.dump_as_yaml(str(self._experiment_dir) + "/deployment_config.yaml")
+    def search(self, hwnas_cfg: HWNASConfig) -> list[Any]:
 
-    def search(self, hwnas_cfg: HWNASConfig) -> list[any]:
-        self.hwnas_cfg = hwnas_cfg
         self.logger.info(
             "Start Hardware NAS with %d number of trials for top %d models ",
-            self.hwnas_cfg.max_search_trials,
-            self.hwnas_cfg.top_n_models,
+            hwnas_cfg.max_search_trials,
+            hwnas_cfg.top_n_models,
         )
 
         top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space, self.hwnas_cfg
+            self.search_space, hwnas_cfg
         )
 
         utils.save_list_to_json(
@@ -121,13 +103,25 @@ class Explorer:
         utils.save_list_to_json(
             metrics, path_to_dir=self._metric_dir, filename="metrics.json"
         )
-        self.hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
+        hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
 
         return top_models
 
-    def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> any:
-        model_path = self._model_dir / model_name
-        return self.generator.generate(model, model_path)
+    def choose_target_hw(self, deploy_cfg: DeploymentConfig):
+        self.target_hw_platform: HWPlatform = self.knowledge_repository.fetch_hw_info(
+            deploy_cfg.target_platform_name
+        )
+        self.generator: Generator = self.target_hw_platform.model_generator()
+        self.hw_manager: HWManager = self.target_hw_platform.platform_manager(
+            self.target_hw_platform.communication_protocol(deploy_cfg),
+            self.target_hw_platform.compiler(deploy_cfg),
+        )
+        self.logger.info(
+            "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
+            deploy_cfg.target_platform_name,
+            self.target_hw_platform,
+        )
+        deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(self):
         self.logger.info("Setup Hardware target for experiments.")
@@ -147,3 +141,7 @@ class Explorer:
         )
         self.logger.info(measurement)
         return measurement
+
+    def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> Any:
+        model_path = self._model_dir / model_name
+        return self.generator.generate(model, model_path)

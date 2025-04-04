@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 import logging
 import torch
-from torch import nn, optim
+from torch import nn
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 
@@ -22,7 +23,9 @@ class Trainer(ABC):
 class MLPTrainer(Trainer):
     """Trainer class for MLPs written in Pytorch."""
 
-    def __init__(self, device: str, optimizer: optim, loss_fn=nn.CrossEntropyLoss()):
+    def __init__(
+        self, device: str, optimizer: Optimizer, loss_fn=nn.CrossEntropyLoss()
+    ):
 
         self.logger = logging.getLogger("explorer.MLPTrainer")
         self.device = device
@@ -43,6 +46,7 @@ class MLPTrainer(Trainer):
     def test(self, model: nn.Module, testloader: DataLoader) -> float:
         """
         Args:
+            model: The NN-Model to test.
             testloader: The data for testing.
 
         Returns:
@@ -72,6 +76,7 @@ class MLPTrainer(Trainer):
         """Trains model for only one epoch.
 
         Args:
+            model: The NN-Model to test.
             epoch: Current epoch number.
         """
         model.to(device=self.device)
