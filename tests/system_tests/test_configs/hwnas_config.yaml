@@ -2,7 +2,7 @@
 #If parameters are not specified inside the config, they are set to default values.
 HWNASConfig:
   #Processor type (cpu, cuda:n) of the host, the experiment should run on.
-  host_processor: "cuda:0" 
+  host_processor: "auto" 
 
   #The search trials the HW-NAS should do at max.
   max_search_trials: 2
