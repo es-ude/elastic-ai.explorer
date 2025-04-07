@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 
 from python_on_whales import docker
-import python_on_whales
 
 from elasticai.explorer.config import DeploymentConfig
 
@@ -19,8 +18,8 @@ class Compiler:
         if not self.is_setup():
             self.setup()
 
-    def is_setup(self) -> list[python_on_whales.Image]:
-        return docker.images(self.tag)
+    def is_setup(self) -> bool:
+        return bool(docker.images(self.tag))
 
     # todo: docker image in docker_registry
     def setup(self) -> None:

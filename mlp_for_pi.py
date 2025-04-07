@@ -1,5 +1,5 @@
 import logging
-from logging import config as logcfg
+import logging.config
 from pathlib import Path
 import nni
 import torch
@@ -22,10 +22,8 @@ from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
 
-config = None
-
 nni.enable_global_logging(False)
-logcfg.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 
