@@ -9,15 +9,17 @@ from torch import nn
 
 class Generator(ABC):
     @abstractmethod
-    def generate(self, model: nn.Module, path: str) -> any:
+    def generate(self, model: nn.Module, path: Path) -> any:
         pass
 
 
 class PIGenerator(Generator):
     def __init__(self):
-        self.logger = logging.getLogger("explorer.platforms.generator.generator.PIGenerator")
+        self.logger = logging.getLogger(
+            "explorer.platforms.generator.generator.PIGenerator"
+        )
 
-    def generate(self, model: nn.Module, path: str):
+    def generate(self, model: nn.Module, path: Path):
         self.logger.info("Generate torchscript model from %s", model)
         model.eval()
 

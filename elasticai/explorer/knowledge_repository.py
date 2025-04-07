@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Type
 
 import numpy as np
@@ -32,7 +33,13 @@ class KnowledgeRepository:
 
 
 class Metrics:
-    def __init__(self, path_to_metrics: str, path_to_samples: str, accuracy_list: list, latency_list: list):
+    def __init__(
+        self,
+        path_to_metrics: Path,
+        path_to_samples: Path,
+        accuracy_list: list,
+        latency_list: list,
+    ):
         self.raw_measured_accuracies: list[float] = accuracy_list
         self.raw_measured_latencies: list[int] = latency_list
         self.metric_list = utils.load_json(path_to_metrics)
@@ -44,7 +51,8 @@ class Metrics:
         number_of_models = len(self.sample_list)
         self.structured_est_metrics: list[list[float]] = np.reshape(
             np.arange(0, 3 * 2 * number_of_models, 1, dtype=float),
-            [3, 2, number_of_models])
+            [3, 2, number_of_models],
+        )
         self.structured_samples: list[str] = []
         self.structured_est_flops: list[float] = []
         self.structured_est_accuracies: list[float] = []

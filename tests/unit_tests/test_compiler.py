@@ -12,8 +12,12 @@ class TestCompiler(unittest.TestCase):
 
         expected_name_of_executable = "measure_latency"
         path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
-        config = Mock(compiler_tag="cross", path_to_dockerfile=CONTEXT_PATH / "Dockerfile.picross",
-                      build_context=CONTEXT_PATH)
+        config = Mock(
+            compiler_tag="cross",
+            path_to_dockerfile=CONTEXT_PATH / "Dockerfile.picross",
+            build_context=CONTEXT_PATH,
+            compiled_library_path="./code/libtorch",
+        )
         compiler = Compiler(config)
         if not compiler.is_setup():
             compiler.setup()
@@ -22,5 +26,5 @@ class TestCompiler(unittest.TestCase):
             raise AssertionError("File does not exist: %s" % str(path_to_executable))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

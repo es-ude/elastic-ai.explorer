@@ -1,17 +1,16 @@
 from abc import ABC, abstractmethod
 import logging
-from matplotlib import transforms
 import torch
-from torch import nn, optim
+from torch import nn
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
-
 
 
 class Trainer(ABC):
     @abstractmethod
     def train(self, model: nn.Module, trainloader: DataLoader, epochs: int):
         pass
-    
+
     @abstractmethod
     def test(self, model: nn.Module, testloader: DataLoader) -> float:
         pass
@@ -20,11 +19,13 @@ class Trainer(ABC):
     def train_epoch(self, model: nn.Module, trainloader: DataLoader, epoch: int):
         pass
 
+
 class MLPTrainer(Trainer):
-    """Trainer class for MLPs written in Pytorch.
-    """
-    def __init__(self, device: str,
-                  optimizer: optim, loss_fn = nn.CrossEntropyLoss()):
+    """Trainer class for MLPs written in Pytorch."""
+
+    def __init__(
+        self, device: str, optimizer: Optimizer, loss_fn=nn.CrossEntropyLoss()
+    ):
 
         self.logger = logging.getLogger("explorer.MLPTrainer")
         self.device = device
@@ -38,14 +39,14 @@ class MLPTrainer(Trainer):
             trainloader: Data to train on.
             epochs: Number of epochs.
         """
-        
+
         for epoch in range(epochs):
             self.train_epoch(model=model, trainloader=trainloader, epoch=epoch)
 
-        
     def test(self, model: nn.Module, testloader: DataLoader) -> float:
         """
         Args:
+            model: The NN-Model to test.
             testloader: The data for testing.
 
         Returns:
@@ -75,6 +76,7 @@ class MLPTrainer(Trainer):
         """Trains model for only one epoch.
 
         Args:
+            model: The NN-Model to test.
             epoch: Current epoch number.
         """
         model.to(device=self.device)
@@ -96,5 +98,3 @@ class MLPTrainer(Trainer):
                         loss.item(),
                     )
                 )
-
-        
