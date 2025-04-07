@@ -19,6 +19,8 @@ class DockerParameter:
 
 
 class Config:
+    """ The Config Superclass for Elastic.AI.explorer.
+    """
     def __init__(self, config_path: Path):
         with open(config_path) as stream:
             try:
@@ -27,7 +29,7 @@ class Config:
                 print(exc)
 
     def dump_as_yaml(self, save_path: Path):
-        """Creates a .yaml file of the current config.
+        """ Creates a .yaml file of the current config.
 
         Args:
             save_path: The full or relative path to save config to.
@@ -38,7 +40,7 @@ class Config:
                 yaml.safe_load(str(vars(self))), stream=ff, default_flow_style=False
             )
 
-    def _parse_optional(self, parameter_name: str, default: Any):
+    def _parse_optional(self, parameter_name: str, default: Any) -> Any:
         """dict.get() wrapper"""
         return self._original_yaml_dict.get(parameter_name, default)
 
@@ -53,6 +55,8 @@ class Config:
 
 
 class HWNASConfig(Config):
+    """ HWNASConfig that defines the HW-Nas Behavior and its excution on host.
+    """
     def __init__(self, config_path: Path):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("HWNASConfig", {})
@@ -62,6 +66,8 @@ class HWNASConfig(Config):
 
 
 class DeploymentConfig(Config):
+    """ The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it.
+    """
     def __init__(self, config_path: Path):
         super().__init__(config_path)
         # Get neccessary parameters for deployment with docker.
@@ -97,6 +103,8 @@ class DeploymentConfig(Config):
 
 
 class ModelConfig(Config):
+    """ ModelConfig defines the type of deep neural network to search for.
+    """
     def __init__(self, config_path: Path):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("ModelConfig", {})
