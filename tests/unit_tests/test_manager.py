@@ -2,7 +2,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
-from elasticai.explorer.platforms.deployment.manager import CommandBuilder, PIHWManager, CONTEXT_PATH, Metric
+from elasticai.explorer.platforms.deployment.manager import (
+    CommandBuilder,
+    PIHWManager,
+    CONTEXT_PATH,
+    Metric,
+)
 
 
 class TestPiHWManager(unittest.TestCase):
@@ -19,18 +24,15 @@ class TestPiHWManager(unittest.TestCase):
         compiler = Mock()
         output = '{ "Latency": { "value": 57474 , "unit": "microseconds"}}'
 
-        expected = {
-            "Latency": {
-                "value": 57474,
-                "unit": "microseconds"
-            }
-        }
+        expected = {"Latency": {"value": 57474, "unit": "microseconds"}}
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_latency"
         metric = Metric.LATENCY
-        result = self.hwmanager.measure_metric(metric, path_to_model=path, path_to_data=None)
+        result = self.hwmanager.measure_metric(
+            metric, path_to_model=path, path_to_data=None
+        )
         self.assertEqual(expected, result)
 
     def test_run_accuracy_measurements(self):
@@ -38,21 +40,18 @@ class TestPiHWManager(unittest.TestCase):
         compiler = Mock()
         output = '{ "Accuracy": { "value": 94.8 , "unit": "percent"}}'
 
-        expected = {
-            "Accuracy": {
-                "value": 94.8,
-                "unit": "percent"
-            }
-        }
+        expected = {"Accuracy": {"value": 94.8, "unit": "percent"}}
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_accuracy"
         datapath: Path = Path(str(CONTEXT_PATH)) / "data" / "mnist.zip"
         metric = Metric.ACCURACY
-        result = self.hwmanager.measure_metric(metric, path_to_model=path, path_to_data=datapath)
+        result = self.hwmanager.measure_metric(
+            metric, path_to_model=path, path_to_data=datapath
+        )
         self.assertEqual(expected, result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
