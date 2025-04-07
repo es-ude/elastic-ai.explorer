@@ -1,6 +1,6 @@
 import logging
 import os
-
+from pathlib import Path
 import yaml
 
 from settings import ROOT_DIR
@@ -9,14 +9,14 @@ logger = logging.getLogger("explorer.config")
 
 
 class Config:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Path):
         with open(config_path) as stream:
             try:
                 self.original_yaml_dict: dict = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
 
-    def dump_as_yaml(self, save_path: str):
+    def dump_as_yaml(self, save_path: Path):
         """Creates a .yaml file of the current config.
 
         Args:
@@ -31,7 +31,7 @@ class Config:
 
 
 class HWNASConfig(Config):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Path):
         super().__init__(config_path)
 
         self.original_yaml_dict = self.original_yaml_dict.get("HWNASConfig", {})
@@ -45,7 +45,7 @@ class HWNASConfig(Config):
 
 
 class DeploymentConfig(Config):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Path):
         super().__init__(config_path)
         self.original_yaml_dict = self.original_yaml_dict.get("DeploymentConfig", {})
         self.compiler_tag: str = self.original_yaml_dict.get("compiler_tag", "cross")
@@ -55,6 +55,14 @@ class DeploymentConfig(Config):
         self.build_context: str = self.original_yaml_dict.get(
             "build_context", ROOT_DIR / "docker"
         )
+        self.compiled_library_path: Path = self.original_yaml_dict.get(
+            "compiled_library_path", "./code/libtorch"
+        )
+
+        self.target_platform_name: str = self.original_yaml_dict.get(
+            "target_platform_name", "rpi5"
+        )
+
         try:
             self.target_name: str = self.original_yaml_dict["target_name"]
             self.target_user: str = self.original_yaml_dict["target_user"]
@@ -67,7 +75,7 @@ class DeploymentConfig(Config):
 
 
 class ModelConfig(Config):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Path):
         super().__init__(config_path)
         self.original_yaml_dict = self.original_yaml_dict.get("ModelConfig", {})
         self.model_type: str = self.original_yaml_dict["model_type"]
