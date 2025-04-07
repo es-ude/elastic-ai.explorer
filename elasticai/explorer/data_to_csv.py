@@ -7,8 +7,9 @@ from elasticai.explorer.utils import plot_parallel_coordinates
 from settings import MAIN_EXPERIMENT_DIR
 
 
-def build_search_space_measurements_file(latencies: list[int], metrics_path: Path, model_parameter_path: Path,
-                                         csv_path: Path) -> pandas.DataFrame:
+def build_search_space_measurements_file(
+    latencies: list[int], metrics_path: Path, model_parameter_path: Path, csv_path: Path
+) -> pandas.DataFrame:
     metric_list = utils.load_json(metrics_path)
     sample_list = utils.load_json(model_parameter_path)
 

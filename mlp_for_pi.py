@@ -1,13 +1,12 @@
 import logging
-from logging import config
-
+import logging.config
+from pathlib import Path
 import nni
 import torch
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
@@ -20,9 +19,8 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
+from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
-
-config = None
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -30,7 +28,7 @@ logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
-def setup_knowledge_repository() -> KnowledgeRepository:
+def setup_knowledge_repository_pi() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
         HWPlatform(
@@ -42,13 +40,26 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             Compiler,
         )
     )
+
+    knowledge_repository.register_hw_platform(
+        HWPlatform(
+            "rpi4",
+            "Raspberry PI 4 with A72 processor and 4GB RAM",
+            PIGenerator,
+            PIHWManager,
+            Host,
+            Compiler,
+        )
+    )
     return knowledge_repository
 
 
 def find_generate_measure_for_pi(
-    explorer: Explorer, deploy_cfg: DeploymentConfig, hwnas_cfg: HWNASConfig
+    explorer: Explorer,
+    deploy_cfg: DeploymentConfig,
+    hwnas_cfg: HWNASConfig,
 ) -> Metrics:
-    explorer.choose_target_hw("rpi5", deploy_cfg)
+    explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
@@ -60,24 +71,25 @@ def find_generate_measure_for_pi(
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    trainloader = DataLoader(
+    trainloader: DataLoader = DataLoader(
         MNIST("data/mnist", download=True, transform=transf),
         batch_size=64,
         shuffle=True,
     )
-    testloader = DataLoader(
+    testloader: DataLoader = DataLoader(
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
 
-    retrain_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    retrain_device = str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
+            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
+        data_path = ROOT_DIR / "data"
         data_path = ROOT_DIR / "data"
         explorer.generate_for_hw_platform(model, model_name)
 
@@ -106,11 +118,11 @@ def find_generate_measure_for_pi(
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
-    deploy_cfg = DeploymentConfig(config_path="configs/deployment_config.yaml")
-    model_cfg = ModelConfig(config_path="configs/model_config.yaml")
+    hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
+    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
+    model_cfg = ModelConfig(config_path=Path("configs/model_config.yaml"))
 
-    knowledge_repo = setup_knowledge_repository()
+    knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
     find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
