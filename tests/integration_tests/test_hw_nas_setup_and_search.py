@@ -36,10 +36,10 @@ class TestHWNasSetupAndSearch:
         self.RPI5explorer = Explorer(knowledge_repository, "only_for_integration_tests")
         self.model_name = "ts_model_0.pt"
         self.hwnas_cfg = HWNASConfig(
-            config_path="tests/integration_tests/test_configs/hwnas_config.yaml"
+            config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")
         )
         self.deploy_cfg = DeploymentConfig(
-            config_path="tests/integration_tests/test_configs/deployment_config.yaml"
+            config_path=Path("tests/integration_tests/test_configs/deployment_config.yaml")
         )
 
     def test_search(self):
@@ -52,7 +52,7 @@ class TestHWNasSetupAndSearch:
 
     def test_generate_for_hw_platform(self):
         self.setUp()
-        self.RPI5explorer.choose_target_hw("rpi5", self.deploy_cfg)
+        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         model = sample_MLP()
 
         self.RPI5explorer.generate_for_hw_platform(
@@ -70,7 +70,7 @@ class TestHWNasSetupAndSearch:
                     "experiments/only_for_integration_tests/models/" + self.model_name
                 )
             )
-            == torch.jit._script.RecursiveScriptModule
+            == torch.jit._script.RecursiveScriptModule # type: ignore
         )
         self.tearDown()
 

@@ -1,6 +1,7 @@
 import datetime
 import logging
 from pathlib import Path
+import shutil
 from typing import Optional, Any
 
 from torch import nn
@@ -145,3 +146,6 @@ class Explorer:
     def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> Any:
         model_path = self._model_dir / model_name
         return self.generator.generate(model, model_path)
+    def clear_experiment_folder(self):
+        """ Deletes all output files of the current experiment. Use with care, all results of this experiment are lost.""" 
+        shutil.rmtree((self._experiment_dir))
