@@ -7,7 +7,7 @@ from torch import nn
 
 from elasticai.explorer import hw_nas, utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
+from elasticai.explorer.knowledge_repository.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP

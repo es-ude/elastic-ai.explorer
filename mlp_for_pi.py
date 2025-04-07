@@ -9,10 +9,9 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import (
-    KnowledgeRepository,
+from elasticai.explorer.knowledge_repository.knowledge_repository import (
     HWPlatform,
-    Metrics,
+    KnowledgeRepository,
 )
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
@@ -30,37 +29,11 @@ logcfg.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
-def setup_knowledge_repository_pi() -> KnowledgeRepository:
-    knowledge_repository = KnowledgeRepository()
-    knowledge_repository.register_hw_platform(
-        HWPlatform(
-            "rpi5",
-            "Raspberry PI 5 with A76 processor and 8GB RAM",
-            PIGenerator,
-            PIHWManager,
-            Host,
-            Compiler,
-        )
-    )
-
-    knowledge_repository.register_hw_platform(
-        HWPlatform(
-            "rpi4",
-            "Raspberry PI 4 with A72 processor and 4GB RAM",
-            PIGenerator,
-            PIHWManager,
-            Host,
-            Compiler,
-        )
-    )
-    return knowledge_repository
-
-
 def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
-) -> Metrics:
+) -> None:
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
@@ -111,20 +84,15 @@ def find_generate_measure_for_pi(
     )
     logger.info("Models:\n %s", df)
 
-    return Metrics(
-        explorer.metric_dir / "metrics.json",
-        explorer.model_dir / "models.json",
-        accuracies,
-        latencies,
-    )
-
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     model_cfg = ModelConfig(config_path=Path("configs/model_config.yaml"))
 
-    knowledge_repo = setup_knowledge_repository_pi()
-    explorer = Explorer(knowledge_repo)
+    knowledge_repository = KnowledgeRepository()
+    knowledge_repository.load_hw_platforms()
+
+    explorer = Explorer(knowledge_repository)
     explorer.set_model_cfg(model_cfg)
     find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)

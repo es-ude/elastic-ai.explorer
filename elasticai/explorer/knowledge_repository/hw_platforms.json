@@ -1,0 +1,36 @@
+{
+    "rpi5": {
+        "py/object": "elasticai.explorer.knowledge_repository.knowledge_repository.HWPlatform",
+        "name": "rpi5",
+        "info": "Raspberry PI 5 with A76 processor and 8GB RAM",
+        "model_generator": {
+            "py/type": "elasticai.explorer.platforms.generator.generator.PIGenerator"
+        },
+        "platform_manager": {
+            "py/type": "elasticai.explorer.platforms.deployment.manager.PIHWManager"
+        },
+        "communication_protocol": {
+            "py/type": "elasticai.explorer.platforms.deployment.device_communication.Host"
+        },
+        "compiler": {
+            "py/type": "elasticai.explorer.platforms.deployment.compiler.Compiler"
+        }
+    },
+    "rpi4": {
+        "py/object": "elasticai.explorer.knowledge_repository.knowledge_repository.HWPlatform",
+        "name": "rpi4",
+        "info": "Raspberry PI 4 with A72 processor and 4GB RAM",
+        "model_generator": {
+            "py/type": "elasticai.explorer.platforms.generator.generator.PIGenerator"
+        },
+        "platform_manager": {
+            "py/type": "elasticai.explorer.platforms.deployment.manager.PIHWManager"
+        },
+        "communication_protocol": {
+            "py/type": "elasticai.explorer.platforms.deployment.device_communication.Host"
+        },
+        "compiler": {
+            "py/type": "elasticai.explorer.platforms.deployment.compiler.Compiler"
+        }
+    }
+}
