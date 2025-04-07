@@ -11,13 +11,13 @@ from pathlib import Path
 class TestDeploymentAndMeasurement:
     def setUp(self):
         self.hwnas_cfg = HWNASConfig(
-            config_path="tests/system_tests/test_configs/hwnas_config.yaml"
+            config_path=Path("tests/system_tests/test_configs/hwnas_config.yaml")
         )
         self.deploy_cfg = DeploymentConfig(
-            config_path="tests/system_tests/test_configs/deployment_config.yaml"
+            config_path=Path("tests/system_tests/test_configs/deployment_config.yaml")
         )
         self.model_cfg = ModelConfig(
-            config_path="tests/system_tests/test_configs/model_config.yaml"
+            config_path=Path("tests/system_tests/test_configs/model_config.yaml")
         )
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
@@ -31,7 +31,7 @@ class TestDeploymentAndMeasurement:
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository, "only_for_system_tests")
-        self.RPI5explorer.choose_target_hw("rpi5", self.deploy_cfg)
+        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         self.RPI5explorer._model_dir = Path("tests/system_tests/samples")
         self.model_name = "ts_model_0.pt"
         self.RPI5explorer.hw_setup_on_target()
@@ -43,7 +43,7 @@ class TestDeploymentAndMeasurement:
                 self.RPI5explorer.run_measurement(
                     Metric.ACCURACY,
                     model_name=self.model_name,
-                    path_to_data="docker/data",
+                    path_to_data=Path("docker/data"),
                 )["Accuracy"]["value"]
             )
             == float
@@ -57,7 +57,7 @@ class TestDeploymentAndMeasurement:
                 self.RPI5explorer.run_measurement(
                     Metric.LATENCY,
                     model_name=self.model_name,
-                    path_to_data="docker/data",
+                    path_to_data=Path("docker/data"),
                 )["Latency"]["value"]
             )
             == int

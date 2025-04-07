@@ -57,6 +57,9 @@ python_files = ["*_test.py", "test_*.py"]
 addopts = [
     "--import-mode=importlib",
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
 
 
 [tool.coverage.run]
