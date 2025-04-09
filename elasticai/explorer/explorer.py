@@ -128,7 +128,7 @@ class Explorer:
     def hw_setup_on_target(self, path_to_testdata: Path | None):
         """
         Args:
-            path_to_testdata: Relative path to testdata in docker context.
+            path_to_testdata: Relative path to zipped testdata in docker context.
         """
         self.logger.info("Setup Hardware target for experiments.")
         if self.hw_manager:
