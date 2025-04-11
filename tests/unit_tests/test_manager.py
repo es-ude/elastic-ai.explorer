@@ -31,7 +31,7 @@ class TestPiHWManager(unittest.TestCase):
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_latency"
         metric = Metric.LATENCY
         result = self.hwmanager.measure_metric(
-            metric, path_to_model=path, path_to_data=None
+            metric, path_to_model=path
         )
         self.assertEqual(expected, result)
 
@@ -45,10 +45,9 @@ class TestPiHWManager(unittest.TestCase):
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_accuracy"
-        datapath: Path = Path(str(CONTEXT_PATH)) / "data" / "mnist.zip"
         metric = Metric.ACCURACY
         result = self.hwmanager.measure_metric(
-            metric, path_to_model=path, path_to_data=datapath
+            metric, path_to_model=path
         )
         self.assertEqual(expected, result)
 

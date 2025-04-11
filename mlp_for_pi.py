@@ -1,6 +1,7 @@
 import logging
 import logging.config
 from pathlib import Path
+import shutil
 import nni
 import torch
 from torch.utils.data import DataLoader
@@ -63,24 +64,29 @@ def find_generate_measure_for_pi(
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
-    explorer.hw_setup_on_target()
-    latency_measurements = []
-    accuracy_measurements = []
-
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
+    path_to_dataset = Path("data/mnist")
     trainloader: DataLoader = DataLoader(
-        MNIST("data/mnist", download=True, transform=transf),
+        MNIST(path_to_dataset, download=True, transform=transf),
         batch_size=64,
         shuffle=True,
     )
     testloader: DataLoader = DataLoader(
-        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
+        MNIST(path_to_dataset, download=True, train=False, transform=transf),
+        batch_size=64,
     )
+    path_to_test_data = "docker/data/mnist"
 
-    retrain_device = str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))
+    shutil.make_archive(path_to_test_data, "zip", "data/mnist/MNIST/raw")
+
+    explorer.hw_setup_on_target(Path(path_to_test_data + ".zip"))
+    latency_measurements = []
+    accuracy_measurements = []
+
+    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
@@ -89,14 +95,12 @@ def find_generate_measure_for_pi(
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
-        data_path = ROOT_DIR / "data"
-        data_path = ROOT_DIR / "data"
         explorer.generate_for_hw_platform(model, model_name)
 
-        latency = explorer.run_measurement(Metric.LATENCY, model_name, None)
+        latency = explorer.run_measurement(Metric.LATENCY, model_name)
         latency_measurements.append(latency)
         accuracy_measurements.append(
-            explorer.run_measurement(Metric.ACCURACY, model_name, data_path)
+            explorer.run_measurement(Metric.ACCURACY, model_name)
         )
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
