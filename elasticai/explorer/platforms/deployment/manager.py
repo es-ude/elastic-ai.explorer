@@ -36,9 +36,7 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def measure_metric(
-        self, metric: Metric, path_to_model: Path, path_to_data: Path | None
-    ) -> dict:
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         pass
 
 
@@ -59,18 +57,17 @@ class PIHWManager(HWManager):
 
     def install_dataset_on_target(self, path_to_dataset: Path):
         self.target.put_file(str(path_to_dataset), ".")
-        self.target.run_command(f"unzip -q -o {os.path.split(path_to_dataset)[-1]}")
+        self.target.run_command(
+            f"unzip -q -o {os.path.split(path_to_dataset)[-1]} -d data"
+        )
 
-    def measure_metric(
-        self, metric: Metric, path_to_model: Path, path_to_data: Path | None
-    ) -> dict:
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
         cmd = None
         match metric:
             case metric.ACCURACY:
-                _, data_tail = os.path.split(str(path_to_data))
-                cmd = self.build_command("measure_accuracy", [tail, data_tail])
+                cmd = self.build_command("measure_accuracy", [tail, "data"])
                 print("acc")
             case metric.LATENCY:
                 cmd = self.build_command("measure_latency", [tail])
