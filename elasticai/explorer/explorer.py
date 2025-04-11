@@ -66,14 +66,20 @@ class Explorer:
         return self._plot_dir
 
     @experiment_name.setter
-    def experiment_name(self, value):
+    def experiment_name(self, value: str):
         """Setting experiment name updates the experiment pathes aswell."""
-        self._experiment_name = value
+        self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
-        self._model_dir: Path = self._experiment_dir / "models"
-        self._metric_dir: Path = self._experiment_dir / "metrics"
-        self._plot_dir: Path = self._experiment_dir / "plots"
-        self.logger.info(f"Experiment name: {self._experiment_name}")
+        self._update_experiment_pathes()
+    
+
+    @experiment_dir.setter
+    def experiment_dir(self, value: Path):
+        """Setting the experiment directory updates the experiment name to the Path-Stem."""
+        self._experiment_dir: Path = value
+        self._experiment_name: str = self._experiment_dir.stem
+        self._update_experiment_pathes()
+       
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model
@@ -146,6 +152,9 @@ class Explorer:
     def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> Any:
         model_path = self._model_dir / model_name
         return self.generator.generate(model, model_path)
-    def clear_experiment_folder(self):
-        """ Deletes all output files of the current experiment. Use with care, all results of this experiment are lost.""" 
-        shutil.rmtree((self._experiment_dir))
+
+    def _update_experiment_pathes(self):
+        self._model_dir: Path = self._experiment_dir / "models"
+        self._metric_dir: Path = self._experiment_dir / "metrics"
+        self._plot_dir: Path = self._experiment_dir / "plots"
+        self.logger.info(f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}")
