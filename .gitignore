@@ -9,6 +9,7 @@ __pycache__/
 # dataset folder
 /data/
 docker/bin
+docker/data
 /docker/code/libtorch
 .DS_Store
 
