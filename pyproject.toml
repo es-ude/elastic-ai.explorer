@@ -26,11 +26,11 @@ nni = ">=3.0"
 python-language-server = "^0.36.2"
 black = ">21.12"
 pre-commit = "^3.0.0"
-prospector = {extras = ["with_mypy"], version = "^1.7.7"}
+prospector = { extras = ["with_mypy"], version = "^1.7.7" }
 import-linter = "^1.7.0"
 pylint = "^2.16.2"
 pytest = "^7.2.2"
-setuptools = "^67.5.1"
+setuptools = "78.1.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -39,7 +39,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.pylint]
 max-line-length = 88
 accept-no-raise-doc = "False"
-disable="C0115, C0116, C0114" # disable missing docstring messages as they incourage adding noise comments
+disable = "C0115, C0116, C0114" # disable missing docstring messages as they incourage adding noise comments
 
 [tool.black]
 preview = true
@@ -47,7 +47,7 @@ preview = true
 [tool.pytest.ini_options]
 minversion = "6.0"
 markers = [
-  "simulation: possibly slow running integration tests including hw simulation"
+    "simulation: possibly slow running integration tests including hw simulation"
 ]
 testpaths = [
     "elasticai",
@@ -63,7 +63,7 @@ command_line = "-m unittest discover ."
 [tool.importlinter]
 root_package = "elasticai"
 contract_types = [
-"package_private_modules: import_contract.PackagePrivateModules"]
+    "package_private_modules: import_contract.PackagePrivateModules"]
 
 [[tool.importlinter.contracts]]
 name = "package private"
@@ -78,9 +78,9 @@ repository = "pypi"
 upload_to_release = true
 build_command = "python3 -m pip install poetry && poetry build"
 branch = "main"
-parser_angular_allowed_types="chore,docs,feat,style,fix,refactor,wip,perf,revert"
-parser_angular_minor_types="feat"
-parser_angular_patch_types="fix,perf"
+parser_angular_allowed_types = "chore,docs,feat,style,fix,refactor,wip,perf,revert"
+parser_angular_minor_types = "feat"
+parser_angular_patch_types = "fix,perf"
 
 [tool.isort]
 profile = "black"

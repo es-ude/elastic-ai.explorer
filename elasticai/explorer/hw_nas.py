@@ -3,9 +3,10 @@ import math
 
 import nni
 import torch
-from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
+from nni.nas.hub.pytorch import NasBench101
+from nni.nas.strategy import PolicyBasedRL
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -59,7 +60,8 @@ def search(search_space: any, hwnas_cfg: HWNASConfig) -> tuple[list[any], list[a
     """
     Returns: top-models, model-parameters, metrics
     """
-    search_strategy = strategy.Random()
+    search_strategy = PolicyBasedRL()
+    search_space = NasBench101()
     evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials

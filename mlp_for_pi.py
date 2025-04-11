@@ -101,12 +101,37 @@ def find_generate_measure_for_pi(
     )
 
 
+def only_search(explorer: Explorer,
+                hwnas_cfg: HWNASConfig):
+    explorer.generate_search_space()
+    top_models = explorer.search(hwnas_cfg)
+
+    # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
+    transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    trainloader = DataLoader(
+        MNIST("data/mnist", download=True, transform=transf),
+        batch_size=64,
+        shuffle=True,
+    )
+    testloader = DataLoader(
+        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
+    )
+
+    retrain_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    for i, model in enumerate(top_models):
+        mlp_trainer = MLPTrainer(device=retrain_device, optimizer=torch.optim.Adam(model.parameters(), lr=1e-3))
+        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
+        mlp_trainer.test(model, testloader=testloader)
+
+
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path="configs/hwnas_config.yaml")
-    connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
+    # connection_cfg = ConnectionConfig(config_path="configs/connection_config.yaml")
     model_cfg = ModelConfig(config_path="configs/model_config.yaml")
 
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
-    find_generate_measure_for_pi(explorer, connection_cfg, hwnas_cfg)
+    only_search(explorer, hwnas_cfg)
