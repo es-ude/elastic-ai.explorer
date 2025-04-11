@@ -30,9 +30,10 @@ class TestDeploymentAndMeasurement:
                 Compiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_repository, "only_for_system_tests")
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
+        self.RPI5explorer = Explorer(knowledge_repository)
+        self.RPI5explorer.experiment_dir = Path("tests/system_tests/test_experiment")
         self.RPI5explorer._model_dir = Path("tests/system_tests/samples")
+        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         self.model_name = "ts_model_0.pt"
         self.RPI5explorer.hw_setup_on_target()
 
@@ -48,7 +49,6 @@ class TestDeploymentAndMeasurement:
             )
             == float
         )
-        self.tearDown()
 
     def test_run_latency_measurement(self):
         self.setUp()
@@ -62,9 +62,3 @@ class TestDeploymentAndMeasurement:
             )
             == int
         )
-        self.tearDown()
-
-    def tearDown(self):
-
-        self.RPI5explorer.clear_experiment_folder()
-        del self.RPI5explorer

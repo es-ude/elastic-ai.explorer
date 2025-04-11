@@ -37,6 +37,9 @@ configs/
 #experiments
 experiments/
 
+#tests
+tests/system_tests/test_experiment/
+tests/integration_tests/test_experiment/
 
 # Distribution / packaging
 .Python

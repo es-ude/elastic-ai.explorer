@@ -33,13 +33,18 @@ class TestHWNasSetupAndSearch:
                 Compiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_repository, "only_for_integration_tests")
+        self.RPI5explorer = Explorer(knowledge_repository)
+        self.RPI5explorer.experiment_dir = Path(
+            "tests/integration_tests/test_experiment"
+        )
         self.model_name = "ts_model_0.pt"
         self.hwnas_cfg = HWNASConfig(
             config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")
         )
         self.deploy_cfg = DeploymentConfig(
-            config_path=Path("tests/integration_tests/test_configs/deployment_config.yaml")
+            config_path=Path(
+                "tests/integration_tests/test_configs/deployment_config.yaml"
+            )
         )
 
     def test_search(self):
@@ -48,7 +53,6 @@ class TestHWNasSetupAndSearch:
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
         assert len(top_k_models) == 1
         assert type(top_k_models[0]) == search_space.MLP
-        self.tearDown()
 
     def test_generate_for_hw_platform(self):
         self.setUp()
@@ -60,20 +64,15 @@ class TestHWNasSetupAndSearch:
         )
         assert (
             os.path.exists(
-                "experiments/only_for_integration_tests/models/" + self.model_name
+                self.RPI5explorer.model_dir / self.model_name
             )
             == True
         )
         assert (
             type(
                 torch.jit.load(
-                    "experiments/only_for_integration_tests/models/" + self.model_name
+                    self.RPI5explorer.model_dir /  self.model_name
                 )
             )
-            == torch.jit._script.RecursiveScriptModule # type: ignore
+            == torch.jit._script.RecursiveScriptModule  # type: ignore
         )
-        self.tearDown()
-
-    def tearDown(self):
-        self.RPI5explorer.clear_experiment_folder()
-        del self.RPI5explorer
