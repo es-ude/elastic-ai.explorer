@@ -9,16 +9,41 @@ __pycache__/
 # dataset folder
 /data/
 docker/bin
+docker/data
 /docker/code/libtorch
+.DS_Store
+
+#experiments logs
+experiments/
+experiment_data.csv
+
+#plots
+plots/
+
+#metrics
+metrics/
 
 #libtorch 
-docker/code/libtorch
+docker/code/libtorch*
 
 #bin 
 docker/bin
 
 #models
 models/
+
+#individual configs
+configs/
+
+#experiments
+experiments/
+
+#system-tests
+tests/system_tests/test_experiment/
+tests/system_tests/samples/data/
+#integration-tests
+tests/integration_tests/test_experiment/
+
 
 # Distribution / packaging
 .Python
