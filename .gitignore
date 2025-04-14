@@ -37,7 +37,13 @@ configs/
 
 #experiments
 experiments/
-experiment_data.csv
+
+#system-tests
+tests/system_tests/test_experiment/
+tests/system_tests/samples/data/
+#integration-tests
+tests/integration_tests/test_experiment/
+
 
 # Distribution / packaging
 .Python

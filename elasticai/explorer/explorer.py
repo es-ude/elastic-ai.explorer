@@ -67,14 +67,20 @@ class Explorer:
         return self._plot_dir
 
     @experiment_name.setter
-    def experiment_name(self, value):
+    def experiment_name(self, value: str):
         """Setting experiment name updates the experiment pathes aswell."""
-        self._experiment_name = value
+        self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
-        self._model_dir: Path = self._experiment_dir / "models"
-        self._metric_dir: Path = self._experiment_dir / "metrics"
-        self._plot_dir: Path = self._experiment_dir / "plots"
-        self.logger.info(f"Experiment name: {self._experiment_name}")
+        self._update_experiment_pathes()
+    
+
+    @experiment_dir.setter
+    def experiment_dir(self, value: Path):
+        """Setting the experiment directory updates the experiment name to the Path-Stem."""
+        self._experiment_dir: Path = value
+        self._experiment_name: str = self._experiment_dir.stem
+        self._update_experiment_pathes()
+       
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model
@@ -128,7 +134,7 @@ class Explorer:
     def hw_setup_on_target(self, path_to_testdata: Path | None):
         """
         Args:
-            path_to_testdata: Relative path to zipped testdata in docker context.
+            path_to_testdata: Path to zipped testdata relative to docker context. Testdata has to be in docker context.
         """
         self.logger.info("Setup Hardware target for experiments.")
         if self.hw_manager:
@@ -168,3 +174,9 @@ class Explorer:
                 "Generator is not initialized! First run choose_target_hw(deploy_cfg), before generate_for_hw_platform()"
             )
             exit(-1)
+
+    def _update_experiment_pathes(self):
+        self._model_dir: Path = self._experiment_dir / "models"
+        self._metric_dir: Path = self._experiment_dir / "metrics"
+        self._plot_dir: Path = self._experiment_dir / "plots"
+        self.logger.info(f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}")
