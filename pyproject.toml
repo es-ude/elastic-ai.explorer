@@ -1,8 +1,8 @@
 [project]
-name = "elastic-ai-explorer"
+name = "elastic-ai.explorer"
 version = "0.1.0"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
-authors = ["Intelligent Embedded Systems Lab - University Duisburg Essen"]
+authors = [{ name = "Department Embedded Systems - University Duisburg Essen" }]
 readme = "README.md"
 license = "LICENSE"
 
@@ -14,7 +14,7 @@ dependencies = [
     "nni==3.0",
     "python-on-whales>=0.75.1",
     "pytorch-lightning>=2.5.1",
-    "torchvision>=0.21.0",
+    "torchvision==0.19.0",
 ]
 
 
@@ -27,6 +27,30 @@ dev = [
     "setuptools>=78.1.0",
 ]
 
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.black]
+preview = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+markers = [
+  "simulation: possibly slow running integration tests including hw simulation"
+]
+testpaths = [
+    "elasticai",
+    "tests",
+]
+python_files = ["*_test.py", "test_*.py"]
+addopts = [
+    "--import-mode=importlib",
+    "-s"
+]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
 
 [tool.pylint]
 max-line-length = 88
