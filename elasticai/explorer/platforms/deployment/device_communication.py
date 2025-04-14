@@ -20,7 +20,7 @@ class Host:
         )
 
     def _get_connection(self):
-        return Connection(host=self.host_name, user=self.user)
+        return Connection(host=self.host_name, user=self.user, connect_kwargs={"password": "PanteraAI"})
 
     def run_command(self, command: str) -> str:
         try:

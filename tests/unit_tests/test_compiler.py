@@ -8,7 +8,7 @@ from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH
 
 class TestCompiler(unittest.TestCase):
 
-    def test_compile_Program(self):
+    def test_compile_program(self):
 
         expected_name_of_executable = "measure_latency"
         path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
@@ -16,7 +16,7 @@ class TestCompiler(unittest.TestCase):
             compiler_tag="cross",
             path_to_dockerfile=CONTEXT_PATH / "Dockerfile.picross",
             build_context=CONTEXT_PATH,
-            compiled_library_path="./code/libtorch",
+            compiled_library_path="./code/libtorch-32-bit",
         )
         compiler = Compiler(config)
         if not compiler.is_setup():

@@ -3,7 +3,8 @@ FROM debian:bookworm
 
 #arm-linux-gnueabihf-g++
 #gcc-aarch64-linux-gnu
-ENV GNU_HOST=aarch64-linux-gnu
+#ENV GNU_HOST=aarch64-linux-gnu
+ENV GNU_HOST=arm-linux-gnueabihf
 ENV C_COMPILER_ARM_LINUX=$GNU_HOST-gcc
 ENV CXX_COMPILER_ARM_LINUX=$GNU_HOST-g++
 
