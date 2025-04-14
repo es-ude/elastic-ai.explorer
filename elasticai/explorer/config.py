@@ -1,14 +1,18 @@
 import logging
 import os
 from pathlib import Path
+
+import torch
 import yaml
+
+from settings import ROOT_DIR
 
 logger = logging.getLogger("explorer.config")
 
 
 class Config:
     def __init__(self, config_path: Path):
-        with open(config_path, encoding="utf-8") as stream:
+        with open(config_path) as stream:
             try:
                 self.original_yaml_dict: dict = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -22,7 +26,7 @@ class Config:
         """
 
         os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
-        with open(save_path, "w+", encoding="utf-8") as ff:
+        with open(save_path, "w+") as ff:
             yaml.dump(
                 yaml.safe_load(str(vars(self))), stream=ff, default_flow_style=False
             )
@@ -35,23 +39,43 @@ class HWNASConfig(Config):
         self.original_yaml_dict = self.original_yaml_dict.get("HWNASConfig", {})
 
         # set to default value, if yaml dict does not define a value
-        self.host_processor: str = self.original_yaml_dict.get("host_processor", "cpu")
+        self.host_processor: str = self.original_yaml_dict.get("host_processor", "auto")
+        if self.host_processor == "auto":
+            self.host_processor = "cuda" if torch.cuda.is_available() else "cpu"
+    
+
         self.max_search_trials: int = self.original_yaml_dict.get(
             "max_search_trials", 6
         )
         self.top_n_models: int = self.original_yaml_dict.get("top_n_models", 2)
 
 
-class ConnectionConfig(Config):
+class DeploymentConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
-        self.original_yaml_dict = self.original_yaml_dict.get("ConnectionConfig", {})
+        self.original_yaml_dict = self.original_yaml_dict.get("DeploymentConfig", {})
+        self.compiler_tag: str = self.original_yaml_dict.get("compiler_tag", "cross")
+        self.path_to_dockerfile: str = self.original_yaml_dict.get(
+            "path_to_dockerfile", ROOT_DIR / "docker" / "Dockerfile.picross"
+        )
+        self.build_context: str = self.original_yaml_dict.get(
+            "build_context", ROOT_DIR / "docker"
+        )
+        self.compiled_library_path: Path = self.original_yaml_dict.get(
+            "compiled_library_path", "./code/libtorch"
+        )
+
+        self.target_platform_name: str = self.original_yaml_dict.get(
+            "target_platform_name", "rpi5"
+        )
+
         try:
             self.target_name: str = self.original_yaml_dict["target_name"]
             self.target_user: str = self.original_yaml_dict["target_user"]
+
         except KeyError:
             logger.info(
-                "ConnectionConfig is not specified completely! Please specify or target connection is not possible."
+                "DeploymentConfig is not specified completely! Please specify or target connection is not possible."
             )
             exit(-1)
 

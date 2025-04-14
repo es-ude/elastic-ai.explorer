@@ -1,9 +1,12 @@
 FROM cross AS builder
 
-COPY ./code/measure_latency.cpp /code/
-COPY ./code/measure_accuracy.cpp /code/
+ARG HOST_LIBTORCH_PATH="./code/libtorch"
+ARG PROGRAM_CODE
+ARG NAME_OF_EXECUTABLE
+
+COPY ./code/$PROGRAM_CODE /code/
 COPY ./code/CMakeLists.txt /code/
-ADD  ./code/libtorch /code/libtorch
+ADD  $HOST_LIBTORCH_PATH /code/libtorch
 
 ENV BIN_DIR=/tmp/bin
 ENV BUILD_DIR=/code/build
@@ -11,11 +14,12 @@ ENV BUILD_DIR=/code/build
 RUN mkdir -p $BIN_DIR && mkdir -p $BUILD_DIR && \
     cd $BUILD_DIR && \
     cmake -DCMAKE_PREFIX_PATH=/code/libtorch \
+    -DPROGRAM_CODE=$PROGRAM_CODE \
+    -DNAME_OF_EXECUTABLE=$NAME_OF_EXECUTABLE \
     -DCMAKE_TOOLCHAIN_FILE=$CROSS_TOOLCHAIN \
     .. && \
     cmake --build . --config Release  && \
-    cp ./measure_latency $BIN_DIR/ &&\
-    cp ./measure_accuracy $BIN_DIR/
+    cp ./$NAME_OF_EXECUTABLE $BIN_DIR/
 
 
 FROM scratch
