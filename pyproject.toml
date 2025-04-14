@@ -55,6 +55,10 @@ testpaths = [
     "tests",
 ]
 python_files = ["*_test.py", "test_*.py"]
+addopts = [
+    "--import-mode=importlib",
+    "-s"
+]
 
 [tool.coverage.run]
 omit = []
@@ -85,3 +89,4 @@ parser_angular_patch_types="fix,perf"
 
 [tool.isort]
 profile = "black"
+
