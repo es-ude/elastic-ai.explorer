@@ -15,6 +15,7 @@ dependencies = [
     "python-on-whales>=0.75.1",
     "pytorch-lightning>=2.5.1",
     "torchvision==0.19.0",
+    "jsonpickle>=4.0.5",
 ]
 
 
