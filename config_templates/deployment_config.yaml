@@ -9,17 +9,18 @@ DeploymentConfig:
 
   # Select one of the supported hardware platforms: "rpi4", "rpi5". Optional. Defaults to "rpi5".
   target_platform_name: <platform_name>
+  
+  Docker:
+    # The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
+    # It needs to be in the docker build-context. Path must be relative to build-context.
+    # Optional. Defaults to "./code/libtorch".
+    compiled_library_path: "<path/to/library>"
 
-  # The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
-  # It needs to be in the docker build-context. Path must be relative to build-context.
-  # Optional. Defaults to "./code/libtorch".
-  compiled_library_path: "<path/to/library>"
+    # Tag of Crosscompiler Image
+    compiler_tag: "cross"
 
-  # Tag of Crosscompiler Image
-  compiler_tag: "cross"
+    # Full path to Crosscompiler Docker Image
+    path_to_dockerfile: "<path-to-project>/docker/Dockerfile.picross"
 
-  # Full path to Crosscompiler Docker Image
-  path_to_dockerfile: "<path-to-project>/docker/Dockerfile.picross"
-
-  # Full path to docker buildcontext
-  build_context: "<path-to-project>/docker"
+    # Full path to docker buildcontext
+    build_context: "<path-to-project>/docker"

@@ -3,6 +3,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Any
+import torch
 import yaml
 
 from settings import ROOT_DIR
@@ -60,7 +61,9 @@ class HWNASConfig(Config):
     def __init__(self, config_path: Path):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("HWNASConfig", {})
-        self.host_processor: str = self._parse_optional("host_processor", "cpu")
+        self.host_processor: str = self._parse_optional("host_processor", "auto")
+        if self.host_processor == "auto":
+            self.host_processor = "cuda" if torch.cuda.is_available() else "cpu"
         self.max_search_trials: int = self._parse_optional("max_search_trials", 6)
         self.top_n_models: int = self._parse_optional("top_n_models", 2)
 
