@@ -1,10 +1,14 @@
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 import pandas
 import plotly.express as px
 from scipy.stats import kendalltau
+
+from iesude.data import DataSet
+from iesude.data.archives import Zip, PlainFile, Tar
 
 
 def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
@@ -34,7 +38,7 @@ def save_list_to_json(list: list, path_to_dir: Path, filename: str):
         json.dump(list, outfile)
 
 
-def load_json(path_to_json: Path | str) -> any:
+def load_json(path_to_json: Path | str) -> Any:
     with open(path_to_json, "r") as f:
         return json.load(f)
 
@@ -46,3 +50,12 @@ def plot_parallel_coordinates(df: pandas.DataFrame):
         color_continuous_scale=px.colors.diverging.Tealrose,
     )
     fig.show()
+
+
+def get_file_from_sciebo(
+    save_dir: str,
+    file_path_in_sciebo: str,
+    file_type: Zip | PlainFile | Tar = PlainFile,
+):
+    mnist_dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
+    mnist_dataset.download(save_dir)
