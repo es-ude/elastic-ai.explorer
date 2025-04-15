@@ -1,8 +1,8 @@
 [project]
-name = "elastic-ai-explorer"
+name = "elastic-ai.explorer"
 version = "0.1.0"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
-authors = ["Intelligent Embedded Systems Lab - University Duisburg Essen"]
+authors = [{ name = "Department Embedded Systems - University Duisburg Essen" }]
 readme = "README.md"
 license = "LICENSE"
 
@@ -14,8 +14,12 @@ dependencies = [
     "nni==3.0",
     "python-on-whales>=0.75.1",
     "pytorch-lightning>=2.5.1",
+<<<<<<< HEAD
     "torchvision>=0.21.0",
     "iesude-data",
+=======
+    "torchvision==0.19.0",
+>>>>>>> uv_support
 ]
 
 
@@ -28,12 +32,17 @@ dev = [
     "setuptools>=78.1.0",
 ]
 
+[tool.uv]
+default-groups = ["dev"]
 
+<<<<<<< HEAD
 [tool.pylint]
 max-line-length = 88
 accept-no-raise-doc = "False"
 disable="C0115, C0116, C0114, E0015, W0621" #disable missing docstring messages as they incourage adding noise comments
 
+=======
+>>>>>>> uv_support
 [tool.black]
 preview = true
 
@@ -52,16 +61,16 @@ addopts = [
     "-s"
 ]
 
-[tool.coverage.run]
-omit = []
-source = ["elasticai/explorer"]
-command_line = "-m unittest discover ."
+# Same as Black.
+line-length = 88
+indent-width = 4
 
-[tool.importlinter]
-root_package = "elasticai"
-contract_types = [
-"package_private_modules: import_contract.PackagePrivateModules"]
+[tool.pylint]
+max-line-length = 88
+accept-no-raise-doc = "False"
+disable="C0115, C0116, C0114, E0015, W0621" #disable missing docstring messages as they incourage adding noise comments
 
+<<<<<<< HEAD
 [[tool.importlinter.contracts]]
 name = "package private"
 type = "package_private_modules"
@@ -82,3 +91,5 @@ parser_angular_patch_types="fix,perf"
 [tool.isort]
 profile = "black"
 
+=======
+>>>>>>> uv_support
