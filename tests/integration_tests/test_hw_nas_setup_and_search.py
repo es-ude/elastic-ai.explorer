@@ -62,17 +62,8 @@ class TestHWNasSetupAndSearch:
         self.RPI5explorer.generate_for_hw_platform(
             model=model, model_name=self.model_name
         )
+        assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (
-            os.path.exists(
-                self.RPI5explorer.model_dir / self.model_name
-            )
-            == True
-        )
-        assert (
-            type(
-                torch.jit.load(
-                    self.RPI5explorer.model_dir /  self.model_name
-                )
-            )
+            type(torch.jit.load(self.RPI5explorer.model_dir / self.model_name))
             == torch.jit._script.RecursiveScriptModule  # type: ignore
         )

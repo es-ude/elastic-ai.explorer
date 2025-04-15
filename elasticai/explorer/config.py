@@ -20,17 +20,20 @@ class DockerParameter:
 
 
 class Config:
-    """ The Config Superclass for Elastic.AI.explorer.
-    """
-    def __init__(self, config_path: Path):
-        with open(config_path) as stream:
-            try:
-                self._original_yaml_dict: dict = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+    """The Config Superclass for Elastic.AI.explorer."""
+
+    def __init__(self, config_path: Path | None = None):
+        if config_path:
+            with open(config_path) as stream:
+                try:
+                    self._original_yaml_dict: dict = yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print(exc)
+        else:
+            self._original_yaml_dict: dict = {}
 
     def dump_as_yaml(self, save_path: Path):
-        """ Creates a .yaml file of the current config.
+        """Creates a .yaml file of the current config.
 
         Args:
             save_path: The full or relative path to save config to.
@@ -41,13 +44,23 @@ class Config:
                 yaml.safe_load(str(vars(self))), stream=ff, default_flow_style=False
             )
 
-    def _parse_optional(self, parameter_name: str, default: Any) -> Any:
+    def _parse_optional(
+        self, parameter_name: str, default: Any, categorie: str | None = None
+    ) -> Any:
         """dict.get() wrapper"""
-        return self._original_yaml_dict.get(parameter_name, default)
+        if categorie:
+            return self._original_yaml_dict[categorie].get(parameter_name, default)
+        else:
+            return self._original_yaml_dict.get(parameter_name, default)
 
-    def _parse_mandatory(self, parameter_name: str) -> Any:
+    def _parse_mandatory(
+        self, parameter_name: str, categorie: str | None = None
+    ) -> Any:
         try:
-            return self._original_yaml_dict[parameter_name]
+            if categorie:
+                return self._original_yaml_dict[categorie][parameter_name]
+            else:
+                return self._original_yaml_dict[parameter_name]
         except KeyError:
             logger.info(
                 f'The mandatory parameters of the {type(self).__name__} are not specified completely! Please specify parameter "{parameter_name}".'
@@ -56,9 +69,9 @@ class Config:
 
 
 class HWNASConfig(Config):
-    """ HWNASConfig that defines the HW-Nas Behavior and its excution on host.
-    """
-    def __init__(self, config_path: Path):
+    """HWNASConfig that defines the HW-Nas Behavior and its excution on host."""
+
+    def __init__(self, config_path: Path | None = None):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("HWNASConfig", {})
         self.host_processor: str = self._parse_optional("host_processor", "auto")
@@ -69,46 +82,45 @@ class HWNASConfig(Config):
 
 
 class DeploymentConfig(Config):
-    """ The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it.
-    """
-    def __init__(self, config_path: Path):
+    """The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it."""
+
+    def __init__(self, config_path: Path | None = None):
         super().__init__(config_path)
-        # Get neccessary parameters for deployment with docker.
         self._original_yaml_dict: dict[Any, Any] = self._parse_optional(
-            "DeploymentConfig", {"Docker": {}}
+            "DeploymentConfig", {}
         )
 
         # Get necessary parameters for connection with target.
         self.target_name: str = self._parse_mandatory("target_name")
         self.target_user: str = self._parse_mandatory("target_user")
-
         self.target_platform_name: str = self._parse_optional(
             "target_platform_name", "rpi5"
         )
+
+        # Docker
         self.docker = DockerParameter
-        self._docker_yaml_dict = self._parse_optional("Docker", {})
-        self.docker.compiler_tag = self._parse_optional_docker("compiler_tag", "cross")
+        self.docker.compiler_tag = self._parse_optional(
+            "compiler_tag", "cross", "Docker"
+        )
         self.docker.path_to_dockerfile = Path(
-            self._parse_optional_docker(
-                "path_to_dockerfile", ROOT_DIR / "docker" / "Dockerfile.picross"
+            self._parse_optional(
+                "path_to_dockerfile",
+                ROOT_DIR / "docker" / "Dockerfile.picross",
+                "Docker",
             )
         )
         self.docker.build_context = Path(
-            self._parse_optional_docker("build_context", ROOT_DIR / "docker")
+            self._parse_optional("build_context", ROOT_DIR / "docker", "Docker")
         )
         self.docker.compiled_library_path = Path(
-            self._parse_optional_docker("compiled_library_path", "./code/libtorch")
+            self._parse_optional("compiled_library_path", "./code/libtorch", "Docker")
         )
-
-    def _parse_optional_docker(self, parameter_name: str, default: Any) -> Any:
-        """dict.get() wrapper"""
-        return self._docker_yaml_dict.get(parameter_name, default)
 
 
 class ModelConfig(Config):
-    """ ModelConfig defines the type of deep neural network to search for.
-    """
-    def __init__(self, config_path: Path):
+    """ModelConfig defines the type of deep neural network to search for."""
+
+    def __init__(self, config_path: Path | None = None):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("ModelConfig", {})
         self.model_type: str = self._parse_optional("model_type", "MLP")

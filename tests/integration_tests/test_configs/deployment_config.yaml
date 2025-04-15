@@ -2,10 +2,10 @@
 #If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
   #The Hostname of target device.
-  target_name: "transfair.local"
+  target_name: ""
 
   #The Username/user-account of the target device to connect to.
-  target_user: "robin"
+  target_user: ""
 
   target_platform_type: "rpi5"
   
@@ -14,7 +14,6 @@ DeploymentConfig:
     #Optional.
     compiled_library_path: "./code/libtorch"
 
-    
     # Tag of Crosscompiler Image
     compiler_tag: "cross"
 
