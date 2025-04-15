@@ -42,7 +42,6 @@ class HWNASConfig(Config):
         self.host_processor: str = self.original_yaml_dict.get("host_processor", "auto")
         if self.host_processor == "auto":
             self.host_processor = "cuda" if torch.cuda.is_available() else "cpu"
-    
 
         self.max_search_trials: int = self.original_yaml_dict.get(
             "max_search_trials", 6

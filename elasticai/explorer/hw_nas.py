@@ -8,6 +8,7 @@ from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
 from nni.experiment import TrialResult
+from nni.nas.nn.pytorch import ModelSpace
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -16,10 +17,11 @@ from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
 from elasticai.explorer.trainer import MLPTrainer
 
+
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: torch.nn.Module, device: str):
+def evaluate_model(model: ModelSpace, device: str):
     global accuracy
     ##Parameter
     flops_weight = 3.0

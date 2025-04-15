@@ -11,13 +11,10 @@ from torchvision.transforms import transforms
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository.knowledge_repository import (
-    HWPlatform,
     KnowledgeRepository,
 )
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+
+from elasticai.explorer.platforms.deployment.manager import Metric
 from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
@@ -77,7 +74,7 @@ def find_generate_measure_for_pi(
         )
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    _accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
     df = build_search_space_measurements_file(
         latencies,
         explorer.metric_dir / "metrics.json",

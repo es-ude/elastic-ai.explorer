@@ -1,11 +1,11 @@
 import torch
 from nni.nas.profiler.pytorch.flops import FlopsProfiler
-
+from nni.nas.nn.pytorch import ModelSpace
 
 class FlopsEstimator:
     """Wrapper for FlopsProfiler could extend in future"""
 
-    def estimate_flops(self, model_sample: torch.nn.Module) -> int:
+    def estimate_flops(self, model_sample: ModelSpace) -> int:
         """Computes FLOPS for a single module.
 
         Args:
@@ -20,4 +20,4 @@ class FlopsEstimator:
         data_sample = torch.full(input_shape, 1.0)
         profiler = FlopsProfiler(model_sample, data_sample)
 
-        return profiler.expression
+        return int(profiler.expression)
