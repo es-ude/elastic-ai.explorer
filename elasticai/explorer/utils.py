@@ -8,7 +8,7 @@ from scipy.stats import kendalltau
 
 
 def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
-    """Computes Kandell Correlation Coefficient between list_x and list_y.
+    """Computes Kendall Correlation Coefficient between list_x and list_y.
 
     Args:
         list_x: list of numeric values
@@ -27,13 +27,15 @@ def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
 
     return corr
 
-def save_list_to_json(result: list, path_to_dir: Path, filename: str):
-    os.makedirs(path_to_dir, exist_ok=True)
-    with open(path_to_dir/ filename, 'w+', encoding="utf-8") as outfile:
-        json.dump(result, outfile)
 
-def load_json(path_to_json: Path|str) -> any:
-    with open(path_to_json, "r", encoding="utf-8") as f:
+def save_list_to_json(list: list, path_to_dir: Path, filename: str):
+    os.makedirs(path_to_dir, exist_ok=True)
+    with open(path_to_dir / filename, "w+") as outfile:
+        json.dump(list, outfile)
+
+
+def load_json(path_to_json: Path | str) -> any:
+    with open(path_to_json, "r") as f:
         return json.load(f)
 
 
@@ -44,4 +46,3 @@ def plot_parallel_coordinates(df: pandas.DataFrame):
         color_continuous_scale=px.colors.diverging.Tealrose,
     )
     fig.show()
-    

@@ -1,5 +1,6 @@
-from nni.nas.profiler.pytorch.flops import FlopsProfiler
 import torch
+from nni.nas.profiler.pytorch.flops import FlopsProfiler
+
 
 class FlopsEstimator:
     """Wrapper for FlopsProfiler could extend in future"""
@@ -16,7 +17,7 @@ class FlopsEstimator:
 
         first_parameter = next(model_sample.parameters())
         input_shape = first_parameter.size()
-        data_sample = torch.full(input_shape, 1.0) 
+        data_sample = torch.full(input_shape, 1.0)
         profiler = FlopsProfiler(model_sample, data_sample)
 
         return profiler.expression

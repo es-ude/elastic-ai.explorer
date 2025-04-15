@@ -34,6 +34,51 @@ max-line-length = 88
 accept-no-raise-doc = "False"
 disable="C0115, C0116, C0114, E0015, W0621" #disable missing docstring messages as they incourage adding noise comments
 
-[tool.uv.sources]
-iesude-data = { git = "https://github.com/es-ude/data.git" }
+[tool.black]
+preview = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+markers = [
+  "simulation: possibly slow running integration tests including hw simulation"
+]
+testpaths = [
+    "elasticai",
+    "tests",
+]
+python_files = ["*_test.py", "test_*.py"]
+addopts = [
+    "--import-mode=importlib",
+    "-s"
+]
+
+[tool.coverage.run]
+omit = []
+source = ["elasticai/explorer"]
+command_line = "-m unittest discover ."
+
+[tool.importlinter]
+root_package = "elasticai"
+contract_types = [
+"package_private_modules: import_contract.PackagePrivateModules"]
+
+[[tool.importlinter.contracts]]
+name = "package private"
+type = "package_private_modules"
+targets = ["elasticai.explorer"]
+sources = ["elasticai.explorer"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+major_on_zero = false
+repository = "pypi"
+upload_to_release = true
+build_command = "python3 -m pip install poetry && poetry build"
+branch = "main"
+parser_angular_allowed_types="chore,docs,feat,style,fix,refactor,wip,perf,revert"
+parser_angular_minor_types="feat"
+parser_angular_patch_types="fix,perf"
+
+[tool.isort]
+profile = "black"
 
