@@ -49,7 +49,9 @@ class Config:
     ) -> Any:
         """dict.get() wrapper"""
         if categorie:
-            return self._original_yaml_dict[categorie].get(parameter_name, default)
+            return self._original_yaml_dict.get(categorie, {}).get(
+                parameter_name, default
+            )
         else:
             return self._original_yaml_dict.get(parameter_name, default)
 
@@ -91,8 +93,8 @@ class DeploymentConfig(Config):
         )
 
         # Get necessary parameters for connection with target.
-        self.target_name: str = self._parse_mandatory("target_name")
-        self.target_user: str = self._parse_mandatory("target_user")
+        self.target_name: str = self._parse_optional("target_name", "")
+        self.target_user: str = self._parse_optional("target_user", "")
         self.target_platform_name: str = self._parse_optional(
             "target_platform_name", "rpi5"
         )
