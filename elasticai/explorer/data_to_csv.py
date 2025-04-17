@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import pandas
 
 from elasticai.explorer import utils

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Type
-
 import numpy as np
 
 from elasticai.explorer import utils
