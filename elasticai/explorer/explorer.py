@@ -13,7 +13,7 @@ from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatf
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
-from settings import MAIN_EXPERIMENT_DIR, ROOT_DIR
+from settings import MAIN_EXPERIMENT_DIR
 
 
 class Explorer:

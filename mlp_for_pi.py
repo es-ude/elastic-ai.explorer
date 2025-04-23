@@ -79,7 +79,6 @@ def find_generate_measure_for_pi(
         batch_size=64,
     )
 
-    # Make data available to the docker deployment pipeline
     path_to_test_data = "docker/data/mnist"
     shutil.make_archive(path_to_test_data, "zip", "data/mnist/MNIST/raw")
     explorer.hw_setup_on_target(Path(path_to_test_data + ".zip"))

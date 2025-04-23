@@ -20,8 +20,6 @@ class DockerParameter:
 
 
 class Config:
-    """The Config Superclass for Elastic.AI.explorer."""
-
     def __init__(self, config_path: Path | None = None):
         if config_path:
             with open(config_path) as stream:
@@ -33,11 +31,6 @@ class Config:
             self._original_yaml_dict: dict = {}
 
     def dump_as_yaml(self, save_path: Path):
-        """Creates a .yaml file of the current config.
-
-        Args:
-            save_path: The full or relative path to save config to.
-        """
         os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
         with open(save_path, "w+") as ff:
             yaml.dump(
@@ -45,11 +38,10 @@ class Config:
             )
 
     def _parse_optional(
-        self, parameter_name: str, default: Any, categorie: str | None = None
+        self, parameter_name: str, default: Any, category: str | None = None
     ) -> Any:
-        """dict.get() wrapper"""
-        if categorie:
-            return self._original_yaml_dict.get(categorie, {}).get(
+        if category:
+            return self._original_yaml_dict.get(category, {}).get(
                 parameter_name, default
             )
         else:
@@ -71,7 +63,7 @@ class Config:
 
 
 class HWNASConfig(Config):
-    """HWNASConfig that defines the HW-Nas Behavior and its excution on host."""
+    """HWNASConfig that defines the HW-Nas Behavior and its execution on host."""
 
     def __init__(self, config_path: Path | None = None):
         super().__init__(config_path)
@@ -92,14 +84,12 @@ class DeploymentConfig(Config):
             "DeploymentConfig", {}
         )
 
-        # Get necessary parameters for connection with target.
         self.target_name: str = self._parse_optional("target_name", "")
         self.target_user: str = self._parse_optional("target_user", "")
         self.target_platform_name: str = self._parse_optional(
             "target_platform_name", "rpi5"
         )
 
-        # Docker
         self.docker = DockerParameter
         self.docker.compiler_tag = self._parse_optional(
             "compiler_tag", "cross", "Docker"
