@@ -5,15 +5,16 @@ from typing import Optional, Any, Type
 
 from torch import nn
 from torch.nn import Module
+from torch.utils.data import Dataset
 from nni.nas.nn.pytorch import ModelSpace
 
-from elasticai.explorer import hw_nas, utils
+from elasticai.explorer import data, hw_nas, utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
-from settings import MAIN_EXPERIMENT_DIR, ROOT_DIR
+from settings import MAIN_EXPERIMENT_DIR
 
 
 class Explorer:
@@ -24,7 +25,7 @@ class Explorer:
     def __init__(
         self,
         knowledge_repository: KnowledgeRepository,
-        experiment_name: str | None = None,
+        experiment_name: Optional[str] = None,
     ):
         """
         Args:
@@ -40,6 +41,7 @@ class Explorer:
         self.hw_manager: Optional[HWManager] = None
         self.search_space: Optional[Type[ModelSpace] | Module] = None
         self.model_cfg: Optional[ModelConfig] = None
+        self.dataset: Optional[Dataset] = None
 
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
@@ -93,7 +95,7 @@ class Explorer:
         self.search_space = MLP()
         self.logger.info("Generated search space:\n %s", self.search_space)
 
-    def search(self, hwnas_cfg: HWNASConfig) -> list[Any]:
+    def search(self, hwnas_cfg: HWNASConfig, dataset_info: data.DatasetInfo) -> list[Any]:
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials for top %d models ",
@@ -102,7 +104,7 @@ class Explorer:
         )
 
         top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space, hwnas_cfg
+            self.search_space, hwnas_cfg, dataset_info
         )
 
         utils.save_list_to_json(
@@ -131,7 +133,7 @@ class Explorer:
         )
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
-    def hw_setup_on_target(self, path_to_testdata: Path | None):
+    def hw_setup_on_target(self, path_to_testdata: Optional[Path]):
         """
         Args:
             path_to_testdata: Path to zipped testdata relative to docker context. Testdata has to be in docker context.

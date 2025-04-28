@@ -1,17 +1,19 @@
 import logging
 import math
-from typing import Any
-
+from typing import Any, Type
+import copy
 import nni
+from sklearn.exceptions import DataDimensionalityWarning
 import torch
 from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
 from nni.experiment import TrialResult
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from elasticai.explorer import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
 from elasticai.explorer.trainer import MLPTrainer
@@ -19,7 +21,7 @@ from elasticai.explorer.trainer import MLPTrainer
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: torch.nn.Module, device: str):
+def evaluate_model(model: torch.nn.Module, device: str, dataset_info: data.DatasetInfo):
     global accuracy
     ##Parameter
     flops_weight = 3.0
@@ -31,24 +33,14 @@ def evaluate_model(model: torch.nn.Module, device: str):
     flops = flops_estimator.estimate_flops(model)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-    train_loader = DataLoader(
-        MNIST("data/mnist", download=True, transform=transf),
-        batch_size=64,
-        shuffle=True,
-    )
-    test_loader = DataLoader(
-        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
-    )
-    trainer = MLPTrainer(device, optimizer)
+
+    trainer = MLPTrainer(device, optimizer, dataset_info)
 
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
-        trainer.train_epoch(model, train_loader, epoch)
+        trainer.train_epoch(model, epoch)
 
-        metric["accuracy"] = trainer.test(model, test_loader)
+        metric["accuracy"] = trainer.test(model)
 
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
@@ -57,13 +49,16 @@ def evaluate_model(model: torch.nn.Module, device: str):
 
 
 def search(
-    search_space: Any, hwnas_cfg: HWNASConfig
+    search_space: Any, hwnas_cfg: HWNASConfig, dataset_info: data.DatasetInfo
 ) -> tuple[list[Any], list[Any], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
+
     search_strategy = strategy.Random()
-    evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
+    evaluator = FunctionalEvaluator(
+        evaluate_model, device=hwnas_cfg.host_processor, dataset_info=dataset_info
+    )
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials
     experiment.run(port=8081)

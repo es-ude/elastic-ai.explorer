@@ -1,10 +1,19 @@
+from dataclasses import dataclass
 import logging
 from pathlib import Path
+from typing import Type
 from venv import logger
 import pandas as pd
 from torch.utils.data import Dataset
+from torchvision.transforms import Compose
 
 logger = logging.getLogger("explorer.data")
+
+@dataclass
+class DatasetInfo:
+    dataset_type: Type[Dataset]
+    dataset_location: Path
+    transform: Compose 
 
 
 def read_data(file_path: Path) -> pd.DataFrame:
@@ -12,7 +21,7 @@ def read_data(file_path: Path) -> pd.DataFrame:
     match file_path.suffix:
         case ".feather":
             return pd.read_feather(file_path)
-        case ".csv", ".tsv":
+        case ".csv":
             return pd.read_csv(file_path)
         case ".json":
             return pd.read_json(file_path)

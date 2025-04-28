@@ -17,6 +17,9 @@ dependencies = [
     "torchvision==0.19.0",
 ]
 
+# Same as Black.
+line-length = 88
+indent-width = 4
 
 [dependency-groups]
 dev = [
@@ -26,6 +29,7 @@ dev = [
     "python-language-server>=0.36.2",
     "setuptools>=78.1.0",
 ]
+
 
 [tool.uv]
 default-groups = ["dev"]
@@ -48,9 +52,7 @@ addopts = [
     "-s"
 ]
 
-# Same as Black.
-line-length = 88
-indent-width = 4
+
 
 [tool.pylint]
 max-line-length = 88

@@ -4,10 +4,10 @@ from pathlib import Path
 import shutil
 import nni
 import torch
-from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from elasticai.explorer.data import DatasetInfo
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
@@ -62,27 +62,22 @@ def find_generate_measure_for_pi(
 ) -> Metrics:
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space()
-    top_models = explorer.search(hwnas_cfg)
 
-    # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
+    
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    path_to_dataset = Path("data/mnist")
-    trainloader: DataLoader = DataLoader(
-        MNIST(path_to_dataset, download=True, transform=transf),
-        batch_size=64,
-        shuffle=True,
-    )
-    testloader: DataLoader = DataLoader(
-        MNIST(path_to_dataset, download=True, train=False, transform=transf),
-        batch_size=64,
-    )
-    path_to_test_data = "docker/data/mnist"
+    path_to_test_data = Path("data/mnist")
+    
+    
+    __dataset = MNIST(path_to_test_data, download=True, transform=transf) # makes sure data is loaded
 
-    shutil.make_archive(path_to_test_data, "zip", "data/mnist/MNIST/raw")
+    dataset_info = DatasetInfo(MNIST,path_to_test_data, transf)
+    top_models = explorer.search(hwnas_cfg, dataset_info=dataset_info)
 
-    explorer.hw_setup_on_target(Path(path_to_test_data + ".zip"))
+    shutil.make_archive(str(path_to_test_data), "zip", "data/mnist/MNIST/raw")
+
+    explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
     latency_measurements = []
     accuracy_measurements = []
 
@@ -91,9 +86,10 @@ def find_generate_measure_for_pi(
         mlp_trainer = MLPTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
+            dataset_info=dataset_info,
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
-        mlp_trainer.test(model, testloader=testloader)
+        mlp_trainer.train(model, epochs=3)
+        mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name)
 
