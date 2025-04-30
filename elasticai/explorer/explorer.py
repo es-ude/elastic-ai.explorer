@@ -14,6 +14,7 @@ from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatf
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
+from elasticai.explorer.trainer import Trainer
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -74,7 +75,6 @@ class Explorer:
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
         self._update_experiment_pathes()
-    
 
     @experiment_dir.setter
     def experiment_dir(self, value: Path):
@@ -82,7 +82,6 @@ class Explorer:
         self._experiment_dir: Path = value
         self._experiment_name: str = self._experiment_dir.stem
         self._update_experiment_pathes()
-       
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model
@@ -95,7 +94,12 @@ class Explorer:
         self.search_space = MLP()
         self.logger.info("Generated search space:\n %s", self.search_space)
 
-    def search(self, hwnas_cfg: HWNASConfig, dataset_info: data.DatasetInfo) -> list[Any]:
+    def search(
+        self,
+        hwnas_cfg: HWNASConfig,
+        dataset_info: data.DatasetInfo,
+        trainer: Type[Trainer],
+    ) -> list[Any]:
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials for top %d models ",
@@ -104,7 +108,7 @@ class Explorer:
         )
 
         top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space, hwnas_cfg, dataset_info
+            self.search_space, hwnas_cfg, dataset_info, trainer
         )
 
         utils.save_list_to_json(
@@ -181,4 +185,6 @@ class Explorer:
         self._model_dir: Path = self._experiment_dir / "models"
         self._metric_dir: Path = self._experiment_dir / "metrics"
         self._plot_dir: Path = self._experiment_dir / "plots"
-        self.logger.info(f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}")
+        self.logger.info(
+            f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}"
+        )

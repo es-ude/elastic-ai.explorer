@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 import torch
 from torch import nn
+from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
@@ -10,6 +11,18 @@ from elasticai.explorer.data import DatasetInfo
 
 
 class Trainer(ABC):
+
+    @abstractmethod
+    def __init__(
+        self,
+        device: str,
+        optimizer: Optimizer,
+        dataset_info: DatasetInfo,
+        loss_fn: _Loss = nn.CrossEntropyLoss(),
+        batch_size: int = 64,
+    ):
+        pass
+
     @abstractmethod
     def train(self, model: nn.Module, epochs: int):
         pass

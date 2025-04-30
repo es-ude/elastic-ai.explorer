@@ -16,12 +16,12 @@ from torchvision.transforms import transforms
 from elasticai.explorer import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
-from elasticai.explorer.trainer import MLPTrainer
+from elasticai.explorer.trainer import MLPTrainer, Trainer
 
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: torch.nn.Module, device: str, dataset_info: data.DatasetInfo):
+def evaluate_model(model: torch.nn.Module, device: str, dataset_info: data.DatasetInfo, trainer_class: Type[Trainer]):
     global accuracy
     ##Parameter
     flops_weight = 3.0
@@ -34,7 +34,7 @@ def evaluate_model(model: torch.nn.Module, device: str, dataset_info: data.Datas
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
 
-    trainer = MLPTrainer(device, optimizer, dataset_info)
+    trainer = trainer_class(device, optimizer, dataset_info)
 
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
@@ -49,7 +49,7 @@ def evaluate_model(model: torch.nn.Module, device: str, dataset_info: data.Datas
 
 
 def search(
-    search_space: Any, hwnas_cfg: HWNASConfig, dataset_info: data.DatasetInfo
+    search_space: Any, hwnas_cfg: HWNASConfig, dataset_info: data.DatasetInfo, trainer_class: Type[Trainer]
 ) -> tuple[list[Any], list[Any], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -57,7 +57,7 @@ def search(
 
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(
-        evaluate_model, device=hwnas_cfg.host_processor, dataset_info=dataset_info
+        evaluate_model, device=hwnas_cfg.host_processor, dataset_info=dataset_info, trainer_class = trainer_class
     )
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials

@@ -55,6 +55,19 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
     return knowledge_repository
 
 
+def setup_mnist(path_to_test_data: Path):
+    transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    # makes sure mnist data is loaded
+    MNIST(path_to_test_data, download=True)
+    shutil.make_archive(
+        str(path_to_test_data), "zip", f"{str(path_to_test_data)}/MNIST/raw"
+    )
+    dataset_info = DatasetInfo(MNIST, path_to_test_data, transf)
+    return dataset_info
+
+
 def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
@@ -63,20 +76,12 @@ def find_generate_measure_for_pi(
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space()
 
-    
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
     path_to_test_data = Path("data/mnist")
-    
-    
-    __dataset = MNIST(path_to_test_data, download=True, transform=transf) # makes sure data is loaded
+    dataset_info = setup_mnist(path_to_test_data)
 
-    dataset_info = DatasetInfo(MNIST,path_to_test_data, transf)
-    top_models = explorer.search(hwnas_cfg, dataset_info=dataset_info)
-
-    shutil.make_archive(str(path_to_test_data), "zip", "data/mnist/MNIST/raw")
-
+    top_models = explorer.search(
+        hwnas_cfg, dataset_info=dataset_info, trainer=MLPTrainer
+    )
     explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
     latency_measurements = []
     accuracy_measurements = []
