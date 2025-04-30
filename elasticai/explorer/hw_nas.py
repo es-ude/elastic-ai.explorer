@@ -1,27 +1,30 @@
 import logging
 import math
 from typing import Any, Type
-import copy
+
 import nni
-from sklearn.exceptions import DataDimensionalityWarning
+
 import torch
 from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
 from nni.experiment import TrialResult
-from torch.utils.data import DataLoader, Dataset
-from torchvision.datasets import MNIST
-from torchvision.transforms import transforms
+
 
 from elasticai.explorer import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
-from elasticai.explorer.trainer import MLPTrainer, Trainer
+from elasticai.explorer.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: torch.nn.Module, device: str, dataset_info: data.DatasetInfo, trainer_class: Type[Trainer]):
+def evaluate_model(
+    model: torch.nn.Module,
+    device: str,
+    dataset_info: data.DatasetInfo,
+    trainer_class: Type[Trainer],
+):
     global accuracy
     ##Parameter
     flops_weight = 3.0
@@ -40,16 +43,20 @@ def evaluate_model(model: torch.nn.Module, device: str, dataset_info: data.Datas
     for epoch in range(n_epochs):
         trainer.train_epoch(model, epoch)
 
-        metric["accuracy"] = trainer.test(model)
+        metric["accuracy"] = trainer.validate(model)
 
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
 
+    metric["accuracy"] = trainer.test(model)
     nni.report_final_result(metric)
 
 
 def search(
-    search_space: Any, hwnas_cfg: HWNASConfig, dataset_info: data.DatasetInfo, trainer_class: Type[Trainer]
+    search_space: Any,
+    hwnas_cfg: HWNASConfig,
+    dataset_info: data.DatasetInfo,
+    trainer_class: Type[Trainer],
 ) -> tuple[list[Any], list[Any], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -57,7 +64,10 @@ def search(
 
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(
-        evaluate_model, device=hwnas_cfg.host_processor, dataset_info=dataset_info, trainer_class = trainer_class
+        evaluate_model,
+        device=hwnas_cfg.host_processor,
+        dataset_info=dataset_info,
+        trainer_class=trainer_class,
     )
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials

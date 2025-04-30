@@ -16,9 +16,9 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 
+from elasticai.explorer.trainer import MLPTrainer
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
-
 
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
@@ -57,12 +57,14 @@ class TestHWNasSetupAndSearch:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        __test_dataset = MNIST(path_to_dataset, download=True, transform=transf)
-        self.dataset_info = DatasetInfo(MNIST,path_to_dataset, transf)
+        MNIST(path_to_dataset, download=True)
+        self.dataset_info = DatasetInfo(MNIST, path_to_dataset, transf)
 
     def test_search(self):
         self.RPI5explorer.generate_search_space()
-        top_k_models = self.RPI5explorer.search(self.hwnas_cfg, self.dataset_info)
+        top_k_models = self.RPI5explorer.search(
+            self.hwnas_cfg, self.dataset_info, MLPTrainer
+        )
         assert len(top_k_models) == 1
         assert type(top_k_models[0]) == search_space.MLP
 
@@ -73,17 +75,8 @@ class TestHWNasSetupAndSearch:
         self.RPI5explorer.generate_for_hw_platform(
             model=model, model_name=self.model_name
         )
+        assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (
-            os.path.exists(
-                self.RPI5explorer.model_dir / self.model_name
-            )
-            == True
-        )
-        assert (
-            type(
-                torch.jit.load(
-                    self.RPI5explorer.model_dir /  self.model_name
-                )
-            )
+            type(torch.jit.load(self.RPI5explorer.model_dir / self.model_name))
             == torch.jit._script.RecursiveScriptModule  # type: ignore
         )
