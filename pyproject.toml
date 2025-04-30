@@ -35,6 +35,7 @@ default-groups = ["dev"]
 
 [tool.black]
 preview = true
+max-line-length = 88
 
 [tool.pytest.ini_options]
 minversion = "6.0"
