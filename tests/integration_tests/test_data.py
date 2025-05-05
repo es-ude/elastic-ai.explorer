@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 import pandas as pd
-
 from elasticai.explorer.data import FlatSequencialDataset
+from torch.utils.data import DataLoader
 
 
 class TestData:
@@ -17,9 +17,16 @@ class TestData:
 
     def test_flat_sequencial_dataset(self):
         dataset = FlatSequencialDataset(
-            self.sample_dir / "data.csv", label_names="labels_test"
+            self.sample_dir / "data.csv",
+            label_names="labels_test",
         )
         assert len(dataset) == 4
+
+        dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
+        for data, target in dataloader:
+            assert len(data) == 2
+            assert len(target) == 2
+    
 
     def teardown_method(self):
         os.remove(self.sample_dir / "data.csv")

@@ -3,8 +3,10 @@ import logging
 from pathlib import Path
 from typing import Type
 from venv import logger
+import numpy as np
 import pandas as pd
-from torch.utils.data import Dataset
+import torch
+from torch.utils.data import Dataset, random_split
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose
 
@@ -12,8 +14,10 @@ logger = logging.getLogger("explorer.data")
 
 
 class FlatSequencialDataset(Dataset):
-    """Represents sequencial datasets with only 1-Dimensional features and labels.
-    label_names (Optional): the column name of the labels. Default = 'lables'"""
+    """
+    Represents sequencial datasets with only 1-Dimensional features and labels.
+    label_names (Optional): the column name of the labels. Default = 'lables'
+    """
 
     def __init__(
         self, dataset_file: Path, transform=None, target_transform=None, **kwargs
@@ -33,8 +37,8 @@ class FlatSequencialDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        feature_vector = self.data.iloc[idx, :]
-        label = self.data.iloc[idx, 1]
+        feature_vector = np.array(self.data.iloc[idx, :])
+        label = np.array(self.targets.iloc[idx])
         if self.transform:
             feature_vector = self.transform(feature_vector)
         if self.target_transform:

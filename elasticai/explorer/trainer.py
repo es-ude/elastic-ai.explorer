@@ -50,6 +50,7 @@ class MLPTrainer(Trainer):
         dataset_info: DatasetInfo,
         loss_fn=nn.CrossEntropyLoss(),
         batch_size: int = 64,
+        validation_split_seed: int = 1,
     ):
 
         self.logger = logging.getLogger("explorer.MLPTrainer")
@@ -73,7 +74,7 @@ class MLPTrainer(Trainer):
         train_subset, val_subset = random_split(
             train_dataset,
             [0.9, 0.1],
-            generator=torch.Generator().manual_seed(1),
+            generator=torch.Generator().manual_seed(validation_split_seed),
         )
 
         self.train_loader = DataLoader(
