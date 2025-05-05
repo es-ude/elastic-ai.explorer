@@ -1,6 +1,7 @@
 from torch import nn
 from torch.nn import functional
 
+
 class sample_MLP(nn.Module):
     def __init__(self):
         super().__init__()

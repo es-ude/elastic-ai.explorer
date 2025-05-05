@@ -8,7 +8,6 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, random_split
 
 from elasticai.explorer.data import DatasetInfo
-from sklearn.model_selection import train_test_split
 
 
 class Trainer(ABC):
@@ -96,10 +95,10 @@ class MLPTrainer(Trainer):
     def validate(self, model: nn.Module):
         """
         Args:
-            model: The NN-Model to test.
+            model: The NN-Model to validate.
 
         Returns:
-            float: Accuracy on test data.
+            float: Accuracy on validation data.
         """
 
         test_loss = 0

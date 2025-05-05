@@ -30,9 +30,7 @@ class TestPiHWManager(unittest.TestCase):
         self.hwmanager = PIHWManager(target, compiler)
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_latency"
         metric = Metric.LATENCY
-        result = self.hwmanager.measure_metric(
-            metric, path_to_model=path
-        )
+        result = self.hwmanager.measure_metric(metric, path_to_model=path)
         self.assertEqual(expected, result)
 
     def test_run_accuracy_measurements(self):
@@ -46,9 +44,7 @@ class TestPiHWManager(unittest.TestCase):
         self.hwmanager = PIHWManager(target, compiler)
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_accuracy"
         metric = Metric.ACCURACY
-        result = self.hwmanager.measure_metric(
-            metric, path_to_model=path
-        )
+        result = self.hwmanager.measure_metric(metric, path_to_model=path)
         self.assertEqual(expected, result)
 
 

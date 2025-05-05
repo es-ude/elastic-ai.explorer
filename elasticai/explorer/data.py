@@ -5,37 +5,36 @@ from typing import Type
 from venv import logger
 import pandas as pd
 from torch.utils.data import Dataset
-from torchvision.datasets import VisionDataset, MNIST
+from torchvision.datasets import MNIST
 from torchvision.transforms import Compose
 
 logger = logging.getLogger("explorer.data")
 
 
 class FlatSequencialDataset(Dataset):
-    """Represents sequencial datasets with only 1-Dimensional features and labels"""
+    """Represents sequencial datasets with only 1-Dimensional features and labels.
+    label_names (Optional): the column name of the labels. Default = 'lables'"""
 
     def __init__(
         self, dataset_file: Path, transform=None, target_transform=None, **kwargs
     ):
         label_names = kwargs.get("label_names", "labels")
-        self.features: pd.DataFrame = read_data(dataset_file).drop(
+        self.data: pd.DataFrame = read_data(dataset_file).drop(
             label_names, axis="columns"
         )
-        self.labels: pd.Series = read_data(dataset_file)[label_names]
-        if len(self.features) != len(self.labels):
+        self.targets: pd.Series = read_data(dataset_file)[label_names]
+        if len(self.data) != len(self.targets):
             raise ValueError("The features and labels must have the same length.")
 
         self.transform = transform
         self.target_transform = target_transform
 
-        self.data, self.targets = self.features, self.labels
-
     def __len__(self):
-        return len(self.features)
+        return len(self.data)
 
     def __getitem__(self, idx):
-        feature_vector = self.features.iloc[idx, :]
-        label = self.features.iloc[idx, 1]
+        feature_vector = self.data.iloc[idx, :]
+        label = self.data.iloc[idx, 1]
         if self.transform:
             feature_vector = self.transform(feature_vector)
         if self.target_transform:

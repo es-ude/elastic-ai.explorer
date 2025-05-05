@@ -5,7 +5,6 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from elasticai.explorer import search_space
-from elasticai.explorer import explorer
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.data import DatasetInfo
 from elasticai.explorer.explorer import Explorer

@@ -1,13 +1,14 @@
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 import pandas
 import plotly.express as px
 from scipy.stats import kendalltau
 
 
-def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
+def compute_kendall(list_x: list[Any], list_y: list[Any]) -> Any:
     """Computes Kendall Correlation Coefficient between list_x and list_y.
 
     Args:
@@ -15,7 +16,7 @@ def compute_kendall(list_x: list[any], list_y: list[any]) -> float:
         list_y: list of numeric values
 
     Returns:
-        float: the correlation coeficient
+        Any: the correlation coeficient
     """
 
     # Taking values from the above example in Lists
@@ -34,7 +35,7 @@ def save_list_to_json(list: list, path_to_dir: Path, filename: str):
         json.dump(list, outfile)
 
 
-def load_json(path_to_json: Path | str) -> any:
+def load_json(path_to_json: Path | str) -> Any:
     with open(path_to_json, "r") as f:
         return json.load(f)
 

@@ -13,7 +13,6 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
-    Metrics,
 )
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
@@ -21,6 +20,7 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
+from elasticai.explorer.visualizer import Metrics
 from settings import ROOT_DIR
 
 nni.enable_global_logging(False)

@@ -8,6 +8,7 @@ import torch
 from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
+from nni.nas.nn.pytorch import ModelSpace
 from nni.experiment import TrialResult
 
 
@@ -20,7 +21,7 @@ logger = logging.getLogger("explorer.nas")
 
 
 def evaluate_model(
-    model: torch.nn.Module,
+    model: ModelSpace,
     device: str,
     dataset_info: data.DatasetInfo,
     trainer_class: Type[Trainer],
@@ -55,9 +56,6 @@ def search(
     dataset_info: data.DatasetInfo,
     trainer_class: Type[Trainer],
 ) -> tuple[list[Any], list[Any], list[Any]]:
-    """
-    Returns: top-models, model-parameters, metrics
-    """
 
     search_strategy = strategy.Random()
     evaluator = FunctionalEvaluator(

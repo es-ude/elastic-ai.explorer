@@ -40,7 +40,7 @@ class TestDeploymentAndMeasurement:
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         self.model_name = "ts_model_0.pt"
         transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         path_to_dataset = Path("tests/system_tests/samples/data/mnist")
         __trainloader: DataLoader = DataLoader(
@@ -57,8 +57,7 @@ class TestDeploymentAndMeasurement:
         assert (
             type(
                 self.RPI5explorer.run_measurement(
-                    Metric.ACCURACY,
-                    model_name=self.model_name
+                    Metric.ACCURACY, model_name=self.model_name
                 )["Accuracy"]["value"]
             )
             == float
