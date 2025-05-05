@@ -7,6 +7,9 @@ import pandas
 import plotly.express as px
 from scipy.stats import kendalltau
 
+from iesude.data import DataSet
+from iesude.data.archives import Zip, PlainFile, Tar
+
 
 def compute_kendall(list_x: list[Any], list_y: list[Any]) -> Any:
     """Computes Kendall Correlation Coefficient between list_x and list_y.
@@ -47,3 +50,12 @@ def plot_parallel_coordinates(df: pandas.DataFrame):
         color_continuous_scale=px.colors.diverging.Tealrose,
     )
     fig.show()
+
+
+def get_file_from_sciebo(
+    save_dir: str,
+    file_path_in_sciebo: str,
+    file_type: Zip | PlainFile | Tar = PlainFile,
+):
+    mnist_dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
+    mnist_dataset.download(save_dir)
