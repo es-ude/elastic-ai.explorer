@@ -10,6 +10,7 @@ from scipy.stats import kendalltau
 from iesude.data import DataSet
 from iesude.data.extractable import ExtractableFn, ExtractableT
 from iesude.data.archives import Zip, PlainFile, Tar
+import owncloud
 
 
 def compute_kendall(list_x: list[Any], list_y: list[Any]) -> Any:
@@ -58,13 +59,23 @@ def get_file_from_sciebo(
     file_path_in_sciebo: str,
     file_type: ExtractableFn,
 ):
-    if file_type is PlainFile:
-        dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
-        parent = Path(save_dir).parent
-        dataset.download(parent)
-        save_path = Path(save_dir).parent.parent / Path(file_path_in_sciebo)
-        os.renames(save_path, save_dir)
 
-    else:
-        dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
-        dataset.download(save_dir)
+    for i in range(10):
+        try:
+            if file_type is PlainFile:
+                dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
+                parent = Path(save_dir).parent
+                dataset.download(parent)
+                save_path = Path(save_dir).parent.parent / Path(file_path_in_sciebo)
+                os.renames(save_path, save_dir)
+
+            else:
+                dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
+                dataset.download(save_dir)
+        except owncloud.HTTPResponseError as err:
+            if i < 10:
+                continue
+            else:
+                raise err
+        else:
+            break
