@@ -12,16 +12,36 @@ from elasticai.explorer.data import DatasetInfo
 
 class Trainer(ABC):
 
-    @abstractmethod
     def __init__(
         self,
-        device: str,
-        optimizer: Optimizer,
         dataset_info: DatasetInfo,
-        loss_fn: _Loss = nn.CrossEntropyLoss(),
         batch_size: int = 64,
+        validation_split_seed: int = 1,
     ):
-        pass
+        train_dataset = dataset_info.dataset_type(
+            dataset_info.dataset_location,
+            train=True,
+            download=True,
+            transform=dataset_info.transform,
+        )
+        test_dataset = dataset_info.dataset_type(
+            dataset_info.dataset_location,
+            train=False,
+            download=True,
+            transform=dataset_info.transform,
+        )
+
+        train_subset, val_subset = random_split(
+            train_dataset,
+            [0.9, 0.1],
+            generator=torch.Generator().manual_seed(validation_split_seed),
+        )
+
+        self.train_loader = DataLoader(
+            train_subset, batch_size=batch_size, shuffle=True
+        )
+        self.val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=True)
+        self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     @abstractmethod
     def train(self, model: nn.Module, epochs: int):
@@ -52,36 +72,11 @@ class MLPTrainer(Trainer):
         batch_size: int = 64,
         validation_split_seed: int = 1,
     ):
-
+        super().__init__(dataset_info, batch_size, validation_split_seed)
         self.logger = logging.getLogger("explorer.MLPTrainer")
         self.device = device
         self.optimizer = optimizer
         self.loss_fn = loss_fn
-
-        train_dataset = dataset_info.dataset_type(
-            dataset_info.dataset_location,
-            train=True,
-            download=True,
-            transform=dataset_info.transform,
-        )
-        test_dataset = dataset_info.dataset_type(
-            dataset_info.dataset_location,
-            train=False,
-            download=True,
-            transform=dataset_info.transform,
-        )
-
-        train_subset, val_subset = random_split(
-            train_dataset,
-            [0.9, 0.1],
-            generator=torch.Generator().manual_seed(validation_split_seed),
-        )
-
-        self.train_loader = DataLoader(
-            train_subset, batch_size=batch_size, shuffle=True
-        )
-        self.val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=True)
-        self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     def train(self, model: nn.Module, epochs: int):
         """
