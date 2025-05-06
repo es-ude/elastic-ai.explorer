@@ -17,7 +17,7 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager
 
 from elasticai.explorer.trainer import MLPTrainer
 from settings import ROOT_DIR
-from tests.integration_tests.samples.sample_MLP import sample_MLP
+from tests.integration_tests.samples.sample_MLP import SampleMLP
 
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
@@ -69,7 +69,7 @@ class TestHWNasSetupAndSearch:
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)
-        model = sample_MLP()
+        model = SampleMLP(28 * 28)
 
         self.RPI5explorer.generate_for_hw_platform(
             model=model, model_name=self.model_name

@@ -66,7 +66,7 @@ class MLPTrainer(Trainer):
         )
         test_dataset = dataset_info.dataset_type(
             dataset_info.dataset_location,
-            train=True,
+            train=False,
             download=True,
             transform=dataset_info.transform,
         )

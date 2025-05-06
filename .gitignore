@@ -48,7 +48,7 @@ tests/system_tests/samples/data/
 tests/integration_tests/test_experiment/
 tests/integration_tests/samples/features.csv
 tests/integration_tests/samples/labels.csv
-
+tests/integration_tests/samples/test_dataset.csv
 # Distribution / packaging
 .Python
 build/

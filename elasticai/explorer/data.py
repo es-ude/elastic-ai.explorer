@@ -1,66 +1,103 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import Type
+from typing import Callable, Optional, Type, Union
 from venv import logger
 import numpy as np
 import pandas as pd
-import torch
-from torch.utils.data import Dataset, random_split
+from iesude.data.archives import Zip
+from torch import float32
+from torch.utils.data import Dataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose
+from sklearn.model_selection import train_test_split
+from elasticai.explorer.utils import get_file_from_sciebo
 
 logger = logging.getLogger("explorer.data")
 
 
 class FlatSequencialDataset(Dataset):
     """
-    Represents sequencial datasets with only 1-Dimensional features and labels.
+    Base class for sequencial datasets with only 1-Dimensional features and labels.
     label_names (Optional): the column name of the labels. Default = 'lables'
     """
 
     def __init__(
-        self, dataset_file: Path, transform=None, target_transform=None, **kwargs
+        self,
+        root: Union[str, Path],
+        train: bool = True,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        download: bool = False,
     ):
-        label_names = kwargs.get("label_names", "labels")
-        self.data: pd.DataFrame = read_data(dataset_file).drop(
-            label_names, axis="columns"
-        )
-        self.targets: pd.Series = read_data(dataset_file)[label_names]
-        if len(self.data) != len(self.targets):
+        self.root = root
+        if download:
+            self._download_data()
+
+        self._setup_data()
+        self._setup_targets()
+
+        if train:
+            self.data, _ = train_test_split(self.data, test_size=0.2, random_state=42)
+            self.targets, _ = train_test_split(
+                self.targets, test_size=0.2, random_state=42
+            )
+        else:
+            _, self.data = train_test_split(self.data, test_size=0.2, random_state=42)
+            _, self.targets = train_test_split(
+                self.targets, test_size=0.2, random_state=42
+            )
+
+        if len(self.data.index) != len(self.targets):
             raise ValueError("The features and labels must have the same length.")
 
         self.transform = transform
         self.target_transform = target_transform
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data.index)
 
     def __getitem__(self, idx):
-        feature_vector = np.array(self.data.iloc[idx, :])
-        label = np.array(self.targets.iloc[idx])
+        feature_vector = np.array(self.data.iloc[idx, 1:])
+        target = np.array(self.targets.iloc[idx])
         if self.transform:
             feature_vector = self.transform(feature_vector)
         if self.target_transform:
-            label = self.target_transform(label)
-        return feature_vector, label
+            target = self.target_transform(target)
+        return feature_vector, target
+
+    @abstractmethod
+    def _setup_data(self):
+        """Set self.data as the pandas dataset without target"""
+        pass
+
+    @abstractmethod
+    def _setup_targets(self):
+        """Set self.targets as the pandas series without features"""
+        pass
+
+    @abstractmethod
+    def _download_data(self):
+        """Define how to download the raw dataset"""
+        pass
+
+    @staticmethod
+    def read_data(file_path: Path) -> pd.DataFrame:
+
+        match file_path.suffix:
+            case ".feather":
+                return pd.read_feather(file_path)
+            case ".csv":
+                return pd.read_csv(file_path)
+            case ".json":
+                return pd.read_json(file_path)
+            case _:
+                raise ValueError(f"Unsupported filetype: {file_path}")
 
 
 @dataclass
 class DatasetInfo:
     dataset_type: Type[MNIST] | Type[FlatSequencialDataset]
     dataset_location: Path
-    transform: Compose
-
-
-def read_data(file_path: Path) -> pd.DataFrame:
-
-    match file_path.suffix:
-        case ".feather":
-            return pd.read_feather(file_path)
-        case ".csv":
-            return pd.read_csv(file_path)
-        case ".json":
-            return pd.read_json(file_path)
-        case _:
-            raise ValueError(f"Unsupported filetype: {file_path}")
+    transform: Compose | None

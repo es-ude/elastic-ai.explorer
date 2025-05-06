@@ -1,13 +1,14 @@
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Type
 
 import pandas
 import plotly.express as px
 from scipy.stats import kendalltau
 
 from iesude.data import DataSet
+from iesude.data.extractable import ExtractableFn, ExtractableT
 from iesude.data.archives import Zip, PlainFile, Tar
 
 
@@ -55,7 +56,15 @@ def plot_parallel_coordinates(df: pandas.DataFrame):
 def get_file_from_sciebo(
     save_dir: str,
     file_path_in_sciebo: str,
-    file_type: Zip | PlainFile | Tar = PlainFile,
+    file_type: ExtractableFn,
 ):
-    mnist_dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
-    mnist_dataset.download(save_dir)
+    if file_type is PlainFile:
+        dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
+        parent = Path(save_dir).parent
+        dataset.download(parent)
+        save_path = Path(save_dir).parent.parent / Path(file_path_in_sciebo)
+        os.renames(save_path, save_dir)
+
+    else:
+        dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
+        dataset.download(save_dir)
