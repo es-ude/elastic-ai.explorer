@@ -59,7 +59,9 @@ def get_file_from_sciebo(
     file_path_in_sciebo: str,
     file_type: ExtractableFn,
 ):
-
+    if os.path.isfile(save_dir) or (os.path.isdir(save_dir) and os.listdir(save_dir)):
+        return 
+    
     for i in range(10):
         try:
             if file_type is PlainFile:
