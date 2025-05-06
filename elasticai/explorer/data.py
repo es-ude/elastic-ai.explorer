@@ -6,13 +6,11 @@ from typing import Callable, Optional, Type, Union
 from venv import logger
 import numpy as np
 import pandas as pd
-from iesude.data.archives import Zip
-from torch import float32
 from torch.utils.data import Dataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose
 from sklearn.model_selection import train_test_split
-from elasticai.explorer.utils import get_file_from_sciebo
+
 
 logger = logging.getLogger("explorer.data")
 
@@ -20,7 +18,6 @@ logger = logging.getLogger("explorer.data")
 class FlatSequencialDataset(Dataset):
     """
     Base class for sequencial datasets with only 1-Dimensional features and labels.
-    label_names (Optional): the column name of the labels. Default = 'lables'
     """
 
     def __init__(
@@ -69,17 +66,17 @@ class FlatSequencialDataset(Dataset):
 
     @abstractmethod
     def _setup_data(self):
-        """Set self.data as the pandas dataset without target"""
+        """Set self.data as a pandas dataset without target"""
         pass
 
     @abstractmethod
     def _setup_targets(self):
-        """Set self.targets as the pandas series without features"""
+        """Set self.targets as a pandas series without features"""
         pass
 
     @abstractmethod
     def _download_data(self):
-        """Define how to download the raw dataset"""
+        """Define how to download the raw dataset to self.root"""
         pass
 
     @staticmethod

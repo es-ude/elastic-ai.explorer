@@ -1,15 +1,15 @@
 import json
 import os
 from pathlib import Path
-from typing import Any, Type
+from typing import Any
 
 import pandas
 import plotly.express as px
 from scipy.stats import kendalltau
 
 from iesude.data import DataSet
-from iesude.data.extractable import ExtractableFn, ExtractableT
-from iesude.data.archives import Zip, PlainFile, Tar
+from iesude.data.extractable import ExtractableFn
+from iesude.data.archives import PlainFile
 import owncloud
 
 

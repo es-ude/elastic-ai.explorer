@@ -40,7 +40,7 @@ iesude-data = { git = "https://github.com/es-ude/data.git" }
 
 [tool.black]
 preview = true
-max-line-length = 88
+line-length = 88
 
 [tool.pytest.ini_options]
 minversion = "6.0"
