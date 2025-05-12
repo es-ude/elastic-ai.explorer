@@ -3,7 +3,6 @@ import logging
 
 import torch
 from torch import nn
-from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, random_split
 
@@ -14,7 +13,10 @@ class Trainer(ABC):
 
     def __init__(
         self,
+        device: str,
+        optimizer: Optimizer,
         dataset_info: DatasetInfo,
+        loss_fn= nn.CrossEntropyLoss(),
         batch_size: int = 64,
         validation_split_seed: int = 1,
     ):
@@ -72,7 +74,9 @@ class MLPTrainer(Trainer):
         batch_size: int = 64,
         validation_split_seed: int = 1,
     ):
-        super().__init__(dataset_info, batch_size, validation_split_seed)
+        super().__init__(
+            device, optimizer, dataset_info, loss_fn, batch_size, validation_split_seed
+        )
         self.logger = logging.getLogger("explorer.MLPTrainer")
         self.device = device
         self.optimizer = optimizer

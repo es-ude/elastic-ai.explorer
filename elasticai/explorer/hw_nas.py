@@ -43,6 +43,7 @@ def evaluate_model(
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         trainer.train_epoch(model, epoch)
+        
         metric["accuracy"] = trainer.validate(model)
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
