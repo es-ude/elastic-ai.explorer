@@ -1,3 +1,4 @@
+from typing import Any
 import torch
 from nni.nas.profiler.pytorch.flops import FlopsProfiler
 from nni.nas.nn.pytorch import ModelSpace
@@ -9,7 +10,7 @@ class FlopsEstimator:
         """Computes FLOPS for a single module.
 
         Returns:
-            int: The FLOPS-estimate
+            The FLOPS-estimate
         """
 
         first_parameter = next(model_sample.parameters())

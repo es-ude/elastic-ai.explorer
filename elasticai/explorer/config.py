@@ -48,11 +48,11 @@ class Config:
             return self._original_yaml_dict.get(parameter_name, default)
 
     def _parse_mandatory(
-        self, parameter_name: str, categorie: str | None = None
+        self, parameter_name: str, category: str | None = None
     ) -> Any:
         try:
-            if categorie:
-                return self._original_yaml_dict[categorie][parameter_name]
+            if category:
+                return self._original_yaml_dict[category][parameter_name]
             else:
                 return self._original_yaml_dict[parameter_name]
         except KeyError:
