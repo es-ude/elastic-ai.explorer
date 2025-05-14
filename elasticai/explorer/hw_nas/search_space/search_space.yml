@@ -1,0 +1,17 @@
+input: 784
+Blocks:
+  - Block:  1
+    op_candidates: ["linear", "conv2D"]
+    respect_order: False
+    depth_min_max: [1, 10]
+    linear:
+      width: [16, 32, 64]
+      activation: ["relu", "sigmoid"]
+    conv2D:
+      kernel_width: 3
+      stride: 3
+#  - Block: 2
+#    op_candidates: "linear"
+#    depth_min_max: (1, 1)
+
+output: 10

@@ -6,9 +6,10 @@ from typing import Optional, Any, Type
 from torch import nn
 from torch.nn import Module
 from nni.nas.nn.pytorch import ModelSpace
-
-from elasticai.explorer import hw_nas, utils
+from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer import utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
+from elasticai.explorer.hw_nas.search_space.construct_sp import yml_to_dict, SearchSpace
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
@@ -89,8 +90,10 @@ class Explorer:
         self.model_cfg = model_cfg
         self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
-    def generate_search_space(self):
-        self.search_space = MLP()
+    def generate_search_space(self, partial_spec: Path):
+        search_space = yml_to_dict(partial_spec)
+        self.search_space = SearchSpace(search_space)
+        #sself.search_space = MLP()
         self.logger.info("Generated search space:\n %s", self.search_space)
 
     def search(self, hwnas_cfg: HWNASConfig) -> list[Any]:
@@ -112,6 +115,7 @@ class Explorer:
             metrics, path_to_dir=self._metric_dir, filename="metrics.json"
         )
         hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
+
 
         return top_models
 
