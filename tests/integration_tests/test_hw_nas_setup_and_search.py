@@ -1,12 +1,10 @@
 import os
-import unittest
 import torch
-from elasticai.explorer import search_space
+from elasticai.explorer.hw_nas import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
