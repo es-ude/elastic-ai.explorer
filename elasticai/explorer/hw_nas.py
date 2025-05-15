@@ -5,6 +5,7 @@ from typing import Any, Type
 import nni
 
 import torch
+
 from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
@@ -12,10 +13,10 @@ from nni.nas.nn.pytorch import ModelSpace
 from nni.experiment import TrialResult
 
 
-from elasticai.explorer import data
+from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.cost_estimator import FlopsEstimator
-from elasticai.explorer.trainer import Trainer
+from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
 
@@ -24,7 +25,7 @@ def evaluate_model(
     model: ModelSpace,
     device: str,
     dataset_info: data.DatasetInfo,
-    trainer_class: Type[Trainer],
+    trainer_class: type[Trainer],
 ):
     global accuracy
     ##Parameter
@@ -38,12 +39,13 @@ def evaluate_model(
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
 
+
     trainer = trainer_class(device, optimizer, dataset_info)
 
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         trainer.train_epoch(model, epoch)
-        
+
         metric["accuracy"] = trainer.validate(model)
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)

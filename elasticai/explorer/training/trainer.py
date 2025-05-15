@@ -3,10 +3,10 @@ import logging
 
 import torch
 from torch import nn
-from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, random_split
+from torch.optim.optimizer import Optimizer
 
-from elasticai.explorer.data import DatasetInfo
+from elasticai.explorer.training.data import DatasetInfo
 
 
 class Trainer(ABC):
@@ -16,27 +16,31 @@ class Trainer(ABC):
         device: str,
         optimizer: Optimizer,
         dataset_info: DatasetInfo,
-        loss_fn= nn.CrossEntropyLoss(),
+        loss_fn=nn.CrossEntropyLoss(),
         batch_size: int = 64,
-        validation_split_seed: int = 1,
     ):
+
+        self.device = device
+        self.optimizer = optimizer
+        self.loss_fn = loss_fn
+
         train_dataset = dataset_info.dataset_type(
             dataset_info.dataset_location,
             train=True,
-            download=True,
             transform=dataset_info.transform,
+            download=True,
         )
+        train_subset, val_subset = random_split(
+            train_dataset,
+            dataset_info.validation_split_ratio,
+            generator=torch.Generator().manual_seed(42),
+        )
+
         test_dataset = dataset_info.dataset_type(
             dataset_info.dataset_location,
             train=False,
-            download=True,
             transform=dataset_info.transform,
-        )
-
-        train_subset, val_subset = random_split(
-            train_dataset,
-            [0.9, 0.1],
-            generator=torch.Generator().manual_seed(validation_split_seed),
+            download=True,
         )
 
         self.train_loader = DataLoader(
@@ -72,15 +76,15 @@ class MLPTrainer(Trainer):
         dataset_info: DatasetInfo,
         loss_fn=nn.CrossEntropyLoss(),
         batch_size: int = 64,
-        validation_split_seed: int = 1,
     ):
         super().__init__(
-            device, optimizer, dataset_info, loss_fn, batch_size, validation_split_seed
+            device,
+            optimizer,
+            dataset_info,
+            loss_fn,
+            batch_size,
         )
         self.logger = logging.getLogger("explorer.MLPTrainer")
-        self.device = device
-        self.optimizer = optimizer
-        self.loss_fn = loss_fn
 
     def train(self, model: nn.Module, epochs: int):
         """
@@ -93,7 +97,7 @@ class MLPTrainer(Trainer):
             self.train_epoch(model=model, epoch=epoch)
 
     def validate(self, model: nn.Module):
-        """
+        """[8, 2]
         Args:
             model: The NN-Model to validate.
 

@@ -1,4 +1,4 @@
-from elasticai.explorer.utils import get_file_from_sciebo
+from elasticai.explorer.training.data import get_file_from_sciebo
 
 from iesude.data.archives import Zip, PlainFile
 import shutil
@@ -12,7 +12,7 @@ class TestSciebo:
     def test_sciebo_download(self):
 
         get_file_from_sciebo(
-            save_dir=self.save_dir + "/sciebo",
+            path_to_save=self.save_dir + "/sciebo",
             file_path_in_sciebo="mnist.zip",
             file_type=Zip,
         )
@@ -20,7 +20,7 @@ class TestSciebo:
 
     def test_sciebo_Plainfile(self):
         get_file_from_sciebo(
-            save_dir=self.save_dir + "/test_data.csv",
+            path_to_save=self.save_dir + "/test_data.csv",
             file_path_in_sciebo="test_dataset.csv",
             file_type=PlainFile,  # type: ignore
         )

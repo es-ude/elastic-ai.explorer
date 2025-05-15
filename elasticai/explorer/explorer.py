@@ -8,13 +8,14 @@ from torch.nn import Module
 from torch.utils.data import Dataset
 from nni.nas.nn.pytorch import ModelSpace
 
-from elasticai.explorer import data, hw_nas, utils
+from elasticai.explorer import hw_nas, utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
-from elasticai.explorer.trainer import Trainer
+from elasticai.explorer.training.trainer import Trainer
+from elasticai.explorer.training import data
 from settings import MAIN_EXPERIMENT_DIR
 
 

@@ -7,11 +7,6 @@ import pandas
 import plotly.express as px
 from scipy.stats import kendalltau
 
-from iesude.data import DataSet
-from iesude.data.extractable import ExtractableFn
-from iesude.data.archives import PlainFile
-import owncloud
-
 
 def compute_kendall(list_x: list[Any], list_y: list[Any]) -> Any:
     """Computes Kendall Correlation Coefficient between list_x and list_y.
@@ -52,32 +47,3 @@ def plot_parallel_coordinates(df: pandas.DataFrame):
         color_continuous_scale=px.colors.diverging.Tealrose,
     )
     fig.show()
-
-
-def get_file_from_sciebo(
-    save_dir: str,
-    file_path_in_sciebo: str,
-    file_type: ExtractableFn,
-):
-    if os.path.isfile(save_dir) or (os.path.isdir(save_dir) and os.listdir(save_dir)):
-        return 
-    
-    for i in range(10):
-        try:
-            if file_type is PlainFile:
-                dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
-                parent = Path(save_dir).parent
-                dataset.download(parent)
-                save_path = Path(save_dir).parent.parent / Path(file_path_in_sciebo)
-                os.renames(save_path, save_dir)
-
-            else:
-                dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
-                dataset.download(save_dir)
-        except owncloud.HTTPResponseError as err:
-            if i < 10:
-                continue
-            else:
-                raise err
-        else:
-            break

@@ -1,20 +1,21 @@
 import os
 from pathlib import Path
 from typing import Callable, Optional, Union
-from numpy import dtype
 import pandas as pd
-from elasticai.explorer.data import DatasetInfo, FlatSequencialDataset
+from websockets import Data
+from elasticai.explorer.training.data import (
+    DatasetInfo,
+    FlatSequencialDataset,
+)
 import torch
-from torch.utils.data import DataLoader
 
-from elasticai.explorer.trainer import MLPTrainer
-from elasticai.explorer.utils import get_file_from_sciebo
+from elasticai.explorer.training.download import DownloadableSciebo
+from elasticai.explorer.training.trainer import MLPTrainer
+from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
 
-from tests.integration_tests.samples.sample_MLP import SampleMLP
 
-
-class SequentialTestDataset(FlatSequencialDataset):
+class SequentialTestDataset(FlatSequencialDataset, DownloadableSciebo):
     def __init__(
         self,
         root: Union[str, Path],
@@ -23,13 +24,16 @@ class SequentialTestDataset(FlatSequencialDataset):
         target_transform: Optional[Callable] = None,
         download: bool = False,
     ):
-        super().__init__(root, train, transform, target_transform, download)
-
-    def _download_data(self):
-        get_file_from_sciebo(
-            save_dir=str(self.root),
-            file_path_in_sciebo="test_dataset.csv",
-            file_type=PlainFile,  # type: ignore
+        download_path = root
+        super().__init__(
+            download=download,
+            download_path=download_path,
+            file_path_on_sciebo="test_dataset.csv",
+            file_type=PlainFile,
+            root=str(root),
+            train=train,
+            transform=transform,
+            target_transform=target_transform,
         )
 
     def _setup_data(self):
@@ -45,10 +49,13 @@ class TestData:
     def setup_class(self):
         self.sample_dir = Path("tests/integration_tests/samples")
         os.makedirs(self.sample_dir, exist_ok=True)
+        self.dataset_info = DatasetInfo(
+            SequentialTestDataset, self.sample_dir / "test_dataset.csv", None
+        )
 
     def test_flat_sequencial_dataset(self):
         dataset = SequentialTestDataset(
-            self.sample_dir / "test_dataset.csv", download=True
+            root=self.sample_dir / "test_dataset.csv", download=True
         )
         assert len(dataset) == 21
 
@@ -58,10 +65,8 @@ class TestData:
 
         mlp_trainer = MLPTrainer(
             device="cpu",
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
-            dataset_info=DatasetInfo(
-                SequentialTestDataset, self.sample_dir / "test_dataset.csv", None
-            ),
+            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type : ignore
+            dataset_info=self.dataset_info,
             batch_size=2,
         )
         mlp_trainer.train(model, epochs=2)

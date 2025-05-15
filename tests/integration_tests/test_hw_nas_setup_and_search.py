@@ -6,7 +6,7 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
-from elasticai.explorer.data import DatasetInfo
+from elasticai.explorer.training.data import DatasetInfo
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
@@ -15,7 +15,7 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 
-from elasticai.explorer.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 
