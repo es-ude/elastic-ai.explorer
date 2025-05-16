@@ -1,11 +1,13 @@
 from typing import Optional, Callable
 
 import nni
+import torch
 import yaml
 from nni.mutable import Categorical, Mutable
 from nni.nas.hub.pytorch.nasnet import ReLUConvBN
 from nni.nas.hub.pytorch.proxylessnas import ConvBNReLU
 from nni.nas.nn.pytorch import ModelSpace, LayerChoice, MutableLinear, Repeat, ParametrizedModule
+from numpy.ma.core import argmax
 from torch import nn
 from torch.nn import Linear, ModuleList
 
@@ -38,7 +40,9 @@ class LinearActivation(nn.Sequential):
 
 activation_candidates = {
     "relu" : nn.ReLU(),
-    "sigmoid" : nn.Sigmoid()
+    "sigmoid" : nn.Sigmoid(),
+    "identity": nn.Identity(),
+    "tanh": nn.Tanh()
 }
 
 class SearchSpace(ModelSpace):
@@ -48,29 +52,26 @@ class SearchSpace(ModelSpace):
 
 
 
-        op_candidates=Categorical(block["op_candidates"], label= "ops")
+        op_candidates: dict=block["linear"]["activation"]
+        print(op_candidates)
+        activation_mappings=[activation_candidates[key] for key in op_candidates]
+        print(activation_mappings)
+
         depth: list = (list(block["depth_min_max"]))
         layers=[]
-        #h1= nni.choice("width", block["linear"]["width"])
-        #activation= LayerChoice(block["linear"]["activation"], label="activation")
-       # print(activation)
-        #layers.append(MutableLinear(input_width, h1))
+
+        activation= LayerChoice(activation_mappings, label="activation")
+
         h_l_widths = [nni.choice(f"layer_width_{i}", block["linear"]["width"]) for i in range(depth[1])]
-       # h_l_widths=[(f"layer_width_{i}", block["linear"]["width"]) for i in range(depth[1])]
-       # layers.append( nn.Sequential(MutableLinear(input_width, nni.choice(label=h_l_widths[0][0], choices=h_l_widths[0][1])),nn.ReLU()))
-        layers.append( nn.Sequential(MutableLinear(input_width, h_l_widths[0]),nn.ReLU()))
+        layers.append( nn.Sequential(MutableLinear(input_width, h_l_widths[0]),activation))
 
         #brauche builder der relu auch drin hat
         depth[1]= (depth[1]-1)
         repetitions: tuple[int, int]= tuple[int, int](depth)
 
-        # layers.append(Repeat(lambda index: nn.Sequential(MutableLinear(
-        # nni.choice(label=h_l_widths[index][0], choices=h_l_widths[index][1]),
-        # nni.choice(label=h_l_widths[index+1][0], choices=h_l_widths[index+1][1])), nn.ReLU()), repetitions, label=f"depth"))
-        layers.append(Repeat(lambda index: nn.Sequential(MutableLinear(h_l_widths[index], h_l_widths[index+1]),nn.ReLU()), repetitions, label=f"depth"))
-        #layers.append(Repeat(MutableLinear(h1, h1), depth, label=f"depth"))
-       # layers.append(nn.Sequential(MutableLinear(h_l_widths[-1], output_width),nn.ReLU()))
-        print("Layers: ")
+        layers.append(Repeat(lambda index: nn.Sequential(MutableLinear(h_l_widths[index], h_l_widths[index+1]),activation), repetitions, label=f"depth"))
+
+
 
         layer_new=[]
         for layer in layers:
@@ -81,20 +82,16 @@ class SearchSpace(ModelSpace):
             print(index)
             index-=1
 
-        #
-        layer= layer_new[index]
-        # print(layer)
 
-        #last_layer=layer.args["out_features"]
+        layer= layer_new[index]
         last_layer=layer.out_features
-        #
         layers.append(
             nn.Sequential(MutableLinear(last_layer, output_width),
-                           nn.ReLU()))
+                           nn.Sigmoid()))
 
 
         self.layers= nn.Sequential(*layers)
-        print(self.layers)
+
 
     def forward(self, x):
         x = x.view(-1, 28 * 28)
@@ -135,6 +132,14 @@ def yml_to_dict(file):
         return search_space
 
 
+
+
 if __name__=="__main__":
     search_space=yml_to_dict("search_space.yml")
     search_space=SearchSpace(search_space)
+    sigmoid=nn.Sigmoid()
+    tensor=torch.rand([32, 10])
+
+    sig=sigmoid(tensor)
+    print(sig.argmax(dim=1, keepdim=True))
+
