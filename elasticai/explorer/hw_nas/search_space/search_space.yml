@@ -3,10 +3,10 @@ Blocks:
   - Block:  1
     op_candidates: ["linear", "conv2D"]
     respect_order: False
-    depth_min_max: [1, 10]
+    depth_min_max: [1, 4]
     linear:
-      width: [16, 32, 64]
-      activation: ["relu", "sigmoid"]
+      width: [16, 32]
+      activation: [ "relu"]
     conv2D:
       kernel_width: 3
       stride: 3
