@@ -1,4 +1,4 @@
-from elasticai.explorer.training.data import get_file_from_sciebo
+from elasticai.explorer.training.download import get_file_from_sciebo
 
 from iesude.data.archives import Zip, PlainFile
 import shutil
