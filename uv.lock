@@ -479,7 +479,6 @@ dependencies = [
     { name = "fabric" },
     { name = "iesude-data" },
     { name = "matplotlib" },
-    { name = "nni" },
     { name = "plotly" },
     { name = "python-on-whales" },
     { name = "pytorch-lightning" },
@@ -494,13 +493,15 @@ dev = [
     { name = "python-language-server" },
     { name = "setuptools" },
 ]
+nomac = [
+    { name = "nni" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "iesude-data", git = "https://github.com/es-ude/data.git" },
     { name = "matplotlib", specifier = ">=3.10.1" },
-    { name = "nni", specifier = "==3.0" },
     { name = "plotly", specifier = ">=6.0.1" },
     { name = "python-on-whales", specifier = ">=0.75.1" },
     { name = "pytorch-lightning", specifier = ">=2.5.1" },
@@ -515,6 +516,7 @@ dev = [
     { name = "python-language-server", specifier = ">=0.36.2" },
     { name = "setuptools", specifier = ">=78.1.0" },
 ]
+nomac = [{ name = "nni", specifier = "==3.0" }]
 
 [[package]]
 name = "fabric"
