@@ -47,19 +47,17 @@ class Config:
         else:
             return self._original_yaml_dict.get(parameter_name, default)
 
-    def _parse_mandatory(
-        self, parameter_name: str, category: str | None = None
-    ) -> Any:
+    def _parse_mandatory(self, parameter_name: str, category: str | None = None) -> Any:
         try:
             if category:
                 return self._original_yaml_dict[category][parameter_name]
             else:
                 return self._original_yaml_dict[parameter_name]
-        except KeyError:
-            logger.info(
-                f'The mandatory parameters of the {type(self).__name__} are not specified completely! Please specify parameter "{parameter_name}".'
+        except KeyError as err:
+            logger.error(
+                f'The mandatory parameters of the {type(self).__name__} are not specified completely! Please specify parameter "{parameter_name}" by defining a config.yaml.'
             )
-            exit(-1)
+            raise err
 
 
 class HWNASConfig(Config):
@@ -84,8 +82,8 @@ class DeploymentConfig(Config):
             "DeploymentConfig", {}
         )
 
-        self.target_name: str = self._parse_optional("target_name", "")
-        self.target_user: str = self._parse_optional("target_user", "")
+        self.target_name: str = self._parse_mandatory("target_name")
+        self.target_user: str = self._parse_mandatory("target_user")
         self.target_platform_name: str = self._parse_optional(
             "target_platform_name", "rpi5"
         )

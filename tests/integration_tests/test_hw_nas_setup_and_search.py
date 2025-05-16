@@ -41,7 +41,7 @@ class TestHWNasSetupAndSearch:
         self.hwnas_cfg = HWNASConfig(
             config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")
         )
-        self.deploy_cfg = DeploymentConfig()
+        self.deploy_cfg = DeploymentConfig(Path("tests/integration_tests/test_configs/deployment_config.yaml"))
 
     def test_search(self):
         self.setUp()
