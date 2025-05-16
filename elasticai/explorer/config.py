@@ -63,7 +63,12 @@ class Config:
 class HWNASConfig(Config):
     """HWNASConfig that defines the HW-Nas Behavior and its execution on host."""
 
-    def __init__(self, config_path: Path | None = None):
+    def __init__(
+        self,
+        config_path: Path = Path(
+            "config_files/config_defaults/default_hwnas_config.yaml"
+        ),
+    ):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("HWNASConfig", {})
         self.host_processor: str = self._parse_optional("host_processor", "auto")
@@ -76,10 +81,10 @@ class HWNASConfig(Config):
 class DeploymentConfig(Config):
     """The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it."""
 
-    def __init__(self, config_path: Path | None = None):
+    def __init__(self, config_path: Path):
         super().__init__(config_path)
-        self._original_yaml_dict: dict[Any, Any] = self._parse_optional(
-            "DeploymentConfig", {}
+        self._original_yaml_dict: dict[Any, Any] = self._parse_mandatory(
+            "DeploymentConfig"
         )
 
         self.target_name: str = self._parse_mandatory("target_name")
@@ -110,7 +115,12 @@ class DeploymentConfig(Config):
 class ModelConfig(Config):
     """ModelConfig defines the type of deep neural network to search for."""
 
-    def __init__(self, config_path: Path | None = None):
+    def __init__(
+        self,
+        config_path: Path = Path(
+            "config_files/config_defaults/default_model_config.yaml"
+        ),
+    ):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("ModelConfig", {})
         self.model_type: str = self._parse_optional("model_type", "MLP")

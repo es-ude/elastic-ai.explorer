@@ -1,0 +1,5 @@
+HWNASConfig:
+  host_processor: "auto" 
+  max_search_trials: 4
+  top_n_models: 2
+

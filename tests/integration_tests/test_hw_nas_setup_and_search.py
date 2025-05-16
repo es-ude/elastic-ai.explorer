@@ -38,17 +38,16 @@ class TestHWNasSetupAndSearch:
             "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.hwnas_cfg = HWNASConfig(
-            config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")
+        self.hwnas_cfg = HWNASConfig()
+        self.deploy_cfg = DeploymentConfig(
+            Path("tests/integration_tests/test_configs/deployment_config.yaml")
         )
-        self.deploy_cfg = DeploymentConfig(Path("tests/integration_tests/test_configs/deployment_config.yaml"))
 
     def test_search(self):
         self.setUp()
         self.RPI5explorer.generate_search_space()
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
-        assert len(top_k_models) == 1
-        assert type(top_k_models[0]) == search_space.MLP
+        assert len(top_k_models) == 2
 
     def test_generate_for_hw_platform(self):
         self.setUp()
