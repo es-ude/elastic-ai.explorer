@@ -1,24 +1,25 @@
 input: 784
 output: 10
-Blocks:
-  - Block:  "1" #namefield muss noch rein
-    op_candidates: ["linear", "conv2D"]
+blocks:
+  - block:  "1" #namefield muss noch rein
+    op_candidates: ["linear", "conv2d"]
+    width: [16, 32]
     depth: [1, 4]
     linear:
-      width: [16, 32]
+      #überall range oder choices
       activation: [ "relu"]
     conv2D:
       kernel_width: 3
       stride: 3
-  - Block: "2"
-    op_candidates: ["linear"]
-    depth: 1
-    linear:
-      width: [ 11, 21 ]
-      activation: [ "sigmoid" ]
-  - Block: "3"
-    op_candidates: ["linear"]
-    depth: 3
-    linear:
-      width: [3, 2]
-      activation: ["relu"]
+#  - block: "2"
+#    op_candidates: ["linear"]
+#    depth: 1
+#    linear:
+#      width: [ 11, 21 ]
+#      activation: [ "sigmoid" ]
+#  - block: "3"
+#    op_candidates: ["linear"]
+#    depth: 3
+#    linear:
+#      width: [3, 2]
+#      activation: ["relu"]
