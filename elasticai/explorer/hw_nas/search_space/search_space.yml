@@ -1,22 +1,23 @@
-input: 784
+input: (1, 28, 28)
 output: 10
 blocks:
   - block:  "1" #namefield muss noch rein
-    op_candidates: ["linear", "conv2d"]
-    width: [16, 32]
+    op_candidates: ["conv2d"]
     depth: [1, 4]
     linear:
       #überall range oder choices
       activation: [ "relu"]
+      width: [16, 32]
     conv2D:
-      kernel_width: 3
-      stride: 3
+      kernel_size: 5
+      stride: 2
+      out_channels: [ 16, 20]
 #  - block: "2"
 #    op_candidates: ["linear"]
 #    depth: 1
 #    linear:
 #      width: [ 11, 21 ]
-#      activation: [ "sigmoid" ]
+      activation: [ "sigmoid" ]
 #  - block: "3"
 #    op_candidates: ["linear"]
 #    depth: 3

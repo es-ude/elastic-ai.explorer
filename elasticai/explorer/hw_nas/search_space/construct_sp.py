@@ -1,18 +1,153 @@
-from typing import Optional, Callable
+from math import floor
+from typing import Optional
 
 import nni
+import torch
 import yaml
-from build.lib.nni.nas.nn.pytorch import MutableConv2d
 from nni.mutable import Mutable
-from nni.nas.nn.pytorch import ModelSpace, LayerChoice, MutableLinear, Repeat
+from nni.nas.nn.pytorch import (
+    ModelSpace,
+    LayerChoice,
+    MutableLinear,
+    Repeat,
+    MutableConv2d,
+    MutableFlatten,
+)
+from nni.nas.profiler.pytorch.utils import ShapeTensor
+from nni.nas.profiler.pytorch.utils.shape_formula import flatten_formula
 from torch import nn
-from torch.nn import Linear, ModuleList
+from torch.nn import Linear, ModuleList, Conv2d, Sequential
 
 
-class LinearActivation(nn.Sequential):
+class SearchSpace(ModelSpace):
 
-    def __init__(self, in_feat, out_feat, activation: Callable[..., nn.Module]):
-        super().__init__(MutableLinear(in_feat, out_feat), activation())
+    def __init__(self, parameters: dict):
+
+        super().__init__()
+        blocks: list[dict] = parameters["blocks"]
+        block_sp = []
+
+        last_out = None
+        for block in blocks:
+            input_width = parameters["input"] if last_out is None else last_out
+            output_width = (
+                parameters["output"] if self.is_last_block(block, blocks) else None
+            )
+
+            block, last_out = self.build_block(block, input_width, output_width)
+            block_sp.append(block)
+
+        self.block_sp = nn.Sequential(*block_sp)
+
+    def forward(self, x):
+        # x = x.view(-1, 28 * 28)
+
+        x = self.block_sp(x)
+        return x
+
+    def get_preceeding_layer_width(self, layers):
+        layer_new = []
+        for layer in layers:
+            layer_new = layer_new + [
+                module
+                for module in layer.modules()
+                if not isinstance(module, nn.Sequential)
+                and not isinstance(module, ModuleList)
+                and not isinstance(module, Repeat)
+            ]
+        print(layer_new)
+        index = -1
+        while not (
+            isinstance(layer_new[index], Linear) or isinstance(layer_new[index], Conv2d)
+        ):
+            index -= 1
+        layer = layer_new[index]
+        #        last_layer = layer.out_features
+        last_layer = layer.out_channels
+        print(last_layer)
+        return last_layer
+
+    def build_block(
+        self,
+        block: dict,
+        input_width: Optional[int | Mutable],
+        output_width: Optional[int] = None,
+    ):
+        block_name = block["block"]
+        layer_op_mapping = [op_candidates[key] for key in block["op_candidates"]]
+        activations: dict = block["linear"]["activation"]
+        activation_mappings = [activation_candidates[key] for key in activations]
+
+        depth = block["depth"]
+        if isinstance(depth, int):
+            max_depth = depth
+        else:
+            max_depth = depth[1]
+            depth = tuple[int, int](depth)
+
+        layers = []
+
+        activation = LayerChoice(
+            activation_mappings, label=f"activation_block_{block_name}"
+        )
+        self.h_l_widths = [input_width] + [
+            nni.choice(f"layer_width_{i}_block_{block_name}", block["width"])
+            for i in range(max_depth)
+        ]
+
+        self.h_l_widths = [input_width] + [20 for i in range(max_depth)]
+        layers.append(
+            Repeat(
+                lambda index: nn.Sequential(
+                    MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
+                    activation,
+                ),
+                depth,
+                label=f"depth_block_{block_name}",
+            )
+        )
+
+        # layers.append(
+        #     Repeat(
+        #         lambda index: nn.Sequential(
+        #             layer_choice(self.h_l_widths[index], self.h_l_widths[index + 1]),
+        #             activation,
+        #         ),
+        #         depth,
+        #         label=f"depth_block_{block_name}",
+        #     )
+        # )
+
+        last_layer = self.get_preceeding_layer_width(layers)
+        if output_width is not None:
+            layers.append(nn.Flatten())
+            layers.append(nn.Sequential(MutableLinear(40, output_width), activation))
+
+            return nn.Sequential(*layers), None
+
+        return nn.Sequential(*layers), last_layer
+
+    def is_last_block(self, block, blocks):
+        return blocks[-1]["block"] == block["block"]
+
+
+class LinearFlattened(nn.Module):
+
+    def __init__(
+        self,
+        in_feat,
+        out_feat,
+    ):
+        super().__init__()
+        self.flatten = MutableFlatten()
+        self.lin = MutableLinear(in_feat, out_feat)
+
+    def forward(self, x):
+        new_shape = x[0].shape[0] * x[0].shape[1] * x[0].shape[2]
+
+        # x = x.view(-1, new_shape)
+
+        return self.lin(self.flatten(x))
 
 
 activation_candidates = {
@@ -60,86 +195,34 @@ def parse_block_op_candidates(block):
     print(mapping)
 
 
-class SearchSpace(ModelSpace):
+def yml_to_dict(file):
+    with open(file) as stream:
+        try:
+            search_space = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+        return search_space
 
-    def get_preceeding_layer_width(self, layers):
-        layer_new = []
-        for layer in layers:
-            layer_new = layer_new + [
-                module
-                for module in layer.modules()
-                if not isinstance(module, nn.Sequential)
-                and not isinstance(module, ModuleList)
-                and not isinstance(module, Repeat)
-            ]
 
-        index = -1
-        while not isinstance(layer_new[index], Linear):
-            index -= 1
-        layer = layer_new[index]
-        last_layer = layer.out_features
-        return last_layer
+def calc_shape(channel, prev_width, prev_height, kernel, stride):
+    return (
+        channel,
+        calculate_2d_conv_pool_shape(prev_width, kernel, stride),
+        calculate_2d_conv_pool_shape(prev_height, kernel, stride),
+    )
 
-    def build_block(
-        self,
-        block: dict,
-        input_width: Optional[int | Mutable],
-        output_width: Optional[int] = None,
-    ):
-        block_name = block["block"]
-        layer_op_mapping = [op_candidates[key] for key in block["op_candidates"]]
-        activations: dict = block["linear"]["activation"]
-        activation_mappings = [activation_candidates[key] for key in activations]
 
-        depth = block["depth"]
-        if isinstance(depth, int):
-            max_depth = depth
-        else:
-            max_depth = depth[1]
-            depth = tuple[int, int](depth)
+def calculate_2d_conv_pool_shape(
+    prev_shape, kernel_size, stride=1, dilation=1, padding=0
+):
+    return floor(
+        ((prev_shape + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
+    )
 
-        layers = []
 
-        activation = LayerChoice(
-            activation_mappings, label=f"activation_block_{block_name}"
-        )
-        self.h_l_widths = [input_width] + [
-            nni.choice(f"layer_width_{i}_block_{block_name}", block["width"])
-            for i in range(max_depth)
-        ]
-
-        layers.append(
-            Repeat(
-                lambda index: nn.Sequential(
-                    MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
-                    activation,
-                ),
-                depth,
-                label=f"depth_block_{block_name}",
-            )
-        )
-
-        last_layer = self.get_preceeding_layer_width(layers)
-        if output_width is not None:
-
-            layers.append(
-                nn.Sequential(MutableLinear(last_layer, output_width), activation)
-            )
-
-            return nn.Sequential(*layers), None
-
-        return nn.Sequential(*layers), last_layer
-
-    def is_last_block(self, block, blocks):
-        return blocks[-1]["block"] == block["block"]
+class CNNSpace(ModelSpace):
 
     def __init__(self, parameters: dict):
-        in1 = nni.choice("i", [32, 16])
-        out2 = nni.choice("o", [15, 11])
-        layer_choice = LayerChoice(
-            [MutableLinear(in1, out2), MutableConv2d(in1, out2, 3, 1)], label="l0"
-        )
-        print(layer_choice)
         super().__init__()
         blocks: list[dict] = parameters["blocks"]
         block_sp = []
@@ -157,22 +240,115 @@ class SearchSpace(ModelSpace):
         self.block_sp = nn.Sequential(*block_sp)
 
     def forward(self, x):
-        x = x.view(-1, 28 * 28)
+        #   x = x.view(-1, 28 * 28)
         x = self.block_sp(x)
         return x
 
+    def is_last_block(self, block, blocks):
+        return blocks[-1]["block"] == block["block"]
 
-def yml_to_dict(file):
-    with open(file) as stream:
-        try:
-            search_space = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-        return search_space
+    def build_block(
+        self,
+        block: dict,
+        input_width: Optional[int | tuple | Mutable],
+        output_width: Optional[int] = None,
+    ):
+        layers = []
+        depth = 2
+        max_depth = 2
+        block_name = "herro"
+        self.out_channels = [1] + [
+            nni.choice(
+                label=f"out_channel_nr_{i}_block_{block_name}",
+                choices=block["conv2D"]["out_channels"],
+            )
+            for i in range(max_depth)
+        ]
+        print(self.out_channels)
+        # layers.append(
+        #     Repeat(
+        #         lambda index: nn.Sequential(
+        #             MutableLinear(
+        #                 self.out_channels[index], self.out_channels[index + 1]
+        #             )
+        #         ),
+        #         depth,
+        #         label=f"depth_block_{block_name}",
+        #     )
+        # )
+        layers.append(
+            Repeat(
+                lambda index: nn.Sequential(
+                    MutableConv2d(
+                        self.out_channels[index],
+                        self.out_channels[index + 1],
+                        block["conv2D"]["kernel_size"],
+                        block["conv2D"]["stride"],
+                    )
+                ),
+                depth,
+                label=f"depth_block_{block_name}",
+            )
+        )
+        x_shape = self.calc_shape_test(
+            [1, 28, 28],
+            self.out_channels[1],
+        )
+        print(x_shape)
+        x_shape = self.calc_shape_test(x_shape, self.out_channels[2])
+        print(x_shape)
+
+        input_width = x_shape[0] * x_shape[1] * x_shape[2]
+        print(input_width)
+        if output_width is not None:
+            # layers.append(MutableLinear(self.out_channels[-1], 10))
+
+            layers.append(Sequential(LinearFlattened(input_width, 10)))
+        return nn.Sequential(*layers), None
+
+    def calc_shape_test(
+        self,
+        shape,
+        out_channels,
+        kernel_size=[5, 5],
+        stride=[2, 2],
+        dilation=[1, 1],
+        padding=(0, 0),
+    ):
+        shape[-3] = out_channels
+        # H_out and W_out
+        shape[-2] = (
+            shape[-2] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1
+        ) // stride[0] + 1
+        shape[-1] = (
+            shape[-1] + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1
+        ) // stride[1] + 1
+        return shape
 
 
 if __name__ == "__main__":
     search_space = yml_to_dict("search_space.yml")
-    search_space = SearchSpace(search_space)
-    # print(search_space)
+    # search_space = SearchSpace(search_space)
+    search_space = CNNSpace(search_space)
+    x = search_space(torch.randn([4, 1, 28, 28]))
+    x = torch.randn([4, 1, 28, 28])
+    conv1 = Conv2d(1, 16, 5, 2)
+    x = conv1(x)
+    print(x.shape)
+    conv2 = Conv2d(16, 16, 5, 2)
+    x = conv2(x)
+    print(x.shape)
+
+    print(flatten_formula(nn.Flatten(), ShapeTensor(x, True)))
+    # input = torch.randn(3, 4, 3)
+    # m = nn.Conv2d(3, 2, 3, stride=1)
+    # print(m(input).shape)
+    # print(m(input))
+    # m = nn.Conv2d(3, 2, (3, 5), stride=(2, 1), padding=(4, 2))
+    # print(m(input).shape)
+    # # non-square kernels and unequal stride and with padding and dilation
+    # m = nn.Conv2d(3, 33, (3, 5), stride=(2, 1), padding=(4, 2), dilation=(3, 1))
+    # print(m(input).shape)
+
+
 # test_op_candidates()
