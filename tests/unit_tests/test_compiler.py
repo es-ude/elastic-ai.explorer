@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from elasticai.explorer.platforms.deployment.compiler import Compiler
+from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH
 
 
@@ -18,7 +18,7 @@ class TestCompiler(unittest.TestCase):
             build_context=CONTEXT_PATH,
             compiled_library_path="./code/libtorch",
         )
-        compiler = Compiler(config)
+        compiler = RPICompiler(config)
         if not compiler.is_setup():
             compiler.setup()
         compiler.compile_code(expected_name_of_executable, "measure_latency.cpp")

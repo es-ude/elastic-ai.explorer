@@ -35,3 +35,11 @@ To use first build Dockerfile.cross:
  ```
  docker buildx build -f Dockerfile.loader -o type=local,dest=./bin .
   ```
+
+# using crosscompiler for pico
+
+Initialize submodules: 
+```
+git submodule sync
+git submodule update --init --recursive
+```

@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import logging
 from pathlib import Path
 
@@ -6,7 +7,25 @@ from python_on_whales import docker
 from elasticai.explorer.config import DeploymentConfig
 
 
-class Compiler:
+class Compiler(ABC):
+    @abstractmethod
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        pass
+
+    @abstractmethod
+    def is_setup(self) -> bool:
+        pass
+
+    @abstractmethod
+    def setup(self) -> None:
+        pass
+
+    @abstractmethod
+    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
+        pass
+
+
+class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.logger = logging.getLogger("Compiler")
         self.tag: str = deploy_cfg.compiler_tag  # "cross"
@@ -27,7 +46,7 @@ class Compiler:
         docker.build(self.context_path, file=self.path_to_dockerfile, tags=self.tag)
         self.logger.debug("Crosscompiler available now.")
 
-    def compile_code(self, name_of_executable: str, sourcecode_filename: str):
+    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
         docker.build(
             self.context_path,
             file=self.context_path / "Dockerfile.loader",
@@ -43,3 +62,18 @@ class Compiler:
             "Compilation finished. Program available in %s", path_to_executable
         )
         return path_to_executable
+
+
+class PicoCompiler(Compiler):
+
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        pass
+
+    def is_setup(self) -> bool:
+        pass
+
+    def setup(self) -> None:
+        pass
+
+    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
+        pass

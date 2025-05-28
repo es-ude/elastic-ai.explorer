@@ -1,0 +1,8 @@
+[submodule "pico_crosscompiler/third_party/pico-sdk"]
+	path = pico_crosscompiler/third_party/pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git
+	branch = master
+[submodule "pico_crosscompiler/third_party/pico-tflmicro"]
+	path = pico_crosscompiler/third_party/pico-tflmicro
+	url = https://github.com/raspberrypi/pico-tflmicro.git
+	branch = main

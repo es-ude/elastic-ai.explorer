@@ -15,10 +15,13 @@ from elasticai.explorer.knowledge_repository import (
     HWPlatform,
     Metrics,
 )
-from elasticai.explorer.platforms.deployment.compiler import Compiler
+from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.generator.generator import (
+    PIGenerator,
+    RP2040Generator,
+)
 from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from settings import ROOT_DIR
@@ -38,7 +41,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
             PIGenerator,
             PIHWManager,
             Host,
-            Compiler,
+            RPICompiler,
         )
     )
 
@@ -49,9 +52,21 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
             PIGenerator,
             PIHWManager,
             Host,
-            Compiler,
+            RPICompiler,
         )
     )
+
+    knowledge_repository.register_hw_platform(
+        HWPlatform(
+            "pico_RP2040",
+            "Pico with RP2040 MCU and 2MB control memory",
+            RP2040Generator,
+            PIHWManager,
+            Host,
+            RPICompiler,
+        )
+    )
+
     return knowledge_repository
 
 
@@ -86,7 +101,7 @@ def find_generate_measure_for_pi(
     latency_measurements = []
     accuracy_measurements = []
 
-    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    retrain_device = "cpu"
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
@@ -94,7 +109,7 @@ def find_generate_measure_for_pi(
         )
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
-        model_name = "ts_model_" + str(i) + ".pt"
+        model_name = "ts_model_" + str(i) + ".tflite"
         explorer.generate_for_hw_platform(model, model_name)
 
         latency = explorer.run_measurement(Metric.LATENCY, model_name)
