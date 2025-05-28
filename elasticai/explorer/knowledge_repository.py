@@ -4,7 +4,7 @@ from typing import Type
 import numpy as np
 
 from elasticai.explorer import utils
-from elasticai.explorer.platforms.deployment.compiler import RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import HWManager
 from elasticai.explorer.platforms.generator.generator import Generator
@@ -17,7 +17,7 @@ class HWPlatform:
     model_generator: Type[Generator]
     platform_manager: Type[HWManager]
     communication_protocol: Type[Host]
-    compiler: Type[RPICompiler]
+    compiler: Type[Compiler]
 
 
 class KnowledgeRepository:

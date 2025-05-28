@@ -70,10 +70,10 @@ class PicoCompiler(Compiler):
         pass
 
     def is_setup(self) -> bool:
-        pass
+        return False
 
     def setup(self) -> None:
         pass
 
     def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
-        pass
+        return Path("path")
