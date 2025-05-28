@@ -1,15 +1,18 @@
-import logging
 import logging.config
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 import nni
 import torch
+from nni.nas.nn.pytorch import ModelSpace
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
+from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.hw_nas.search_space.construct_sp import yml_to_dict, SearchSpace
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
@@ -20,8 +23,6 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
-from settings import ROOT_DIR
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -121,45 +122,46 @@ def find_generate_measure_for_pi(
     )
 
 
+def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: ModelSpace):
 
-
-def search_models(
-    explorer: Explorer,
-    hwnas_cfg: HWNASConfig,
-    ):
-    explorer.generate_search_space(Path("elasticai/explorer/hw_nas/search_space/search_space.yml"))
+    explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
     transf = transforms.Compose(
-    [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
     path_to_dataset = Path("data/mnist")
     trainloader: DataLoader = DataLoader(
-    MNIST(path_to_dataset, download=True, transform=transf),
-    batch_size = 64,
-    shuffle = True,
+        MNIST(path_to_dataset, download=True, transform=transf),
+        batch_size=64,
+        shuffle=True,
     )
     testloader: DataLoader = DataLoader(
-    MNIST(path_to_dataset, download=True, train=False, transform=transf),
-    batch_size = 64,
+        MNIST(path_to_dataset, download=True, train=False, transform=transf),
+        batch_size=64,
     )
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         print(model)
 
         mlp_trainer = MLPTrainer(
-            device = retrain_device,
-            optimizer = torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
+            device=retrain_device,
+            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         print("=================================================")
+
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
 
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
-    search_models(explorer, hwnas_cfg)
 
+    search_space = yml_to_dict(
+        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    )
+    search_space = SearchSpace(search_space)
+    search_models(explorer, hwnas_cfg, search_space)

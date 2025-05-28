@@ -1,4 +1,4 @@
-input: (1, 28, 28)
+input: 784
 output: 10
 blocks:
   - block:  "1" #namefield muss noch rein
@@ -10,8 +10,8 @@ blocks:
       width: [16, 32]
     conv2D:
       kernel_size: 5
-      stride: 2
-      out_channels: [ 16, 20]
+      stride: 1
+      out_channels: [ 10, 8]
 #  - block: "2"
 #    op_candidates: ["linear"]
 #    depth: 1

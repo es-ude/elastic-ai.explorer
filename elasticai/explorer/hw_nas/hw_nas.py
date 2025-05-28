@@ -7,7 +7,6 @@ import torch
 from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
-from nni.nas.nn.pytorch import ModelSpace
 from nni.experiment import TrialResult
 from nni.nas.nn.pytorch import ModelSpace
 from torch.utils.data import DataLoader
@@ -21,16 +20,10 @@ from elasticai.explorer.trainer import MLPTrainer
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: ModelSpace, device: str):
+def evaluate_model(model: torch.nn.Module, device: str):
     global accuracy
-    ##Parameter
     flops_weight = 3.0
     n_epochs = 2
-
-    ##Cost-Estimation
-    # flops as proxy metric for latency
-    flops_estimator = FlopsEstimator()
-    flops = flops_estimator.estimate_flops(model)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
     transf = transforms.Compose(
@@ -45,7 +38,9 @@ def evaluate_model(model: ModelSpace, device: str):
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
     trainer = MLPTrainer(device, optimizer)
-
+    flops_estimator = FlopsEstimator()
+    sample, _ = next(iter(train_loader))
+    flops = flops_estimator.estimate_flops(model, sample)
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         trainer.train_epoch(model, train_loader, epoch)

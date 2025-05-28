@@ -2,7 +2,6 @@ from math import floor
 from typing import Optional
 
 import nni
-import torch
 import yaml
 from nni.mutable import Mutable
 from nni.nas.nn.pytorch import (
@@ -11,16 +10,13 @@ from nni.nas.nn.pytorch import (
     MutableLinear,
     Repeat,
     MutableConv2d,
-    MutableFlatten,
 )
-from nni.nas.profiler.pytorch.utils import ShapeTensor
-from nni.nas.profiler.pytorch.utils.shape_formula import flatten_formula
 from torch import nn
-from torch.nn import Linear, ModuleList, Conv2d, Sequential
+from torch.nn import Linear, ModuleList, Conv2d
 
 
 class SearchSpace(ModelSpace):
-
+    # def tuple_to_tensor(self):
     def __init__(self, parameters: dict):
 
         super().__init__()
@@ -40,7 +36,7 @@ class SearchSpace(ModelSpace):
         self.block_sp = nn.Sequential(*block_sp)
 
     def forward(self, x):
-        # x = x.view(-1, 28 * 28)
+        x = x.view(-1, 28 * 28)
 
         x = self.block_sp(x)
         return x
@@ -62,8 +58,7 @@ class SearchSpace(ModelSpace):
         ):
             index -= 1
         layer = layer_new[index]
-        #        last_layer = layer.out_features
-        last_layer = layer.out_channels
+        last_layer = layer.out_features
         print(last_layer)
         return last_layer
 
@@ -91,11 +86,12 @@ class SearchSpace(ModelSpace):
             activation_mappings, label=f"activation_block_{block_name}"
         )
         self.h_l_widths = [input_width] + [
-            nni.choice(f"layer_width_{i}_block_{block_name}", block["width"])
+            nni.choice(f"layer_width_{i}_block_{block_name}", block["linear"]["width"])
             for i in range(max_depth)
         ]
+        print(self.h_l_widths)
 
-        self.h_l_widths = [input_width] + [20 for i in range(max_depth)]
+        #   self.h_l_widths = [input_width] + [20 for i in range(max_depth)]
         layers.append(
             Repeat(
                 lambda index: nn.Sequential(
@@ -120,10 +116,10 @@ class SearchSpace(ModelSpace):
 
         last_layer = self.get_preceeding_layer_width(layers)
         if output_width is not None:
-            layers.append(nn.Flatten())
-            layers.append(nn.Sequential(MutableLinear(40, output_width), activation))
 
-            return nn.Sequential(*layers), None
+            layers.append(
+                nn.Sequential(MutableLinear(last_layer, output_width), activation)
+            )
 
         return nn.Sequential(*layers), last_layer
 
@@ -131,7 +127,7 @@ class SearchSpace(ModelSpace):
         return blocks[-1]["block"] == block["block"]
 
 
-class LinearFlattened(nn.Module):
+class LinearFlattened(nn.Sequential):
 
     def __init__(
         self,
@@ -139,15 +135,15 @@ class LinearFlattened(nn.Module):
         out_feat,
     ):
         super().__init__()
-        self.flatten = MutableFlatten()
+        self.flatten = nn.Flatten()
         self.lin = MutableLinear(in_feat, out_feat)
 
     def forward(self, x):
         new_shape = x[0].shape[0] * x[0].shape[1] * x[0].shape[2]
-
+        x = self.flatten(x)
         # x = x.view(-1, new_shape)
 
-        return self.lin(self.flatten(x))
+        return self.lin(x)
 
 
 activation_candidates = {
@@ -240,7 +236,7 @@ class CNNSpace(ModelSpace):
         self.block_sp = nn.Sequential(*block_sp)
 
     def forward(self, x):
-        #   x = x.view(-1, 28 * 28)
+        #  x = x.view(-1, 28 * 28)
         x = self.block_sp(x)
         return x
 
@@ -290,20 +286,24 @@ class CNNSpace(ModelSpace):
                 label=f"depth_block_{block_name}",
             )
         )
+        kernel_size = [5, 5]
         x_shape = self.calc_shape_test(
-            [1, 28, 28],
-            self.out_channels[1],
+            [1, 28, 28], self.out_channels[1], kernel_size=kernel_size, stride=[1, 1]
         )
         print(x_shape)
-        x_shape = self.calc_shape_test(x_shape, self.out_channels[2])
+
+        x_shape = self.calc_shape_test(
+            x_shape, self.out_channels[2], kernel_size=kernel_size, stride=[1, 1]
+        )
         print(x_shape)
 
+        print(x_shape)
         input_width = x_shape[0] * x_shape[1] * x_shape[2]
         print(input_width)
         if output_width is not None:
             # layers.append(MutableLinear(self.out_channels[-1], 10))
 
-            layers.append(Sequential(LinearFlattened(input_width, 10)))
+            layers.append(LinearFlattened(input_width, 10))
         return nn.Sequential(*layers), None
 
     def calc_shape_test(
@@ -328,27 +328,5 @@ class CNNSpace(ModelSpace):
 
 if __name__ == "__main__":
     search_space = yml_to_dict("search_space.yml")
-    # search_space = SearchSpace(search_space)
-    search_space = CNNSpace(search_space)
-    x = search_space(torch.randn([4, 1, 28, 28]))
-    x = torch.randn([4, 1, 28, 28])
-    conv1 = Conv2d(1, 16, 5, 2)
-    x = conv1(x)
-    print(x.shape)
-    conv2 = Conv2d(16, 16, 5, 2)
-    x = conv2(x)
-    print(x.shape)
-
-    print(flatten_formula(nn.Flatten(), ShapeTensor(x, True)))
-    # input = torch.randn(3, 4, 3)
-    # m = nn.Conv2d(3, 2, 3, stride=1)
-    # print(m(input).shape)
-    # print(m(input))
-    # m = nn.Conv2d(3, 2, (3, 5), stride=(2, 1), padding=(4, 2))
-    # print(m(input).shape)
-    # # non-square kernels and unequal stride and with padding and dilation
-    # m = nn.Conv2d(3, 33, (3, 5), stride=(2, 1), padding=(4, 2), dilation=(3, 1))
-    # print(m(input).shape)
-
-
-# test_op_candidates()
+    search_space = SearchSpace(search_space)
+    print(search_space)
