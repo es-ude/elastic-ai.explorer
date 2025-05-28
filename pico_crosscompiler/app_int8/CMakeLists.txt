@@ -1,4 +1,4 @@
-add_executable(app)
+add_executable(app_int8)
 
 file(GLOB_RECURSE SRC 
     ${CMAKE_CURRENT_LIST_DIR}/*.c
@@ -6,9 +6,9 @@ file(GLOB_RECURSE SRC
     ${CMAKE_CURRENT_LIST_DIR}/*.h
     ${CMAKE_CURRENT_LIST_DIR}/*.hpp
 )
-target_sources(app PRIVATE ${SRC})
-target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(app
+target_sources(app_int8 PRIVATE ${SRC})
+target_include_directories(app_int8 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(app_int8
     hardware_setup
     sensor_lib
     led_lib
@@ -17,6 +17,6 @@ target_link_libraries(app
     pico-tflmicro
 )
 
-pico_enable_stdio_usb(app 1)
-pico_enable_stdio_uart(app 0)
-pico_add_extra_outputs(app)
+pico_enable_stdio_usb(app_int8 1)
+pico_enable_stdio_uart(app_int8 0)
+pico_add_extra_outputs(app_int8)

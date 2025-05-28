@@ -43,3 +43,14 @@ Initialize submodules:
 git submodule sync
 git submodule update --init --recursive
 ```
+
+Build the Explorer-optimized model.cpp for testing:
+- Replace the model.cpp in the "pico_crosscompiler/app_\<quantization\>" folder
+- From project root do:
+```
+cd pico_crosscompiler
+mkdir build && cd build
+cmake .. && make -j4
+```
+- Flash pico with app_\<quantization\>/app_\<quantization\>.uef2 from build folder
+

@@ -12,15 +12,14 @@
 #include "tflite_interpreter.h"
 #include "signal_queue.h"
 #include "processing_functions.h"
-#include "simple_led.h"
 #include "led.h"
 #include "hardware_setup.h"
 #include "adxl345.h"
 
 #define DEBUG_PRINT_FPS false
-#define DEBUG_PRINT_CLASS_PROBS false
+#define DEBUG_PRINT_CLASS_PROBS true
 
-const uint32_t TENSOR_ARENA_SIZE = (30 * 1024);
+const uint32_t TENSOR_ARENA_SIZE = (140 * 1024);
 const uint32_t CHANNEL_COUNT = 1;
 const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 784;
 const uint32_t OUTPUT_FEATURE_COUNT = 10;
@@ -53,6 +52,10 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
     return interpreter;
 }
 
+void displayPredictedClass(float *predictions)
+{
+}
+
 void runInference(SignalQueue &queue)
 {
     static float inputBuffer[INPUT_FEATURE_COUNT];
@@ -67,6 +70,7 @@ void runInference(SignalQueue &queue)
         "Idle: %.04f ; Snake: %.04f ; UpDown: %.04f ; Wave: %.04f\n",
         outputBuffer[0], outputBuffer[1], outputBuffer[2], outputBuffer[3]);
 #endif
+
 }
 
 int main()
@@ -78,11 +82,10 @@ int main()
 
     interpreter = getInterpreter();
 
-    SignalQueue queue(INPUT_FEATURE_COUNT, CHANNEL_COUNT);
+    // SignalQueue queue(INPUT_FEATURE_COUNT, CHANNEL_COUNT);
+    // queue.notifyOnOverflowingElement(INFERENCE_EVERY_NTH_POINTS, runInference);
 
-    queue.notifyOnOverflowingElement(INFERENCE_EVERY_NTH_POINTS, runInference);
-
-    int16_t mock_input[CHANNEL_COUNT] = {1};
+    // int16_t accel[CHANNEL_COUNT];
 
 #if DEBUG_PRINT_FPS
     uint64_t current_time, previous_time;
@@ -96,8 +99,11 @@ int main()
         printf("FPS: %f\n", 1.0f / (current_time - previous_time) / 1e-6);
         previous_time = current_time;
 #endif
-        queue.add(mock_input);
-        sleep_ms(15);
+
+        //     adxl345_readData(&accel[0], &accel[1], &accel[2]);
+        //     queue.add(accel);
+
+        sleep_ms(150);
     }
 
     return 0;

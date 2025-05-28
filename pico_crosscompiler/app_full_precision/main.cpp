@@ -12,7 +12,6 @@
 #include "tflite_interpreter.h"
 #include "signal_queue.h"
 #include "processing_functions.h"
-#include "simple_led.h"
 #include "led.h"
 #include "hardware_setup.h"
 #include "adxl345.h"

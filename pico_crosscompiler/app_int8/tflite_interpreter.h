@@ -27,8 +27,8 @@ class TfLiteInterpreter {
         TfLiteTensor* output;
         bool initialized;
 
-        int8_t quantize(float x);
-        float dequantize(int8_t x);
+        uint8_t quantize(float x);
+        float dequantize(uint8_t x);
 };
 
 #endif
