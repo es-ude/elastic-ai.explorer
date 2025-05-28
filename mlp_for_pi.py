@@ -17,10 +17,14 @@ from elasticai.explorer.knowledge_repository import (
 )
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric, PicoHWManager
+from elasticai.explorer.platforms.deployment.manager import (
+    PIHWManager,
+    Metric,
+    PicoHWManager,
+)
 from elasticai.explorer.platforms.generator.generator import (
     PIGenerator,
-    RP2040Generator,
+    PicoGenerator,
 )
 from elasticai.explorer.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
@@ -60,7 +64,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         HWPlatform(
             "pico_RP2040",
             "Pico with RP2040 MCU and 2MB control memory",
-            RP2040Generator,
+            PicoGenerator,
             PicoHWManager,
             Host,
             PicoCompiler,

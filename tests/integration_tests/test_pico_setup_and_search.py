@@ -1,15 +1,13 @@
 import os
-import unittest
 import torch
 from elasticai.explorer import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import RPICompiler
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
+from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai.explorer.platforms.deployment.manager import PicoHWManager
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
 from pathlib import Path
@@ -27,17 +25,18 @@ class TestHWNasSetupAndSearch:
             HWPlatform(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PIGenerator,
-                PIHWManager,
+                PicoGenerator,
+                PicoHWManager,
                 Host,
-                RPICompiler,
+                PicoCompiler,
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository)
         self.RPI5explorer.experiment_dir = Path(
             "tests/integration_tests/test_experiment"
         )
-        self.model_name = "ts_model_0.pt"
+        self.model_name = "model"
+
         self.hwnas_cfg = HWNASConfig(
             config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")
         )
@@ -63,16 +62,10 @@ class TestHWNasSetupAndSearch:
             model=model, model_name=self.model_name
         )
         assert (
-            os.path.exists(
-                self.RPI5explorer.model_dir / self.model_name
-            )
+            os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".tflite"))
             == True
         )
         assert (
-            type(
-                torch.jit.load(
-                    self.RPI5explorer.model_dir /  self.model_name
-                )
-            )
-            == torch.jit._script.RecursiveScriptModule  # type: ignore
+            os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))
+            == True
         )

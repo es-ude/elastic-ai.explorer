@@ -60,7 +60,7 @@ class PIGenerator(Generator):
         return ts_model
 
 
-class RP2040Generator(Generator):
+class PicoGenerator(Generator):
     def __init__(self):
         self.logger = logging.getLogger(
             "explorer.platforms.generator.generator.RP2040GeneratorFullPrecision"
@@ -108,9 +108,9 @@ class RP2040Generator(Generator):
         )
         output_lines = process.stdout.decode("utf8").splitlines(keepends=True)
 
-        output_path = tflite_model_path.parent
+        output_path = tflite_model_path.stem
 
-        with open(output_path, "w") as out_file:
+        with open(output_path + ".cpp", "w") as out_file:
             out_file.writelines("#include <model.h>\n")
             out_file.writelines(
                 f"const {line}" if line.startswith("unsigned") else line
@@ -135,3 +135,4 @@ class RP2040Generator(Generator):
         edge_output = edge_model(*sample_inputs)
         self._validate(torch_output, edge_output)
         edge_model.export(str(path))
+        self._hardcode_model(path)
