@@ -1,7 +1,9 @@
+from io import UnsupportedOperation
 import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+import subprocess
 from typing import Any, Literal
 import numpy
 import torch
@@ -33,7 +35,14 @@ class PIGenerator(Generator):
             "explorer.platforms.generator.generator.PIGenerator"
         )
 
-    def generate(self, model: nn.Module, path: Path, quantization: Literal["int8"] | Literal["full_precision"] = "full_precision"):
+    def generate(
+        self,
+        model: nn.Module,
+        path: Path,
+        quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
+    ):
+        if quantization == "int8":
+            raise NotImplementedError("int8-Quantization is currently not supported.")
         self.logger.info("Generate torchscript model from %s", model)
         model.eval()
 
@@ -83,7 +92,6 @@ class RP2040Generator(Generator):
         pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
         torch_output = pt2e_torch_model(*sample_input)
 
-
         pt2e_drq_model = ai_edge_torch.convert(
             pt2e_torch_model,
             sample_input,
@@ -93,6 +101,21 @@ class RP2040Generator(Generator):
         edge_output = pt2e_drq_model(*sample_input_int8)
         self.logger.debug(f"Sample output quantized: ", edge_output)
         return pt2e_drq_model, torch_output
+
+    def _hardcode_model(self, tflite_model_path: Path):
+        process = subprocess.run(
+            ["xxd", "-i", str(tflite_model_path)], capture_output=True
+        )
+        output_lines = process.stdout.decode("utf8").splitlines(keepends=True)
+
+        output_path = tflite_model_path.parent
+
+        with open(output_path, "w") as out_file:
+            out_file.writelines("#include <model.h>\n")
+            out_file.writelines(
+                f"const {line}" if line.startswith("unsigned") else line
+                for line in output_lines
+            )
 
     def generate(
         self,
@@ -112,52 +135,3 @@ class RP2040Generator(Generator):
         edge_output = edge_model(*sample_inputs)
         self._validate(torch_output, edge_output)
         edge_model.export(str(path))
-
-
-class RP2040GeneratorInt8Quantization(Generator):
-    def __init__(self):
-        self.logger = logging.getLogger(
-            "explorer.platforms.generator.generator.RP2040GeneratorInt8Quantization"
-        )
-
-    def _validate(self, torch_output, edge_output):
-        if numpy.allclose(
-            torch_output.detach().numpy(),
-            edge_output,
-            atol=1e-2,
-            rtol=1e-2,
-        ):
-            self.logger.info(
-                "Inference result with Pytorch and TfLite was within tolerance"
-            )
-        else:
-            self.logger.warning("Something wrong with Pytorch --> TfLite")
-
-    def _quantize(self, model: nn.Module, sample_input: tuple[Any]):
-        pt2e_quantizer = PT2EQuantizer().set_global(
-            get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
-        )
-
-        pt2e_torch_model = capture_pre_autograd_graph(model, sample_input)
-        pt2e_torch_model = prepare_pt2e(pt2e_torch_model, pt2e_quantizer)  # type:ignore
-
-        # Prepare model by running one inference.
-        pt2e_torch_model(*sample_input)
-        pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
-
-        pt2e_drq_model = ai_edge_torch.convert(
-            pt2e_torch_model,
-            sample_input,
-            quant_config=QuantConfig(pt2e_quantizer=pt2e_quantizer),
-        )
-        sample_input_int8 = (sample_input[0].to(torch.int8),)
-        edge_output = pt2e_drq_model(*sample_input_int8)
-        self.logger.debug(f"Sample output quantized: ", edge_output)
-        return pt2e_drq_model
-
-    def generate(self, model: nn.Module, path: Path):
-        self.logger.info("Generate torchscript model from %s", model)
-        sample_inputs = (torch.ones(1, 784),)
-        quant_model = model.eval()
-        quant_model = self._quantize(quant_model, sample_inputs)
-        quant_model.export(str(path))
