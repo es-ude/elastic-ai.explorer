@@ -20,9 +20,7 @@ class TestDeploymentAndMeasurement:
         self.deploy_cfg = DeploymentConfig(
             config_path=Path("tests/system_tests/test_configs/deployment_config.yaml")
         )
-        self.model_cfg = ModelConfig(
-            config_path=Path("tests/system_tests/test_configs/model_config.yaml")
-        )
+        self.model_cfg = ModelConfig()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -43,11 +41,8 @@ class TestDeploymentAndMeasurement:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         path_to_dataset = Path("tests/system_tests/samples/data/mnist")
-        __trainloader: DataLoader = DataLoader(
-            MNIST(path_to_dataset, download=True, transform=transf),
-            batch_size=64,
-            shuffle=True,
-        )
+        MNIST(path_to_dataset, download=True, transform=transf)
+        
         path_to_data_docker = "docker/data/mnist"
         shutil.make_archive(path_to_data_docker, "zip", path_to_dataset)
         self.RPI5explorer.hw_setup_on_target(Path(path_to_data_docker + ".zip"))

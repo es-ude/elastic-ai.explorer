@@ -12,6 +12,7 @@ class TestCompiler(unittest.TestCase):
 
         expected_name_of_executable = "measure_latency"
         path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
+
         config = Mock(
             compiler_tag="cross",
             path_to_dockerfile=CONTEXT_PATH / "Dockerfile.picross",

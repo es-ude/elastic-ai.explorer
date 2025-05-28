@@ -28,12 +28,12 @@ class Compiler(ABC):
 class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.logger = logging.getLogger("Compiler")
-        self.tag: str = deploy_cfg.compiler_tag  # "cross"
+        self.tag: str = deploy_cfg.docker.compiler_tag  # "cross"
         self.path_to_dockerfile: Path = Path(
-            deploy_cfg.path_to_dockerfile
+            deploy_cfg.docker.path_to_dockerfile
         )  # CONTEXT_PATH / "Dockerfile.picross"
-        self.context_path: Path = Path(deploy_cfg.build_context)
-        self.libtorch_path: Path = Path(deploy_cfg.compiled_library_path)
+        self.context_path: Path = Path(deploy_cfg.docker.build_context)
+        self.libtorch_path: Path = Path(deploy_cfg.docker.compiled_library_path)
         if not self.is_setup():
             self.setup()
 
