@@ -272,28 +272,46 @@ class CNNSpace(ModelSpace):
         #         label=f"depth_block_{block_name}",
         #     )
         # )
+        kernel_size = block["conv2D"]["kernel_size"]
+        if isinstance(kernel_size, list):
+            self.kernel_size = nni.choice(
+                label=f"kernel_size_block_{block_name}", choices=kernel_size
+            )
+        else:
+            self.kernel_size = kernel_size
+        stride = block["conv2D"]["stride"]
+        if isinstance(stride, list):
+            self.stride = nni.choice(label=f"stride_block_{block_name}", choices=stride)
+        else:
+            self.stride = stride
         layers.append(
             Repeat(
                 lambda index: nn.Sequential(
                     MutableConv2d(
                         self.out_channels[index],
                         self.out_channels[index + 1],
-                        block["conv2D"]["kernel_size"],
-                        block["conv2D"]["stride"],
+                        self.kernel_size,
+                        self.stride,
                     )
                 ),
                 depth,
                 label=f"depth_block_{block_name}",
             )
         )
-        kernel_size = [5, 5]
+
         x_shape = self.calc_shape_test(
-            [1, 28, 28], self.out_channels[1], kernel_size=kernel_size, stride=[1, 1]
+            [1, 28, 28],
+            self.out_channels[1],
+            kernel_size=self.kernel_size,
+            stride=self.stride,
         )
         print(x_shape)
 
         x_shape = self.calc_shape_test(
-            x_shape, self.out_channels[2], kernel_size=kernel_size, stride=[1, 1]
+            x_shape,
+            self.out_channels[2],
+            kernel_size=self.kernel_size,
+            stride=self.stride,
         )
         print(x_shape)
 
@@ -315,6 +333,9 @@ class CNNSpace(ModelSpace):
         dilation=[1, 1],
         padding=(0, 0),
     ):
+        print("in calc shape")
+        print(kernel_size[0])
+        print(stride)
         shape[-3] = out_channels
         # H_out and W_out
         shape[-2] = (
@@ -328,5 +349,5 @@ class CNNSpace(ModelSpace):
 
 if __name__ == "__main__":
     search_space = yml_to_dict("search_space.yml")
-    search_space = SearchSpace(search_space)
+    search_space = CNNSpace(search_space)
     print(search_space)

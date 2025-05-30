@@ -9,15 +9,15 @@ blocks:
       activation: [ "relu"]
       width: [16, 32]
     conv2D:
-      kernel_size: 5
-      stride: 1
+      kernel_size: [[5,5], [10, 10]]
+      stride: [[1,1] ,[2, 2]]
       out_channels: [ 10, 8]
 #  - block: "2"
 #    op_candidates: ["linear"]
 #    depth: 1
 #    linear:
 #      width: [ 11, 21 ]
-      activation: [ "sigmoid" ]
+#      activation: [ "sigmoid" ]
 #  - block: "3"
 #    op_candidates: ["linear"]
 #    depth: 3
