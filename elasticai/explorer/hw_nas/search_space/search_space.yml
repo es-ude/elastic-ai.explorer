@@ -9,8 +9,8 @@ blocks:
       activation: [ "relu"]
       width: [16, 32]
     conv2D:
-      kernel_size: [[5,5], [10, 10]]
-      stride: [[1,1] ,[2, 2]]
+      kernel_size: [5, 10]
+      stride: [1, 2]
       out_channels: [ 10, 8]
 #  - block: "2"
 #    op_candidates: ["linear"]

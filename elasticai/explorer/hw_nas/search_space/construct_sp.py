@@ -1,4 +1,3 @@
-from math import floor
 from typing import Optional
 
 import nni
@@ -200,22 +199,6 @@ def yml_to_dict(file):
         return search_space
 
 
-def calc_shape(channel, prev_width, prev_height, kernel, stride):
-    return (
-        channel,
-        calculate_2d_conv_pool_shape(prev_width, kernel, stride),
-        calculate_2d_conv_pool_shape(prev_height, kernel, stride),
-    )
-
-
-def calculate_2d_conv_pool_shape(
-    prev_shape, kernel_size, stride=1, dilation=1, padding=0
-):
-    return floor(
-        ((prev_shape + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
-    )
-
-
 class CNNSpace(ModelSpace):
 
     def __init__(self, parameters: dict):
@@ -282,6 +265,7 @@ class CNNSpace(ModelSpace):
         stride = block["conv2D"]["stride"]
         if isinstance(stride, list):
             self.stride = nni.choice(label=f"stride_block_{block_name}", choices=stride)
+
         else:
             self.stride = stride
         layers.append(
@@ -299,7 +283,7 @@ class CNNSpace(ModelSpace):
             )
         )
 
-        x_shape = self.calc_shape_test(
+        x_shape = calculate_conv_output_shape(
             [1, 28, 28],
             self.out_channels[1],
             kernel_size=self.kernel_size,
@@ -307,7 +291,7 @@ class CNNSpace(ModelSpace):
         )
         print(x_shape)
 
-        x_shape = self.calc_shape_test(
+        x_shape = calculate_conv_output_shape(
             x_shape,
             self.out_channels[2],
             kernel_size=self.kernel_size,
@@ -324,30 +308,38 @@ class CNNSpace(ModelSpace):
             layers.append(LinearFlattened(input_width, 10))
         return nn.Sequential(*layers), None
 
-    def calc_shape_test(
-        self,
-        shape,
-        out_channels,
-        kernel_size=[5, 5],
-        stride=[2, 2],
-        dilation=[1, 1],
-        padding=(0, 0),
-    ):
-        print("in calc shape")
-        print(kernel_size[0])
-        print(stride)
-        shape[-3] = out_channels
-        # H_out and W_out
-        shape[-2] = (
-            shape[-2] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1
-        ) // stride[0] + 1
-        shape[-1] = (
-            shape[-1] + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1
-        ) // stride[1] + 1
-        return shape
+
+def calculate_conv_output_shape(
+    shape,
+    out_channels: int,
+    kernel_size: int | tuple[int, int],
+    stride: int | tuple[int, int] = (1, 1),
+    dilation: int | tuple[int, int] = (1, 1),
+    padding: int | tuple[int, int] = (0, 0),
+):
+    kernel_size, stride, dilation, padding = convert_to_tuples(
+        [kernel_size, stride, dilation, padding]
+    )
+
+    shape[-3] = out_channels
+    shape[-2] = (
+        shape[-2] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1
+    ) // stride[0] + 1
+    shape[-1] = (
+        shape[-1] + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1
+    ) // stride[1] + 1
+    return shape
+
+
+def convert_to_tuples(values):
+    return [x if isinstance(x, tuple) else (x, x) for x in values]
 
 
 if __name__ == "__main__":
+    shape = [1, 28, 28]
+
+    print(calculate_conv_output_shape(shape, 4, 5, 1))
+
     search_space = yml_to_dict("search_space.yml")
-    search_space = CNNSpace(search_space)
-    print(search_space)
+    # search_space = CNNSpace(search_space)
+    # print(search_space)

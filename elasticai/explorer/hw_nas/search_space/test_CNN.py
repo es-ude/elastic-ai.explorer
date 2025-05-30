@@ -7,8 +7,6 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 
-from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
-
 
 def calc_shape_test(
     shape,
@@ -158,6 +156,7 @@ if __name__ == "__main__":
     # print(x.shape)
     #   flops_estimator = FlopsEstimator()
     x = torch.randn([4, 1, 28, 28])
-    net = Net([1, 28, 28])
-    flops_estimator = FlopsEstimator()
-    flops_estimator.estimate_flops(net, x)
+    print(x.shape)
+    # net = Net([1, 28, 28])
+    # flops_estimator = FlopsEstimator()
+    # flops_estimator.estimate_flops(net, x)
