@@ -43,6 +43,9 @@ preview = true
 line-length = 88
 
 [tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
 minversion = "6.0"
 markers = [
   "simulation: possibly slow running integration tests including hw simulation"
