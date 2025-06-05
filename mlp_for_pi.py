@@ -12,7 +12,10 @@ from torchvision.transforms import transforms
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import yml_to_dict, CNNSpace
+from elasticai.explorer.hw_nas.search_space.construct_sp import (
+    yml_to_dict,
+    CombinedSearchSpace,
+)
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
@@ -163,5 +166,5 @@ if __name__ == "__main__":
     search_space = yml_to_dict(
         Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
     )
-    search_space = CNNSpace(search_space)
+    search_space = CombinedSearchSpace(search_space)
     search_models(explorer, hwnas_cfg, search_space)

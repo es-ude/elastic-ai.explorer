@@ -57,11 +57,11 @@ class Net(nn.Module):
         self.fc3 = nn.Linear(84, 10)
 
     def forward(self, x):
-        print(x.shape)
+
         x = F.relu(self.conv1(x))
-        print(x.shape)
+
         x = F.relu(self.conv2(x))
-        print(x.shape)
+
         new_shape = x[0].shape[0] * x[0].shape[1] * x[0].shape[2]
         # x = x.view(-1, new_shape)
         x = self.flatten(x)  # flatten all dimensions except batch

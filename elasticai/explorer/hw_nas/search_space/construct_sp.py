@@ -4,7 +4,7 @@ from typing import Optional
 import nni
 import torch
 import yaml
-from nni.mutable import Mutable, MutableExpression, ensure_frozen
+from nni.mutable import Mutable, MutableExpression, ensure_frozen, Sample
 from nni.nas.nn.pytorch import (
     ModelSpace,
     LayerChoice,
@@ -12,6 +12,7 @@ from nni.nas.nn.pytorch import (
     Repeat,
     MutableConv2d,
 )
+from nni.nas.space import model_context
 from torch import nn
 from torch.nn import Linear, ModuleList, Conv2d
 
@@ -53,7 +54,7 @@ class SearchSpace(ModelSpace):
                 and not isinstance(module, ModuleList)
                 and not isinstance(module, Repeat)
             ]
-        print(layer_new)
+
         index = -1
         while not (
             isinstance(layer_new[index], Linear)
@@ -62,9 +63,9 @@ class SearchSpace(ModelSpace):
         ):
             index -= 1
         layer = layer_new[index]
-        print(layer)
+
         last_layer = layer.out_features
-        print(last_layer)
+
         return last_layer
 
     def build_block(
@@ -120,7 +121,6 @@ class SearchSpace(ModelSpace):
         # )
 
         last_layer = self.get_preceeding_layer_width(layers)
-        print(last_layer)
         if output_width is not None:
 
             layers.append(
@@ -218,7 +218,6 @@ def compute_start_view(x: torch.Tensor, blocks):
     first_layer = simplify_net(blocks)[0]
     if isinstance(first_layer, Linear):
         x = x.view(-1, first_layer.in_features)
-        print(first_layer.in_features)
     return x
 
 
@@ -246,11 +245,19 @@ def parse_op_candidates(op_candidates: list[str], block_id, block):
         layer = LayerChoice(layer_op_mapping, label=f"activation_block_{block_id}")
 
 
+# class LayerRepeat(Repeat):
+
+
 class CombinedSearchSpace(ModelSpace):
 
+    def is_last_block(self, block, blocks):
+        return blocks[-1]["block"] == block["block"]
+
     # same for both
-    def __init__(self, parameters: dict):
+    def __init__(self, parameters: dict) -> None:
+
         super().__init__()
+        self.params = parameters
         blocks: list[dict] = parameters["blocks"]
         block_sp = []
 
@@ -266,81 +273,198 @@ class CombinedSearchSpace(ModelSpace):
 
         self.block_sp = nn.Sequential(*block_sp)
 
+    def build_conv2d_block(
+        self, input_width, output_width, max_depth, block_id, block, activation
+    ):
+
+        layers = []
+
+        layers.append(
+            Repeat(
+                lambda index: nn.Sequential(
+                    MutableConv2d(
+                        self.out_channels[index],
+                        self.out_channels[index + 1],
+                        self.kernel_size,
+                        self.stride,
+                    )
+                ),
+                self.depth,
+            )
+        )
+        x_shape = [1, 28, 28]
+        self.output_shapes = []
+        for i in range(max_depth):
+            x_shape = calculate_conv_output_shape(
+                x_shape,
+                self.out_channels[i + 1],
+                kernel_size=self.kernel_size,
+                stride=self.stride,
+            )
+            self.output_shapes.append(x_shape)
+
+        x_shape = self.output_shapes[ensure_frozen(self.depth) - 1]
+        input_width = x_shape[0] * x_shape[1] * x_shape[2]
+        print(input_width)
+        if output_width is not None:
+            layers.append(LinearFlattened(input_width, 10))
+        return nn.Sequential(*layers), None
+
+    def build_linear_block(
+        self,
+        input_width,
+        output_width,
+        max_depth,
+        block_id,
+        block,
+        activation,
+    ):
+        layers = []
+
+        repeat = Repeat(
+            lambda index: nn.Sequential(
+                MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
+                #    LayerChoice(activation, label=f"activation_block_{block_id}"),
+            ),
+            self.depth,
+        )
+
+        layers.append(repeat)
+        last_layer_width = self.h_l_widths[ensure_frozen(self.depth)]
+        if output_width is not None:
+            layers.append(
+                nn.Sequential(
+                    MutableLinear(last_layer_width, output_width),
+                    #     LayerChoice(activation, label=f"activation_block_{block_id}"),
+                )
+            )
+
+        return nn.Sequential(*layers), None
+
     def build_block(
         self,
         block,
         input_width: Optional[int | Mutable],
         output_width: Optional[int] = None,
     ):
-        depth, max_depth = parse_depth(block["depth"])
-        layer_op_mapping = [supported_operations[key] for key in block["op_candidates"]]
 
-    def build_block(
-        self,
-        block: dict,
-        input_width: Optional[int | Mutable],
-        output_width: Optional[int] = None,
-    ):
-        block_name = block["block"]
-        # layer_op_mapping = [op_candidates[key] for key in block["op_candidates"]]
-        activations: dict = block["linear"]["activation"]
-        activation_mappings = [activation_candidates[key] for key in activations]
+        input_width = [1, 28, 28]
+        output_width = 10
+        block_id = block["block"]
+        print(block)
+        self.depth, max_depth = parse_depth(block["depth"], block_id)
 
-        depth = block["depth"]
-        if isinstance(depth, int):
-            max_depth = depth
-        else:
-            max_depth = depth[1]
-            depth = tuple[int, int](depth)
-
-        layers = []
-
-        activation = LayerChoice(
-            activation_mappings, label=f"activation_block_{block_name}"
-        )
-
-        self.h_l_widths = [input_width] + [
-            nni.choice(f"layer_width_{i}_block_{block_name}", block["linear"]["width"])
+        #    depth, max_depth = parse_depth(block["depth"], block_id)
+        self.out_channels = [1] + [
+            nni.choice(
+                label=f"out_channels_{i}_block_{block_id}",
+                choices=block["conv2D"]["out_channels"],
+            )
             for i in range(max_depth)
         ]
-        print(self.h_l_widths)
-        repeat = Repeat(
-            lambda index: nn.Sequential(
-                MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
-                activation,
-            ),
-            depth,
-            label=f"depth_block_{block_name}",
+        self.h_l_widths = [784] + [
+            nni.choice(f"layer_width_{i}_block_{block_id}", block["linear"]["width"])
+            for i in range(max_depth)
+        ]
+        # activations: dict = block["linear"]["activation"]
+        # activation_mappings = [activation_candidates[key] for key in activations]
+
+        # if isinstance(activation, Mutable):
+        #     self.add_mutable(activation)
+        self.candidate_op = nni.choice(
+            label=f"candidate_b_{block_id}",
+            choices=[
+                "conv2d",
+                "linear",
+            ],
         )
+        if isinstance(self.candidate_op, Mutable):
+            self.add_mutable(self.candidate_op)
+        for width in self.h_l_widths:
+            if isinstance(width, Mutable):
+                self.add_mutable(width)
+        for width in self.out_channels:
+            if isinstance(width, Mutable):
+                self.add_mutable(width)
+        kernel_size = block["conv2D"]["kernel_size"]
+        if isinstance(kernel_size, list):
+            self.kernel_size = nni.choice(
+                label=f"kernel_size_block_{block_id}", choices=kernel_size
+            )
+        else:
+            self.kernel_size = kernel_size
+        stride = block["conv2D"]["stride"]
+        if isinstance(stride, list):
+            self.stride = nni.choice(label=f"stride_block_{block_id}", choices=stride)
 
-        layers.append(repeat)
+        else:
+            self.stride = stride
+        if isinstance(self.stride, Mutable):
+            self.add_mutable(self.stride)
+            if isinstance(self.kernel_size, Mutable):
+                self.add_mutable(self.kernel_size)
+        # if ensure_frozen(self.candidate_op) == "conv2d":
+        #     return self.conv2dBlock, None
+        # else:
+        #     return self.linearBlock, None
+        #  print(ensure_frozen(self.candidate_op))
+        if ensure_frozen(self.candidate_op) == "conv2d":
+            return self.build_conv2d_block(
+                input_width,
+                output_width,
+                max_depth,
+                block_id,
+                block,
+                "activation_mappings",
+            )
+        elif ensure_frozen(self.candidate_op) == "linear":
+            return self.build_linear_block(
+                input_width,
+                output_width,
+                max_depth,
+                block_id,
+                block,
+                "activation_mappings",
+            )
+        return None
 
-        #    last_layer = self.h_l_widths[ensure_frozen(repeat.depth_choice)]
-        # layers.append(
-        #     Repeat(
-        #         lambda index: nn.Sequential(
-        #             layer_choice(self.h_l_widths[index], self.h_l_widths[index + 1]),
-        #             activation,
-        #         ),
-        #         depth,
-        #         label=f"depth_block_{block_name}",
+        # self.out_channels = [1] + [
+        #     nni.choice(
+        #         label=f"out_channel_nr_{i}_block_{block_id}",
+        #         choices=block["conv2D"]["out_channels"],
         #     )
+        #     for i in range(max_depth)
+        # ]
+        # repeat = Repeat(
+        #     lambda index: nn.Sequential(
+        #         LayerChoice(
+        #         MutableConv2d(
+        #             self.out_channels[index],
+        #             self.out_channels[index + 1],
+        #             self.kernel_size,
+        #             self.stride,
+        #         ),MutableLinear() )
+        #     ),
+        #     depth,
+        # )
+        # repeat = Repeat(
+        #     lambda index: nn.Sequential(
+        #         MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
+        #     ),
+        #     depth,
         # )
 
-        last_layer = self.get_preceeding_layer_width(layers)
-        print(last_layer)
-        if output_width is not None:
-
-            layers.append(
-                nn.Sequential(MutableLinear(last_layer, output_width), activation)
-            )
-
-        return nn.Sequential(*layers), last_layer
-
     def forward(self, x):
+
         x = compute_start_view(x, self.block_sp)
         x = self.block_sp(x)
         return x
+
+    def freeze(self, sample: Sample):
+        with model_context(sample):
+            comb_sp = CombinedSearchSpace(self.params)
+            print(comb_sp)
+            return comb_sp
 
 
 class CNNSpace(ModelSpace):
@@ -386,7 +510,6 @@ class CNNSpace(ModelSpace):
             )
             for i in range(max_depth)
         ]
-        print(self.out_channels)
 
         kernel_size = block["conv2D"]["kernel_size"]
         if isinstance(kernel_size, list):
@@ -425,26 +548,11 @@ class CNNSpace(ModelSpace):
                 stride=self.stride,
             )
             self.output_shapes.append(x_shape)
-        print(len(self.output_shapes))
-        #
-        # print(x_shape)
-        #
-        # x_shape = calculate_conv_output_shape(
-        #     x_shape,
-        #     self.out_channels[2],
-        #     kernel_size=self.kernel_size,
-        #     stride=self.stride,
-        # )
-        # print(x_shape)
-        #
-        # print(x_shape)
-        print(ensure_frozen(depth))
 
         x_shape = self.output_shapes[ensure_frozen(depth) - 1]
         input_width = x_shape[0] * x_shape[1] * x_shape[2]
         print(input_width)
         if output_width is not None:
-            # layers.append(MutableLinear(self.out_channels[-1], 10))
 
             layers.append(LinearFlattened(input_width, 10))
         return nn.Sequential(*layers), None
@@ -453,8 +561,8 @@ class CNNSpace(ModelSpace):
 def calculate_conv_output_shape(
     shape,
     out_channels: int | MutableExpression[int],
-    kernel_size: int | tuple[int, int],
-    stride: int | tuple[int, int] = (1, 1),
+    kernel_size: int | tuple[int, int] | MutableExpression[int],
+    stride: int | tuple[int, int] | MutableExpression[int] = (1, 1),
     dilation: int | tuple[int, int] = (1, 1),
     padding: int | tuple[int, int] = (0, 0),
 ):
@@ -481,5 +589,7 @@ if __name__ == "__main__":
     x = torch.randn(5, 1, 28, 28)
     search_space = yml_to_dict("search_space.yml")
 
-    search_space = CNNSpace(search_space)
-    print(search_space(x).shape)
+    search_space = CombinedSearchSpace(search_space)
+    # print(search_space)
+    # search_space.freeze({"op_candidates": 0, depth})
+    # print(search_space(x).shape)
