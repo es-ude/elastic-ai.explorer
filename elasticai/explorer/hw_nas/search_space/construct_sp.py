@@ -1,5 +1,6 @@
 import copy
-from typing import Optional
+import math
+from typing import Optional, Iterable
 
 import nni
 import torch
@@ -151,7 +152,7 @@ class LinearFlattened(nn.Sequential):
         self.lin = MutableLinear(in_feat, out_feat)
 
     def forward(self, x):
-        new_shape = x[0].shape[0] * x[0].shape[1] * x[0].shape[2]
+        # new_shape = x[0].shape[0] * x[0].shape[1] * x[0].shape[2]
         x = self.flatten(x)
         # x = x.view(-1, new_shape)
 
@@ -264,7 +265,9 @@ class CombinedSearchSpace(ModelSpace):
 
         last_out = None
         for block in blocks:
+
             input_width = parameters["input"] if last_out is None else last_out
+            print(input_width)
             output_width = (
                 parameters["output"] if self.is_last_block(block, blocks) else None
             )
@@ -294,7 +297,8 @@ class CombinedSearchSpace(ModelSpace):
                 self.depth,
             )
         )
-        x_shape = [1, 28, 28]
+        print(f"input_width: {input_width}")
+        x_shape = input_width
         self.output_shapes = []
         for i in range(max_depth):
             x_shape = calculate_conv_output_shape(
@@ -310,7 +314,7 @@ class CombinedSearchSpace(ModelSpace):
         print(input_width)
         if output_width is not None:
             layers.append(LinearFlattened(input_width, 10))
-        return nn.Sequential(*layers), None
+        return nn.Sequential(*layers), x_shape
 
     def build_linear_block(
         self,
@@ -323,9 +327,13 @@ class CombinedSearchSpace(ModelSpace):
         layers = []
 
         repeat = Repeat(
-            lambda index: nn.Sequential(
-                MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
-                #    LayerChoice(activation, label=f"activation_block_{block_id}"),
+            lambda index: (
+                LinearFlattened(self.h_l_widths[index], self.h_l_widths[index + 1])
+                if index == 0
+                else nn.Sequential(
+                    MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
+                    #    LayerChoice(activation, label=f"activation_block_{block_id}"),
+                )
             ),
             self.depth,
         )
@@ -342,30 +350,53 @@ class CombinedSearchSpace(ModelSpace):
 
         return nn.Sequential(*layers), None
 
-    def build_block(
-        self,
-        block,
-        input_width: Optional[int | Mutable],
-        output_width: Optional[int] = None,
-    ):
+    def build_block(self, block, input_width, output_width=None):
 
-        input_width = [1, 28, 28]
-        output_width = 10
+        # input_width = [1, 28, 28]
+        # output_width = 10
 
         self.depth, max_depth = parse_depth(block["depth"])
         #    depth, max_depth = parse_depth(block["depth"], block_id)
         if "conv2d" in block["op_candidates"]:
-            self.out_channels = [1] + [
+            self.out_channels = [input_width[0]] + [
                 nni.choice(
                     label=f"out_channels_{i}",
                     choices=block["conv2D"]["out_channels"],
                 )
                 for i in range(max_depth)
             ]
-        self.h_l_widths = [784] + [
-            nni.choice(f"layer_width_{i}", block["linear"]["width"])
-            for i in range(max_depth)
-        ]
+            for width in self.out_channels:
+                if isinstance(width, Mutable):
+                    self.add_mutable(width)
+            kernel_size = block["conv2D"]["kernel_size"]
+            if isinstance(kernel_size, list):
+                self.kernel_size = nni.choice(label=f"kernel_size", choices=kernel_size)
+            else:
+                self.kernel_size = kernel_size
+            stride = block["conv2D"]["stride"]
+            if isinstance(stride, list):
+                self.stride = nni.choice(label=f"stride", choices=stride)
+
+            else:
+                self.stride = stride
+            if isinstance(self.stride, Mutable):
+                self.add_mutable(self.stride)
+                if isinstance(self.kernel_size, Mutable):
+                    self.add_mutable(self.kernel_size)
+        if "linear" in block["op_candidates"]:
+            flattened_input = (
+                math.prod(input_width)
+                if isinstance(input_width, Iterable)
+                else input_width
+            )
+            print(flattened_input)
+            self.h_l_widths = [flattened_input] + [
+                nni.choice(f"layer_width_{i}", block["linear"]["width"])
+                for i in range(max_depth)
+            ]
+            for width in self.h_l_widths:
+                if isinstance(width, Mutable):
+                    self.add_mutable(width)
         # activations: dict = block["linear"]["activation"]
         # activation_mappings = [activation_candidates[key] for key in activations]
 
@@ -373,34 +404,11 @@ class CombinedSearchSpace(ModelSpace):
         #     self.add_mutable(activation)
         self.candidate_op = nni.choice(
             label=f"candidate_op",
-            choices=[
-                "conv2d",
-                "linear",
-            ],
+            choices=block["op_candidates"],
         )
         if isinstance(self.candidate_op, Mutable):
             self.add_mutable(self.candidate_op)
-        for width in self.h_l_widths:
-            if isinstance(width, Mutable):
-                self.add_mutable(width)
-        for width in self.out_channels:
-            if isinstance(width, Mutable):
-                self.add_mutable(width)
-        kernel_size = block["conv2D"]["kernel_size"]
-        if isinstance(kernel_size, list):
-            self.kernel_size = nni.choice(label=f"kernel_size", choices=kernel_size)
-        else:
-            self.kernel_size = kernel_size
-        stride = block["conv2D"]["stride"]
-        if isinstance(stride, list):
-            self.stride = nni.choice(label=f"stride", choices=stride)
 
-        else:
-            self.stride = stride
-        if isinstance(self.stride, Mutable):
-            self.add_mutable(self.stride)
-            if isinstance(self.kernel_size, Mutable):
-                self.add_mutable(self.kernel_size)
         # if ensure_frozen(self.candidate_op) == "conv2d":
         #     return self.conv2dBlock, None
         # else:

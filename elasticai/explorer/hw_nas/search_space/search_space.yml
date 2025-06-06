@@ -1,4 +1,4 @@
-input: (1, 28, 28)
+input: [1, 28, 28]
 output: 10
 blocks:
   - block:  "1" #namefield muss noch rein

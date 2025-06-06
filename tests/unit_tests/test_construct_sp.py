@@ -4,12 +4,11 @@ import yaml
 from nni.nas.execution import SequentialExecutionEngine
 from torch import nn
 
-from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
 from elasticai.explorer.hw_nas.search_space.construct_sp import (
     calculate_conv_output_shape,
     SearchSpace,
-    compute_start_view,
     CombinedSearchSpace,
+    compute_start_view,
 )
 
 yaml_mock = """input: 784
@@ -26,6 +25,49 @@ blocks:
 
 
 class TestConstruct_SP:
+
+    @pytest.fixture
+    def search_space_dict(self):
+        return yaml.safe_load(
+            """input: [1, 28, 28]
+output: 10
+blocks:
+  - block:  "1" #namefield muss noch rein
+    op_candidates: ["linear", "conv2d"]
+    depth: [1, 2, 3]
+    linear:
+      #überall range oder choices
+   #   activation: [ "relu", "sigmoid"]
+      width: [16, 32, 5, 4]
+    conv2D:
+      kernel_size: [1, 2]
+      stride: [1, 2]
+      out_channels: [ 10, 4]"""
+        )
+
+    @pytest.fixture
+    def search_space_dict_mult_blocks(self):
+        return yaml.safe_load(
+            """input: [1, 28, 28]
+output: 10
+blocks:
+            - block:  "1" #namefield muss noch rein
+              op_candidates: ["linear", "conv2d"]
+              depth: [1, 2, 3]
+              linear:
+                #überall range oder choices
+             #   activation: [ "relu", "sigmoid"]
+                width: [16, 32, 5, 4]
+              conv2D:
+                kernel_size: [1, 2]
+                stride: [1, 2]
+                out_channels: [ 10, 4]
+            - block:  "2"
+              op_candidates: ["linear"] 
+              depth: 1
+              linear:
+                width: [16, 32]"""
+        )
 
     @pytest.mark.parametrize(
         "shape, out_channels, kernel_size, stride, dilation",
@@ -51,23 +93,6 @@ class TestConstruct_SP:
         print(expected)
         assert actual == expected
 
-    @pytest.fixture()
-    def search_space_dict(self):
-        return yaml.safe_load(
-            """input: (1, 28, 28)
-output: 10
-blocks:
-  - block:  "1" 
-    op_candidates: ["linear", "conv2d"]
-    depth: [1, 2, 3]
-    linear:
-      width: [16, 32, 5, 4]
-    conv2D:
-      kernel_size: [1, 2]
-      stride: [1, 2]
-      out_channels: [ 10, 4]"""
-        )
-
     def test_construct_linear_search_space_valid(self):
 
         search_space = SearchSpace(yaml.safe_load(yaml_mock))
@@ -77,11 +102,35 @@ blocks:
 
         assert result.shape == torch.Size([5, 10])
 
+    def test_construct_mixed_sp_multiple_blocks(self, search_space_dict_mult_blocks):
+        search_space = CombinedSearchSpace(search_space_dict_mult_blocks)
+        x = torch.randn(5, 1, 28, 28)
+
+        sample_model = search_space.freeze(
+            {
+                "block_1/depth": 3,
+                "block_1/layer_width_0": 16,
+                "block_1/layer_width_1": 32,
+                "block_1/layer_width_2": 5,
+                "block_1/out_channels_0": 10,
+                "block_1/out_channels_1": 4,
+                "block_1/out_channels_2": 10,
+                "block_1/kernel_size": 1,
+                "block_1/stride": 1,
+                "block_1/activation": 0,
+                "block_1/candidate_op": "conv2d",
+                "block_2/layer_width_0": 16,
+                "block_2/layer_width_1": 32,
+                "block_2/candidate_op": "linear",
+            }
+        )
+        assert sample_model(x).shape == torch.Size([5, 10])
+
     @pytest.mark.parametrize(
         "depth, width_0, width_1, width_2, width_3",
         [(2, 16, 32, 5, 4), (3, 16, 32, 5, 4), (1, 16, 32, 5, 4)],
     )
-    def test_construct_linear_search_space_mutable_depth(
+    def test_construct_convolutional_and_linear_search_space_single_block(
         self, search_space_dict, depth, width_0, width_1, width_2, width_3
     ):
 
@@ -119,15 +168,7 @@ blocks:
                 "block_1/candidate_op": "linear",
             }
         )
-        print(sample_model2)
-        profiler = FlopsEstimator()
-
-        print(search_space.simplify().values())
         assert sample_model2(x).shape == torch.Size([5, 10])
-
-    @pytest.fixture
-    def engine(self):
-        return SequentialExecutionEngine(max_model_count=30)
 
     def test_compute_start_view_for_linear(self):
         x = torch.randn(5, 1, 28, 28)
@@ -145,6 +186,10 @@ blocks:
         )
         x = compute_start_view(x, self.blocks)
         assert x.shape == torch.Size([5, 1, 28, 28])
+
+        @pytest.fixture
+        def engine(self):
+            return SequentialExecutionEngine(max_model_count=30)
 
         # def test_random(self, engine):
         #
