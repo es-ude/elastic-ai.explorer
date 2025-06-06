@@ -4,7 +4,13 @@ from typing import Optional
 import nni
 import torch
 import yaml
-from nni.mutable import Mutable, MutableExpression, ensure_frozen, Sample
+from nni.mutable import (
+    Mutable,
+    MutableExpression,
+    ensure_frozen,
+    Sample,
+    label_scope,
+)
 from nni.nas.nn.pytorch import (
     ModelSpace,
     LayerChoice,
@@ -221,17 +227,15 @@ def compute_start_view(x: torch.Tensor, blocks):
     return x
 
 
-def parse_depth(depth: int | str | list[int], block_id: str):
+def parse_depth(depth: int | str | list[int]):
     if isinstance(depth, int):
         max_depth = depth
     elif isinstance(depth, str):
         max_depth = depth[1]
-        depth = nni.choice(
-            label=f"depth_block_{block_id}", choices=[d for d in range(*depth)]
-        )
+        depth = nni.choice(label=f"depth", choices=[d for d in range(*depth)])
     elif isinstance(depth, list):
         max_depth = max(depth)
-        depth = nni.choice(label=f"depth_block_{block_id}", choices=depth)
+        depth = nni.choice(label=f"depth", choices=depth)
     else:
         raise ValueError("Depth must be int, tuple or list of ints")
     return depth, max_depth
@@ -243,9 +247,6 @@ def parse_op_candidates(op_candidates: list[str], block_id, block):
     if len(layer_op_mapping) > 1:
         # LayerChoice(layer_op_mapping, label=label = f"Layer_choice_block_{block_id}")
         layer = LayerChoice(layer_op_mapping, label=f"activation_block_{block_id}")
-
-
-# class LayerRepeat(Repeat):
 
 
 class CombinedSearchSpace(ModelSpace):
@@ -267,14 +268,15 @@ class CombinedSearchSpace(ModelSpace):
             output_width = (
                 parameters["output"] if self.is_last_block(block, blocks) else None
             )
-
-            block, last_out = self.build_block(block, input_width, output_width)
-            block_sp.append(block)
+            block_id = block["block"]
+            with label_scope(f"block_{block_id}"):
+                block, last_out = self.build_block(block, input_width, output_width)
+                block_sp.append(block)
 
         self.block_sp = nn.Sequential(*block_sp)
 
     def build_conv2d_block(
-        self, input_width, output_width, max_depth, block_id, block, activation
+        self, input_width, output_width, max_depth, block, activation
     ):
 
         layers = []
@@ -315,7 +317,6 @@ class CombinedSearchSpace(ModelSpace):
         input_width,
         output_width,
         max_depth,
-        block_id,
         block,
         activation,
     ):
@@ -350,20 +351,19 @@ class CombinedSearchSpace(ModelSpace):
 
         input_width = [1, 28, 28]
         output_width = 10
-        block_id = block["block"]
-        print(block)
-        self.depth, max_depth = parse_depth(block["depth"], block_id)
 
+        self.depth, max_depth = parse_depth(block["depth"])
         #    depth, max_depth = parse_depth(block["depth"], block_id)
-        self.out_channels = [1] + [
-            nni.choice(
-                label=f"out_channels_{i}_block_{block_id}",
-                choices=block["conv2D"]["out_channels"],
-            )
-            for i in range(max_depth)
-        ]
+        if "conv2d" in block["op_candidates"]:
+            self.out_channels = [1] + [
+                nni.choice(
+                    label=f"out_channels_{i}",
+                    choices=block["conv2D"]["out_channels"],
+                )
+                for i in range(max_depth)
+            ]
         self.h_l_widths = [784] + [
-            nni.choice(f"layer_width_{i}_block_{block_id}", block["linear"]["width"])
+            nni.choice(f"layer_width_{i}", block["linear"]["width"])
             for i in range(max_depth)
         ]
         # activations: dict = block["linear"]["activation"]
@@ -372,7 +372,7 @@ class CombinedSearchSpace(ModelSpace):
         # if isinstance(activation, Mutable):
         #     self.add_mutable(activation)
         self.candidate_op = nni.choice(
-            label=f"candidate_b_{block_id}",
+            label=f"candidate_op",
             choices=[
                 "conv2d",
                 "linear",
@@ -388,14 +388,12 @@ class CombinedSearchSpace(ModelSpace):
                 self.add_mutable(width)
         kernel_size = block["conv2D"]["kernel_size"]
         if isinstance(kernel_size, list):
-            self.kernel_size = nni.choice(
-                label=f"kernel_size_block_{block_id}", choices=kernel_size
-            )
+            self.kernel_size = nni.choice(label=f"kernel_size", choices=kernel_size)
         else:
             self.kernel_size = kernel_size
         stride = block["conv2D"]["stride"]
         if isinstance(stride, list):
-            self.stride = nni.choice(label=f"stride_block_{block_id}", choices=stride)
+            self.stride = nni.choice(label=f"stride", choices=stride)
 
         else:
             self.stride = stride
@@ -413,7 +411,6 @@ class CombinedSearchSpace(ModelSpace):
                 input_width,
                 output_width,
                 max_depth,
-                block_id,
                 block,
                 "activation_mappings",
             )
@@ -422,37 +419,10 @@ class CombinedSearchSpace(ModelSpace):
                 input_width,
                 output_width,
                 max_depth,
-                block_id,
                 block,
                 "activation_mappings",
             )
         return None
-
-        # self.out_channels = [1] + [
-        #     nni.choice(
-        #         label=f"out_channel_nr_{i}_block_{block_id}",
-        #         choices=block["conv2D"]["out_channels"],
-        #     )
-        #     for i in range(max_depth)
-        # ]
-        # repeat = Repeat(
-        #     lambda index: nn.Sequential(
-        #         LayerChoice(
-        #         MutableConv2d(
-        #             self.out_channels[index],
-        #             self.out_channels[index + 1],
-        #             self.kernel_size,
-        #             self.stride,
-        #         ),MutableLinear() )
-        #     ),
-        #     depth,
-        # )
-        # repeat = Repeat(
-        #     lambda index: nn.Sequential(
-        #         MutableLinear(self.h_l_widths[index], self.h_l_widths[index + 1]),
-        #     ),
-        #     depth,
-        # )
 
     def forward(self, x):
 

@@ -1,20 +1,15 @@
 import pytest
 import torch
 import yaml
-from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.execution import SequentialExecutionEngine
-from nni.nas.space import SimplifiedModelSpace
-from nni.nas.strategy import Random
 from torch import nn
 
 from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
-from elasticai.explorer.hw_nas.hw_nas import evaluate_model
 from elasticai.explorer.hw_nas.search_space.construct_sp import (
     calculate_conv_output_shape,
     SearchSpace,
     compute_start_view,
     CombinedSearchSpace,
-    yml_to_dict,
 )
 
 yaml_mock = """input: 784
@@ -56,6 +51,23 @@ class TestConstruct_SP:
         print(expected)
         assert actual == expected
 
+    @pytest.fixture()
+    def search_space_dict(self):
+        return yaml.safe_load(
+            """input: (1, 28, 28)
+output: 10
+blocks:
+  - block:  "1" 
+    op_candidates: ["linear", "conv2d"]
+    depth: [1, 2, 3]
+    linear:
+      width: [16, 32, 5, 4]
+    conv2D:
+      kernel_size: [1, 2]
+      stride: [1, 2]
+      out_channels: [ 10, 4]"""
+        )
+
     def test_construct_linear_search_space_valid(self):
 
         search_space = SearchSpace(yaml.safe_load(yaml_mock))
@@ -70,51 +82,41 @@ class TestConstruct_SP:
         [(2, 16, 32, 5, 4), (3, 16, 32, 5, 4), (1, 16, 32, 5, 4)],
     )
     def test_construct_linear_search_space_mutable_depth(
-        self, depth, width_0, width_1, width_2, width_3
+        self, search_space_dict, depth, width_0, width_1, width_2, width_3
     ):
-        # [16, 32, 5]
-        search_space = CombinedSearchSpace(
-            yml_to_dict(
-                "/Users/mokou/Documents/transfair/toolbox/elastic-ai.explorer/elasticai/explorer/hw_nas/search_space/search_space.yml"
-            )
-        )
-        print(search_space)
-        # print(search_space.freeze({"depth_block_1":2}))
-        # print(search_space)
-        x = torch.randn(5, 1, 28, 28)
-        result = search_space(x)
-        # this is not as expected, but seems to work in practise(sadge)
 
+        search_space = CombinedSearchSpace(search_space_dict)
+        x = torch.randn(5, 1, 28, 28)
         sample_model = search_space.freeze(
             {
-                "depth_block_1": depth,
-                "layer_width_0_block_1": width_0,
-                "layer_width_1_block_1": width_1,
-                "layer_width_2_block_1": width_2,
-                "out_channels_0_block_1": 10,
-                "out_channels_1_block_1": 4,
-                "out_channels_2_block_1": 10,
-                "kernel_size_block_1": 1,
-                "stride_block_1": 1,
-                "activation_block_1": 0,
-                "candidate_b_1": "conv2d",
+                "block_1/depth": depth,
+                "block_1/layer_width_0": width_0,
+                "block_1/layer_width_1": width_1,
+                "block_1/layer_width_2": width_2,
+                "block_1/out_channels_0": 10,
+                "block_1/out_channels_1": 4,
+                "block_1/out_channels_2": 10,
+                "block_1/kernel_size": 1,
+                "block_1/stride": 1,
+                "block_1/activation": 0,
+                "block_1/candidate_op": "conv2d",
             }
         )
         assert sample_model(x).shape == torch.Size([5, 10])
 
         sample_model2 = search_space.freeze(
             {
-                "depth_block_1": depth,
-                "layer_width_0_block_1": width_0,
-                "layer_width_1_block_1": width_1,
-                "layer_width_2_block_1": width_2,
-                "out_channels_0_block_1": 10,
-                "out_channels_1_block_1": 4,
-                "out_channels_2_block_1": 10,
-                "kernel_size_block_1": 1,
-                "stride_block_1": 1,
-                "activation_block_1": 0,
-                "candidate_b_1": "linear",
+                "block_1/depth": depth,
+                "block_1/layer_width_0": width_0,
+                "block_1/layer_width_1": width_1,
+                "block_1/layer_width_2": width_2,
+                "block_1/out_channels_0": 10,
+                "block_1/out_channels_1": 4,
+                "block_1/out_channels_2": 10,
+                "block_1/kernel_size": 1,
+                "block_1/stride": 1,
+                "block_1/activation": 0,
+                "block_1/candidate_op": "linear",
             }
         )
         print(sample_model2)
@@ -122,63 +124,10 @@ class TestConstruct_SP:
 
         print(search_space.simplify().values())
         assert sample_model2(x).shape == torch.Size([5, 10])
-        # print(net)
-        assert result.shape == torch.Size([5, 10])
 
-    # def test_construct_mixed_sp(self):
-    #     yaml_mock = """input: (1, 28, 28)
-    #     output: 10
-    #     blocks:
-    #       - block:  "1" #namefield muss noch rein
-    #         op_candidates: ["conv2d"]
-    #         depth: [1, 4]
-    #             conv2D:
-    #                 kernel_size: [5, 10]
-    #                 stride: [1, 2]
-    #                 out_channels: [ 10, 8]
-    #       - block:  "2" #namefield muss noch rein
-    #         op_candidates: ["linear"]
-    #         depth: [1, 4]
-    #         linear:
-    #           #überall range oder choices
-    #           activation: [ "relu", sigmoid"]
-    #           width: [16, 32, 5, 4]
-    #                 """
-    #     search_space = CombinedSearchSpace(yaml.safe_load(yaml_mock))
-    #     print(search_space)
-    #     x = torch.randn(5, 1, 28, 28)
-    #     result = search_space(x)
     @pytest.fixture
     def engine(self):
         return SequentialExecutionEngine(max_model_count=30)
-
-    def test_random(self, engine):
-
-        model_space = CombinedSearchSpace(
-            yml_to_dict(
-                "/Users/mokou/Documents/transfair/toolbox/elastic-ai.explorer/elasticai/explorer/hw_nas/search_space/search_space.yml"
-            )
-        )
-        evaluator = FunctionalEvaluator(evaluate_model, device="cpu")
-
-        model_space = SimplifiedModelSpace.from_model(model_space, evaluator)
-        dedup = True
-        # name, model_space = named_model_space
-        strategy = Random(dedup=dedup)
-        assert repr(strategy) == f"Random(dedup={dedup})"
-        strategy(model_space, engine)
-
-        state_dict = strategy.state_dict()
-        previous_submitted = len(list(engine.list_models()))
-        strategy2 = Random(dedup=dedup)
-        strategy2.load_state_dict(state_dict)
-
-        engine.max_model_count += 10
-        strategy2(model_space, engine)
-        if dedup:
-            assert len(list(engine.list_models())) == previous_submitted
-        else:
-            assert len(list(engine.list_models())) == engine.max_model_count
 
     def test_compute_start_view_for_linear(self):
         x = torch.randn(5, 1, 28, 28)
@@ -196,3 +145,31 @@ class TestConstruct_SP:
         )
         x = compute_start_view(x, self.blocks)
         assert x.shape == torch.Size([5, 1, 28, 28])
+
+        # def test_random(self, engine):
+        #
+        #     model_space = CombinedSearchSpace(
+        #         yml_to_dict(
+        #             "/Users/mokou/Documents/transfair/toolbox/elastic-ai.explorer/elasticai/explorer/hw_nas/search_space/search_space.yml"
+        #         )
+        #     )
+        #     evaluator = FunctionalEvaluator(evaluate_model, device="cpu")
+        #
+        #     model_space = SimplifiedModelSpace.from_model(model_space, evaluator)
+        #     dedup = True
+        #     # name, model_space = named_model_space
+        #     strategy = Random(dedup=dedup)
+        #     assert repr(strategy) == f"Random(dedup={dedup})"
+        #     strategy(model_space, engine)
+        #     assert len(list(engine.list_models())) == len(list(model_space.grid()))
+        #     state_dict = strategy.state_dict()
+        #     previous_submitted = len(list(engine.list_models()))
+        #     strategy2 = Random(dedup=dedup)
+        #     strategy2.load_state_dict(state_dict)
+        #
+        #     engine.max_model_count += 10
+        #     strategy2(model_space, engine)
+        #     if dedup:
+        #         assert len(list(engine.list_models())) == previous_submitted
+        #     else:
+        #         assert len(list(engine.list_models())) == engine.max_model_count
