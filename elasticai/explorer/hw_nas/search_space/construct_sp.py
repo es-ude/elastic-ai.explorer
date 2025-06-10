@@ -23,6 +23,8 @@ from nni.nas.space import model_context
 from torch import nn
 from torch.nn import Linear, ModuleList, Conv2d
 
+from elasticai.explorer.hw_nas.search_space.operations import BlockFactory, LinearBlock
+
 
 class SearchSpace(ModelSpace):
     # def tuple_to_tensor(self):
@@ -208,26 +210,6 @@ def yml_to_dict(file):
         return search_space
 
 
-def simplify_net(blocks):
-    layer_new = []
-    for layer in blocks:
-        layer_new = layer_new + [
-            module
-            for module in layer.modules()
-            if not isinstance(module, nn.Sequential)
-            and not isinstance(module, ModuleList)
-            and not isinstance(module, Repeat)
-        ]
-    return layer_new
-
-
-def compute_start_view(x: torch.Tensor, blocks):
-    first_layer = simplify_net(blocks)[0]
-    if isinstance(first_layer, Linear):
-        x = x.view(-1, first_layer.in_features)
-    return x
-
-
 def parse_depth(depth: int | str | list[int]):
     if isinstance(depth, int):
         max_depth = depth
@@ -248,6 +230,19 @@ def parse_op_candidates(op_candidates: list[str], block_id, block):
     if len(layer_op_mapping) > 1:
         # LayerChoice(layer_op_mapping, label=label = f"Layer_choice_block_{block_id}")
         layer = LayerChoice(layer_op_mapping, label=f"activation_block_{block_id}")
+
+
+def simplify_net(blocks):
+    layer_new = []
+    for layer in blocks:
+        layer_new = layer_new + [
+            module
+            for module in layer.modules()
+            if not isinstance(module, nn.Sequential)
+            and not isinstance(module, ModuleList)
+            and not isinstance(module, Repeat)
+        ]
+    return layer_new
 
 
 class CombinedSearchSpace(ModelSpace):
@@ -325,6 +320,17 @@ class CombinedSearchSpace(ModelSpace):
         activation,
     ):
         layers = []
+        flattened_input = (
+            math.prod(input_width) if isinstance(input_width, Iterable) else input_width
+        )
+        print(flattened_input)
+        self.h_l_widths = [flattened_input] + [
+            nni.choice(f"layer_width_{i}", block["linear"]["width"])
+            for i in range(max_depth)
+        ]
+        for width in self.h_l_widths[1:]:
+            if isinstance(width, Mutable):
+                self.add_mutable(width)
 
         repeat = Repeat(
             lambda index: (
@@ -348,7 +354,7 @@ class CombinedSearchSpace(ModelSpace):
                 )
             )
 
-        return nn.Sequential(*layers), None
+        return nn.Sequential(*layers), last_layer_width
 
     def build_block(self, block, input_width, output_width=None):
 
@@ -358,15 +364,23 @@ class CombinedSearchSpace(ModelSpace):
         self.depth, max_depth = parse_depth(block["depth"])
         #    depth, max_depth = parse_depth(block["depth"], block_id)
         if "conv2d" in block["op_candidates"]:
-            self.out_channels = [input_width[0]] + [
+            # print(input_width[0])
+            print(ensure_frozen(f"conv2d input width {input_width}"))
+            if isinstance(input_width, int):
+                first_channel = input_width
+            else:
+                first_channel = input_width[0]
+            self.out_channels = [first_channel] + [
                 nni.choice(
                     label=f"out_channels_{i}",
                     choices=block["conv2D"]["out_channels"],
                 )
                 for i in range(max_depth)
             ]
-            for width in self.out_channels:
+            print("out_channels: ")
+            for width in self.out_channels[1:]:
                 if isinstance(width, Mutable):
+                    print(width)
                     self.add_mutable(width)
             kernel_size = block["conv2D"]["kernel_size"]
             if isinstance(kernel_size, list):
@@ -383,20 +397,20 @@ class CombinedSearchSpace(ModelSpace):
                 self.add_mutable(self.stride)
                 if isinstance(self.kernel_size, Mutable):
                     self.add_mutable(self.kernel_size)
-        if "linear" in block["op_candidates"]:
-            flattened_input = (
-                math.prod(input_width)
-                if isinstance(input_width, Iterable)
-                else input_width
-            )
-            print(flattened_input)
-            self.h_l_widths = [flattened_input] + [
-                nni.choice(f"layer_width_{i}", block["linear"]["width"])
-                for i in range(max_depth)
-            ]
-            for width in self.h_l_widths:
-                if isinstance(width, Mutable):
-                    self.add_mutable(width)
+        # if "linear" in block["op_candidates"]:
+        #     flattened_input = (
+        #         math.prod(input_width)
+        #         if isinstance(input_width, Iterable)
+        #         else input_width
+        #     )
+        #     print(flattened_input)
+        #     self.h_l_widths = [flattened_input] + [
+        #         nni.choice(f"layer_width_{i}", block["linear"]["width"])
+        #         for i in range(max_depth)
+        #     ]
+        #     for width in self.h_l_widths[1:]:
+        #         if isinstance(width, Mutable):
+        #             self.add_mutable(width)
         # activations: dict = block["linear"]["activation"]
         # activation_mappings = [activation_candidates[key] for key in activations]
 
@@ -409,11 +423,6 @@ class CombinedSearchSpace(ModelSpace):
         if isinstance(self.candidate_op, Mutable):
             self.add_mutable(self.candidate_op)
 
-        # if ensure_frozen(self.candidate_op) == "conv2d":
-        #     return self.conv2dBlock, None
-        # else:
-        #     return self.linearBlock, None
-        #  print(ensure_frozen(self.candidate_op))
         if ensure_frozen(self.candidate_op) == "conv2d":
             return self.build_conv2d_block(
                 input_width,
@@ -423,18 +432,20 @@ class CombinedSearchSpace(ModelSpace):
                 "activation_mappings",
             )
         elif ensure_frozen(self.candidate_op) == "linear":
-            return self.build_linear_block(
-                input_width,
-                output_width,
-                max_depth,
-                block,
-                "activation_mappings",
+            linearb = LinearBlock(
+                input_width, output_width, block, self.depth, max_depth
             )
+            return linearb, linearb.output_shape
+            # return self.build_linear_block(
+            #     input_width,
+            #     output_width,
+            #     max_depth,
+            #     block,
+            #     "activation_mappings",
+            # )
         return None
 
-    def forward(self, x):
-
-        x = compute_start_view(x, self.block_sp)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.block_sp(x)
         return x
 
@@ -443,97 +454,6 @@ class CombinedSearchSpace(ModelSpace):
             comb_sp = CombinedSearchSpace(self.params)
             print(comb_sp)
             return comb_sp
-
-
-class CNNSpace(ModelSpace):
-
-    def __init__(self, parameters: dict):
-        super().__init__()
-        blocks: list[dict] = parameters["blocks"]
-        block_sp = []
-
-        last_out = None
-        for block in blocks:
-            input_width = parameters["input"] if last_out is None else last_out
-            output_width = (
-                parameters["output"] if self.is_last_block(block, blocks) else None
-            )
-
-            block, last_out = self.build_block(block, input_width, output_width)
-            block_sp.append(block)
-        self.block_sp = nn.Sequential(*block_sp)
-
-    def forward(self, x):
-        #  x = x.view(-1, 28 * 28)
-        x = self.block_sp(x)
-        return x
-
-    def is_last_block(self, block, blocks):
-        return blocks[-1]["block"] == block["block"]
-
-    def build_block(
-        self,
-        block: dict,
-        input_width: Optional[int | tuple | Mutable],
-        output_width: Optional[int] = None,
-    ):
-        layers = []
-        depth, max_depth = parse_depth(block["depth"], block["block"])
-
-        block_name = "herro"
-        self.out_channels = [1] + [
-            nni.choice(
-                label=f"out_channel_nr_{i}_block_{block_name}",
-                choices=block["conv2D"]["out_channels"],
-            )
-            for i in range(max_depth)
-        ]
-
-        kernel_size = block["conv2D"]["kernel_size"]
-        if isinstance(kernel_size, list):
-            self.kernel_size = nni.choice(
-                label=f"kernel_size_block_{block_name}", choices=kernel_size
-            )
-        else:
-            self.kernel_size = kernel_size
-        stride = block["conv2D"]["stride"]
-        if isinstance(stride, list):
-            self.stride = nni.choice(label=f"stride_block_{block_name}", choices=stride)
-
-        else:
-            self.stride = stride
-
-        layers.append(
-            Repeat(
-                lambda index: nn.Sequential(
-                    MutableConv2d(
-                        self.out_channels[index],
-                        self.out_channels[index + 1],
-                        self.kernel_size,
-                        self.stride,
-                    )
-                ),
-                depth,
-            )
-        )
-        x_shape = [1, 28, 28]
-        self.output_shapes = []
-        for i in range(max_depth):
-            x_shape = calculate_conv_output_shape(
-                x_shape,
-                self.out_channels[i + 1],
-                kernel_size=self.kernel_size,
-                stride=self.stride,
-            )
-            self.output_shapes.append(x_shape)
-
-        x_shape = self.output_shapes[ensure_frozen(depth) - 1]
-        input_width = x_shape[0] * x_shape[1] * x_shape[2]
-        print(input_width)
-        if output_width is not None:
-
-            layers.append(LinearFlattened(input_width, 10))
-        return nn.Sequential(*layers), None
 
 
 def calculate_conv_output_shape(
@@ -568,6 +488,7 @@ if __name__ == "__main__":
     search_space = yml_to_dict("search_space.yml")
 
     search_space = CombinedSearchSpace(search_space)
+
     # print(search_space)
     # search_space.freeze({"op_candidates": 0, depth})
     # print(search_space(x).shape)

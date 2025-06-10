@@ -126,7 +126,8 @@ def find_generate_measure_for_pi(
 
 
 def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: ModelSpace):
-
+    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
+    explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
@@ -146,7 +147,7 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: Mode
     )
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
-        print(model)
+        print(f"found model {i}:  {model}")
 
         mlp_trainer = MLPTrainer(
             device=retrain_device,
@@ -155,6 +156,9 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: Mode
         mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         print("=================================================")
+        model_name = "ts_model_" + str(i) + ".pt"
+
+        explorer.generate_for_hw_platform(model, model_name)
 
 
 if __name__ == "__main__":
