@@ -12,12 +12,12 @@ blocks:
       kernel_size: [1, 2]
       stride: [1, 2]
       out_channels: [ 10, 4]
-#  - block: "2"
-#    op_candidates: ["linear"]
-#    depth: 1
-#    linear:
-#      width: [ 11, 21 ]
-#      activation: [ "sigmoid" ]
+  - block: "2"
+    op_candidates: ["linear"]
+    depth: 1
+    linear:
+      width: [ 11, 21 ]
+    #  activation: [ "sigmoid" ]
 #  - block: "3"
 #    op_candidates: ["linear"]
 #    depth: 3
