@@ -4,7 +4,8 @@ from typing import Any
 
 import nni
 import torch
-from nni.nas import strategy
+from nni.nas.strategy import Random
+from nni.nas.strategy.middleware import Filter, Chain
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
 from nni.nas.nn.pytorch import ModelSpace
@@ -63,7 +64,22 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-    search_strategy = strategy.Random()
+    
+    filters: list[Filter] = []
+
+    for key, value in hwnas_cfg.hw_constraints.items():
+        if key == "max_flops":
+            filters.append(Filter(lambda sample: flops_estimator.estimate_flops(sample) < value))
+        elif key == "max_params":
+            filters.append(Filter(lambda sample: flops_estimator.compute_num_params(sample) < value))
+        else:
+            logger.warning("Unknown hardware constraint: %s", key)
+    
+    if filters.empty():
+        search_strategy = Random()
+    else:
+        search_strategy = Chain(Random(), *filters)
+
     evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials
