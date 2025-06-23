@@ -6,7 +6,7 @@ from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH
 
 
-class TestCompiler(unittest.TestCase):
+class TestRPICompiler(unittest.TestCase):
 
     def test_compile_Program(self):
 
@@ -23,6 +23,27 @@ class TestCompiler(unittest.TestCase):
         if not compiler.is_setup():
             compiler.setup()
         compiler.compile_code(expected_name_of_executable, "measure_latency.cpp")
+        if not Path(path_to_executable).resolve().is_file():
+            raise AssertionError("File does not exist: %s" % str(path_to_executable))
+
+
+class TestPicoCompiler(unittest.TestCase):
+
+    def test_compile_Program(self):
+
+        expected_name_of_executable = "app_full_precision.uf2"
+        path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
+
+        config = Mock(
+            compiler_tag="pico-base",
+            path_to_dockerfile=CONTEXT_PATH / "Dockerfile.picocross",
+            build_context=".",
+            compiled_library_path="./code/pico_crosscompiler",
+        )
+        compiler = RPICompiler(config)
+        if not compiler.is_setup():
+            compiler.setup()
+        compiler.compile_code(expected_name_of_executable, "app_full_precision")
         if not Path(path_to_executable).resolve().is_file():
             raise AssertionError("File does not exist: %s" % str(path_to_executable))
 

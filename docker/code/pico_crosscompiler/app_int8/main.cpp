@@ -12,7 +12,7 @@
 #include "tflite_interpreter.h"
 #include "signal_queue.h"
 #include "processing_functions.h"
-#include "led.h"
+//#include "led.h"
 #include "hardware_setup.h"
 #include "adxl345.h"
 
@@ -43,7 +43,7 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
     resolver->AddFullyConnected();
 
     printf("Added layers\n");
-    std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(outputs_model_tflite, *resolver, TENSOR_ARENA_SIZE));
+    std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
 
     printf("Created Interpreter pointer.\n");
     interpreter->initialize();

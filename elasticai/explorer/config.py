@@ -14,7 +14,7 @@ logger = logging.getLogger("explorer.config")
 @dataclass
 class DockerParameter:
     compiler_tag: str
-    compiled_library_path: Path
+    library_path: Path
     path_to_dockerfile: Path
     build_context: Path
 
@@ -107,7 +107,7 @@ class DeploymentConfig(Config):
         self.docker.build_context = Path(
             self._parse_optional("build_context", ROOT_DIR / "docker", "Docker")
         )
-        self.docker.compiled_library_path = Path(
+        self.docker.library_path = Path(
             self._parse_optional("compiled_library_path", "./code/libtorch", "Docker")
         )
 

@@ -27,13 +27,13 @@ class Compiler(ABC):
 
 class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
-        self.logger = logging.getLogger("Compiler")
+        self.logger = logging.getLogger("RPICompiler")
         self.tag: str = deploy_cfg.docker.compiler_tag  # "cross"
         self.path_to_dockerfile: Path = Path(
             deploy_cfg.docker.path_to_dockerfile
         )  # CONTEXT_PATH / "Dockerfile.picross"
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
-        self.libtorch_path: Path = Path(deploy_cfg.docker.compiled_library_path)
+        self.libtorch_path: Path = Path(deploy_cfg.docker.library_path)
         if not self.is_setup():
             self.setup()
 
@@ -67,13 +67,41 @@ class RPICompiler(Compiler):
 class PicoCompiler(Compiler):
 
     def __init__(self, deploy_cfg: DeploymentConfig):
-        pass
+        self.logger = logging.getLogger("PicoCompiler")
+        self.context_path: Path = Path(deploy_cfg.docker.build_context)
+        self.tag: str = deploy_cfg.docker.compiler_tag
+        self.path_to_dockerfile: Path = Path(
+            deploy_cfg.docker.path_to_dockerfile
+        ) 
+        self.context_path: Path = Path(deploy_cfg.docker.build_context)
+        self.cross_compiler_path: Path = Path(deploy_cfg.docker.library_path)
+        if not self.is_setup():
+            self.setup()
 
     def is_setup(self) -> bool:
-        return False
+        return bool(docker.images(self.tag))
 
     def setup(self) -> None:
-        pass
+        docker.build(
+            context_path=".",
+            tags=self.tag,
+            file=self.path_to_dockerfile,
+            build_args={
+                "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
+            }
+        )
 
     def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
-        return Path("path")
+
+        docker.build(
+            context_path=self.context_path,
+            tags="pico-builder",
+            output={"type": "local", "dest": str(self.context_path / "bin")},
+            file=self.context_path / "Dockerfile.picocross",
+            build_args={
+                "NAME_OF_EXECUTABLE": name_of_executable,
+                "SOURCE_CODE": sourcecode_filename,
+                "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
+            },
+        )
+        return self.context_path / "bin" / name_of_executable

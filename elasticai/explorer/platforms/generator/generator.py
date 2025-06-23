@@ -1,10 +1,9 @@
-from io import UnsupportedOperation
 import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 import subprocess
-from typing import Any, Literal
+from typing import Any, List, Literal
 import numpy
 import torch
 from torch import nn
@@ -102,20 +101,31 @@ class PicoGenerator(Generator):
         self.logger.debug(f"Sample output quantized: ", edge_output)
         return pt2e_drq_model, torch_output
 
-    def _hardcode_model(self, tflite_model_path: Path):
+    def _model_to_cpp(self, tflite_model_path: Path):
         process = subprocess.run(
             ["xxd", "-i", str(tflite_model_path)], capture_output=True
         )
-        output_lines = process.stdout.decode("utf8").splitlines(keepends=True)
+        output_lines: list[str] = process.stdout.decode("utf8").splitlines(
+            keepends=True
+        )
 
-        output_path = tflite_model_path.stem
+        output_path = tflite_model_path.parent / tflite_model_path.stem
 
-        with open(output_path + ".cpp", "w") as out_file:
+        with open(output_path.with_suffix(".cpp"), "w") as out_file:
             out_file.writelines("#include <model.h>\n")
             out_file.writelines(
-                f"const {line}" if line.startswith("unsigned") else line
-                for line in output_lines
+                (
+                    "const unsigned char model_tflite[] = {"
+                    if line.startswith("unsigned char")
+                    else line
+                )
+                for line in output_lines[:-1]
             )
+            out_file.writelines(
+                f"const unsigned int model_tflite_len = {output_lines[-1].split()[-1]}"
+            )
+
+        pass
 
     def generate(
         self,
@@ -134,5 +144,5 @@ class PicoGenerator(Generator):
 
         edge_output = edge_model(*sample_inputs)
         self._validate(torch_output, edge_output)
-        edge_model.export(str(path))
-        self._hardcode_model(path)
+        edge_model.export(str(path.with_suffix(".tflite")))
+        self._model_to_cpp(path.with_suffix(".tflite"))

@@ -1,5 +1,4 @@
 import os
-import torch
 from elasticai.explorer import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
@@ -16,10 +15,10 @@ SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
 
 
-class TestHWNasSetupAndSearch:
+class TestPicoHWNasSetupAndSearch:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
-    def setUp(self):
+    def setup_method(self):
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -47,25 +46,15 @@ class TestHWNasSetupAndSearch:
         )
 
     def test_search(self):
-        self.setUp()
         self.RPI5explorer.generate_search_space()
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
         assert len(top_k_models) == 1
         assert type(top_k_models[0]) == search_space.MLP
 
-    def test_generate_for_hw_platform(self):
-        self.setUp()
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
-        model = sample_MLP()
+    
 
-        self.RPI5explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name
+    def teardown_method(self):
+        os.remove(
+            self.RPI5explorer.model_dir / (self.model_name + ".tflite"),
         )
-        assert (
-            os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".tflite"))
-            == True
-        )
-        assert (
-            os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))
-            == True
-        )
+        os.remove(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))

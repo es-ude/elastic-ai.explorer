@@ -1,0 +1,18 @@
+FROM picobase AS builder
+
+WORKDIR /code
+ARG NAME_OF_EXECUTABLE
+ARG SOURCE_CODE
+ARG CROSS_COMPILER_PATH
+
+COPY $CROSS_COMPILER_PATH/$SOURCE_CODE/ /code/pico_crosscompiler/$SOURCE_CODE/
+
+RUN mkdir -p /code/build && mkdir -p $BIN_DIR
+WORKDIR /code/build
+
+RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ../pico_crosscompiler
+RUN make -j$(nproc)
+RUN cp ./$SOURCE_CODE/$NAME_OF_EXECUTABLE $BIN_DIR/
+
+FROM scratch
+COPY --from=builder /tmp/bin /
