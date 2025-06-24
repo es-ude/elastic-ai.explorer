@@ -125,7 +125,7 @@ class PicoGenerator(Generator):
                 f"const unsigned int model_tflite_len = {output_lines[-1].split()[-1]}"
             )
 
-        pass
+    
 
     def generate(
         self,
@@ -146,3 +146,6 @@ class PicoGenerator(Generator):
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))
+        
+
+

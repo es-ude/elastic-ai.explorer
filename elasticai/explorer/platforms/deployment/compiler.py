@@ -70,9 +70,7 @@ class PicoCompiler(Compiler):
         self.logger = logging.getLogger("PicoCompiler")
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.tag: str = deploy_cfg.docker.compiler_tag
-        self.path_to_dockerfile: Path = Path(
-            deploy_cfg.docker.path_to_dockerfile
-        ) 
+        self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.cross_compiler_path: Path = Path(deploy_cfg.docker.library_path)
         if not self.is_setup():
@@ -88,7 +86,7 @@ class PicoCompiler(Compiler):
             file=self.path_to_dockerfile,
             build_args={
                 "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
-            }
+            },
         )
 
     def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:

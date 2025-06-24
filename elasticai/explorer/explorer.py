@@ -10,7 +10,11 @@ from nni.nas.nn.pytorch import ModelSpace
 from elasticai.explorer import hw_nas, utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
+from elasticai.explorer.platforms.deployment.manager import (
+    HWManager,
+    Metric,
+    PicoHWManager,
+)
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
 from settings import MAIN_EXPERIMENT_DIR
@@ -72,7 +76,6 @@ class Explorer:
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
         self._update_experiment_pathes()
-    
 
     @experiment_dir.setter
     def experiment_dir(self, value: Path):
@@ -80,7 +83,6 @@ class Explorer:
         self._experiment_dir: Path = value
         self._experiment_name: str = self._experiment_dir.stem
         self._update_experiment_pathes()
-       
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model
@@ -137,7 +139,14 @@ class Explorer:
             path_to_testdata: Path to zipped testdata relative to docker context. Testdata has to be in docker context.
         """
         self.logger.info("Setup Hardware target for experiments.")
-        if self.hw_manager:
+        if type(self.hw_manager) is PicoHWManager:
+            self.hw_manager.install_code_on_target(
+                "app_full_precision.uf2", "app_full_precision"
+            )
+            if path_to_testdata:
+                self.hw_manager.install_dataset_on_target(path_to_testdata)
+
+        elif self.hw_manager:
             self.hw_manager.install_code_on_target(
                 "measure_latency", "measure_latency.cpp"
             )
@@ -179,4 +188,6 @@ class Explorer:
         self._model_dir: Path = self._experiment_dir / "models"
         self._metric_dir: Path = self._experiment_dir / "metrics"
         self._plot_dir: Path = self._experiment_dir / "plots"
-        self.logger.info(f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}")
+        self.logger.info(
+            f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}"
+        )

@@ -4,6 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
+import shutil
 
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
@@ -115,10 +116,10 @@ class PicoHWManager(HWManager):
         super().__init__(target, compiler)
 
     def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
-        path_to_executable = self.compiler.compile_code(
-            name_of_executable, sourcecode_filename
-        )
-        self.target.put_file(str(path_to_executable), ".")
+        self.name_of_executable = name_of_executable
+        self.sourcecode_filename = sourcecode_filename
+        if not self.compiler.is_setup():
+            self.compiler.setup()
         
     def install_dataset_on_target(self, path_to_dataset: Path):
         pass
@@ -127,7 +128,12 @@ class PicoHWManager(HWManager):
         return {}
 
     def deploy_model(self, path_to_model: Path):
-        pass
+        shutil.copyfile(path_to_model.parent / (path_to_model.stem + ".cpp"), CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/model.cpp")
+        path_to_executable = self.compiler.compile_code(
+            self.name_of_executable, self.sourcecode_filename
+        )
+        self.target.put_file(str(path_to_executable), ".")
+        self.logger.info("Put model %s on target", path_to_model)
 
     def _parse_measurement(self, result: str) -> dict:
         return {}

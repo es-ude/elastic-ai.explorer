@@ -12,6 +12,7 @@ from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
 
+
 class TestPicoGenerateAndCompile:
     def setup_method(self):
         knowledge_repository = KnowledgeRepository()
@@ -53,8 +54,10 @@ class TestPicoGenerateAndCompile:
             os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".tflite"))
             == True
         )
-
-
+        assert (
+            os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))
+            == True
+        )
 
     def test_pico_docker_compile(self):
 
@@ -68,12 +71,16 @@ class TestPicoGenerateAndCompile:
         if not Path(path_to_executable).resolve().is_file():
             raise AssertionError("File does not exist: %s" % str(path_to_executable))
 
-       
     def teardown_method(self):
 
         try:
             os.remove(
                 self.RPI5explorer.model_dir / (self.model_name + ".tflite"),
             )
+        except:
+            pass
+
+        try:
+            os.remove(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))
         except:
             pass
