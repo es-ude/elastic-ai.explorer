@@ -8,7 +8,7 @@
 #include "pico/time.h"
 #include "pico/bootrom.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-#include "mnist_test_images.h"
+#include "mnist_images.h"
 #include "mnist_labels.h"
 
 #include "model.h"
@@ -58,10 +58,9 @@ int runInference(int dataset_size)
     for (uint32_t sample_index = 0; sample_index < dataset_size; sample_index++)
     {
         // printf("Counter: %d\n", sample_index);
-        memcpy(inputBuffer, mnist_test_images[sample_index], sizeof(float) * INPUT_FEATURE_COUNT);
+        memcpy(inputBuffer, mnist_images[sample_index], sizeof(float) * INPUT_FEATURE_COUNT);
         centerChannels(inputBuffer, INPUT_FEATURE_COUNT, CHANNEL_COUNT);
         int result = interpreter->runInference(inputBuffer, outputBuffer);
-        sleep_ms(15);
         if (mnist_labels[sample_index] == result)
         {
             correct++;

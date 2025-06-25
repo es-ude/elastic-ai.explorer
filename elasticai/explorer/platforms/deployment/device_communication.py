@@ -20,7 +20,13 @@ class SSHException(Exception):
 
 class Host(ABC):
     @abstractmethod
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        pass
+    @abstractmethod
     def put_file(self, local_path: str, remote_path: str | None) -> str:
+        pass
+    @abstractmethod
+    def run_command(self, command: str) -> str:
         pass
 
 
@@ -138,3 +144,6 @@ class PicoHost(Host):
                 break
 
         return last_line
+
+    def run_command(self, command: str) -> str:
+        return ""

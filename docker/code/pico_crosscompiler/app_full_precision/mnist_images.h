@@ -1,8 +1,8 @@
-#ifndef MNIST_TEST_IMAGES_H
+#ifndef MNIST_IMAGES_H
 #define MNIST_TEST_IMAGES_H
 
-// 128 MNIST-Bilder (28x28), normalisiert auf float32 (0.0 - 1.0)
-const float mnist_test_images[128][784] = {
+// 128 MNIST-Bilder (28x28), normal (0.0 - 1.0)
+const float mnist_images[128][784] = {
   {
     -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, 
     -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, 
@@ -6533,4 +6533,4 @@ const float mnist_test_images[128][784] = {
   },
 };
 
-#endif // MNIST_TEST_IMAGES_H
+#endif // MNIST_IMAGES_H

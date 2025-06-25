@@ -7,7 +7,11 @@ from pathlib import Path
 import shutil
 
 from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.device_communication import (
+    Host,
+    PicoHost,
+    RPiHost,
+)
 from settings import ROOT_DIR
 
 CONTEXT_PATH = ROOT_DIR / "docker"
@@ -19,10 +23,9 @@ class Metric(Enum):
 
 
 class HWManager(ABC):
-
-    def __init__(self, target: RPiHost, compiler: Compiler):
+    def __init__(self, target: Host, compiler: Compiler):
         self.compiler = compiler
-        self.target: RPiHost = target
+        self.target: Host = target
 
     @abstractmethod
     def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
@@ -44,6 +47,7 @@ class HWManager(ABC):
 class PIHWManager(HWManager):
 
     def __init__(self, target: RPiHost, compiler: Compiler):
+
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.manager.PIHWManager"
         )
@@ -108,7 +112,8 @@ class CommandBuilder:
 
 class PicoHWManager(HWManager):
 
-    def __init__(self, target: RPiHost, compiler: Compiler):
+    def __init__(self, target: PicoHost, compiler: Compiler):
+
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.manager.PicoHWManager"
         )
@@ -122,7 +127,14 @@ class PicoHWManager(HWManager):
             self.compiler.setup()
 
     def install_dataset_on_target(self, path_to_dataset: Path):
-        pass
+        shutil.copyfile(
+            path_to_dataset / "mnist_images.h",
+            CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/mnist_images.h",
+        )
+        shutil.copyfile(
+            path_to_dataset / "mnist_labels.h",
+            CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/mnist_labels.h",
+        )
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
 
