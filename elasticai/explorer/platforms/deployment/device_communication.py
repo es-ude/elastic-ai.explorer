@@ -4,8 +4,11 @@ import os
 from pathlib import Path
 import shutil
 from socket import error as socket_error
+import sys
+import time
 
 from fabric import Connection
+import serial
 from paramiko.ssh_exception import AuthenticationException
 
 from elasticai.explorer.config import DeploymentConfig
@@ -17,7 +20,7 @@ class SSHException(Exception):
 
 class Host(ABC):
     @abstractmethod
-    def put_file(self, local_path: str, remote_path: str | None):
+    def put_file(self, local_path: str, remote_path: str | None) -> str:
         pass
 
 
@@ -51,12 +54,14 @@ class RPiHost(Host):
             )
         return result.stdout
 
-    def put_file(self, local_path: str, remote_path: str | None):
+    def put_file(self, local_path: str, remote_path: str | None) -> str:
         try:
             with self._get_connection() as conn:
                 conn.put(local_path, remote_path)
         except (socket_error, AuthenticationException) as exc:
             self._raise_authentication_err(exc)
+
+        return ""
 
     def _raise_authentication_err(self, exc):
         raise SSHException(
@@ -69,16 +74,67 @@ class RPiHost(Host):
 
 class PicoHost(Host):
     def __init__(self, deploy_cfg: DeploymentConfig):
+        self.BAUD_RATE = 115200
         self.host_name = deploy_cfg.target_name
         self.logger = logging.getLogger(
-            "explorer.platforms.deployment.device_communication.Host"
+            "explorer.platforms.deployment.device_communication.PicoHost"
         )
+        self.serial_port = deploy_cfg.serial_port
 
-    def _get_connection(self):
-        return os.path.isdir(self.host_name)
+    def _get_measurement(self) -> str:
+        self._wait_for_pico(self.serial_port)
+        line = ""
+        try:
+            with serial.Serial(self.serial_port, self.BAUD_RATE, timeout=1) as ser:
+                line = self._read_serial_once(ser)
+        except serial.SerialException as e:
+            self.logger.error("Error with serial communication!")
+            exit(1)
+        return line
 
-    def put_file(self, local_path: str, remote_path: str | None):
+    def put_file(self, local_path: str, remote_path: str | None) -> str:
+        time_passed = 0
+        sleep_intervall = 0.5
+        self.logger.info("Wait for pico...")
+        while not os.path.isdir(self.host_name):
+            time.sleep(sleep_intervall)
+            time_passed = time_passed + sleep_intervall
+            if time_passed > 20:
+                self.logger.error("Timeout on Pico-Communication")
+                exit(-1)
+
+
         shutil.copyfile(
             local_path,
             self.host_name + "/" + Path(local_path).name,
         )
+        return self._get_measurement()
+
+    def _wait_for_pico(self, port):
+        self.logger.info("Wait for pico on Port " + port + "...")
+        time_passed = 0
+        sleep_intervall = 0.5
+        while not os.path.exists(port):
+            time.sleep(sleep_intervall)
+            time_passed = time_passed + sleep_intervall
+            if time_passed > 20:
+                self.logger.error("Timeout on Pico-Communication")
+                exit(-1)
+
+        time.sleep(1.0)
+
+    def _read_serial_once(
+        self,
+        ser,
+    ) -> str:
+        last_line = ""
+        while True:
+            try:
+
+                line = ser.readline().decode("utf-8", errors="ignore").strip()
+                if line:
+                    last_line = line
+            except serial.SerialException:
+                break
+
+        return last_line

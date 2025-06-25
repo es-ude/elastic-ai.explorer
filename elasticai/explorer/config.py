@@ -92,6 +92,9 @@ class DeploymentConfig(Config):
         self.target_platform_name: str = self._parse_optional(
             "target_platform_name", "rpi5"
         )
+        self.serial_port: str = self._parse_optional(
+            "serial_port", "/dev/ttyACM0"
+        )
 
         self.docker = DockerParameter
         self.docker.compiler_tag = self._parse_optional(

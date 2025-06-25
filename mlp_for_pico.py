@@ -76,20 +76,36 @@ def find_generate_measure_for_pi(
         MNIST(path_to_dataset, download=True, train=False, transform=transf),
         batch_size=64,
     )
-
+    latency_measurements = []
+    accuracy_measurements = []
     retrain_device = "cpu"
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=4)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".tflite"
         explorer.generate_for_hw_platform(model, model_name)
         explorer.hw_setup_on_target(Path("data/mnist/MNIST/raw"))
 
         latency = explorer.run_measurement(Metric.LATENCY, model_name)
+
+        latency_measurements.append(latency)
+        accuracy_measurements.append(
+            explorer.run_measurement(Metric.ACCURACY, model_name)
+        )
+
+        latencies = [latency["Latency"]["value"] for latency in latency_measurements]
+        df = build_search_space_measurements_file(
+            latencies,
+            explorer.metric_dir / "metrics.json",
+            explorer.model_dir / "models.json",
+            explorer.experiment_dir / "experiment_data.csv",
+        )
+        logger.info("Models:\n %s", df)
+
 
 
 if __name__ == "__main__":

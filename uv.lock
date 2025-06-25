@@ -558,6 +558,7 @@ dependencies = [
     { name = "fabric" },
     { name = "matplotlib" },
     { name = "plotly" },
+    { name = "pyserial" },
     { name = "python-on-whales" },
     { name = "pytorch-lightning" },
     { name = "tf-nightly" },
@@ -584,6 +585,7 @@ requires-dist = [
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "plotly", specifier = ">=6.0.1" },
+    { name = "pyserial", specifier = ">=3.5" },
     { name = "python-on-whales", specifier = ">=0.75.1" },
     { name = "pytorch-lightning", specifier = ">=2.5.1" },
     { name = "tf-nightly", specifier = ">=2.20.0.dev20250516" },
@@ -2074,6 +2076,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bb/22/f1129e69d94ffff626bdb5c835506b3a5b4f3d070f17ea295e12c2c6f60f/pyparsing-3.2.3.tar.gz", hash = "sha256:b9c13f1ab8b3b542f72e28f634bad4de758ab3ce4546e4301970ad6fa77c38be", size = 1088608 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl", hash = "sha256:a749938e02d6fd0b59b356ca504a24982314bb090c383e3cf201c95ef7e2bfcf", size = 111120 },
+]
+
+[[package]]
+name = "pyserial"
+version = "3.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/7d/ae3f0a63f41e4d2f6cb66a5b57197850f919f59e558159a4dd3a818f5082/pyserial-3.5.tar.gz", hash = "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb", size = 159125 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0", size = 90585 },
 ]
 
 [[package]]

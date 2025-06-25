@@ -18,6 +18,7 @@ dependencies = [
     "tf-nightly>=2.20.0.dev20250516",
     "ai-edge-torch>=0.4.0",
     "tflite-micro>=0.dev20250513181533",
+    "pyserial>=3.5",
 ]
 
 # Same as Black.

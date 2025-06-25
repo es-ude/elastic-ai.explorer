@@ -19,24 +19,12 @@
 #include "hardware_setup.h"
 #include "adxl345.h"
 
-#define DEBUG_PRINT_FPS false
-#define DEBUG_PRINT_CLASS_PROBS false
-
 const uint32_t TENSOR_ARENA_SIZE = (50 * 1024);
 const uint32_t CHANNEL_COUNT = 1;
 const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 784;
 const uint32_t OUTPUT_FEATURE_COUNT = 10;
 const uint32_t INFERENCE_EVERY_NTH_POINTS = 10;
 
-int counter = 0;
-enum TargetClasses
-{
-    clsIdle,
-    clsSnake,
-    clsUpDown,
-    clsWave,
-    clsUndefined
-};
 std::unique_ptr<TfLiteInterpreter> interpreter = nullptr;
 
 std::unique_ptr<TfLiteInterpreter> getInterpreter()
@@ -47,13 +35,13 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
     resolver->AddRelu();
     resolver->AddFullyConnected();
 
-    printf("Added layers\n");
+    // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
 
-    printf("Created Interpreter pointer.\n");
+    // printf("Created Interpreter pointer.\n");
     interpreter->initialize();
 
-    printf("Initialized Interpreter.\n");
+    // printf("Initialized Interpreter.\n");
     return interpreter;
 }
 
@@ -61,42 +49,26 @@ void doFirmwareUpgradeReset()
 {
     reset_usb_boot(1, 0);
 }
-
-void runInference(SignalQueue &queue)
+int runInference(int dataset_size)
 {
     static float inputBuffer[INPUT_FEATURE_COUNT];
     float outputBuffer[OUTPUT_FEATURE_COUNT];
 
-    if (counter < 30)
+    int correct = 0;
+    for (uint32_t sample_index = 0; sample_index < dataset_size; sample_index++)
     {
-        printf("Counter: %d\n", counter);
-        memcpy(inputBuffer, mnist_test_images[counter], sizeof(float) * INPUT_FEATURE_COUNT);
-        counter++;
+        // printf("Counter: %d\n", sample_index);
+        memcpy(inputBuffer, mnist_test_images[sample_index], sizeof(float) * INPUT_FEATURE_COUNT);
         centerChannels(inputBuffer, INPUT_FEATURE_COUNT, CHANNEL_COUNT);
-        interpreter->runInference(inputBuffer, outputBuffer);
+        int result = interpreter->runInference(inputBuffer, outputBuffer);
+        sleep_ms(15);
+        if (mnist_labels[sample_index] == result)
+        {
+            correct++;
+        }
     }
-    // else
-    // {
-    //     doFirmwareUpgradeReset();
 
-    // }
-
-    // int max_idx = 0;
-    // float max_val = output->data.f[0];
-    // for (int i = 1; i < 10; ++i) {
-    //     if (output->data.f[i] > max_val) {
-    //         max_val = output->data.f[i];
-    //         max_idx = i;
-    //     }
-    // }
-
-    // printf("Ziffer erkannt: %d\n", max_idx);
-
-#if DEBUG_PRINT_CLASS_PROBS
-    printf(
-        "Idle: %.04f ; Snake: %.04f ; UpDown: %.04f ; Wave: %.04f\n",
-        outputBuffer[0], outputBuffer[1], outputBuffer[2], outputBuffer[3]);
-#endif
+    return correct;
 }
 
 int main()
@@ -104,31 +76,22 @@ int main()
     stdio_init_all();
     initializePeripherals();
     setup_adxl345();
-    sleep_ms(4000);
+    sleep_ms(2000);
+
+    int dataset_size = 128;
 
     interpreter = getInterpreter();
 
-    SignalQueue queue(INPUT_FEATURE_COUNT, CHANNEL_COUNT);
-
-    queue.notifyOnOverflowingElement(INFERENCE_EVERY_NTH_POINTS, runInference);
-
-    int16_t mock_input[CHANNEL_COUNT] = {1};
-
-#if DEBUG_PRINT_FPS
     uint64_t current_time, previous_time;
-    previous_time = 0;
-#endif
+    previous_time = to_us_since_boot(get_absolute_time());
+    int correct = runInference(dataset_size);
+    current_time = to_us_since_boot(get_absolute_time());
 
-    while (true)
-    {
-#if DEBUG_PRINT_FPS
-        current_time = to_us_since_boot(get_absolute_time());
-        printf("FPS: %f\n", 1.0f / (current_time - previous_time) / 1e-6);
-        previous_time = current_time;
-#endif
-        queue.add(mock_input);
-        sleep_ms(15);
-    }
+    printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", current_time - previous_time);
+    printf("|");
+    printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", static_cast<double>(correct) / dataset_size);
 
+    sleep_ms(2000);
+    doFirmwareUpgradeReset();
     return 0;
 }

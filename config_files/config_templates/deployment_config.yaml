@@ -9,6 +9,10 @@ DeploymentConfig:
 
   # Select one of the supported hardware platforms: "rpi4", "rpi5". Optional. Defaults to "rpi5".
   target_platform_name: <platform_name>
+
+  # The port on which serial connection is setup, neccessary for Pico. Optional. Defaults to "/dev/ttyACM0".
+
+  serial_port: <serial-port>
   
   Docker:
     # The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,

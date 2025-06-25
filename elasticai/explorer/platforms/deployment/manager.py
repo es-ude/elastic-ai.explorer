@@ -125,7 +125,15 @@ class PicoHWManager(HWManager):
         pass
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
-        return {}
+
+        measurement_list = self.measurements.split("|")
+
+        if metric is Metric.LATENCY:
+            measurement = self._parse_measurement(measurement_list[0])
+        else:
+            measurement = self._parse_measurement(measurement_list[1])
+        self.logger.debug("Measurement on device: %s ", measurement)
+        return measurement
 
     def deploy_model(self, path_to_model: Path):
         shutil.copyfile(
@@ -135,12 +143,12 @@ class PicoHWManager(HWManager):
         path_to_executable = self.compiler.compile_code(
             self.name_of_executable, self.sourcecode_filename
         )
-        self.target.put_file(str(path_to_executable), None)
-       
+        self.measurements = self.target.put_file(str(path_to_executable), None)
+
         self.logger.info("Put model %s on target", path_to_model)
 
     def _parse_measurement(self, result: str) -> dict:
-        return {}
+        return json.loads(result)
 
     def build_command(self, name_of_executable: str, arguments: list[str]):
         return
