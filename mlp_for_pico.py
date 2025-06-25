@@ -17,7 +17,10 @@ from elasticai.explorer.knowledge_repository import (
     HWPlatform,
 )
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.device_communication import (
+    PicoHost,
+    RPiHost,
+)
 from elasticai.explorer.platforms.deployment.manager import (
     PicoHWManager,
     Metric,
@@ -29,6 +32,10 @@ from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from elasticai.explorer.trainer import MLPTrainer
 from settings import ROOT_DIR
 
+nni.enable_global_logging(False)
+logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logger = logging.getLogger("explorer.main")
+
 
 def setup_knowledge_repository_pi() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
@@ -38,7 +45,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
             "Pico with RP2040 MCU and 2MB control memory",
             PicoGenerator,
             PicoHWManager,
-            Host,
+            PicoHost,
             PicoCompiler,
         )
     )
@@ -54,7 +61,7 @@ def find_generate_measure_for_pi(
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
-    
+
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
@@ -70,40 +77,29 @@ def find_generate_measure_for_pi(
         batch_size=64,
     )
 
-
-
-
     retrain_device = "cpu"
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=4)
         mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".tflite"
         explorer.generate_for_hw_platform(model, model_name)
-        explorer.hw_setup_on_target(Path( "data/mnist/MNIST/raw"))
-        
+        explorer.hw_setup_on_target(Path("data/mnist/MNIST/raw"))
+
         latency = explorer.run_measurement(Metric.LATENCY, model_name)
-
-    
-
-    
-
-
 
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/pico/hwnas_config.yaml"))
-    deploy_cfg = DeploymentConfig(config_path=Path("configs/pico/deployment_config.yaml"))
+    deploy_cfg = DeploymentConfig(
+        config_path=Path("configs/pico/deployment_config.yaml")
+    )
     model_cfg = ModelConfig(config_path=Path("configs/pico/model_config.yaml"))
 
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
     find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
-
-
-
-

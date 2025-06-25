@@ -5,7 +5,7 @@ from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeReposit
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -28,7 +28,7 @@ class TestDeploymentAndMeasurement:
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
                 PIGenerator,
                 PIHWManager,
-                Host,
+                RPiHost,
                 RPICompiler,
             )
         )
@@ -42,7 +42,7 @@ class TestDeploymentAndMeasurement:
         )
         path_to_dataset = Path("tests/system_tests/samples/data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
-        
+
         path_to_data_docker = "docker/data/mnist"
         shutil.make_archive(path_to_data_docker, "zip", path_to_dataset)
         self.RPI5explorer.hw_setup_on_target(Path(path_to_data_docker + ".zip"))

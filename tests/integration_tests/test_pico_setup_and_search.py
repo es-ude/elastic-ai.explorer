@@ -5,7 +5,7 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.manager import PicoHWManager
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
@@ -26,7 +26,7 @@ class TestPicoHWNasSetupAndSearch:
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
                 PicoGenerator,
                 PicoHWManager,
-                Host,
+                RPiHost,
                 PicoCompiler,
             )
         )
@@ -50,8 +50,6 @@ class TestPicoHWNasSetupAndSearch:
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
         assert len(top_k_models) == 1
         assert type(top_k_models[0]) == search_space.MLP
-
-    
 
     def teardown_method(self):
         os.remove(

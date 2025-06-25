@@ -69,8 +69,9 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
 
     for (uint32_t inputIdx = 0; inputIdx < 784; inputIdx++)
     {
-        // const float x = inputBuffer[inputIdx];
-        this->input->data.f[inputIdx] = 1.0f;
+        const float x = inputBuffer[inputIdx];
+        this->input->data.f[inputIdx] = x;
+        //printf("current x: %.04f\n", x);
     }
 
     TfLiteStatus invokeStatus = this->interpreter->Invoke();
@@ -84,7 +85,7 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
     {
         float output_y = this->output->data.f[outputIdx];
         outputBuffer[outputIdx] = output_y;
-        printf("Output is  %.04f \n", output_y);
+        printf("Output %d is %.04f \n", outputIdx ,output_y);
     }
 
     printf("Got out \n");

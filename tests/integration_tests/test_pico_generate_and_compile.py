@@ -6,7 +6,7 @@ from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH, PicoHWManager
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from settings import ROOT_DIR
@@ -22,7 +22,7 @@ class TestPicoGenerateAndCompile:
                 "Pico mit RP2040",
                 PicoGenerator,
                 PicoHWManager,
-                Host,
+                RPiHost,
                 PicoCompiler,
             )
         )

@@ -6,13 +6,16 @@
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "pico/bootrom.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "mnist_test_images.h"
+#include "mnist_labels.h"
 
 #include "model.h"
 #include "tflite_interpreter.h"
 #include "signal_queue.h"
 #include "processing_functions.h"
-//#include "led.h"
+// #include "led.h"
 #include "hardware_setup.h"
 #include "adxl345.h"
 
@@ -24,6 +27,8 @@ const uint32_t CHANNEL_COUNT = 1;
 const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 784;
 const uint32_t OUTPUT_FEATURE_COUNT = 10;
 const uint32_t INFERENCE_EVERY_NTH_POINTS = 10;
+
+int counter = 0;
 enum TargetClasses
 {
     clsIdle,
@@ -52,14 +57,40 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
     return interpreter;
 }
 
+void doFirmwareUpgradeReset()
+{
+    reset_usb_boot(1, 0);
+}
+
 void runInference(SignalQueue &queue)
 {
     static float inputBuffer[INPUT_FEATURE_COUNT];
     float outputBuffer[OUTPUT_FEATURE_COUNT];
 
-    queue.copyToBuffer(inputBuffer);
-    centerChannels(inputBuffer, INPUT_FEATURE_COUNT, CHANNEL_COUNT);
-    interpreter->runInference(inputBuffer, outputBuffer);
+    if (counter < 30)
+    {
+        printf("Counter: %d\n", counter);
+        memcpy(inputBuffer, mnist_test_images[counter], sizeof(float) * INPUT_FEATURE_COUNT);
+        counter++;
+        centerChannels(inputBuffer, INPUT_FEATURE_COUNT, CHANNEL_COUNT);
+        interpreter->runInference(inputBuffer, outputBuffer);
+    }
+    // else
+    // {
+    //     doFirmwareUpgradeReset();
+
+    // }
+
+    // int max_idx = 0;
+    // float max_val = output->data.f[0];
+    // for (int i = 1; i < 10; ++i) {
+    //     if (output->data.f[i] > max_val) {
+    //         max_val = output->data.f[i];
+    //         max_idx = i;
+    //     }
+    // }
+
+    // printf("Ziffer erkannt: %d\n", max_idx);
 
 #if DEBUG_PRINT_CLASS_PROBS
     printf(
@@ -73,7 +104,7 @@ int main()
     stdio_init_all();
     initializePeripherals();
     setup_adxl345();
-    sleep_ms(5000);
+    sleep_ms(4000);
 
     interpreter = getInterpreter();
 

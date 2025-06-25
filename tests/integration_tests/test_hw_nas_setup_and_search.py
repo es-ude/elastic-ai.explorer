@@ -8,7 +8,7 @@ from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeReposit
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
@@ -29,7 +29,7 @@ class TestHWNasSetupAndSearch:
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
                 PIGenerator,
                 PIHWManager,
-                Host,
+                RPiHost,
                 RPICompiler,
             )
         )

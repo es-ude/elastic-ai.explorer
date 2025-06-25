@@ -1,4 +1,8 @@
+from abc import ABC, abstractmethod
 import logging
+import os
+from pathlib import Path
+import shutil
 from socket import error as socket_error
 
 from fabric import Connection
@@ -11,7 +15,13 @@ class SSHException(Exception):
     pass
 
 
-class Host:
+class Host(ABC):
+    @abstractmethod
+    def put_file(self, local_path: str, remote_path: str | None):
+        pass
+
+
+class RPiHost(Host):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.host_name = deploy_cfg.target_name
         self.user = deploy_cfg.target_user
@@ -41,7 +51,7 @@ class Host:
             )
         return result.stdout
 
-    def put_file(self, local_path: str, remote_path: str):
+    def put_file(self, local_path: str, remote_path: str | None):
         try:
             with self._get_connection() as conn:
                 conn.put(local_path, remote_path)
@@ -54,4 +64,21 @@ class Host:
             "(username: {user}): {exc}".format(
                 host=self.host_name, user=self.user, exc=exc
             )
+        )
+
+
+class PicoHost(Host):
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        self.host_name = deploy_cfg.target_name
+        self.logger = logging.getLogger(
+            "explorer.platforms.deployment.device_communication.Host"
+        )
+
+    def _get_connection(self):
+        return os.path.isdir(self.host_name)
+
+    def put_file(self, local_path: str, remote_path: str | None):
+        shutil.copyfile(
+            local_path,
+            self.host_name + "/" + Path(local_path).name,
         )

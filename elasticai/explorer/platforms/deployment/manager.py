@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 
 from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from settings import ROOT_DIR
 
 CONTEXT_PATH = ROOT_DIR / "docker"
@@ -20,9 +20,9 @@ class Metric(Enum):
 
 class HWManager(ABC):
 
-    def __init__(self, target: Host, compiler: Compiler):
+    def __init__(self, target: RPiHost, compiler: Compiler):
         self.compiler = compiler
-        self.target: Host = target
+        self.target: RPiHost = target
 
     @abstractmethod
     def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
@@ -43,7 +43,7 @@ class HWManager(ABC):
 
 class PIHWManager(HWManager):
 
-    def __init__(self, target: Host, compiler: Compiler):
+    def __init__(self, target: RPiHost, compiler: Compiler):
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.manager.PIHWManager"
         )
@@ -108,7 +108,7 @@ class CommandBuilder:
 
 class PicoHWManager(HWManager):
 
-    def __init__(self, target: Host, compiler: Compiler):
+    def __init__(self, target: RPiHost, compiler: Compiler):
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.manager.PicoHWManager"
         )
@@ -120,7 +120,7 @@ class PicoHWManager(HWManager):
         self.sourcecode_filename = sourcecode_filename
         if not self.compiler.is_setup():
             self.compiler.setup()
-        
+
     def install_dataset_on_target(self, path_to_dataset: Path):
         pass
 
@@ -128,11 +128,15 @@ class PicoHWManager(HWManager):
         return {}
 
     def deploy_model(self, path_to_model: Path):
-        shutil.copyfile(path_to_model.parent / (path_to_model.stem + ".cpp"), CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/model.cpp")
+        shutil.copyfile(
+            path_to_model.parent / (path_to_model.stem + ".cpp"),
+            CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/model.cpp",
+        )
         path_to_executable = self.compiler.compile_code(
             self.name_of_executable, self.sourcecode_filename
         )
-        self.target.put_file(str(path_to_executable), ".")
+        self.target.put_file(str(path_to_executable), None)
+       
         self.logger.info("Put model %s on target", path_to_model)
 
     def _parse_measurement(self, result: str) -> dict:

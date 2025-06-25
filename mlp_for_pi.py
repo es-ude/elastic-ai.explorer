@@ -16,7 +16,7 @@ from elasticai.explorer.knowledge_repository import (
     Metrics,
 )
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.manager import (
     PIHWManager,
     Metric,
@@ -44,7 +44,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
             "Raspberry PI 5 with A76 processor and 8GB RAM",
             PIGenerator,
             PIHWManager,
-            Host,
+            RPiHost,
             RPICompiler,
         )
     )
@@ -55,7 +55,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
             "Raspberry PI 4 with A72 processor and 4GB RAM",
             PIGenerator,
             PIHWManager,
-            Host,
+            RPiHost,
             RPICompiler,
         )
     )
@@ -66,7 +66,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
             "Pico with RP2040 MCU and 2MB control memory",
             PicoGenerator,
             PicoHWManager,
-            Host,
+            RPiHost,
             PicoCompiler,
         )
     )
