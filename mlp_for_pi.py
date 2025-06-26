@@ -124,28 +124,28 @@ def find_generate_measure_for_pi(
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name)
 
-        #latency = explorer.run_measurement(Metric.LATENCY, model_name)
-        #latency_measurements.append(latency)
+        latency = explorer.run_measurement(Metric.LATENCY, model_name)
+        latency_measurements.append(latency)
         accuracy_measurements.append(
             explorer.run_measurement(Metric.ACCURACY, model_name)
         )
 
-    # latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    # accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
-    # df = build_search_space_measurements_file(
-    #     latencies,
-    #     explorer.metric_dir / "metrics.json",
-    #     explorer.model_dir / "models.json",
-    #     explorer.experiment_dir / "experiment_data.csv",
-    # )
-    # logger.info("Models:\n %s", df)
+    latencies = [latency["Latency"]["value"] for latency in latency_measurements]
+    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    df = build_search_space_measurements_file(
+        latencies,
+        explorer.metric_dir / "metrics.json",
+        explorer.model_dir / "models.json",
+        explorer.experiment_dir / "experiment_data.csv",
+    )
+    logger.info("Models:\n %s", df)
 
-    # return Metrics(
-    #     explorer.metric_dir / "metrics.json",
-    #     explorer.model_dir / "models.json",
-    #     accuracies,
-    #     latencies,
-    # )
+    return Metrics(
+        explorer.metric_dir / "metrics.json",
+        explorer.model_dir / "models.json",
+        accuracies,
+        latencies,
+    )
 
 
 def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: ModelSpace):
