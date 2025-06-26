@@ -8,5 +8,5 @@ HWNASConfig:
   max_search_trials: 2
 
   #The number of top models returned by HW-NAS.
-  top_n_models: 1
+  top_n_models: 2
 

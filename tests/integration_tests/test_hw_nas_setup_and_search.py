@@ -38,7 +38,7 @@ class TestHWNasSetupAndSearch:
             "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.hwnas_cfg = HWNASConfig()
+        self.hwnas_cfg = HWNASConfig(config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml"))
         self.deploy_cfg = DeploymentConfig(
             Path("tests/integration_tests/test_configs/deployment_config.yaml")
         )

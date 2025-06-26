@@ -47,7 +47,7 @@ class Explorer:
             self.experiment_name: str = experiment_name
 
     @property
-    def experiment_name(self):
+    def experiment_name(self): # type: ignore
         return self._experiment_name
 
     @property
@@ -67,7 +67,7 @@ class Explorer:
         return self._plot_dir
 
     @experiment_name.setter
-    def experiment_name(self, value: str):
+    def experiment_name(self, value: str): # type: ignore
         """Setting experiment name updates the experiment pathes aswell."""
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name

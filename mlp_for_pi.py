@@ -122,9 +122,9 @@ def find_generate_measure_for_pi(
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
-    model_cfg = ModelConfig(config_path=Path("configs/model_config.yaml"))
+    hwnas_cfg = HWNASConfig(config_path=Path("config_files/config_defaults/default_hwnas_config.yaml"))
+    model_cfg = ModelConfig(config_path=Path("config_files/config_defaults/default_model_config.yaml"))
+    deploy_cfg = DeploymentConfig(config_path=Path("config_files/deployment_config.yaml"))
 
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
