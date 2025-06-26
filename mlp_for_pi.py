@@ -186,12 +186,14 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: Mode
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-
+    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
-    search_space = yml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
-    )
-    search_space = CombinedSearchSpace(search_space)
-    search_models(explorer, hwnas_cfg, search_space)
+    find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
+
+    # search_space = yml_to_dict(
+    #     Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    # )
+    # search_space = CombinedSearchSpace(search_space)
+    # search_models(explorer, hwnas_cfg, search_space)
