@@ -143,14 +143,15 @@ def find_generate_measure_for_pi(
             explorer.run_measurement(Metric.ACCURACY, model_name)
         )
 
-        latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-        df = build_search_space_measurements_file(
-            latencies,
-            explorer.metric_dir / "metrics.json",
-            explorer.model_dir / "models.json",
-            explorer.experiment_dir / "experiment_data.csv",
-        )
-        logger.info("Models:\n %s", df)
+    latencies = [latency["Latency"]["value"] for latency in latency_measurements]
+    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    df = build_search_space_measurements_file(
+        latencies,
+        explorer.metric_dir / "metrics.json",
+        explorer.model_dir / "models.json",
+        explorer.experiment_dir / "experiment_data.csv",
+    )
+    logger.info("Models:\n %s", df)
 
 
 

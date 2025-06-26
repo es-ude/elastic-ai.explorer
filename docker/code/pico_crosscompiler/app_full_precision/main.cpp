@@ -19,7 +19,7 @@
 #include "hardware_setup.h"
 #include "adxl345.h"
 
-const uint32_t TENSOR_ARENA_SIZE = (50 * 1024);
+const uint32_t TENSOR_ARENA_SIZE = (60 * 1024);
 const uint32_t CHANNEL_COUNT = 1;
 const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 784;
 const uint32_t OUTPUT_FEATURE_COUNT = 10;
@@ -76,21 +76,22 @@ int main()
     initializePeripherals();
     setup_adxl345();
     sleep_ms(2000);
-
+    uint64_t current_time, previous_time;
     int dataset_size = 128;
 
     interpreter = getInterpreter();
-
-    uint64_t current_time, previous_time;
     previous_time = to_us_since_boot(get_absolute_time());
     int correct = runInference(dataset_size);
     current_time = to_us_since_boot(get_absolute_time());
 
-    printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", current_time - previous_time);
+    uint64_t latency_us = current_time - previous_time;
+
+    printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", latency_us);
     printf("|");
     printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", static_cast<double>(correct) / dataset_size);
 
     sleep_ms(2000);
     doFirmwareUpgradeReset();
+
     return 0;
 }

@@ -22,9 +22,11 @@ class Host(ABC):
     @abstractmethod
     def __init__(self, deploy_cfg: DeploymentConfig):
         pass
+
     @abstractmethod
     def put_file(self, local_path: str, remote_path: str | None) -> str:
         pass
+
     @abstractmethod
     def run_command(self, command: str) -> str:
         pass
@@ -86,6 +88,7 @@ class PicoHost(Host):
             "explorer.platforms.deployment.device_communication.PicoHost"
         )
         self.serial_port = deploy_cfg.serial_port
+        self.timeout_s = 30
 
     def _get_measurement(self) -> str:
         self._wait_for_pico(self.serial_port)
@@ -101,14 +104,13 @@ class PicoHost(Host):
     def put_file(self, local_path: str, remote_path: str | None) -> str:
         time_passed = 0
         sleep_intervall = 0.5
-        self.logger.info("Wait for pico...")
+        self.logger.info("Wait for pico to deploy...")
         while not os.path.isdir(self.host_name):
             time.sleep(sleep_intervall)
             time_passed = time_passed + sleep_intervall
-            if time_passed > 20:
+            if time_passed > self.timeout_s:
                 self.logger.error("Timeout on Pico-Communication")
-                exit(-1)
-
+                self.logger.info("Manual Reboot neccessary")
 
         shutil.copyfile(
             local_path,
@@ -117,13 +119,13 @@ class PicoHost(Host):
         return self._get_measurement()
 
     def _wait_for_pico(self, port):
-        self.logger.info("Wait for pico on Port " + port + "...")
+        self.logger.info("Wait for pico answer on Port " + port + "...")
         time_passed = 0
         sleep_intervall = 0.5
         while not os.path.exists(port):
             time.sleep(sleep_intervall)
             time_passed = time_passed + sleep_intervall
-            if time_passed > 20:
+            if time_passed > self.timeout_s:
                 self.logger.error("Timeout on Pico-Communication")
                 exit(-1)
 
@@ -134,14 +136,18 @@ class PicoHost(Host):
         ser,
     ) -> str:
         last_line = ""
+        start_time_s = time.time()
+        time_passed_s = 0
         while True:
             try:
-
                 line = ser.readline().decode("utf-8", errors="ignore").strip()
                 if line:
                     last_line = line
             except serial.SerialException:
                 break
+            if time_passed_s > self.timeout_s:
+                break
+            time_passed_s = (time.time() - start_time_s)
 
         return last_line
 

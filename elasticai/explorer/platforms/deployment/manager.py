@@ -138,12 +138,19 @@ class PicoHWManager(HWManager):
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
 
+
         measurement_list = self.measurements.split("|")
 
         if metric is Metric.LATENCY:
-            measurement = self._parse_measurement(measurement_list[0])
-        else:
-            measurement = self._parse_measurement(measurement_list[1])
+            if measurement_list[0]:
+                measurement = self._parse_measurement(measurement_list[0])
+            else:
+                return self._parse_measurement("{\"Accuracy\": { \"value\":  -1, \"unit\": \"percent\"}}")
+        else: 
+            if measurement_list[0]:
+                measurement = self._parse_measurement(measurement_list[1])
+            else:
+                return self._parse_measurement("{ \"Latency\": { \"value\": -1, \"unit\": \"microseconds\"}}")
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
 
@@ -161,6 +168,3 @@ class PicoHWManager(HWManager):
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)
-
-    def build_command(self, name_of_executable: str, arguments: list[str]):
-        return
