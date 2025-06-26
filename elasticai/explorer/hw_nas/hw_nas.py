@@ -7,29 +7,23 @@ import torch
 from nni.nas import strategy
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
-from nni.nas.nn.pytorch import ModelSpace
 from nni.experiment import TrialResult
+from nni.nas.nn.pytorch import ModelSpace
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from elasticai.explorer.config import HWNASConfig
-from elasticai.explorer.cost_estimator import FlopsEstimator
+from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
 from elasticai.explorer.trainer import MLPTrainer
 
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: ModelSpace, device: str):
+def evaluate_model(model: torch.nn.Module, device: str):
     global accuracy
-    ##Parameter
     flops_weight = 3.0
     n_epochs = 2
-
-    ##Cost-Estimation
-    # flops as proxy metric for latency
-    flops_estimator = FlopsEstimator()
-    flops = flops_estimator.estimate_flops(model)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
     transf = transforms.Compose(
@@ -44,7 +38,9 @@ def evaluate_model(model: ModelSpace, device: str):
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
     trainer = MLPTrainer(device, optimizer)
-
+    flops_estimator = FlopsEstimator()
+    sample, _ = next(iter(train_loader))
+    flops = flops_estimator.estimate_flops(model, sample)
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         trainer.train_epoch(model, train_loader, epoch)
@@ -68,7 +64,7 @@ def search(
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials
     experiment.run(port=8081)
-    top_models = experiment.export_top_models(
+    top_models: list[ModelSpace] = experiment.export_top_models(
         top_k=hwnas_cfg.top_n_models, formatter="instance"
     )
     top_parameters = experiment.export_top_models(
@@ -80,7 +76,13 @@ def search(
     metrics, parameters = _map_trial_params_to_found_models(
         test_results, top_parameters
     )
-
+    for model in top_models:
+        print("Simplify")
+        print(model.simplify())
+        print("Parameters")
+        print(model.parameters())
+        print(metrics)
+        print(parameters)
     return top_models, parameters, metrics
 
 

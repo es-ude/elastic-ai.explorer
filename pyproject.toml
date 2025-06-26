@@ -31,7 +31,9 @@ dev = [
     "pylint>=3.3.6",
     "pytest>=8.3.5",
     "python-language-server>=0.36.2",
-    "setuptools>=78.1.0",
+    "setuptools<63",
+    "wheel<0.38",
+    "pip<23"
 ]
 nomac = [
     "nni==3.0",
@@ -46,6 +48,9 @@ preview = true
 line-length = 88
 
 [tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
 minversion = "6.0"
 markers = [
   "simulation: possibly slow running integration tests including hw simulation"

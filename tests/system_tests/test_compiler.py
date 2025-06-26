@@ -8,7 +8,7 @@ from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH
 
 class TestRPICompiler(unittest.TestCase):
 
-    def test_compile_Program(self):
+    def test_compile_rpi_program(self):
 
         expected_name_of_executable = "measure_latency"
         path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
@@ -29,7 +29,7 @@ class TestRPICompiler(unittest.TestCase):
 
 class TestPicoCompiler(unittest.TestCase):
 
-    def test_compile_Program(self):
+    def test_compile_pico_Program(self):
 
         expected_name_of_executable = "app_full_precision.uf2"
         path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
