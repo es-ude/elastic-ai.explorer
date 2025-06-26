@@ -1,4 +1,3 @@
-import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
@@ -10,14 +9,14 @@ from elasticai.explorer.platforms.deployment.manager import (
 )
 
 
-class TestPiHWManager(unittest.TestCase):
+class TestPiHWManager:
 
     def testCommandBuilder(self):
         builder = CommandBuilder("measure_latency")
         builder.add_argument("model_0.pt")
         builder.add_argument("dataset")
         command = builder.build()
-        self.assertEqual("./measure_latency model_0.pt dataset", command)
+        assert "./measure_latency model_0.pt dataset"== command
 
     def test_run_latency_measurements(self):
         target = MagicMock()
@@ -33,7 +32,7 @@ class TestPiHWManager(unittest.TestCase):
         result = self.hwmanager.measure_metric(
             metric, path_to_model=path
         )
-        self.assertEqual(expected, result)
+        assert expected== result
 
     def test_run_accuracy_measurements(self):
         target = MagicMock()
@@ -49,8 +48,7 @@ class TestPiHWManager(unittest.TestCase):
         result = self.hwmanager.measure_metric(
             metric, path_to_model=path
         )
-        self.assertEqual(expected, result)
+        assert expected == result
 
 
-if __name__ == "__main__":
-    unittest.main()
+

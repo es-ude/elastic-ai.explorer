@@ -3,16 +3,16 @@ import logging
 from pathlib import Path
 from typing import Optional, Any, Type
 
+from nni.nas.nn.pytorch import ModelSpace
 from torch import nn
 from torch.nn import Module
-from nni.nas.nn.pytorch import ModelSpace
 
-from elasticai.explorer import hw_nas, utils
+from elasticai.explorer import utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
+from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
-from elasticai.explorer.search_space import MLP
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -72,7 +72,6 @@ class Explorer:
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
         self._update_experiment_pathes()
-    
 
     @experiment_dir.setter
     def experiment_dir(self, value: Path):
@@ -80,7 +79,6 @@ class Explorer:
         self._experiment_dir: Path = value
         self._experiment_name: str = self._experiment_dir.stem
         self._update_experiment_pathes()
-       
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model
@@ -89,8 +87,9 @@ class Explorer:
         self.model_cfg = model_cfg
         self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
-    def generate_search_space(self):
-        self.search_space = MLP()
+    def generate_search_space(self, search_space: ModelSpace):
+
+        self.search_space = search_space
         self.logger.info("Generated search space:\n %s", self.search_space)
 
     def search(self, hwnas_cfg: HWNASConfig) -> list[Any]:
@@ -179,4 +178,6 @@ class Explorer:
         self._model_dir: Path = self._experiment_dir / "models"
         self._metric_dir: Path = self._experiment_dir / "metrics"
         self._plot_dir: Path = self._experiment_dir / "plots"
-        self.logger.info(f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}")
+        self.logger.info(
+            f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}"
+        )

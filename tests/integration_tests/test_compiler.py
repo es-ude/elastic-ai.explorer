@@ -8,7 +8,7 @@ from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH
 
 class TestCompiler(unittest.TestCase):
 
-    def test_compile_Program(self):
+    def test_compile_program(self):
 
         expected_name_of_executable = "measure_latency"
         path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
