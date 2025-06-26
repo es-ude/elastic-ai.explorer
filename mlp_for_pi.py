@@ -82,12 +82,9 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
+    search_space: CombinedSearchSpace
 ) -> Metrics:
-    explorer.choose_target_hw(deploy_cfg)
-    search_space = yml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
-    )
-    search_space = CombinedSearchSpace(search_space)
+    
     explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
@@ -134,6 +131,7 @@ def find_generate_measure_for_pi(
     accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
     df = build_search_space_measurements_file(
         latencies,
+        accuracies,
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",
@@ -189,8 +187,13 @@ if __name__ == "__main__":
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
+    explorer.choose_target_hw(deploy_cfg)
+    search_space = yml_to_dict(
+        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    )
+    search_space = CombinedSearchSpace(search_space)
 
-    find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
+    find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg, search_space)
 
     # search_space = yml_to_dict(
     #     Path("elasticai/explorer/hw_nas/search_space/search_space.yml")

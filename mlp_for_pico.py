@@ -13,6 +13,7 @@ from torchvision.transforms import transforms
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.hw_nas.search_space.construct_sp import CombinedSearchSpace, yml_to_dict
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
@@ -99,9 +100,10 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
+    search_space: CombinedSearchSpace
 ):
     explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space()
+    explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
@@ -147,6 +149,7 @@ def find_generate_measure_for_pi(
     accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
     df = build_search_space_measurements_file(
         latencies,
+        accuracies,
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",
@@ -165,4 +168,9 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
     explorer.set_model_cfg(model_cfg)
-    find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg)
+    search_space = yml_to_dict(
+        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    )
+    search_space = CombinedSearchSpace(search_space)
+
+    find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg, search_space)
