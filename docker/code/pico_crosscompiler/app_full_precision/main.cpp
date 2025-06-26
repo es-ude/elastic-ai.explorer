@@ -73,11 +73,9 @@ int runInference(int dataset_size)
 int main()
 {
     stdio_init_all();
-    initializePeripherals();
-    setup_adxl345();
     sleep_ms(2000);
     uint64_t current_time, previous_time;
-    int dataset_size = 128;
+    int dataset_size = 256;
 
     interpreter = getInterpreter();
     previous_time = to_us_since_boot(get_absolute_time());
@@ -86,7 +84,7 @@ int main()
 
     uint64_t latency_us = current_time - previous_time;
 
-    printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", latency_us);
+    printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", latency_us / dataset_size);
     printf("|");
     printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", static_cast<double>(correct) / dataset_size);
 

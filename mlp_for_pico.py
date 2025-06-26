@@ -63,7 +63,7 @@ def setup_mnist_for_cpp():
     images = []
     labels = []
 
-    for i in range(128):
+    for i in range(256):
         img, label = mnist_test[i]
         images.append(img.squeeze().numpy())
         labels.append(label)
@@ -71,8 +71,8 @@ def setup_mnist_for_cpp():
     os.makedirs("data/cpp-mnist", exist_ok=True)
     with open("data/cpp-mnist/mnist_images.h", "w") as f:
         f.write("#ifndef MNIST_IMAGES_H\n#define MNIST_TEST_IMAGES_H\n\n")
-        f.write("// 128 MNIST-Bilder (28x28), normal (0.0 - 1.0)\n")
-        f.write("const float mnist_images[128][784] = {\n")
+        f.write("// 256 MNIST-Bilder (28x28), normal (0.0 - 1.0)\n")
+        f.write("const float mnist_images[256][784] = {\n")
 
         for img in images:
             flat = img.flatten()
@@ -90,7 +90,7 @@ def setup_mnist_for_cpp():
     # Optional: Labels exportieren
     with open("data/cpp-mnist/mnist_labels.h", "w") as f:
         f.write("#ifndef MNIST_LABELS_H\n#define MNIST_LABELS_H\n\n")
-        f.write("const int mnist_labels[128] = {\n  ")
+        f.write("const int mnist_labels[256] = {\n  ")
         f.write(", ".join(str(l) for l in labels))
         f.write("\n};\n\n#endif // MNIST_LABELS_H\n")
 

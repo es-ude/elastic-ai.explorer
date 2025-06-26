@@ -39,7 +39,7 @@ int main(int argc, const char* argv[]) {
 
   double test_loss = 0;
   int32_t correct = 0;
-  size_t dataset_size = 10000;
+  size_t dataset_size = 1000;
   size_t counter = 0;
   for (const auto& batch : *test_loader) {
     auto data = batch.data.to("cpu"), targets = batch.target.to("cpu");

@@ -23,7 +23,7 @@ class Generator(ABC):
         self,
         model: nn.Module,
         path: Path,
-        quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
+        quantization: Literal["full_precision"] = "full_precision",
     ) -> Any:
         pass
 
@@ -125,8 +125,6 @@ class PicoGenerator(Generator):
                 f"const unsigned int model_tflite_len = {output_lines[-1].split()[-1]}"
             )
 
-    
-
     def generate(
         self,
         model: nn.Module,
@@ -146,6 +144,3 @@ class PicoGenerator(Generator):
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))
-        
-
-
