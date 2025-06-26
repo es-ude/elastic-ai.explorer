@@ -34,6 +34,10 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
     resolver->AddAdd();
     resolver->AddRelu();
     resolver->AddFullyConnected();
+    resolver->AddReshape();
+    resolver->AddDepthwiseConv2D();
+    resolver->AddTranspose();
+    resolver->AddConv2D();
 
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
@@ -57,9 +61,8 @@ int runInference(int dataset_size)
     int correct = 0;
     for (uint32_t sample_index = 0; sample_index < dataset_size; sample_index++)
     {
-        // printf("Counter: %d\n", sample_index);
+
         memcpy(inputBuffer, mnist_images[sample_index], sizeof(float) * INPUT_FEATURE_COUNT);
-        centerChannels(inputBuffer, INPUT_FEATURE_COUNT, CHANNEL_COUNT);
         int result = interpreter->runInference(inputBuffer, outputBuffer);
         if (mnist_labels[sample_index] == result)
         {
@@ -86,7 +89,7 @@ int main()
 
     printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", latency_us / dataset_size);
     printf("|");
-    printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", static_cast<double>(correct) / dataset_size);
+    printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", (static_cast<double>(correct) / dataset_size)) * 100;
 
     sleep_ms(2000);
     doFirmwareUpgradeReset();

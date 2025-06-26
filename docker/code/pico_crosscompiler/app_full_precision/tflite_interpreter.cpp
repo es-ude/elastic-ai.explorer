@@ -59,14 +59,22 @@ int TfLiteInterpreter::initialize()
 
 int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outputBuffer)
 {
-    //printf("Try inference. \n");
+    // printf("Try inference. \n");
 
     if (!initialized)
     {
-        //printf("Interpreter must be initialized\n");
+        // printf("Interpreter must be initialized\n");
         return -1;
     }
 
+    // for (uint32_t y = 0; y < 28; ++y) {
+    //     for (uint32_t x = 0; x < 28; ++x) {
+    //         uint32_t idx_flat = y * 28 + x; // flat input buffer index
+    //         // NCHW format: [0][0][y][x] -> flat index: ((0 * C + 0) * H + y) * W + x
+    //         uint32_t nchw_index = y * 28 + x; // still linear here, but you can generalize if needed
+    //         this->input->data.f[nchw_index] = inputBuffer[idx_flat];
+    //     }
+    // }
     for (uint32_t inputIdx = 0; inputIdx < 784; inputIdx++)
     {
         const float x = inputBuffer[inputIdx];
@@ -76,7 +84,7 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
     TfLiteStatus invokeStatus = this->interpreter->Invoke();
     if (invokeStatus != kTfLiteOk)
     {
-        //printf("Invoke failed\n");
+        // printf("Invoke failed\n");
         return -2;
     }
 
@@ -85,14 +93,15 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         float output_y = this->output->data.f[outputIdx];
         outputBuffer[outputIdx] = output_y;
 
-        
-        //printf("Output %d is %.04f \n", outputIdx ,output_y);
+        // printf("Output %d is %.04f \n", outputIdx ,output_y);
     }
-    
+
     int max_idx = 0;
     float max_val = output->data.f[0];
-    for (int i = 0; i < 10; ++i) {
-        if (output->data.f[i] > max_val) {
+    for (int i = 0; i < 10; ++i)
+    {
+        if (output->data.f[i] > max_val)
+        {
             max_val = output->data.f[i];
             max_idx = i;
         }

@@ -132,15 +132,20 @@ class PicoGenerator(Generator):
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         self.logger.info("Generate torchscript model from %s", model)
-        sample_inputs = (torch.ones(1, 784),)
+        sample_inputs = (torch.ones(1, 1, 28, 28),)
         torch_output = model(*sample_inputs)
-        model = model.eval()
-        if quantization == "full_precision":
-            edge_model = ai_edge_torch.convert(model, sample_args=sample_inputs)
-        else:
-            edge_model, torch_output = self._quantize(model, sample_inputs)
+        nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
+        sample_tflite_input = (torch.ones(1, 28, 28, 1),)
+        # if quantization == "full_precision":
 
-        edge_output = edge_model(*sample_inputs)
+        edge_model = ai_edge_torch.convert(
+            nhwc_model, sample_args=sample_tflite_input
+        )
+
+        # else:
+        #     edge_model, torch_output = self._quantize(model, sample_inputs)
+
+        edge_output = edge_model(*sample_tflite_input)
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))

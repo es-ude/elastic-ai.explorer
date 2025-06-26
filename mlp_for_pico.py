@@ -13,7 +13,10 @@ from torchvision.transforms import transforms
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import CombinedSearchSpace, yml_to_dict
+from elasticai.explorer.hw_nas.search_space.construct_sp import (
+    CombinedSearchSpace,
+    yml_to_dict,
+)
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
@@ -57,10 +60,12 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
 def setup_mnist_for_cpp():
 
     transf = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
 
-    mnist_test = datasets.MNIST(root="data/mnist", train=False, download=True, transform=transf)
+    mnist_test = datasets.MNIST(
+        root="data/mnist", train=False, download=True, transform=transf
+    )
     images = []
     labels = []
 
@@ -100,7 +105,7 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
-    search_space: CombinedSearchSpace
+    search_space: CombinedSearchSpace,
 ):
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
@@ -121,7 +126,6 @@ def find_generate_measure_for_pi(
         batch_size=64,
     )
 
-    
     setup_mnist_for_cpp()
 
     latency_measurements = []
@@ -138,12 +142,19 @@ def find_generate_measure_for_pi(
         explorer.generate_for_hw_platform(model, model_name)
         explorer.hw_setup_on_target(Path("data/cpp-mnist"))
 
-        latency = explorer.run_measurement(Metric.LATENCY, model_name)
+        try:
+            latency = explorer.run_measurement(Metric.LATENCY, model_name)
+        except:
+            latency = { "Latency": { "value": -1, "unit": "microseconds"}}
+
+        try:
+            accuracy = explorer.run_measurement(Metric.ACCURACY, model_name)
+        except:
+
+            accuracy = {"Accuracy": { "value":  -1, "unit": "percent"}}
 
         latency_measurements.append(latency)
-        accuracy_measurements.append(
-            explorer.run_measurement(Metric.ACCURACY, model_name)
-        )
+        accuracy_measurements.append(accuracy)
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
     accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
@@ -155,7 +166,6 @@ def find_generate_measure_for_pi(
         explorer.experiment_dir / "experiment_data.csv",
     )
     logger.info("Models:\n %s", df)
-
 
 
 if __name__ == "__main__":
