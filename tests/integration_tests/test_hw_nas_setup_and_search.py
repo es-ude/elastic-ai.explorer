@@ -38,7 +38,6 @@ class TestHWNasSetupAndSearch:
             "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.hwnas_cfg = HWNASConfig()
         self.deploy_cfg = DeploymentConfig(
             Path("tests/integration_tests/test_configs/deployment_config.yaml")
         )
@@ -50,8 +49,18 @@ class TestHWNasSetupAndSearch:
         )
         search_space = CombinedSearchSpace(search_space)
         self.RPI5explorer.generate_search_space(search_space)
-        top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
+        top_k_models = self.RPI5explorer.search(HWNASConfig(config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")))
         assert len(top_k_models) == 2
+    
+    def test_constraint_search(self):
+        self.setUp()
+        search_space = yml_to_dict(
+            Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+        )
+        search_space = CombinedSearchSpace(search_space)
+        self.RPI5explorer.generate_search_space(search_space)
+        top_k_models = self.RPI5explorer.search(HWNASConfig(config_path=Path("tests/integration_tests/test_configs/constraint_hwnas_config.yaml")))
+        assert len(top_k_models) == 0
 
     def test_generate_for_hw_platform(self):
         self.setUp()

@@ -1,12 +1,16 @@
 import logging
 import math
-from typing import Any
+from typing import Any, Callable, cast
 
 import nni
 import torch
-from nni.nas import strategy
+from nni.nas.strategy import Random
+from nni.nas.strategy.middleware import Filter, Chain
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
+from nni.experiment import TrialResult
+from nni.nas.nn.pytorch import ModelSpace
+from nni.nas.space import ExecutableModelSpace, SimplifiedModelSpace
 from nni.experiment import TrialResult
 from nni.nas.nn.pytorch import ModelSpace
 from torch.utils.data import DataLoader
@@ -14,13 +18,13 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from elasticai.explorer.config import HWNASConfig
-from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
+from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
 from elasticai.explorer.trainer import MLPTrainer
 
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: torch.nn.Module, device: str):
+def evaluate_model(model: ModelSpace, device: str):
     global accuracy
     flops_weight = 0
     n_epochs = 2
@@ -38,9 +42,8 @@ def evaluate_model(model: torch.nn.Module, device: str):
         MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
     )
     trainer = MLPTrainer(device, optimizer)
-    flops_estimator = FlopsEstimator()
-    sample, _ = next(iter(train_loader))
-    flops = flops_estimator.estimate_flops(model, sample)
+    cost_estimator = CostEstimator()
+    flops = cost_estimator.estimate_flops(model)
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
     for epoch in range(n_epochs):
         trainer.train_epoch(model, train_loader, epoch)
@@ -59,7 +62,30 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-    search_strategy = strategy.Random()
+    
+    filters: list[Filter] = []
+    cost_estimator = CostEstimator()
+
+    def make_filter(model_space: ModelSpace, max_val: float | str, estimate: Callable[[ModelSpace], float]) -> Filter:
+        def constraint(sample: SimplifiedModelSpace) -> bool:
+            assert sample.sample is not None
+            frozen_model = cast(ModelSpace, model_space.freeze(sample.sample))
+            return estimate(frozen_model) < float(max_val)
+        return Filter(cast(Callable[[ExecutableModelSpace], bool], constraint)) 
+
+    for key, value in hwnas_cfg.hw_constraints.items():
+        if key == "max_flops":
+            filters.append(make_filter(search_space, value, cost_estimator.estimate_flops))
+        elif key == "max_params":
+            filters.append(make_filter(search_space, value, cost_estimator.compute_num_params))
+        else:
+            logger.warning("Unknown hardware constraint: %s", key)
+    
+    if not filters:
+        search_strategy = Random()
+    else:
+        search_strategy = Chain(Random(), *filters)
+
     evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials
