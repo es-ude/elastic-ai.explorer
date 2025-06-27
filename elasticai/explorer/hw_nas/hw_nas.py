@@ -22,7 +22,7 @@ logger = logging.getLogger("explorer.nas")
 
 def evaluate_model(model: torch.nn.Module, device: str):
     global accuracy
-    flops_weight = 3.0
+    flops_weight = 0
     n_epochs = 2
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
