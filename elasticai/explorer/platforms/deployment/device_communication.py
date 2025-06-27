@@ -109,7 +109,7 @@ class PicoHost(Host):
             time.sleep(sleep_intervall)
             time_passed = time_passed + sleep_intervall
             if time_passed > self.timeout_s:
-                time.sleep(10)
+                time.sleep(4)
                 self.logger.error("Timeout on Pico-Communication")
                 self.logger.info("Manual Reboot neccessary")
 

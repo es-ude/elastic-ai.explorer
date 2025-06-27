@@ -17,7 +17,7 @@ def build_search_space_measurements_file(
 
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
-    data_merged["Accuracy"] = accuracies
+    data_merged["Accuracy on Device"] = accuracies
     data_merged.to_csv(csv_path)
 
     return data_merged

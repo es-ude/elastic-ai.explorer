@@ -1,9 +1,7 @@
-import json
 import logging
 import logging.config
 import os
 from pathlib import Path
-from matplotlib.font_manager import json_dump, json_load
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -41,8 +39,6 @@ from settings import ROOT_DIR
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
-
-
 def setup_knowledge_repository_pico() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
@@ -57,7 +53,6 @@ def setup_knowledge_repository_pico() -> KnowledgeRepository:
     )
 
     return knowledge_repository
-
 
 def setup_mnist_for_cpp():
 
@@ -102,7 +97,6 @@ def setup_mnist_for_cpp():
         f.write(", ".join(str(l) for l in labels))
         f.write("\n};\n\n#endif // MNIST_LABELS_H\n")
 
-
 def find_generate_measure_for_pico(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
@@ -110,8 +104,6 @@ def find_generate_measure_for_pico(
     search_space: CombinedSearchSpace,
 ):
     explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space(search_space)
-    top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
     transf = transforms.Compose(
@@ -147,13 +139,13 @@ def find_generate_measure_for_pico(
         try:
             latency = explorer.run_measurement(Metric.LATENCY, model_name)
         except:
-            latency = json.loads("{ \"Latency\": { \"value\": -2, \"unit\": \"microseconds\"}}")
+            latency = { "Latency": { "value": -2, "unit": "microseconds"}}
 
         try:
             accuracy = explorer.run_measurement(Metric.ACCURACY, model_name)
         except:
 
-            accuracy = json.loads("{\"Accuracy\": { \"value\":  -2, \"unit\": \"percent\"}}")
+            accuracy = {"Accuracy": { "value":  -2, "unit": "percent"}}
 
         latency_measurements.append(latency)
         accuracy_measurements.append(accuracy)
@@ -168,8 +160,6 @@ def find_generate_measure_for_pico(
         explorer.experiment_dir / "experiment_data.csv",
     )
     logger.info("Models:\n %s", df)
-
-
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/pico/hwnas_config.yaml"))
     deploy_cfg = DeploymentConfig(
