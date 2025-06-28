@@ -9,6 +9,10 @@ HWNASConfig:
 
   # The number of top models returned by HW-NAS.
   top_n_models: 2
+
+  # The search algorithm to use for the HW-NAS.
+  # Options: "random", "grid", "regularized_evolution"
+  search_algorithm: "random"
   
   # The hardware constraints for the search.
   # Currently, only "max_flops" and "max_params" are supported.

@@ -42,7 +42,7 @@ class TestHWNasSetupAndSearch:
             Path("tests/integration_tests/test_configs/deployment_config.yaml")
         )
 
-    def test_search(self):
+    def test_random_search(self):
         self.setUp()
         search_space = yml_to_dict(
             Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
@@ -50,6 +50,28 @@ class TestHWNasSetupAndSearch:
         search_space = CombinedSearchSpace(search_space)
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(HWNASConfig(config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")))
+        assert len(top_k_models) == 2
+    
+    def test_grid_search(self):
+        self.setUp()
+        search_space = yml_to_dict(
+            Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+        )
+        search_space = CombinedSearchSpace(search_space)
+        self.RPI5explorer.generate_search_space(search_space)
+        top_k_models = self.RPI5explorer.search(HWNASConfig(config_path=Path("tests/integration_tests/test_configs/grid_hwnas_config.yaml")))
+        # TODO: Check if the grid search is actually configured in NNI
+        assert len(top_k_models) == 2
+    
+    def test_regularized_evolution_search(self):
+        self.setUp()
+        search_space = yml_to_dict(
+            Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+        )
+        search_space = CombinedSearchSpace(search_space)
+        self.RPI5explorer.generate_search_space(search_space)
+        top_k_models = self.RPI5explorer.search(HWNASConfig(config_path=Path("tests/integration_tests/test_configs/evolution_hwnas_config.yaml")))
+        # TODO: Check if the evolutionary search is actually configured in NNI
         assert len(top_k_models) == 2
     
     def test_constraint_search(self):
