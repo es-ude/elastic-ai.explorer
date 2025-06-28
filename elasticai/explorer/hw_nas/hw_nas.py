@@ -44,12 +44,17 @@ def evaluate_model(model: ModelSpace, device: str):
     trainer = MLPTrainer(device, optimizer)
     cost_estimator = CostEstimator()
     flops = cost_estimator.estimate_flops(model)
-    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
+    params = cost_estimator.compute_num_params(model)
+    metric = {
+        "default": 0,
+        "accuracy": 0,
+        "flops log10": math.log10(flops),
+        "params": params,
+    }
     for epoch in range(n_epochs):
         trainer.train_epoch(model, train_loader, epoch)
 
         metric["accuracy"] = trainer.test(model, test_loader)
-
         metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
         nni.report_intermediate_result(metric)
 
@@ -62,25 +67,34 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-    
+
     filters: list[Filter] = []
     cost_estimator = CostEstimator()
 
-    def make_filter(model_space: ModelSpace, max_val: float | str, estimate: Callable[[ModelSpace], float]) -> Filter:
+    def make_filter(
+        model_space: ModelSpace,
+        max_val: float | str,
+        estimate: Callable[[ModelSpace], float],
+    ) -> Filter:
         def constraint(sample: SimplifiedModelSpace) -> bool:
             assert sample.sample is not None
             frozen_model = cast(ModelSpace, model_space.freeze(sample.sample))
             return estimate(frozen_model) < float(max_val)
-        return Filter(cast(Callable[[ExecutableModelSpace], bool], constraint)) 
+
+        return Filter(cast(Callable[[ExecutableModelSpace], bool], constraint))
 
     for key, value in hwnas_cfg.hw_constraints.items():
         if key == "max_flops":
-            filters.append(make_filter(search_space, value, cost_estimator.estimate_flops))
+            filters.append(
+                make_filter(search_space, value, cost_estimator.estimate_flops)
+            )
         elif key == "max_params":
-            filters.append(make_filter(search_space, value, cost_estimator.compute_num_params))
+            filters.append(
+                make_filter(search_space, value, cost_estimator.compute_num_params)
+            )
         else:
             logger.warning("Unknown hardware constraint: %s", key)
-    
+
     if not filters:
         search_strategy = Random()
     else:

@@ -3,6 +3,7 @@ import torch
 from nni.nas.profiler.pytorch.flops import FlopsProfiler, NumParamsProfiler
 from nni.nas.nn.pytorch import ModelSpace
 
+
 class CostEstimator:
     """Wrapper for FlopsParamsProfiler, we could extend in the future"""
 
@@ -17,7 +18,9 @@ class CostEstimator:
         """
         first_parameter = next(model_sample.parameters())
         input_shape = first_parameter.size()
-        return torch.full(input_shape, 1.0)
+
+        #FIXME only works for mnist
+        return torch.ones(1, 1, 28, 28)
 
     def estimate_flops(self, model_sample: ModelSpace) -> float:
         """Computes FLOPS for a single module.

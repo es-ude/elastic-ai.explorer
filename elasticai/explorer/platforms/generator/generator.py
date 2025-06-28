@@ -132,6 +132,7 @@ class PicoGenerator(Generator):
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         self.logger.info("Generate torchscript model from %s", model)
+        #FIXME only for mnist
         sample_inputs = (torch.ones(1, 1, 28, 28),)
         torch_output = model(*sample_inputs)
         nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()

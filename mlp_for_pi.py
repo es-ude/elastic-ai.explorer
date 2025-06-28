@@ -82,9 +82,9 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
-    search_space: CombinedSearchSpace
+    search_space: CombinedSearchSpace,
 ) -> Metrics:
-    
+
     explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
