@@ -1,10 +1,11 @@
 import logging
 import math
+import os
 from typing import Any, Callable, cast
 
 import nni
 import torch
-from nni.nas.strategy import Random
+from nni.nas.strategy import Random, GridSearch, RegularizedEvolution
 from nni.nas.strategy.middleware import Filter, Chain
 from nni.nas.evaluator import FunctionalEvaluator
 from nni.nas.experiment import NasExperiment
@@ -95,14 +96,30 @@ def search(
         else:
             logger.warning("Unknown hardware constraint: %s", key)
 
-    if not filters:
-        search_strategy = Random()
+    if hwnas_cfg.search_algorithm == "grid":
+        search_strategy = GridSearch()
+    elif hwnas_cfg.search_algorithm == "regularized_evolution":
+        search_strategy = RegularizedEvolution(
+            population_size=10, sample_size=5, mutation_prob=0.1    # TODO: make configurable
+        )
     else:
-        search_strategy = Chain(Random(), *filters)
+        if hwnas_cfg.search_algorithm != "random":
+            logger.warning(
+                "Unknown search algorithm: %s, using random search instead.",
+                hwnas_cfg.search_algorithm,
+            )
+        search_strategy = Random()
+
+    if filters:
+        search_strategy = Chain(search_strategy, *filters)
+
+    num_cpus = os.cpu_count()
+    assert num_cpus is not None, "CPU count must be defined"
 
     evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials
+    experiment.config.trial_concurrency = num_cpus // 2  # Use half of the available CPUs
     experiment.run(port=8081)
     top_models: list[ModelSpace] = experiment.export_top_models(
         top_k=hwnas_cfg.top_n_models, formatter="instance"
