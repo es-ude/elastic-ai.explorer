@@ -185,4 +185,4 @@ if __name__ == "__main__":
     )
     search_space = CombinedSearchSpace(search_space)
 
-    find_generate_measure_for_pico(explorer, deploy_cfg, hwnas_cfg, search_space)
+    find_generate_measure_for_pico(explorer, deploy_cfg, hwnas_cfg, search_space) #type:ignore
