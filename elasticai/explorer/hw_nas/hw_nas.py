@@ -27,7 +27,7 @@ logger = logging.getLogger("explorer.nas")
 
 def evaluate_model(model: ModelSpace, device: str):
     global accuracy
-    flops_weight = 2.0
+    flops_weight = 2.0   # TODO: make configurable
     n_epochs = 2
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
@@ -100,10 +100,10 @@ def search(
         search_strategy = GridSearch()
     elif hwnas_cfg.search_algorithm == "regularized_evolution":
         search_strategy = RegularizedEvolution(
-            population_size=10,
-            sample_size=5,
-            mutation_prob=0.1,  # TODO: make configurable
-        )
+            population_size=20,
+            sample_size=10,
+            mutation_prob=0.1,  
+        )   # TODO: make configurable
     else:
         if hwnas_cfg.search_algorithm != "random":
             logger.warning(
