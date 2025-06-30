@@ -81,7 +81,7 @@ class PicoCompiler(Compiler):
 
     def setup(self) -> None:
         docker.build(
-            context_path=".",
+            context_path=self.context_path,
             tags=self.tag,
             file=self.path_to_dockerfile,
             build_args={

@@ -88,7 +88,7 @@ class PicoHost(Host):
             "explorer.platforms.deployment.device_communication.PicoHost"
         )
         self.serial_port = deploy_cfg.serial_port
-        self.timeout_s = 30
+        self.timeout_s = 40
 
     def _get_measurement(self) -> str:
         self._wait_for_pico(self.serial_port)
@@ -148,7 +148,7 @@ class PicoHost(Host):
                 break
             if time_passed_s > self.timeout_s:
                 break
-            time_passed_s = (time.time() - start_time_s)
+            time_passed_s = time.time() - start_time_s
 
         return last_line
 

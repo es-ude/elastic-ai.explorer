@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 RUN git clone -b master https://github.com/raspberrypi/pico-sdk.git $PICO_SDK_PATH && \
     cd $PICO_SDK_PATH && git submodule update --init
 
-ADD  $CROSS_COMPILER_PATH /code/pico_crosscompiler
+ADD  CROSS_COMPILER_PATH /code/pico_crosscompiler
 
 RUN mkdir -p /code/build && mkdir -p $BIN_DIR
 WORKDIR /code/build

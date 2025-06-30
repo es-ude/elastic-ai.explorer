@@ -132,7 +132,7 @@ def find_generate_measure_for_pico(
     latency_measurements = []
     accuracy_measurements_on_device = []
     accuracy_after_retrain = []
-    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    retrain_device = "cpu"
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
@@ -167,9 +167,14 @@ def find_generate_measure_for_pico(
         accuracy_after_retrain.append(accuracy_after_retrain_dict)
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    accuracies_on_device = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements_on_device]
-    accuracy_after_retrain = [accuracy["Accuracy"]["value"] for accuracy in accuracy_after_retrain]
-    
+    accuracies_on_device = [
+        accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements_on_device
+    ]
+    accuracy_after_retrain = [
+        accuracy["Accuracy after retrain"]["value"]
+        for accuracy in accuracy_after_retrain
+    ]
+
     df = build_search_space_measurements_file(
         latencies,
         accuracies_on_device,
@@ -196,4 +201,6 @@ if __name__ == "__main__":
     )
     search_space = CombinedSearchSpace(search_space)
 
-    find_generate_measure_for_pico(explorer, deploy_cfg, hwnas_cfg, search_space) #type:ignore
+    find_generate_measure_for_pico(
+        explorer, deploy_cfg, hwnas_cfg, search_space
+    )  # type:ignore
