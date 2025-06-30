@@ -43,7 +43,7 @@ int main(int argc, const char *argv[])
 
   size_t counter = 0;
   int batch_counter = 0;
-  int number_of_batches = 4;
+  int number_of_batches = 8;
   size_t total_samples = 0;
   for (const auto &batch : *test_loader)
   {
@@ -66,9 +66,9 @@ int main(int argc, const char *argv[])
     correct += pred.eq(targets).sum().template item<int64_t>();
     counter++;
     if (batch_counter + 1 >= number_of_batches)
-      {
-        break;
-      }
+    {
+      break;
+    }
     batch_counter++;
   }
 

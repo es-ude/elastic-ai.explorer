@@ -7,7 +7,7 @@ from settings import MAIN_EXPERIMENT_DIR
 
 
 def build_search_space_measurements_file(
-    latencies: list[int], accuracies: list[float], metrics_path: Path, model_parameter_path: Path, csv_path: Path
+    latencies: list[int], accuracies_on_device: list[float], accuracies_after_retrain: list[float], metrics_path: Path, model_parameter_path: Path, csv_path: Path
 ) -> pandas.DataFrame:
     metric_list = utils.load_json(metrics_path)
     sample_list = utils.load_json(model_parameter_path)
@@ -16,8 +16,9 @@ def build_search_space_measurements_file(
     dataframe2 = pandas.DataFrame.from_dict(sample_list)
 
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
+    data_merged["Accuracy after Retrain"] = accuracies_after_retrain
     data_merged["latency in us"] = latencies
-    data_merged["Accuracy on Device"] = accuracies
+    data_merged["Accuracy on Device"] = accuracies_on_device
     data_merged.to_csv(csv_path)
 
     return data_merged

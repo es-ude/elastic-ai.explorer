@@ -95,7 +95,6 @@ def setup_mnist_for_cpp():
 
         f.write("};\n\n#endif // MNIST_IMAGES_H\n")
 
-    # Optional: Labels exportieren
     with open("data/cpp-mnist/mnist_labels.h", "w") as f:
         f.write("#ifndef MNIST_LABELS_H\n#define MNIST_LABELS_H\n\n")
         f.write("const int mnist_labels[256] = {\n  ")
@@ -131,15 +130,16 @@ def find_generate_measure_for_pico(
     setup_mnist_for_cpp()
 
     latency_measurements = []
-    accuracy_measurements = []
-    retrain_device = "cpu"
+    accuracy_measurements_on_device = []
+    accuracy_after_retrain = []
+    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
-        mlp_trainer.test(model, testloader=testloader)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=4)
+        accuracy_after_retrain_value = mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".tflite"
         explorer.generate_for_hw_platform(model, model_name)
         explorer.hw_setup_on_target(Path("data/cpp-mnist"))
@@ -147,22 +147,33 @@ def find_generate_measure_for_pico(
         try:
             latency = explorer.run_measurement(Metric.LATENCY, model_name)
         except:
-            latency = json.loads("{ \"Latency\": { \"value\": -2, \"unit\": \"microseconds\"}}")
+            latency = json.loads('{ "Latency": { "value": -2, "unit": "microseconds"}}')
 
         try:
-            accuracy = explorer.run_measurement(Metric.ACCURACY, model_name)
+            accuracy_on_device = explorer.run_measurement(Metric.ACCURACY, model_name)
         except:
 
-            accuracy = json.loads("{\"Accuracy\": { \"value\":  -2, \"unit\": \"percent\"}}")
+            accuracy_on_device = json.loads(
+                '{"Accuracy": { "value":  -2, "unit": "percent"}}'
+            )
 
+        accuracy_after_retrain_dict = json.loads(
+            '{"Accuracy after retrain": { "value":'
+            + str(accuracy_after_retrain_value)
+            + ' , "unit": "percent"}}'
+        )
         latency_measurements.append(latency)
-        accuracy_measurements.append(accuracy)
+        accuracy_measurements_on_device.append(accuracy_on_device)
+        accuracy_after_retrain.append(accuracy_after_retrain_dict)
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    accuracies_on_device = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements_on_device]
+    accuracy_after_retrain = [accuracy["Accuracy"]["value"] for accuracy in accuracy_after_retrain]
+    
     df = build_search_space_measurements_file(
         latencies,
-        accuracies,
+        accuracies_on_device,
+        accuracy_after_retrain,
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",

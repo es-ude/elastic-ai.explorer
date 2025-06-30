@@ -27,7 +27,7 @@ logger = logging.getLogger("explorer.nas")
 
 def evaluate_model(model: ModelSpace, device: str):
     global accuracy
-    flops_weight = 3.0
+    flops_weight = 2.0
     n_epochs = 2
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
@@ -100,7 +100,9 @@ def search(
         search_strategy = GridSearch()
     elif hwnas_cfg.search_algorithm == "regularized_evolution":
         search_strategy = RegularizedEvolution(
-            population_size=10, sample_size=5, mutation_prob=0.1    # TODO: make configurable
+            population_size=10,
+            sample_size=5,
+            mutation_prob=0.1,  # TODO: make configurable
         )
     else:
         if hwnas_cfg.search_algorithm != "random":
@@ -119,7 +121,9 @@ def search(
     evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
     experiment = NasExperiment(search_space, evaluator, search_strategy)
     experiment.config.max_trial_number = hwnas_cfg.max_search_trials
-    experiment.config.trial_concurrency = num_cpus // 2  # Use half of the available CPUs
+    experiment.config.trial_concurrency = (
+        num_cpus // 2
+    )  # Use half of the available CPUs
     experiment.run(port=8081)
     top_models: list[ModelSpace] = experiment.export_top_models(
         top_k=hwnas_cfg.top_n_models, formatter="instance"

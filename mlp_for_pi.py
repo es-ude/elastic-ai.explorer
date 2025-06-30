@@ -1,3 +1,4 @@
+import json
 import logging.config
 import shutil
 from pathlib import Path
@@ -109,15 +110,16 @@ def find_generate_measure_for_pi(
 
     latency_measurements = []
     accuracy_measurements = []
+    accuracy_after_retrain = []
 
-    retrain_device = "cpu"
+    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
-        mlp_trainer.test(model, testloader=testloader)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=4)
+        accuracy_after_retrain_value = mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name)
 
@@ -127,11 +129,25 @@ def find_generate_measure_for_pi(
             explorer.run_measurement(Metric.ACCURACY, model_name)
         )
 
+        accuracy_after_retrain_dict = json.loads(
+            '{"Accuracy after retrain": { "value":'
+            + str(accuracy_after_retrain_value)
+            + ' , "unit": "percent"}}'
+        )
+        accuracy_after_retrain.append(accuracy_after_retrain_dict)
+
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    accuracies_on_device = [
+        accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements
+    ]
+    accuracies_after_retrain = [
+        accuracy["Accuracy after retrain"]["value"] for accuracy in accuracy_after_retrain
+    ]
+
     df = build_search_space_measurements_file(
         latencies,
-        accuracies,
+        accuracies_on_device,
+        accuracies_after_retrain,
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",
@@ -141,7 +157,7 @@ def find_generate_measure_for_pi(
     return Metrics(
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
-        accuracies,
+        accuracies_on_device,
         latencies,
     )
 
@@ -174,7 +190,7 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: Mode
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=4)
         mlp_trainer.test(model, testloader=testloader)
         print("=================================================")
         model_name = "ts_model_" + str(i) + ".pt"
