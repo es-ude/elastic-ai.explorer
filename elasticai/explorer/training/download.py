@@ -51,7 +51,6 @@ def get_file_from_sciebo(
 class DownloadableSciebo:
     def __init__(
         self,
-        download: bool,
         download_path: Union[str, Path],
         file_path_on_sciebo: Union[str, Path],
         file_type: Union[Type, Callable],
@@ -62,8 +61,8 @@ class DownloadableSciebo:
         self.file_path_on_fileshare = file_path_on_sciebo
         self.file_type = file_type
 
-        if download:
-            self._download()
+        
+        self._download()
 
         super().__init__(*args, **kwargs)
 

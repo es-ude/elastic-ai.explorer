@@ -1,12 +1,16 @@
 from abc import ABC, abstractmethod
 import logging
 
+from sympy import true
 import torch
+from torchvision.datasets import MNIST
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.optim.optimizer import Optimizer
 
+from elasticai.explorer.training import download
 from elasticai.explorer.training.data import DatasetInfo
+from elasticai.explorer.training.download import Downloadable
 
 
 class Trainer(ABC):
@@ -18,18 +22,32 @@ class Trainer(ABC):
         dataset_info: DatasetInfo,
         loss_fn=nn.CrossEntropyLoss(),
         batch_size: int = 64,
+        early_stopping: bool = True,
+        patience: int = 5,
+        min_delta: float = 0.0,
     ):
 
         self.device = device
         self.optimizer = optimizer
         self.loss_fn = loss_fn
+        self.early_stopping = early_stopping
+        self.patience = patience
+        self.min_delta = min_delta
 
-        train_dataset = dataset_info.dataset_type(
-            dataset_info.dataset_location,
-            train=True,
-            transform=dataset_info.transform,
-            download=True,
-        )
+        if dataset_info.dataset_type == MNIST:
+            train_dataset = dataset_info.dataset_type(
+                dataset_info.dataset_location,
+                train=True,
+                transform=dataset_info.transform,
+                download=True,
+            )
+        else:
+            train_dataset = dataset_info.dataset_type(
+                dataset_info.dataset_location,
+                train=True,
+                transform=dataset_info.transform,
+            )
+
         train_subset, val_subset = random_split(
             train_dataset,
             dataset_info.validation_split_ratio,
@@ -40,7 +58,6 @@ class Trainer(ABC):
             dataset_info.dataset_location,
             train=False,
             transform=dataset_info.transform,
-            download=True,
         )
 
         self.train_loader = DataLoader(
@@ -76,6 +93,9 @@ class MLPTrainer(Trainer):
         dataset_info: DatasetInfo,
         loss_fn=nn.CrossEntropyLoss(),
         batch_size: int = 64,
+        early_stopping: bool = True,
+        patience: int = 3,
+        min_delta: float = 0.0,
     ):
         super().__init__(
             device,
@@ -83,6 +103,9 @@ class MLPTrainer(Trainer):
             dataset_info,
             loss_fn,
             batch_size,
+            early_stopping,
+            patience,
+            min_delta,
         )
         self.logger = logging.getLogger("explorer.MLPTrainer")
 
@@ -93,8 +116,32 @@ class MLPTrainer(Trainer):
             epochs: Number of epochs.
         """
 
+        best_val_accuracy = 0.0
+        patience_counter = 0
+        best_model_state = model.state_dict()
+
         for epoch in range(epochs):
+            self.logger.info(f"Epoch {epoch+1}/{epochs}")
             self.train_epoch(model=model, epoch=epoch)
+            val_accuracy = self.validate(model=model)
+
+            if val_accuracy > best_val_accuracy + self.min_delta:
+                best_val_accuracy = val_accuracy
+                patience_counter = 0  # Reset counter
+                best_model_state = model.state_dict()  # Save best model
+            else:
+                patience_counter += 1
+                self.logger.info(
+                    f"No improvement. Patience: {patience_counter}/{self.patience}"
+                )
+
+            if self.early_stopping and patience_counter >= self.patience:
+                self.logger.info("Early stopping triggered.")
+                break
+
+        if self.early_stopping:
+            model.load_state_dict(best_model_state)
+            self.logger.info("Loaded best model from early stopping.")
 
     def validate(self, model: nn.Module):
         """[8, 2]
@@ -115,11 +162,11 @@ class MLPTrainer(Trainer):
                 output = model(data)
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
-        test_loss /= len(self.val_loader.dataset)
-        accuracy = 100.0 * correct / len(self.val_loader.dataset)
+        test_loss /= len(self.val_loader.dataset)  # type: ignore
+        accuracy = 100.0 * correct / len(self.val_loader.dataset)  # type: ignore
         self.logger.info(
             "Validation set: Accuracy: {}/{} ({:.0f}%)\n".format(
-                correct, len(self.val_loader.dataset), accuracy
+                correct, len(self.val_loader.dataset), accuracy  # type: ignore
             )
         )
         return accuracy
@@ -143,11 +190,11 @@ class MLPTrainer(Trainer):
                 output = model(data)
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
-        test_loss /= len(self.test_loader.dataset)
-        accuracy = 100.0 * correct / len(self.test_loader.dataset)
+        test_loss /= len(self.test_loader.dataset)  # type: ignore
+        accuracy = 100.0 * correct / len(self.test_loader.dataset)  # type: ignore
         self.logger.info(
             "Test set: Accuracy: {}/{} ({:.0f}%)\n".format(
-                correct, len(self.test_loader.dataset), accuracy
+                correct, len(self.test_loader.dataset), accuracy  # type: ignore
             )
         )
         return accuracy
@@ -173,7 +220,7 @@ class MLPTrainer(Trainer):
                     "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                         epoch,
                         batch_idx * len(data),
-                        len(self.train_loader.dataset),
+                        len(self.train_loader.dataset),  # type: ignore
                         100.0 * batch_idx / len(self.train_loader),
                         loss.item(),
                     )

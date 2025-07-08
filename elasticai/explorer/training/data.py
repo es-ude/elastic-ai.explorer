@@ -2,19 +2,45 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
-from typing import Callable, List, Optional, Type, Union
+from typing import Any, Callable, List, Optional, Type, Union
 import numpy as np
 import pandas as pd
-
-from torch.utils.data import Dataset
 from torchvision.datasets import MNIST
+from torch.utils.data import Dataset
 from torchvision.transforms import Compose
 from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger("explorer.data")
 
 
-class FlatSequencialDataset(Dataset):
+class BaseDataset(Dataset):
+    def __init__(
+        self,
+        root: Union[str, Path],
+        train: bool = True,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+
+        super().__init__(*args, **kwargs)
+
+        self.root = root
+        self.train = train
+        self.transform = transform
+        self.target_transform = target_transform
+
+    @abstractmethod
+    def _len_(self) -> int:
+        pass
+
+    @abstractmethod
+    def __getitem__(self, idx) -> Any:
+        pass
+
+
+class FlatSequencialDataset(BaseDataset):
     """
     Base class for sequencial datasets with only 1-Dimensional features and labels.
     """
@@ -28,8 +54,7 @@ class FlatSequencialDataset(Dataset):
         *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
-        self.root = root
+        super().__init__(root, train, transform, target_transform, *args, **kwargs)
         self._setup_data()
         self._setup_targets()
 
@@ -88,7 +113,7 @@ class FlatSequencialDataset(Dataset):
 
 @dataclass
 class DatasetInfo:
-    dataset_type: Type[MNIST] | Type[FlatSequencialDataset]
+    dataset_type: Type[MNIST] | Type[BaseDataset]
     dataset_location: Path
     transform: Compose | None = None
     validation_split_ratio: List[float] = field(default_factory=lambda: [0.8, 0.2])

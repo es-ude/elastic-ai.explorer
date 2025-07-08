@@ -92,8 +92,11 @@ def find_generate_measure_for_pi(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
             dataset_info=dataset_info,
+            early_stopping= True,
+            patience=2,
+            min_delta=0.01,
         )
-        mlp_trainer.train(model, epochs=3)
+        mlp_trainer.train(model, epochs=6)
         mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name)

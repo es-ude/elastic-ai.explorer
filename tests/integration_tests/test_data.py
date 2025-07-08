@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from typing import Callable, Optional, Union
 import pandas as pd
-from websockets import Data
 from elasticai.explorer.training.data import (
     DatasetInfo,
     FlatSequencialDataset,
@@ -22,11 +21,9 @@ class SequentialTestDataset(FlatSequencialDataset, DownloadableSciebo):
         train: bool = True,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
-        download: bool = False,
     ):
         download_path = root
         super().__init__(
-            download=download,
             download_path=download_path,
             file_path_on_sciebo="test_dataset.csv",
             file_type=PlainFile,
@@ -55,7 +52,7 @@ class TestData:
 
     def test_flat_sequencial_dataset(self):
         dataset = SequentialTestDataset(
-            root=self.sample_dir / "test_dataset.csv", download=True
+            root=self.sample_dir / "test_dataset.csv"
         )
         assert len(dataset) == 21
 

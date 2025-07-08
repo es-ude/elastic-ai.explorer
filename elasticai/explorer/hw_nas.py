@@ -39,7 +39,6 @@ def evaluate_model(
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
 
-
     trainer = trainer_class(device, optimizer, dataset_info)
 
     metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
