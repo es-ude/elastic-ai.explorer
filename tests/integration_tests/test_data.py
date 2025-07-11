@@ -4,7 +4,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 from elasticai.explorer.training.data import (
     DatasetInfo,
-    FlatSequencialDataset,
+    MultivariatTimeseriesDataset,
 )
 import torch
 
@@ -14,7 +14,7 @@ from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
 
 
-class SequentialTestDataset(FlatSequencialDataset, DownloadableSciebo):
+class TestTimeSeriesDataset(MultivariatTimeseriesDataset, DownloadableSciebo):
     def __init__(
         self,
         root: Union[str, Path],
@@ -25,7 +25,7 @@ class SequentialTestDataset(FlatSequencialDataset, DownloadableSciebo):
         download_path = root
         super().__init__(
             download_path=download_path,
-            file_path_on_sciebo="test_dataset.csv",
+            file_path_in_sciebo_datasets="test_dataset.csv",
             file_type=PlainFile,
             root=str(root),
             train=train,
@@ -47,11 +47,11 @@ class TestData:
         self.sample_dir = Path("tests/integration_tests/samples")
         os.makedirs(self.sample_dir, exist_ok=True)
         self.dataset_info = DatasetInfo(
-            SequentialTestDataset, self.sample_dir / "test_dataset.csv", None
+            TestTimeSeriesDataset, self.sample_dir / "test_dataset.csv", None
         )
 
     def test_flat_sequencial_dataset(self):
-        dataset = SequentialTestDataset(root=self.sample_dir / "test_dataset.csv")
+        dataset = TestTimeSeriesDataset(root=self.sample_dir / "test_dataset.csv")
         assert len(dataset) == 21
 
     def test_flat_sequencial_dataset_mlp_trainer(self):
@@ -60,12 +60,12 @@ class TestData:
 
         mlp_trainer = MLPTrainer(
             device="cpu",
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3), # type: ignore
+            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
             dataset_info=self.dataset_info,
             batch_size=2,
         )
         mlp_trainer.train(model, epochs=2)
-        mlp_trainer.validate(model)
+        assert mlp_trainer.validate(model)[0] >= 0
 
     def teardown_method(self):
         os.remove(self.sample_dir / "test_dataset.csv")

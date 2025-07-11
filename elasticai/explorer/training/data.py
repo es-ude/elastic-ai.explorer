@@ -40,9 +40,10 @@ class BaseDataset(Dataset):
         pass
 
 
-class FlatSequencialDataset(BaseDataset):
+class MultivariatTimeseriesDataset(BaseDataset):
     """
-    Base class for sequencial datasets with only 1-Dimensional features and labels.
+    Base class for time series datasets with multiple features per time step and label.
+    A feature itself should not have any channels. 
     """
 
     def __init__(
@@ -59,14 +60,14 @@ class FlatSequencialDataset(BaseDataset):
         self._setup_targets()
 
         if train:
-            self.data, _ = train_test_split(self.data, test_size=0.2, random_state=42)
+            self.data, _ = train_test_split(self.data, test_size=0.2, shuffle=False)
             self.targets, _ = train_test_split(
                 self.targets, test_size=0.2, random_state=42
             )
         else:
-            _, self.data = train_test_split(self.data, test_size=0.2, random_state=42)
+            _, self.data = train_test_split(self.data, test_size=0.2, shuffle=False)
             _, self.targets = train_test_split(
-                self.targets, test_size=0.2, random_state=42
+                self.targets, test_size=0.2, shuffle=False
             )
 
         if len(self.data.index) != len(self.targets):

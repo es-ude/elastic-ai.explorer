@@ -52,13 +52,13 @@ class DownloadableSciebo:
     def __init__(
         self,
         download_path: Union[str, Path],
-        file_path_on_sciebo: Union[str, Path],
+        file_path_in_sciebo_datasets: Union[str, Path],
         file_type: Union[Type, Callable],
         *args,
         **kwargs,
     ) -> None:
         self.download_path = download_path
-        self.file_path_on_fileshare = file_path_on_sciebo
+        self.file_path_on_fileshare = file_path_in_sciebo_datasets
         self.file_type = file_type
 
         self._download()
