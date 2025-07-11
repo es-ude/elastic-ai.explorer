@@ -4,6 +4,7 @@ from typing import Optional, Iterable
 
 import optuna
 import torch
+import yaml
 from optuna import trial, Trial
 from optuna.trial import FixedTrial
 from torch import nn
@@ -209,15 +210,15 @@ from torch import nn
 #     print(build_choices(block["linear"], 1, 3))
 #
 #
-# def yml_to_dict(file):
-#
-#     with open(file) as stream:
-#         try:
-#             search_space = yaml.safe_load(stream)
-#         except yaml.YAMLError as exc:
-#             print(exc)
-#         return search_space
-#
+def yml_to_dict(file):
+
+    with open(file) as stream:
+        try:
+            search_space = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+        return search_space
+
 #
 # def parse_depth(depth: int | str | list[int]):
 #     if isinstance(depth, int):
@@ -537,10 +538,114 @@ def create_model(trial):
     layers.append(nn.Linear(in_size, 10))
     return nn.Sequential(*layers)
 
+
+ # super().__init__()
+#         self.params = parameters
+#         blocks: list[dict] = parameters["blocks"]
+#         block_sp = []
+#
+#         last_out = None
+#         for block in blocks:
+#
+#             input_width = parameters["input"] if last_out is None else last_out
+#             print(input_width)
+#             output_width = (
+#                 parameters["output"] if self.is_last_block(block, blocks) else None
+#             )
+#             block_id = block["block"]
+#             with label_scope(f"block_{block_id}"):
+#                 block, last_out = self.build_block(block, input_width, output_width)
+#                 block_sp.append(block)
+#
+#         self.block_sp = nn.Sequential(*block_sp)
+
+
+class OptunaSearchSpace:
+    def __init__(self, search_space_cfg: dict):
+        self.input_shape= search_space_cfg["input"]
+        self.output_shape= search_space_cfg["output"]
+        self.blocks: list[dict]= search_space_cfg["blocks"]
+        self.layers=[]
+    # def map_block_operation(self, operation:str):
+    #     match operation:
+    #         case "linear":
+    #             layer = []
+    #             if isinstance(in_size, list):
+    #                 layer.append(nn.Flatten())
+    #                 in_size = math.prod(in_size)
+    #                 print(in_size)
+    #             layer_width = trial.suggest_categorical("layer_width_l{}".format(layer_no),
+    #                                                     op_parameter["linear"]["width"])
+    #             layer.append(nn.Linear(in_size, layer_width))
+    #             return nn.Sequential(*layer), layer_width
+    #         case "conv2d":
+    #             out_channels = trial.suggest_categorical("out_channels_l{}".format(layer_no),
+    #                                                      op_parameter["conv2d"]["out_channels"])
+    #             kernel_size = trial.suggest_categorical("kernel_size_l{}".format(layer_no),
+    #                                                     op_parameter["conv2d"]["kernel_size"])
+    #             stride = trial.suggest_categorical("stride_l{}".format(layer_no),
+    #                                                op_parameter["conv2d"]["stride"])
+    #             return nn.Conv2d(in_size[0], out_channels, kernel_size, stride), calculate_conv_output_shape(in_size,
+    #                                                                                                          out_channels,
+    #                                                                                                          kernel_size,
+    #                                                                                                          stride)
+    #
+
+
+    def createLinear(self, trial, block ,num_layers, search_params):
+        block_id=block["block"]
+        if isinstance(self.input_shape, list):
+            self.layers.append(nn.Flatten())
+            self.input_shape = math.prod(self.input_shape)
+        for i in range(num_layers):
+
+            layer_width= trial.suggest_categorical("layer_width_b{}_l{}".format(block_id, i),search_params["width"])
+            activation= trial.suggest_categorical("activation_func_b{}_l{}".format(block_id,i), block["activation"])
+            self.layers.append(nn.Linear(self.input_shape, layer_width))
+            self.layers.append(activation_mapping[activation])
+            self.input_shape=layer_width
+    def createConv2d(self, trial, block, num_layers, search_params):
+        block_id = block["block"]
+        for i in range(num_layers):
+            out_channels = trial.suggest_categorical("out_channels_b{}_l{}".format(block_id, i),
+                                                     search_params["out_channels"])
+            kernel_size = trial.suggest_categorical("kernel_size_b{}_l{}".format(block_id, i),
+                                                    search_params["kernel_size"])
+            stride = trial.suggest_categorical("stride_l{}".format(block, i),
+                                               search_params["stride"])
+            activation = trial.suggest_categorical("activation_func_b{}_l{}".format(block_id, i), block["activation"])
+            self.layers.append(nn.Conv2d(self.input_shape[0], out_channels, kernel_size, stride))
+            self.layers.append(activation_mapping[activation])
+            self.input_shape = calculate_conv_output_shape(self.input_shape,out_channels,kernel_size,stride)
+    def create_block(self, trial, block: dict):
+        operation_candidates=block["op_candidates"]
+
+        num_layers = trial.suggest_categorical("depth_b{}".format(block["block"]), block["depth"])
+        match operation_candidates:
+            case "linear":
+                self.createLinear(trial, block,num_layers,block["linear"])
+            case "conv2d":
+                self.createConv2d(trial, block, num_layers, block["linear"])
+
+
+
+    def create_model_sample(self, trial):
+        for block in self.blocks:
+            self.create_block(trial, block)
+
+
+
+search_space= yml_to_dict("search_space.yml")
+search_space= OptunaSearchSpace(search_space)
+
 def objective(trial):
-    return create_model(trial)
+    return search_space.create_model_sample(trial)
+
 if __name__ == "__main__":
+    search_space= yml_to_dict("search_space.yml")
+    search_space=OptunaSearchSpace(search_space)
     sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid"  }
+  #  sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid" }
     model=objective(FixedTrial(sample))
     print(model)
     test_sample= torch.ones(4, 1, 28, 28)

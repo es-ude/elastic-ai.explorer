@@ -4,6 +4,7 @@ blocks:
   - block:  "1" #namefield muss noch rein
     op_candidates: ["linear", "conv2d"]
     depth: [1, 2, 3]
+    activation: [ "relu", "sigmoid"]
     linear:
       #überall range oder choices
    #   activation: [ "relu", "sigmoid"]
@@ -14,7 +15,8 @@ blocks:
       out_channels: [ 10, 4]
   - block: "2"
     op_candidates: ["linear"]
-    depth: 1
+    activation: [ "relu", "sigmoid"]
+    depth: [1, 2]
     linear:
       width: [ 11, 21 ]
     #  activation: [ "sigmoid" ]
