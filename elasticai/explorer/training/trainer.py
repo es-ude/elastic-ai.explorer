@@ -6,7 +6,7 @@ from torchvision.datasets import MNIST
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.optim.optimizer import Optimizer
-from elasticai.explorer.training.data import DatasetInfo
+from elasticai.explorer.training.data import DatasetSpecification
 
 
 class Trainer(ABC):
@@ -15,7 +15,7 @@ class Trainer(ABC):
         self,
         device: str,
         optimizer: Optimizer,
-        dataset_info: DatasetInfo,
+        dataset_spec: DatasetSpecification,
         loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
         batch_size: int = 64,
         early_stopping: bool = True,
@@ -29,30 +29,30 @@ class Trainer(ABC):
         self.early_stopping = early_stopping
         self.patience = patience
         self.min_delta = min_delta
-        if dataset_info.dataset_type == MNIST:
-            train_dataset = dataset_info.dataset_type(
-                dataset_info.dataset_location,
+        if dataset_spec.dataset_type == MNIST:
+            train_dataset = dataset_spec.dataset_type(
+                dataset_spec.dataset_location,
                 train=True,
-                transform=dataset_info.transform,
+                transform=dataset_spec.transform,
                 download=True,
             )
         else:
-            train_dataset = dataset_info.dataset_type(
-                dataset_info.dataset_location,
+            train_dataset = dataset_spec.dataset_type(
+                dataset_spec.dataset_location,
                 train=True,
-                transform=dataset_info.transform,
+                transform=dataset_spec.transform,
             )
 
         train_subset, val_subset = random_split(
             train_dataset,
-            dataset_info.validation_split_ratio,
+            dataset_spec.validation_split_ratio,
             generator=torch.Generator().manual_seed(42),
         )
 
-        test_dataset = dataset_info.dataset_type(
-            dataset_info.dataset_location,
+        test_dataset = dataset_spec.dataset_type(
+            dataset_spec.dataset_location,
             train=False,
-            transform=dataset_info.transform,
+            transform=dataset_spec.transform,
         )
 
         self.train_loader = DataLoader(
@@ -85,7 +85,7 @@ class MLPTrainer(Trainer):
         self,
         device: str,
         optimizer: Optimizer,
-        dataset_info: DatasetInfo,
+        dataset_spec: DatasetSpecification,
         loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
         batch_size: int = 64,
         early_stopping: bool = True,
@@ -95,7 +95,7 @@ class MLPTrainer(Trainer):
         super().__init__(
             device,
             optimizer,
-            dataset_info,
+            dataset_spec,
             loss_fn,
             batch_size,
             early_stopping,
@@ -228,7 +228,7 @@ class ReconstructionAutoencoderTrainer(Trainer):
         self,
         device: str,
         optimizer: Optimizer,
-        dataset_info: DatasetInfo,
+        dataset_spec: DatasetSpecification,
         loss_fn=nn.MSELoss(),
         batch_size: int = 64,
         early_stopping: bool = True,
@@ -238,7 +238,7 @@ class ReconstructionAutoencoderTrainer(Trainer):
         super().__init__(
             device,
             optimizer,
-            dataset_info,
+            dataset_spec,
             loss_fn,
             batch_size,
             early_stopping,

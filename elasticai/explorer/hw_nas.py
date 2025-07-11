@@ -24,7 +24,7 @@ logger = logging.getLogger("explorer.nas")
 def evaluate_model(
     model: ModelSpace,
     device: str,
-    dataset_info: data.DatasetInfo,
+    dataset_info: data.DatasetSpecification,
     trainer_class: type[Trainer],
 ):
     global accuracy
@@ -67,7 +67,7 @@ def evaluate_model(
 def search(
     search_space: Any,
     hwnas_cfg: HWNASConfig,
-    dataset_info: data.DatasetInfo,
+    dataset_info: data.DatasetSpecification,
     trainer_class: Type[Trainer],
 ) -> tuple[list[Any], list[Any], list[Any]]:
 

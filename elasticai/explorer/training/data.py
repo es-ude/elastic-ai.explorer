@@ -43,7 +43,7 @@ class BaseDataset(Dataset):
 class MultivariatTimeseriesDataset(BaseDataset):
     """
     Base class for time series datasets with multiple features per time step and label.
-    A feature itself should not have any channels. 
+    A feature itself should not have any channels.
     """
 
     def __init__(
@@ -113,7 +113,7 @@ class MultivariatTimeseriesDataset(BaseDataset):
 
 
 @dataclass
-class DatasetInfo:
+class DatasetSpecification:
     dataset_type: Type[MNIST] | Type[BaseDataset]
     dataset_location: Path
     transform: Compose | None = None

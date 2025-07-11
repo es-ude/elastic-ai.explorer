@@ -4,7 +4,7 @@ from typing import Any, Callable
 import torch.nn as nn
 import torch
 
-from elasticai.explorer.training.data import BaseDataset, DatasetInfo
+from elasticai.explorer.training.data import BaseDataset, DatasetSpecification
 from elasticai.explorer.training.trainer import ReconstructionAutoencoderTrainer
 
 INPUT_DIM = 10
@@ -54,15 +54,15 @@ class SimpleLSTMAutoencoder(nn.Module):
 
 class TestAutoencoderTrainer:
     def setup_method(self):
-        self.dataset_info = DatasetInfo(TestDataset, Path(""), None)
+        self.dataset_info = DatasetSpecification(TestDataset, Path(""), None)
         self.autoencoder = SimpleLSTMAutoencoder(INPUT_DIM)
 
     def test_autoencoder_trainer(self):
 
         autoencoder_trainer = ReconstructionAutoencoderTrainer(
             "cpu",
-            optimizer=torch.optim.Adam(self.autoencoder.parameters(), lr=1e-3), # type: ignore
-            dataset_info=self.dataset_info,
+            optimizer=torch.optim.Adam(self.autoencoder.parameters(), lr=1e-3),  # type: ignore
+            dataset_spec=self.dataset_info,
         )
         autoencoder_trainer.train(self.autoencoder, 20)
         assert autoencoder_trainer.validate(self.autoencoder)[0] > 0

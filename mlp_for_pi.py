@@ -7,7 +7,7 @@ import torch
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-from elasticai.explorer.training.data import DatasetInfo
+from elasticai.explorer.training.data import DatasetSpecification
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
@@ -64,7 +64,7 @@ def setup_mnist(path_to_test_data: Path):
     shutil.make_archive(
         str(path_to_test_data), "zip", f"{str(path_to_test_data)}/MNIST/raw"
     )
-    dataset_info = DatasetInfo(MNIST, path_to_test_data, transf)
+    dataset_info = DatasetSpecification(MNIST, path_to_test_data, transf)
     return dataset_info
 
 
@@ -91,7 +91,7 @@ def find_generate_measure_for_pi(
         mlp_trainer = MLPTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
-            dataset_info=dataset_info,
+            dataset_spec=dataset_info,
             early_stopping=True,
             patience=2,
             min_delta=0.01,

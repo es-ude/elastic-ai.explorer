@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 import pandas as pd
 from elasticai.explorer.training.data import (
-    DatasetInfo,
+    DatasetSpecification,
     MultivariatTimeseriesDataset,
 )
 import torch
@@ -46,22 +46,22 @@ class TestData:
     def setup_class(self):
         self.sample_dir = Path("tests/integration_tests/samples")
         os.makedirs(self.sample_dir, exist_ok=True)
-        self.dataset_info = DatasetInfo(
+        self.dataset_spec = DatasetSpecification(
             TestTimeSeriesDataset, self.sample_dir / "test_dataset.csv", None
         )
 
-    def test_flat_sequencial_dataset(self):
+    def test_dataset(self):
         dataset = TestTimeSeriesDataset(root=self.sample_dir / "test_dataset.csv")
         assert len(dataset) == 21
 
-    def test_flat_sequencial_dataset_mlp_trainer(self):
+    def test_dataset_with_mlp_trainer(self):
 
         model = SampleMLP(2)
 
         mlp_trainer = MLPTrainer(
             device="cpu",
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
-            dataset_info=self.dataset_info,
+            dataset_spec=self.dataset_spec,
             batch_size=2,
         )
         mlp_trainer.train(model, epochs=2)
