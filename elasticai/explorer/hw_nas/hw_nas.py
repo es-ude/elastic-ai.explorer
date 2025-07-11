@@ -7,7 +7,7 @@ import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 
-from elasticai.explorer.hw_nas.search_space.construct_sp import create_model
+from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 
 # import nni
 # from nni.nas import strategy
@@ -28,7 +28,7 @@ from elasticai.explorer.trainer import MLPTrainer
 logger = logging.getLogger("explorer.nas")
 
 
-def objective_wrapper(trial: optuna.Trial, search_space: Any, device: str) -> float:
+def objective_wrapper(trial: optuna.Trial, search_space_cfg: dict[str, Any], device: str) -> float:
 
     def objective(trial: optuna.Trial) -> float:
         global accuracy
@@ -47,7 +47,8 @@ def objective_wrapper(trial: optuna.Trial, search_space: Any, device: str) -> fl
             MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
         )
 
-        model = create_model(trial)
+        search_space = SearchSpace(search_space_cfg)
+        model = search_space.create_model_sample(trial)
         trainer = MLPTrainer(device, optimizer=Adam(model.parameters(), lr=1e-3))
 
         flops_estimator = FlopsEstimator()
@@ -80,9 +81,9 @@ def search(
         direction="maximize",
     )
     study.optimize(
-        partial(objective_wrapper, search_space=search_space, device=hwnas_cfg.host_processor),
+        partial(objective_wrapper, search_space_cfg=search_space, device=hwnas_cfg.host_processor),
         callbacks=[MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))],
-        n_jobs=-1,  # Use all available CPU cores
+        # n_jobs=-1,  # FIXME: Use all available CPU cores
     )
 
     # best_model = study.best_trial

@@ -562,8 +562,9 @@ def create_model(trial):
 
 class SearchSpace:
     def __init__(self, search_space_cfg: dict):
-        self.input_shape= search_space_cfg["input"]
-        self.output_shape= search_space_cfg["output"]
+        self.search_space_cfg = search_space_cfg
+        self.input_shape = search_space_cfg["input"]
+        self.output_shape = search_space_cfg["output"]
         self.blocks: list[dict]= search_space_cfg["blocks"]
         self.layers=[]
     # def map_block_operation(self, operation:str):
@@ -598,7 +599,7 @@ class SearchSpace:
             self.layers.append(nn.Flatten())
             self.input_shape = math.prod(self.input_shape)
         for i in range(num_layers):
-
+            print("Input shape Linear:", self.input_shape)
             layer_width= trial.suggest_categorical("layer_width_b{}_l{}".format(block_id, i),search_params["width"])
             activation= trial.suggest_categorical("activation_func_b{}_l{}".format(block_id,i), block["activation"])
             self.layers.append(nn.Linear(self.input_shape, layer_width))
@@ -608,6 +609,7 @@ class SearchSpace:
     def createConv2d(self, trial, block, num_layers, search_params):
         block_id = block["block"]
         for i in range(num_layers):
+            print("Input shape Conv2D:", self.input_shape)
             out_channels = trial.suggest_categorical("out_channels_b{}_l{}".format(block_id, i),
                                                      search_params["out_channels"])
             kernel_size = trial.suggest_categorical("kernel_size_b{}_l{}".format(block_id, i),
@@ -635,13 +637,12 @@ class SearchSpace:
 
 
     def create_model_sample(self, trial):
+        self.input_shape = self.search_space_cfg["input"]
         for block in self.blocks:
 
             self.create_block(trial, block)
         return nn.Sequential(*self.layers)
 
-search_space= yml_to_dict("search_space.yml")
-search_space= SearchSpace(search_space)
 
 def objective(trial):
     search_space = yml_to_dict("search_space.yml")

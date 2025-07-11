@@ -13,6 +13,7 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
+from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -38,7 +39,7 @@ class Explorer:
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
         self.generator: Optional[Generator] = None
         self.hw_manager: Optional[HWManager] = None
-        self.search_space: Optional[Type[ModelSpace] | Module] = None
+        self.search_space: Optional[dict] = None
         self.model_cfg: Optional[ModelConfig] = None
 
         if not experiment_name:
@@ -87,7 +88,7 @@ class Explorer:
         self.model_cfg = model_cfg
         self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
-    def generate_search_space(self, search_space: ModelSpace):
+    def generate_search_space(self, search_space):
 
         self.search_space = search_space
         self.logger.info("Generated search space:\n %s", self.search_space)
