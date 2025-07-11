@@ -560,7 +560,7 @@ def create_model(trial):
 #         self.block_sp = nn.Sequential(*block_sp)
 
 
-class OptunaSearchSpace:
+class SearchSpace:
     def __init__(self, search_space_cfg: dict):
         self.input_shape= search_space_cfg["input"]
         self.output_shape= search_space_cfg["output"]
@@ -604,6 +604,7 @@ class OptunaSearchSpace:
             self.layers.append(nn.Linear(self.input_shape, layer_width))
             self.layers.append(activation_mapping[activation])
             self.input_shape=layer_width
+
     def createConv2d(self, trial, block, num_layers, search_params):
         block_id = block["block"]
         for i in range(num_layers):
@@ -640,16 +641,16 @@ class OptunaSearchSpace:
         return nn.Sequential(*self.layers)
 
 search_space= yml_to_dict("search_space.yml")
-search_space= OptunaSearchSpace(search_space)
+search_space= SearchSpace(search_space)
 
 def objective(trial):
     search_space = yml_to_dict("search_space.yml")
-    search_space = OptunaSearchSpace(search_space)
+    search_space = SearchSpace(search_space)
     return search_space.create_model_sample(trial)
 
 if __name__ == "__main__":
     search_space= yml_to_dict("search_space.yml")
-    search_space=OptunaSearchSpace(search_space)
+    search_space=SearchSpace(search_space)
     sample={"num_layers_b1": 2,"num_layers_b2": 1, "operation_b1":"conv2d","operation_b2":"linear","layer_width_b2_l0": 21,"out_channels_b1_l0": 4,"out_channels_b1_l1": 10,"stride_b1_l0": 1,"stride_b1_l1": 1,"kernel_size_b1_l0": 2, "kernel_size_b1_l1": 2,"activation_func_b1_l0": "relu","activation_func_b1_l1": "relu" ,"activation_func_b2_l0": "sigmoid"  }
   #  sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid" }
     model=objective(FixedTrial(sample))
