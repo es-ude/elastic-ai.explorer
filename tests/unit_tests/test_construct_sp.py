@@ -34,9 +34,8 @@ blocks:
     activation: ["relu", "sigmoid"]
     depth: [1, 2, 3]
     linear:
-      #überall range oder choices
-   #   activation: [ "relu", "sigmoid"]
-      width: [16, 32, 5, 4]
+        activation: [ "relu", "sigmoid"]
+        width: [16, 32, 5, 4]
     conv2D:
       kernel_size: [1, 2]
       stride: [1, 2]
