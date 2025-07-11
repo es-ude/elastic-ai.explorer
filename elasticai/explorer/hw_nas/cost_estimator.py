@@ -1,6 +1,6 @@
 
 import torch
-from nni.nas.profiler.pytorch.flops import FlopsProfiler
+#from nni.nas.profiler.pytorch.flops import FlopsProfiler
 
 
 class FlopsEstimator:

@@ -2,8 +2,6 @@ import datetime
 import logging
 from pathlib import Path
 from typing import Optional, Any, Type
-
-from nni.nas.nn.pytorch import ModelSpace
 from torch import nn
 from torch.nn import Module
 
