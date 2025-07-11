@@ -49,10 +49,6 @@ addopts = [
     "-s"
 ]
 
-# Same as Black.
-line-length = 88
-indent-width = 4
-
 [tool.pylint]
 max-line-length = 88
 accept-no-raise-doc = "False"

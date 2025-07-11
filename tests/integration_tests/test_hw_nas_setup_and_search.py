@@ -4,7 +4,10 @@ import torch
 from elasticai.explorer import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
+from elasticai.explorer.knowledge_repository.knowledge_repository import (
+    HWPlatform,
+    KnowledgeRepository,
+)
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
@@ -62,17 +65,8 @@ class TestHWNasSetupAndSearch:
         self.RPI5explorer.generate_for_hw_platform(
             model=model, model_name=self.model_name
         )
+        assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (
-            os.path.exists(
-                self.RPI5explorer.model_dir / self.model_name
-            )
-            == True
-        )
-        assert (
-            type(
-                torch.jit.load(
-                    self.RPI5explorer.model_dir /  self.model_name
-                )
-            )
+            type(torch.jit.load(self.RPI5explorer.model_dir / self.model_name))
             == torch.jit._script.RecursiveScriptModule  # type: ignore
         )
