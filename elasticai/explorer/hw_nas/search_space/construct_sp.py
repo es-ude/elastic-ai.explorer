@@ -3,6 +3,8 @@ import math
 from typing import Optional, Iterable
 
 import optuna
+import torch
+from optuna import trial, Trial
 from optuna.trial import FixedTrial
 from torch import nn
 
@@ -463,52 +465,87 @@ from torch import nn
 #             return comb_sp
 
 
-# def calculate_conv_output_shape(
-#     shape,
-#     out_channels: int | MutableExpression[int],
-#     kernel_size: int | tuple[int, int] | MutableExpression[int],
-#     stride: int | tuple[int, int] | MutableExpression[int] = (1, 1),
-#     dilation: int | tuple[int, int] = (1, 1),
-#     padding: int | tuple[int, int] = (0, 0),
-# ):
-#     kernel_size, stride, dilation, padding = _convert_to_tuples(
-#         [kernel_size, stride, dilation, padding]
-#     )
-#     new_shape = copy.deepcopy(shape)
-#     new_shape[-3] = out_channels
-#     new_shape[-2] = (
-#         shape[-2] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1
-#     ) // stride[0] + 1
-#     new_shape[-1] = (
-#         shape[-1] + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1
-#     ) // stride[1] + 1
-#
-#     return new_shape
+def calculate_conv_output_shape(
+    shape,
+    out_channels: int,
+    kernel_size: int | tuple[int, int],
+    stride: int | tuple[int, int],
+    dilation: int | tuple[int, int] = (1, 1),
+    padding: int | tuple[int, int] = (0, 0),
+):
+    print(shape)
+    kernel_size, stride, dilation, padding = _convert_to_tuples(
+        [kernel_size, stride, dilation, padding]
+    )
+    new_shape = copy.deepcopy(shape)
+    new_shape[-3] = out_channels
+    new_shape[-2] = (
+        shape[-2] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1
+    ) // stride[0] + 1
+    new_shape[-1] = (
+        shape[-1] + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1
+    ) // stride[1] + 1
+    print(new_shape)
+    return new_shape
 
 
 
 activation_mapping={"relu": nn.ReLU(), "sigmoid": nn.Sigmoid()}
 
+
+def map_layer_op(trial:Trial, layer_no, layer_op, in_size, op_parameter: dict):
+    print(in_size)
+    match layer_op:
+        case "linear":
+            layer=[]
+            if isinstance(in_size, list):
+                layer.append(nn.Flatten())
+                in_size = math.prod(in_size)
+                print(in_size)
+            layer_width=trial.suggest_categorical("layer_width_l{}".format(layer_no), op_parameter["linear"]["width"])
+            layer.append(nn.Linear(in_size,layer_width))
+            return nn.Sequential(*layer), layer_width
+        case "conv2d":
+            out_channels=trial.suggest_categorical("out_channels_l{}".format(layer_no), op_parameter["conv2d"]["out_channels"])
+            kernel_size = trial.suggest_categorical("kernel_size_l{}".format(layer_no),
+                                                     op_parameter["conv2d"]["kernel_size"])
+            stride= trial.suggest_categorical("stride_l{}".format(layer_no),
+                                                     op_parameter["conv2d"]["stride"])
+            return nn.Conv2d(in_size[0], out_channels, kernel_size, stride), calculate_conv_output_shape(in_size, out_channels, kernel_size, stride)
+
 def _convert_to_tuples(values) -> list[tuple[int, int]]:
     return [x if isinstance(x, tuple) else (x, x) for x in values]
 
+
 def create_model(trial):
     num_layers=trial.suggest_int("num_layers", 1, 3)
-    in_size=786
+    in_size: int | list[int]=[1, 28, 28]
     layers=[]
+    params= {"linear": {"width": [4, 16, 128]}, "conv2d":{"out_channels":[6, 10, 16], "kernel_size":[2, 3],  "stride":[1, 2]}}
     for i in range(num_layers):
-        layer_width= trial.suggest_categorical("layer_width_l{}".format(i),[4, 16,128])
+      #  layer_width= trial.suggest_categorical("layer_width_l{}".format(i),[4, 16,128])
+        layer_op= trial.suggest_categorical("layer_op_l{}".format(i), ["linear", "conv2d"])
         activation= trial.suggest_categorical("activation_func_l{}".format(i), ["relu","sigmoid"])
-        layers.append(nn.Linear(in_size, layer_width))
+        layer_op, in_size=map_layer_op(trial, i, layer_op, in_size,params)
+        layers.append(layer_op)
+        #layers.append(nn.Linear(in_size, layer_width))
         layers.append(activation_mapping[activation])
-        in_size= layer_width
+        #in_size= layer_width
+    if isinstance(in_size, list):
+        layers.append(nn.Flatten())
+        in_size=math.prod(in_size)
     layers.append(nn.Linear(in_size, 10))
     return nn.Sequential(*layers)
 
 def objective(trial):
     return create_model(trial)
 if __name__ == "__main__":
-    print(objective(FixedTrial({"num_layers": 2, "layer_width_l0": 128,"layer_width_l1": 16,"activation_func_l0": "relu", "activation_func_l1": "sigmoid"  })))
+    sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid"  }
+    model=objective(FixedTrial(sample))
+    print(model)
+    test_sample= torch.ones(4, 1, 28, 28)
+    print(model(test_sample))
+
 
 
     # x = torch.randn(5, 1, 28, 28)
