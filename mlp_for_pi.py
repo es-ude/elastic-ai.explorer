@@ -8,7 +8,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from elasticai.explorer.training.data import DatasetInfo
-from elasticai.explorer.data_to_csv import build_search_space_measurements_file
+from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
@@ -20,7 +20,7 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.training.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
-from elasticai.explorer.visualizer import Metrics
+from elasticai.explorer.utils.visualizer import Metrics
 from settings import ROOT_DIR
 
 nni.enable_global_logging(False)
@@ -92,7 +92,7 @@ def find_generate_measure_for_pi(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
             dataset_info=dataset_info,
-            early_stopping= True,
+            early_stopping=True,
             patience=2,
             min_delta=0.01,
         )

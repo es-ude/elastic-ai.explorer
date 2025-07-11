@@ -61,7 +61,6 @@ class DownloadableSciebo:
         self.file_path_on_fileshare = file_path_on_sciebo
         self.file_type = file_type
 
-        
         self._download()
 
         super().__init__(*args, **kwargs)

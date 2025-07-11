@@ -51,9 +51,7 @@ class TestData:
         )
 
     def test_flat_sequencial_dataset(self):
-        dataset = SequentialTestDataset(
-            root=self.sample_dir / "test_dataset.csv"
-        )
+        dataset = SequentialTestDataset(root=self.sample_dir / "test_dataset.csv")
         assert len(dataset) == 21
 
     def test_flat_sequencial_dataset_mlp_trainer(self):
@@ -62,7 +60,7 @@ class TestData:
 
         mlp_trainer = MLPTrainer(
             device="cpu",
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type : ignore
+            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3), # type: ignore
             dataset_info=self.dataset_info,
             batch_size=2,
         )

@@ -6,7 +6,6 @@ import torch
 
 from elasticai.explorer.training.data import BaseDataset, DatasetInfo
 from elasticai.explorer.training.trainer import ReconstructionAutoencoderTrainer
-from tests.integration_tests.test_data import SequentialTestDataset
 
 INPUT_DIM = 10
 SEQ_LENGTH = 3
@@ -62,7 +61,7 @@ class TestAutoencoderTrainer:
 
         autoencoder_trainer = ReconstructionAutoencoderTrainer(
             "cpu",
-            optimizer=torch.optim.Adam(self.autoencoder.parameters(), lr=1e-3),
+            optimizer=torch.optim.Adam(self.autoencoder.parameters(), lr=1e-3), # type: ignore
             dataset_info=self.dataset_info,
         )
         autoencoder_trainer.train(self.autoencoder, 20)

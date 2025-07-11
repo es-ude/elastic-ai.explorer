@@ -8,7 +8,7 @@ from torch.nn import Module
 from torch.utils.data import Dataset
 from nni.nas.nn.pytorch import ModelSpace
 
-from elasticai.explorer import hw_nas, utils
+from elasticai.explorer import hw_nas
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
@@ -16,6 +16,7 @@ from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
 from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
+from elasticai.explorer.utils import utils
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -51,7 +52,7 @@ class Explorer:
             self.experiment_name: str = experiment_name
 
     @property
-    def experiment_name(self):
+    def experiment_name(self): # type: ignore
         return self._experiment_name
 
     @property
@@ -71,7 +72,7 @@ class Explorer:
         return self._plot_dir
 
     @experiment_name.setter
-    def experiment_name(self, value: str):
+    def experiment_name(self, value: str): # type: ignore
         """Setting experiment name updates the experiment pathes aswell."""
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name

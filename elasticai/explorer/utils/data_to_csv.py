@@ -1,8 +1,8 @@
 from pathlib import Path
 import pandas
 
-from elasticai.explorer import utils
-from elasticai.explorer.utils import plot_parallel_coordinates
+from elasticai.explorer.utils import utils
+from elasticai.explorer.utils.utils import plot_parallel_coordinates
 from settings import MAIN_EXPERIMENT_DIR
 
 
