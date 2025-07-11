@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 from typing import Any, Callable
 from functools import partial
 
@@ -83,7 +84,8 @@ def search(
     study.optimize(
         partial(objective_wrapper, search_space_cfg=search_space, device=hwnas_cfg.host_processor),
         callbacks=[MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))],
-        # n_jobs=-1,  # FIXME: Use all available CPU cores
+        n_jobs=(os.cpu_count() // 8),  # TODO: Use user defined portion of the available CPU cores
+        show_progress_bar=True,
     )
 
     # best_model = study.best_trial
