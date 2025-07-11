@@ -1,16 +1,12 @@
 from abc import ABC, abstractmethod
 import logging
-
-from sympy import true
+from typing import Literal, Tuple
 import torch
 from torchvision.datasets import MNIST
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.optim.optimizer import Optimizer
-
-from elasticai.explorer.training import download
 from elasticai.explorer.training.data import DatasetInfo
-from elasticai.explorer.training.download import Downloadable
 
 
 class Trainer(ABC):
@@ -20,7 +16,7 @@ class Trainer(ABC):
         device: str,
         optimizer: Optimizer,
         dataset_info: DatasetInfo,
-        loss_fn=nn.CrossEntropyLoss(),
+        loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
         batch_size: int = 64,
         early_stopping: bool = True,
         patience: int = 5,
@@ -33,7 +29,6 @@ class Trainer(ABC):
         self.early_stopping = early_stopping
         self.patience = patience
         self.min_delta = min_delta
-
         if dataset_info.dataset_type == MNIST:
             train_dataset = dataset_info.dataset_type(
                 dataset_info.dataset_location,
@@ -71,11 +66,11 @@ class Trainer(ABC):
         pass
 
     @abstractmethod
-    def validate(self, model: nn.Module) -> float:
+    def validate(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
         pass
 
     @abstractmethod
-    def test(self, model: nn.Module) -> float:
+    def test(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
         pass
 
     @abstractmethod
@@ -91,7 +86,7 @@ class MLPTrainer(Trainer):
         device: str,
         optimizer: Optimizer,
         dataset_info: DatasetInfo,
-        loss_fn=nn.CrossEntropyLoss(),
+        loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
         batch_size: int = 64,
         early_stopping: bool = True,
         patience: int = 3,
@@ -123,7 +118,7 @@ class MLPTrainer(Trainer):
         for epoch in range(epochs):
             self.logger.info(f"Epoch {epoch+1}/{epochs}")
             self.train_epoch(model=model, epoch=epoch)
-            val_accuracy = self.validate(model=model)
+            val_accuracy, _ = self.validate(model=model)
 
             if val_accuracy > best_val_accuracy + self.min_delta:
                 best_val_accuracy = val_accuracy
@@ -143,8 +138,8 @@ class MLPTrainer(Trainer):
             model.load_state_dict(best_model_state)
             self.logger.info("Loaded best model from early stopping.")
 
-    def validate(self, model: nn.Module):
-        """[8, 2]
+    def validate(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+        """
         Args:
             model: The NN-Model to validate.
 
@@ -169,9 +164,9 @@ class MLPTrainer(Trainer):
                 correct, len(self.val_loader.dataset), accuracy  # type: ignore
             )
         )
-        return accuracy
+        return accuracy, "Accuracy"
 
-    def test(self, model: nn.Module) -> float:
+    def test(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
         """
         Args:
             model: The NN-Model to test.
@@ -197,7 +192,7 @@ class MLPTrainer(Trainer):
                 correct, len(self.test_loader.dataset), accuracy  # type: ignore
             )
         )
-        return accuracy
+        return accuracy, "Accuracy"
 
     def train_epoch(self, model: nn.Module, epoch: int):
         """Trains model for only one epoch.
@@ -225,3 +220,105 @@ class MLPTrainer(Trainer):
                         loss.item(),
                     )
                 )
+
+
+class ReconstructionAutoencoderTrainer(Trainer):
+
+    def __init__(
+        self,
+        device: str,
+        optimizer: Optimizer,
+        dataset_info: DatasetInfo,
+        loss_fn=nn.MSELoss(),
+        batch_size: int = 64,
+        early_stopping: bool = True,
+        patience: int = 3,
+        min_delta: float = 0.0,
+    ):
+        super().__init__(
+            device,
+            optimizer,
+            dataset_info,
+            loss_fn,
+            batch_size,
+            early_stopping,
+            patience,
+            min_delta,
+        )
+        self.logger = logging.getLogger("explorer.AutoencoderTrainer")
+
+    def train(self, model: nn.Module, epochs: int):
+        self.epochs = epochs
+
+        best_val_loss = 0.0
+        patience_counter = 0
+        best_model_state = model.state_dict()
+
+        for epoch in range(epochs):
+            self.logger.info(f"Epoch {epoch+1}/{epochs}")
+            self.train_epoch(model=model, epoch=epoch)
+            val_loss, _ = self.validate(model=model)
+
+            if val_loss < best_val_loss - self.min_delta:
+                best_val_loss = val_loss
+                patience_counter = 0
+                best_model_state = model.state_dict()
+            else:
+                patience_counter += 1
+                self.logger.info(
+                    f"No improvement. Patience: {patience_counter}/{self.patience}"
+                )
+
+            if self.early_stopping and patience_counter >= self.patience:
+                self.logger.info("Early stopping triggered.")
+                break
+
+        if self.early_stopping:
+            model.load_state_dict(best_model_state)
+            self.logger.info("Loaded best model from early stopping.")
+
+    def train_epoch(self, model: nn.Module, epoch: int):
+        model.to(device=self.device)
+        model.train()
+        train_loss = 0
+
+        for data in self.train_loader:
+            data = data.to(torch.float32)
+            data = data.to(self.device)
+            self.optimizer.zero_grad()
+            reconstructed = model(data)
+            loss = self.loss_fn(reconstructed, data)
+            loss.backward()
+            self.optimizer.step()
+            train_loss += loss.item()
+        train_loss /= len(self.train_loader)
+        self.logger.debug("Train Epoch: {}\tLoss: {:.6f}".format(epoch, train_loss))
+
+    def validate(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+        model.to(device=self.device)
+        model.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for batch in self.val_loader:
+                batch = batch.to(self.device)
+                reconstructed = model(batch)
+                loss = self.loss_fn(reconstructed, batch)
+                val_loss += loss.item()
+        val_loss /= len(self.val_loader)
+
+        self.logger.info("Test Loss: {:.6f}".format(val_loss))
+        return val_loss, "Loss"
+
+    def test(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+        model.to(device=self.device)
+        model.eval()
+        test_loss = 0
+        with torch.no_grad():
+            for batch in self.test_loader:
+                batch = batch.to(self.device)
+                reconstructed = model(batch)
+                loss = self.loss_fn(reconstructed, batch)
+                test_loss += loss.item()
+        test_loss /= len(self.test_loader)
+        self.logger.info("Test Loss: {:.6f}".format(test_loss))
+        return test_loss, "Loss"

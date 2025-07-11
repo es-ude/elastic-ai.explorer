@@ -41,12 +41,12 @@ class Metrics:
         # second dimension estimation, measured
         # third dimension sample number
         for n, metric in enumerate(self.metric_list):
-            self.structured_est_metrics[0][0][n] = float(metric["accuracy"])
+            self.structured_est_metrics[0][0][n] = float(metric["Accuracy"])
             self.structured_est_metrics[1][0][n] = float(metric["flops log10"])
             self.structured_est_metrics[2][0][n] = float(metric["default"])
 
             self.structured_est_flops.append(metric["flops log10"])
-            self.structured_est_accuracies.append(metric["accuracy"])
+            self.structured_est_accuracies.append(metric["Accuracy"])
             self.structured_est_combined.append(metric["default"])
 
         for sample in self.sample_list:

@@ -41,12 +41,24 @@ def evaluate_model(
 
     trainer = trainer_class(device, optimizer, dataset_info)
 
-    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
+    performance_value, performance_metric = trainer.validate(model)
+    metric = {
+        "default": 0,
+        performance_metric: performance_value,
+        "flops log10": math.log10(flops),
+    }
     for epoch in range(n_epochs):
         trainer.train_epoch(model, epoch)
-
-        metric["accuracy"] = trainer.validate(model)
-        metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
+        performance_value, _ = trainer.validate(model)
+        metric[performance_metric] = performance_value
+        if performance_metric == "Accuracy":
+            metric["default"] = metric[performance_metric] - (
+                metric["flops log10"] * flops_weight
+            )
+        else:
+            metric["default"] = -metric[performance_metric] - (
+                metric["flops log10"] * flops_weight
+            )
         nni.report_intermediate_result(metric)
 
     nni.report_final_result(metric)

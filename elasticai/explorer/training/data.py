@@ -32,7 +32,7 @@ class BaseDataset(Dataset):
         self.target_transform = target_transform
 
     @abstractmethod
-    def _len_(self) -> int:
+    def __len__(self) -> int:
         pass
 
     @abstractmethod
