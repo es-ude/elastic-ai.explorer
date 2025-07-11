@@ -10,13 +10,6 @@ from optuna.study import MaxTrialsCallback
 
 from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 
-# import nni
-# from nni.nas import strategy
-# from nni.nas.evaluator import FunctionalEvaluator
-# from nni.nas.experiment import NasExperiment
-# from nni.experiment import TrialResult
-# from nni.nas.nn.pytorch import ModelSpace
-
 from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
@@ -112,16 +105,3 @@ def search(
 
     return top_k_models, top_k_params, top_k_metrics
 
-
-def _map_trial_params_to_found_models(
-    test_results: list[FrozenTrial], top_parameters: list[Any]
-):
-    parameters = list(range(len(top_parameters)))
-    metrics: list[Any] = list(range(len(top_parameters)))
-    for trial in test_results:
-        for i, top_parameter in enumerate(top_parameters):
-            if trial.params["sample"] == top_parameter:
-                parameters[i] = trial.params["sample"]
-
-                metrics[i] = trial.value
-    return metrics, parameters
