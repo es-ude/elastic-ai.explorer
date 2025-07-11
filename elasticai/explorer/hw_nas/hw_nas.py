@@ -7,7 +7,7 @@ import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 
-from search_space.construct_sp import create_model
+from elasticai.explorer.hw_nas.search_space.construct_sp import create_model
 
 # import nni
 # from nni.nas import strategy
@@ -16,7 +16,7 @@ from search_space.construct_sp import create_model
 # from nni.experiment import TrialResult
 # from nni.nas.nn.pytorch import ModelSpace
 
-import torch
+from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -28,14 +28,13 @@ from elasticai.explorer.trainer import MLPTrainer
 logger = logging.getLogger("explorer.nas")
 
 
-def objective_on_device(trial: optuna.Trial, device: str) -> float:
+def objective_wrapper(trial: optuna.Trial, search_space: Any, device: str) -> float:
 
     def objective(trial: optuna.Trial) -> float:
         global accuracy
         flops_weight = 3.0  # TODO: make configurable
         n_epochs = 2    # TODO: make configurable
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
@@ -49,12 +48,13 @@ def objective_on_device(trial: optuna.Trial, device: str) -> float:
         )
 
         model = create_model(trial)
+        trainer = MLPTrainer(device, optimizer=Adam(model.parameters(), lr=1e-3))
 
-        trainer = MLPTrainer(device, optimizer)
         flops_estimator = FlopsEstimator()
         sample, _ = next(iter(train_loader))
         flops = flops_estimator.estimate_flops(model, sample)
         metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
+
         for epoch in range(n_epochs):
             trainer.train_epoch(model, train_loader, epoch)
 
@@ -80,7 +80,7 @@ def search(
         direction="maximize",
     )
     study.optimize(
-        partial(objective_on_device, device=hwnas_cfg.host_processor),
+        partial(objective_wrapper, search_space=search_space, device=hwnas_cfg.host_processor),
         callbacks=[MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))],
         n_jobs=-1,  # Use all available CPU cores
     )

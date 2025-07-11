@@ -17,6 +17,7 @@ class FlopsEstimator:
             int: The FLOPS-estimate
         """
 
-        profiler = FlopsProfiler(model, data_sample)
+        # profiler = FlopsProfiler(model, data_sample)
 
-        return float(profiler.expression)
+        # return float(profiler.expression)
+        return 1.0  # FIXME: Dummy just to make it work for now, later should be implemented without NNI
