@@ -1,3 +1,4 @@
+import json
 import logging.config
 import shutil
 from pathlib import Path
@@ -23,8 +24,13 @@ from elasticai.explorer.knowledge_repository import (
 )
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.deployment.manager import (
+    PIHWManager,
+    Metric,
+)
+from elasticai.explorer.platforms.generator.generator import (
+    PIGenerator,
+)
 from elasticai.explorer.trainer import MLPTrainer
 
 nni.enable_global_logging(False)
@@ -56,6 +62,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
             Compiler,
         )
     )
+
     return knowledge_repository
 
 
@@ -63,9 +70,10 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
+    search_space: CombinedSearchSpace,
 ) -> Metrics:
-    explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space()
+
+    explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
@@ -89,6 +97,7 @@ def find_generate_measure_for_pi(
 
     latency_measurements = []
     accuracy_measurements = []
+    accuracy_after_retrain = []
 
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
@@ -96,8 +105,8 @@ def find_generate_measure_for_pi(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
-        mlp_trainer.test(model, testloader=testloader)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=4)
+        accuracy_after_retrain_value = mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name)
 
@@ -107,8 +116,22 @@ def find_generate_measure_for_pi(
             explorer.run_measurement(Metric.ACCURACY, model_name)
         )
 
+        accuracy_after_retrain_dict = json.loads(
+            '{"Accuracy after retrain": { "value":'
+            + str(accuracy_after_retrain_value)
+            + ' , "unit": "percent"}}'
+        )
+        accuracy_after_retrain.append(accuracy_after_retrain_dict)
+
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    accuracies_on_device = [
+        accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements
+    ]
+    accuracies_after_retrain = [
+        accuracy["Accuracy after retrain"]["value"]
+        for accuracy in accuracy_after_retrain
+    ]
+
     df = build_search_space_measurements_file(
         latencies,
         explorer.metric_dir / "metrics.json",
@@ -120,7 +143,7 @@ def find_generate_measure_for_pi(
     return Metrics(
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
-        accuracies,
+        accuracies_on_device,
         latencies,
     )
 
@@ -153,7 +176,7 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: Mode
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
+        mlp_trainer.train(model, trainloader=trainloader, epochs=4)
         mlp_trainer.test(model, testloader=testloader)
         print("=================================================")
         model_name = "ts_model_" + str(i) + ".pt"
@@ -163,12 +186,19 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: Mode
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-
+    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
-
+    explorer.choose_target_hw(deploy_cfg)
     search_space = yml_to_dict(
         Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
     )
     search_space = CombinedSearchSpace(search_space)
-    search_models(explorer, hwnas_cfg, search_space)
+
+    find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg, search_space)
+
+    # search_space = yml_to_dict(
+    #     Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    # )
+    # search_space = CombinedSearchSpace(search_space)
+    # search_models(explorer, hwnas_cfg, search_space)

@@ -397,20 +397,22 @@ class CombinedSearchSpace(ModelSpace):
                 self.add_mutable(self.stride)
                 if isinstance(self.kernel_size, Mutable):
                     self.add_mutable(self.kernel_size)
-        # if "linear" in block["op_candidates"]:
-        #     flattened_input = (
-        #         math.prod(input_width)
-        #         if isinstance(input_width, Iterable)
-        #         else input_width
-        #     )
-        #     print(flattened_input)
-        #     self.h_l_widths = [flattened_input] + [
-        #         nni.choice(f"layer_width_{i}", block["linear"]["width"])
-        #         for i in range(max_depth)
-        #     ]
-        #     for width in self.h_l_widths[1:]:
-        #         if isinstance(width, Mutable):
-        #             self.add_mutable(width)
+        if "linear" in block["op_candidates"]:
+            flattened_input = (
+                math.prod(input_width)
+                if isinstance(input_width, Iterable)
+                else input_width
+            )
+            print(flattened_input)
+            self.h_l_widths = [flattened_input] + [
+                nni.choice(f"layer_width_{i}", block["linear"]["width"])
+                for i in range(max_depth)
+            ]
+            for width in self.h_l_widths[1:]:
+                if isinstance(width, Mutable):
+                    self.add_mutable(width)
+
+        #FIXME
         # activations: dict = block["linear"]["activation"]
         # activation_mappings = [activation_candidates[key] for key in activations]
 
@@ -432,17 +434,17 @@ class CombinedSearchSpace(ModelSpace):
                 "activation_mappings",
             )
         elif ensure_frozen(self.candidate_op) == "linear":
-            linearb = LinearBlock(
-                input_width, output_width, block, self.depth, max_depth
-            )
-            return linearb, linearb.output_shape
-            # return self.build_linear_block(
-            #     input_width,
-            #     output_width,
-            #     max_depth,
-            #     block,
-            #     "activation_mappings",
+            # linearb = LinearBlock(
+            #     input_width, output_width, block, self.depth, max_depth
             # )
+            #return linearb, linearb.output_shape
+            return self.build_linear_block(
+                input_width,
+                output_width,
+                max_depth,
+                block,
+                "activation_mappings",
+            )
         return None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

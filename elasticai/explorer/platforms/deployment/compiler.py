@@ -37,6 +37,7 @@ class Compiler:
                 "PROGRAM_CODE": sourcecode_filename,
                 "HOST_LIBTORCH_PATH": str(self.libtorch_path),
             },
+            cache=False,
         )
         path_to_executable = self.context_path / "bin" / name_of_executable
         self.logger.info(
