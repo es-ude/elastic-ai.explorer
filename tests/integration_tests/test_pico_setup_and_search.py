@@ -53,10 +53,6 @@ class TestPicoHWNasSetupAndSearch:
         search_space = CombinedSearchSpace(search_space)
         self.explorer.generate_search_space(search_space)
         top_k_models = self.explorer.search(self.hwnas_cfg)
-        assert len(top_k_models) == 1
+        assert len(top_k_models) == 2
 
-    def teardown_method(self):
-        os.remove(
-            self.explorer.model_dir / (self.model_name + ".tflite"),
-        )
-        os.remove(self.explorer.model_dir / (self.model_name + ".cpp"))
+

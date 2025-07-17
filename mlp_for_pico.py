@@ -3,7 +3,6 @@ import logging
 import logging.config
 import os
 from pathlib import Path
-from matplotlib.font_manager import json_dump, json_load
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader

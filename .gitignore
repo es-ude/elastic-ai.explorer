@@ -31,7 +31,7 @@ docker/bin
 
 #models
 models/
-
+docker/code/pico_crosscompiler/app_full_precision/model.cpp
 #individual configs
 configs/
 

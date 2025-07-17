@@ -141,7 +141,8 @@ def find_generate_measure_for_pi(
         accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements
     ]
     accuracies_after_retrain = [
-        accuracy["Accuracy after retrain"]["value"] for accuracy in accuracy_after_retrain
+        accuracy["Accuracy after retrain"]["value"]
+        for accuracy in accuracy_after_retrain
     ]
 
     df = build_search_space_measurements_file(
