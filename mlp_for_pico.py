@@ -145,16 +145,16 @@ def find_generate_measure_for_pico(
 
         try:
             latency = explorer.run_measurement(Metric.LATENCY, model_name)
-        except:
+        except Exception as e:
             latency = json.loads('{ "Latency": { "value": -2, "unit": "microseconds"}}')
-
+            print(f"An error occurred when measuring Latency on Pico: {e}")
         try:
             accuracy_on_device = explorer.run_measurement(Metric.ACCURACY, model_name)
-        except:
-
+        except Exception as e:
             accuracy_on_device = json.loads(
                 '{"Accuracy": { "value":  -2, "unit": "percent"}}'
             )
+            print(f"An error occurred when measuring accuracy on Pico: {e}")
 
         accuracy_after_retrain_dict = json.loads(
             '{"Accuracy after retrain": { "value":'

@@ -15,10 +15,10 @@ dependencies = [
     "pytorch-lightning>=2.5.1",
     "torchvision==0.21.0",
     "torch>=2.4.0",
-    "tf-nightly>=2.20.0.dev20250516",
-    "ai-edge-torch>=0.4.0",
     "tflite-micro>=0.dev20250513181533",
+    "ai-edge-torch>=0.5.0",
     "pyserial>=3.5",
+    "pandas>=2.2.3",
 ]
 
 # Same as Black.
