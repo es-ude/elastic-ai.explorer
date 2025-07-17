@@ -476,6 +476,7 @@ name = "elastic-ai-explorer"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "elasticai-creator" },
     { name = "fabric" },
     { name = "matplotlib" },
     { name = "plotly" },
@@ -500,6 +501,7 @@ nomac = [
 
 [package.metadata]
 requires-dist = [
+    { name = "elasticai-creator", specifier = ">=0.65.0" },
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "plotly", specifier = ">=6.0.1" },
@@ -519,6 +521,21 @@ dev = [
     { name = "wheel", specifier = "<0.38" },
 ]
 nomac = [{ name = "nni", specifier = "==3.0" }]
+
+[[package]]
+name = "elasticai-creator"
+version = "0.65.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "numpy" },
+    { name = "tomlkit" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b4/9b/c2634a4afcf61b0cce8d3175fa1ce5c40ea35b39bc60d7e625e1c93dd57a/elasticai_creator-0.65.0.tar.gz", hash = "sha256:9d7326e5c1f56f923bd46e471c64900bd634440f00920e28df34af7ce5a53385", size = 441267 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/30/0e281f82b6b55c0868c658d85946d87e550591bcb884f838b50287731b20/elasticai_creator-0.65.0-py3-none-any.whl", hash = "sha256:e669cf6196b458ebadcad1617bda530513d95f2a8cb705e177070d52e041aa8d", size = 292164 },
+]
 
 [[package]]
 name = "fabric"

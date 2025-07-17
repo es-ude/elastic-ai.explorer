@@ -8,6 +8,7 @@ license = "LICENSE"
 
 requires-python = ">=3.11"
 dependencies = [
+    "elasticai-creator>=0.65.0",
     "fabric>=3.2.2",
     "matplotlib>=3.10.1",
     "plotly>=6.0.1",

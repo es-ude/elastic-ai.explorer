@@ -37,6 +37,7 @@ configs/
 
 #experiments
 experiments/
+output_creator/
 
 #system-tests
 tests/system_tests/test_experiment/
