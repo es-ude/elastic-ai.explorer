@@ -17,13 +17,12 @@ class TestDataset(BaseDataset):
     def __init__(
         self,
         root: str | Path,
-        train: bool = True,
         transform: Callable[..., Any] | None = None,
         target_transform: Callable[..., Any] | None = None,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(root, train, transform, target_transform, *args, **kwargs)
+        super().__init__(root, transform, target_transform, *args, **kwargs)
 
         self.test_data = torch.randn(BATCH_SIZE, SEQ_LENGTH, INPUT_DIM)
 
@@ -38,7 +37,7 @@ class TestDataset(BaseDataset):
 class SimpleLSTMAutoencoder(nn.Module):
     def __init__(self, input_dim, hidden_dim=64):
         super().__init__()
-        self.encoder = nn.LSTM(input_dim, hidden_dim, batch_first=True, dropout=0.2)
+        self.encoder = nn.LSTM(input_dim, hidden_dim, batch_first=True)
         self.decoder = nn.LSTM(hidden_dim, input_dim, batch_first=True)
         self.info = "LSTMAutoencoder"
 

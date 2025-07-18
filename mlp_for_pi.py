@@ -4,10 +4,9 @@ from pathlib import Path
 import shutil
 import nni
 import torch
-from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-from elasticai.explorer.training.data import DatasetSpecification
+from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
@@ -59,12 +58,10 @@ def setup_mnist(path_to_test_data: Path):
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    # makes sure mnist data is loaded
-    MNIST(path_to_test_data, download=True)
     shutil.make_archive(
         str(path_to_test_data), "zip", f"{str(path_to_test_data)}/MNIST/raw"
     )
-    dataset_spec = DatasetSpecification(MNIST, path_to_test_data, transf)
+    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, transf)
     return dataset_spec
 
 

@@ -8,7 +8,6 @@ import pandas as pd
 from torchvision.datasets import MNIST
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose
-from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger("explorer.data")
 
@@ -17,17 +16,14 @@ class BaseDataset(Dataset):
     def __init__(
         self,
         root: Union[str, Path],
-        train: bool = True,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
+        transform: Optional[Callable[..., Any]] = None,
+        target_transform: Optional[Callable[..., Any]] = None,
         *args,
         **kwargs,
     ) -> None:
 
         super().__init__(*args, **kwargs)
-
         self.root = root
-        self.train = train
         self.transform = transform
         self.target_transform = target_transform
 
@@ -39,6 +35,33 @@ class BaseDataset(Dataset):
     def __getitem__(self, idx) -> Any:
         pass
 
+
+class MNISTWrapper(BaseDataset):
+    def __init__(
+        self,
+        root: Union[str, Path],
+        transform: Optional[Callable[..., Any]] = None,
+        target_transform: Optional[Callable[..., Any]] = None,
+        download: bool = True,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(root, transform, target_transform, *args, **kwargs)
+        self.dataset = MNIST(
+            root=self.root,
+            transform=self.transform,
+            target_transform=self.target_transform,
+            download=download,
+            **kwargs,
+        )
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    def __getitem__(self, idx: int) -> Any:
+        return self.dataset[idx]
+
+
 class MultivariateTimeseriesDataset(BaseDataset):
     """
     Base class for time series datasets with multiple features per time step and label.
@@ -48,33 +71,20 @@ class MultivariateTimeseriesDataset(BaseDataset):
     def __init__(
         self,
         root: Union[str, Path],
-        train: bool = True,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         *args,
         **kwargs,
     ):
-        super().__init__(root, train, transform, target_transform, *args, **kwargs)
-        self._setup_data()
-        self._setup_targets()
-
-        if train:
-            self.data, _ = train_test_split(self.data, test_size=0.2, shuffle=False)
-            self.targets, _ = train_test_split(
-                self.targets, test_size=0.2, random_state=42
-            )
-        else:
-            _, self.data = train_test_split(self.data, test_size=0.2, shuffle=False)
-            _, self.targets = train_test_split(
-                self.targets, test_size=0.2, shuffle=False
-            )
+        super().__init__(root, transform, target_transform, *args, **kwargs)
+        self.data = self._setup_data()
+        self.targets = self._setup_targets()
 
         if len(self.data.index) != len(self.targets):
             raise ValueError("The features and labels must have the same length.")
 
         self.transform = transform
         self.target_transform = target_transform
-
 
     def __len__(self):
         return len(self.data.index)
@@ -89,12 +99,12 @@ class MultivariateTimeseriesDataset(BaseDataset):
         return feature_vector, target
 
     @abstractmethod
-    def _setup_data(self):
+    def _setup_data(self) -> Any:
         """Set self.data as a pandas dataset without target"""
         pass
 
     @abstractmethod
-    def _setup_targets(self):
+    def _setup_targets(self) -> Any:
         """Set self.targets as a pandas series without features"""
         pass
 
@@ -114,8 +124,9 @@ class MultivariateTimeseriesDataset(BaseDataset):
 
 @dataclass
 class DatasetSpecification:
-    dataset_type: Type[MNIST] | Type[BaseDataset]
+    dataset_type: Type[BaseDataset]
     dataset_location: Path
     transform: Compose | None = None
-    validation_split_ratio: List[float] = field(default_factory=lambda: [0.8, 0.2])
-    test_split_ratio: List[float] = field(default_factory=lambda: [0.8, 0.2])
+    test_train_val_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
+    shuffel: bool = False
+    split_seed: int = 42

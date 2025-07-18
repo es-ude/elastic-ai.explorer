@@ -6,7 +6,7 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
-from elasticai.explorer.training.data import DatasetSpecification
+from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
@@ -56,8 +56,7 @@ class TestHWNasSetupAndSearch:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        MNIST(path_to_dataset, download=True)
-        self.dataset_spec = DatasetSpecification(MNIST, path_to_dataset, transf)
+        self.dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
 
     def test_search(self):
         self.RPI5explorer.generate_search_space()

@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Literal, Tuple
+from typing import List, Literal, Tuple
 import torch
-from torchvision.datasets import MNIST
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.optim.optimizer import Optimizer
@@ -29,37 +28,27 @@ class Trainer(ABC):
         self.early_stopping = early_stopping
         self.patience = patience
         self.min_delta = min_delta
-        if dataset_spec.dataset_type == MNIST:
-            train_dataset = dataset_spec.dataset_type(
-                dataset_spec.dataset_location,
-                train=True,
-                transform=dataset_spec.transform,
-                download=True,
-            )
-        else:
-            train_dataset = dataset_spec.dataset_type(
-                dataset_spec.dataset_location,
-                train=True,
-                transform=dataset_spec.transform,
-            )
 
-        train_subset, val_subset = random_split(
-            train_dataset,
-            dataset_spec.validation_split_ratio,
-            generator=torch.Generator().manual_seed(42),
-        )
-
-        test_dataset = dataset_spec.dataset_type(
+        dataset = dataset_spec.dataset_type(
             dataset_spec.dataset_location,
-            train=False,
             transform=dataset_spec.transform,
         )
 
-        self.train_loader = DataLoader(
-            train_subset, batch_size=batch_size, shuffle=True
+        train_subset, test_subset, val_subset = random_split(
+            dataset,
+            dataset_spec.test_train_val_ratio,
+            generator=torch.Generator().manual_seed(dataset_spec.split_seed),
         )
-        self.val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=True)
-        self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+        self.train_loader = DataLoader(
+            train_subset, batch_size=batch_size, shuffle=dataset_spec.shuffel
+        )
+        self.val_loader = DataLoader(
+            val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffel
+        )
+        self.test_loader = DataLoader(
+            test_subset, batch_size=batch_size, shuffle=dataset_spec.shuffel
+        )
 
     @abstractmethod
     def train(self, model: nn.Module, epochs: int):
@@ -122,8 +111,8 @@ class MLPTrainer(Trainer):
 
             if val_accuracy > best_val_accuracy + self.min_delta:
                 best_val_accuracy = val_accuracy
-                patience_counter = 0  # Reset counter
-                best_model_state = model.state_dict()  # Save best model
+                patience_counter = 0
+                best_model_state = model.state_dict()
             else:
                 patience_counter += 1
                 self.logger.info(
