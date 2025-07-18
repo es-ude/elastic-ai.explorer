@@ -64,8 +64,8 @@ def setup_mnist(path_to_test_data: Path):
     shutil.make_archive(
         str(path_to_test_data), "zip", f"{str(path_to_test_data)}/MNIST/raw"
     )
-    dataset_info = DatasetSpecification(MNIST, path_to_test_data, transf)
-    return dataset_info
+    dataset_spec = DatasetSpecification(MNIST, path_to_test_data, transf)
+    return dataset_spec
 
 
 def find_generate_measure_for_pi(
@@ -77,10 +77,10 @@ def find_generate_measure_for_pi(
     explorer.generate_search_space()
 
     path_to_test_data = Path("data/mnist")
-    dataset_info = setup_mnist(path_to_test_data)
+    dataset_spec = setup_mnist(path_to_test_data)
 
     top_models = explorer.search(
-        hwnas_cfg, dataset_info=dataset_info, trainer=MLPTrainer
+        hwnas_cfg, dataset_spec=dataset_spec, trainer=MLPTrainer
     )
     explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
     latency_measurements = []
@@ -91,7 +91,7 @@ def find_generate_measure_for_pi(
         mlp_trainer = MLPTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
-            dataset_spec=dataset_info,
+            dataset_spec=dataset_spec,
             early_stopping=True,
             patience=2,
             min_delta=0.01,

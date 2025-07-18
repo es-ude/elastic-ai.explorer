@@ -39,8 +39,7 @@ class BaseDataset(Dataset):
     def __getitem__(self, idx) -> Any:
         pass
 
-
-class MultivariatTimeseriesDataset(BaseDataset):
+class MultivariateTimeseriesDataset(BaseDataset):
     """
     Base class for time series datasets with multiple features per time step and label.
     A feature itself should not have any channels.
@@ -75,6 +74,7 @@ class MultivariatTimeseriesDataset(BaseDataset):
 
         self.transform = transform
         self.target_transform = target_transform
+
 
     def __len__(self):
         return len(self.data.index)
@@ -118,3 +118,4 @@ class DatasetSpecification:
     dataset_location: Path
     transform: Compose | None = None
     validation_split_ratio: List[float] = field(default_factory=lambda: [0.8, 0.2])
+    test_split_ratio: List[float] = field(default_factory=lambda: [0.8, 0.2])

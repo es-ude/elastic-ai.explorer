@@ -99,7 +99,7 @@ class Explorer:
     def search(
         self,
         hwnas_cfg: HWNASConfig,
-        dataset_info: data.DatasetSpecification,
+        dataset_spec: data.DatasetSpecification,
         trainer: Type[Trainer],
     ) -> list[Any]:
 
@@ -110,7 +110,7 @@ class Explorer:
         )
 
         top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space, hwnas_cfg, dataset_info, trainer
+            self.search_space, hwnas_cfg, dataset_spec, trainer
         )
 
         utils.save_list_to_json(

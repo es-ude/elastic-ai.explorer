@@ -24,7 +24,7 @@ logger = logging.getLogger("explorer.nas")
 def evaluate_model(
     model: ModelSpace,
     device: str,
-    dataset_info: data.DatasetSpecification,
+    dataset_spec: data.DatasetSpecification,
     trainer_class: type[Trainer],
 ):
     global accuracy
@@ -39,7 +39,7 @@ def evaluate_model(
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
 
-    trainer = trainer_class(device, optimizer, dataset_info)
+    trainer = trainer_class(device, optimizer, dataset_spec)
 
     performance_value, performance_metric = trainer.validate(model)
     metric = {
@@ -67,7 +67,7 @@ def evaluate_model(
 def search(
     search_space: Any,
     hwnas_cfg: HWNASConfig,
-    dataset_info: data.DatasetSpecification,
+    dataset_spec: data.DatasetSpecification,
     trainer_class: Type[Trainer],
 ) -> tuple[list[Any], list[Any], list[Any]]:
 
@@ -75,7 +75,7 @@ def search(
     evaluator = FunctionalEvaluator(
         evaluate_model,
         device=hwnas_cfg.host_processor,
-        dataset_info=dataset_info,
+        dataset_spec=dataset_spec,
         trainer_class=trainer_class,
     )
     experiment = NasExperiment(search_space, evaluator, search_strategy)

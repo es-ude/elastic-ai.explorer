@@ -57,12 +57,12 @@ class TestHWNasSetupAndSearch:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         MNIST(path_to_dataset, download=True)
-        self.dataset_info = DatasetSpecification(MNIST, path_to_dataset, transf)
+        self.dataset_spec = DatasetSpecification(MNIST, path_to_dataset, transf)
 
     def test_search(self):
         self.RPI5explorer.generate_search_space()
         top_k_models = self.RPI5explorer.search(
-            self.hwnas_cfg, self.dataset_info, MLPTrainer
+            self.hwnas_cfg, self.dataset_spec, MLPTrainer
         )
         assert len(top_k_models) == 1
         assert type(top_k_models[0]) == search_space.MLP

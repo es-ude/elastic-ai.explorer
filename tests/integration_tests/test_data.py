@@ -4,7 +4,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 from elasticai.explorer.training.data import (
     DatasetSpecification,
-    MultivariatTimeseriesDataset,
+    MultivariateTimeseriesDataset,
 )
 import torch
 
@@ -14,7 +14,7 @@ from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
 
 
-class TestTimeSeriesDataset(MultivariatTimeseriesDataset, DownloadableSciebo):
+class TestTimeSeriesDataset(MultivariateTimeseriesDataset, DownloadableSciebo):
     def __init__(
         self,
         root: Union[str, Path],
