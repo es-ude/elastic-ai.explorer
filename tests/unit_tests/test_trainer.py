@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Any, Callable
 import torch.nn as nn
@@ -64,5 +63,5 @@ class TestAutoencoderTrainer:
             dataset_spec=self.dataset_spec,
         )
         autoencoder_trainer.train(self.autoencoder, 20)
-        assert autoencoder_trainer.validate(self.autoencoder)[0] > 0
-        assert autoencoder_trainer.test(self.autoencoder)[0] > 0
+        assert autoencoder_trainer.validate(self.autoencoder)[1] > 0
+        assert autoencoder_trainer.test(self.autoencoder)[1] > 0

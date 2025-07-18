@@ -4,7 +4,6 @@ from typing import Callable, Optional, Union
 import pandas as pd
 from elasticai.explorer.training.data import (
     DatasetSpecification,
-    MNISTWrapper,
     MultivariateTimeseriesDataset,
 )
 import torch
@@ -13,7 +12,7 @@ from elasticai.explorer.training.download import DownloadableSciebo
 from elasticai.explorer.training.trainer import MLPTrainer
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
-from torchvision.transforms import transforms
+
 
 
 class TestTimeSeriesDataset(MultivariateTimeseriesDataset, DownloadableSciebo):

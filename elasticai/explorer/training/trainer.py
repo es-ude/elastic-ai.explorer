@@ -17,17 +17,11 @@ class Trainer(ABC):
         dataset_spec: DatasetSpecification,
         loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
         batch_size: int = 64,
-        early_stopping: bool = True,
-        patience: int = 5,
-        min_delta: float = 0.0,
     ):
-
+        self.logger = logging.getLogger("explorer.Trainer")
         self.device = device
         self.optimizer = optimizer
         self.loss_fn = loss_fn
-        self.early_stopping = early_stopping
-        self.patience = patience
-        self.min_delta = min_delta
 
         dataset = dataset_spec.dataset_type(
             dataset_spec.dataset_location,
@@ -50,16 +44,61 @@ class Trainer(ABC):
             test_subset, batch_size=batch_size, shuffle=dataset_spec.shuffel
         )
 
+    def train(
+        self,
+        model: nn.Module,
+        epochs: int,
+        early_stopping: bool = True,
+        patience: int = 2,
+        min_delta: float = 0.001,
+    ):
+        """Override this method to customize behavior."""
+
+        self.epochs = epochs
+
+        best_val_loss = 0.0
+        patience_counter = 0
+        best_model_state = model.state_dict()
+
+        for epoch in range(epochs):
+            self.logger.info(f"Epoch {epoch+1}/{epochs}")
+            self.train_epoch(model=model, epoch=epoch)
+            _, val_loss = self.validate(model=model)
+            if val_loss == None:
+                raise ValueError("Trainer.validate() does not return Validation Loss")
+
+            if val_loss < best_val_loss - min_delta:
+                best_val_loss = val_loss
+                patience_counter = 0
+                best_model_state = model.state_dict()
+            else:
+                patience_counter += 1
+                self.logger.info(
+                    f"No improvement. Patience: {patience_counter}/{patience}"
+                )
+
+            if early_stopping and patience_counter >= patience:
+                self.logger.info("Early stopping triggered.")
+                break
+
+        if early_stopping:
+            model.load_state_dict(best_model_state)
+            self.logger.info("Loaded best model from early stopping.")
+
     @abstractmethod
-    def train(self, model: nn.Module, epochs: int):
+    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
+        """
+        Returns:
+            Tuple[float, float]: (Accuracy, Loss)
+        """
         pass
 
     @abstractmethod
-    def validate(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
-        pass
-
-    @abstractmethod
-    def test(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+    def test(self, model: nn.Module) -> Tuple[float | None, float]:
+        """
+        Returns:
+            Tuple[float, float]: (Accuracy, Loss)
+        """
         pass
 
     @abstractmethod
@@ -77,9 +116,6 @@ class MLPTrainer(Trainer):
         dataset_spec: DatasetSpecification,
         loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
         batch_size: int = 64,
-        early_stopping: bool = True,
-        patience: int = 3,
-        min_delta: float = 0.0,
     ):
         super().__init__(
             device,
@@ -87,47 +123,10 @@ class MLPTrainer(Trainer):
             dataset_spec,
             loss_fn,
             batch_size,
-            early_stopping,
-            patience,
-            min_delta,
         )
         self.logger = logging.getLogger("explorer.MLPTrainer")
 
-    def train(self, model: nn.Module, epochs: int):
-        """
-        Args:
-            model: Model to train.
-            epochs: Number of epochs.
-        """
-
-        best_val_accuracy = 0.0
-        patience_counter = 0
-        best_model_state = model.state_dict()
-
-        for epoch in range(epochs):
-            self.logger.info(f"Epoch {epoch+1}/{epochs}")
-            self.train_epoch(model=model, epoch=epoch)
-            val_accuracy, _ = self.validate(model=model)
-
-            if val_accuracy > best_val_accuracy + self.min_delta:
-                best_val_accuracy = val_accuracy
-                patience_counter = 0
-                best_model_state = model.state_dict()
-            else:
-                patience_counter += 1
-                self.logger.info(
-                    f"No improvement. Patience: {patience_counter}/{self.patience}"
-                )
-
-            if self.early_stopping and patience_counter >= self.patience:
-                self.logger.info("Early stopping triggered.")
-                break
-
-        if self.early_stopping:
-            model.load_state_dict(best_model_state)
-            self.logger.info("Loaded best model from early stopping.")
-
-    def validate(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
         """
         Args:
             model: The NN-Model to validate.
@@ -153,9 +152,9 @@ class MLPTrainer(Trainer):
                 correct, len(self.val_loader.dataset), accuracy  # type: ignore
             )
         )
-        return accuracy, "Accuracy"
+        return accuracy, test_loss
 
-    def test(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+    def test(self, model: nn.Module) -> Tuple[float | None, float]:
         """
         Args:
             model: The NN-Model to test.
@@ -181,7 +180,7 @@ class MLPTrainer(Trainer):
                 correct, len(self.test_loader.dataset), accuracy  # type: ignore
             )
         )
-        return accuracy, "Accuracy"
+        return accuracy, test_loss
 
     def train_epoch(self, model: nn.Module, epoch: int):
         """Trains model for only one epoch.
@@ -220,9 +219,6 @@ class ReconstructionAutoencoderTrainer(Trainer):
         dataset_spec: DatasetSpecification,
         loss_fn=nn.MSELoss(),
         batch_size: int = 64,
-        early_stopping: bool = True,
-        patience: int = 3,
-        min_delta: float = 0.0,
     ):
         super().__init__(
             device,
@@ -230,41 +226,8 @@ class ReconstructionAutoencoderTrainer(Trainer):
             dataset_spec,
             loss_fn,
             batch_size,
-            early_stopping,
-            patience,
-            min_delta,
         )
         self.logger = logging.getLogger("explorer.AutoencoderTrainer")
-
-    def train(self, model: nn.Module, epochs: int):
-        self.epochs = epochs
-
-        best_val_loss = 0.0
-        patience_counter = 0
-        best_model_state = model.state_dict()
-
-        for epoch in range(epochs):
-            self.logger.info(f"Epoch {epoch+1}/{epochs}")
-            self.train_epoch(model=model, epoch=epoch)
-            val_loss, _ = self.validate(model=model)
-
-            if val_loss < best_val_loss - self.min_delta:
-                best_val_loss = val_loss
-                patience_counter = 0
-                best_model_state = model.state_dict()
-            else:
-                patience_counter += 1
-                self.logger.info(
-                    f"No improvement. Patience: {patience_counter}/{self.patience}"
-                )
-
-            if self.early_stopping and patience_counter >= self.patience:
-                self.logger.info("Early stopping triggered.")
-                break
-
-        if self.early_stopping:
-            model.load_state_dict(best_model_state)
-            self.logger.info("Loaded best model from early stopping.")
 
     def train_epoch(self, model: nn.Module, epoch: int):
         model.to(device=self.device)
@@ -283,7 +246,7 @@ class ReconstructionAutoencoderTrainer(Trainer):
         train_loss /= len(self.train_loader)
         self.logger.debug("Train Epoch: {}\tLoss: {:.6f}".format(epoch, train_loss))
 
-    def validate(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
         model.to(device=self.device)
         model.eval()
         val_loss = 0
@@ -296,9 +259,9 @@ class ReconstructionAutoencoderTrainer(Trainer):
         val_loss /= len(self.val_loader)
 
         self.logger.info("Test Loss: {:.6f}".format(val_loss))
-        return val_loss, "Loss"
+        return None, val_loss
 
-    def test(self, model: nn.Module) -> Tuple[float, Literal["Loss", "Accuracy"]]:
+    def test(self, model: nn.Module) -> Tuple[float | None, float]:
         model.to(device=self.device)
         model.eval()
         test_loss = 0
@@ -310,4 +273,4 @@ class ReconstructionAutoencoderTrainer(Trainer):
                 test_loss += loss.item()
         test_loss /= len(self.test_loader)
         self.logger.info("Test Loss: {:.6f}".format(test_loss))
-        return test_loss, "Loss"
+        return None, test_loss

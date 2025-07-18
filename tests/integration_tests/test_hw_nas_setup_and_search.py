@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 import torch
-from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from elasticai.explorer import search_space
