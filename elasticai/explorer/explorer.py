@@ -7,8 +7,7 @@ from nni.nas.nn.pytorch import ModelSpace
 from torch import nn
 from torch.nn import Module
 
-from elasticai.explorer import utils
-from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
+from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
@@ -43,8 +42,6 @@ class Explorer:
         self.generator: Optional[Generator] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space: Optional[Type[ModelSpace] | Module] = None
-        self.model_cfg: Optional[ModelConfig] = None
-        self.dataset: Optional[Dataset] = None
 
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
@@ -87,10 +84,6 @@ class Explorer:
 
     def set_default_model(self, model: nn.Module):
         self.default_model = model
-
-    def set_model_cfg(self, model_cfg: ModelConfig):
-        self.model_cfg = model_cfg
-        self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
     def generate_search_space(self, search_space: ModelSpace):
 
