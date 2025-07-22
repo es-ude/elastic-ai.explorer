@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import List, Literal, Tuple
+from typing import Any, List, Literal, Tuple
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
@@ -15,7 +15,7 @@ class Trainer(ABC):
         device: str,
         optimizer: Optimizer,
         dataset_spec: DatasetSpecification,
-        loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
+        loss_fn: Any = nn.CrossEntropyLoss(),
         batch_size: int = 64,
     ):
         self.logger = logging.getLogger("explorer.Trainer")
@@ -114,7 +114,7 @@ class MLPTrainer(Trainer):
         device: str,
         optimizer: Optimizer,
         dataset_spec: DatasetSpecification,
-        loss_fn: nn.modules.loss._Loss = nn.CrossEntropyLoss(),
+        loss_fn: Any = nn.CrossEntropyLoss(),
         batch_size: int = 64,
     ):
         super().__init__(
@@ -217,7 +217,7 @@ class ReconstructionAutoencoderTrainer(Trainer):
         device: str,
         optimizer: Optimizer,
         dataset_spec: DatasetSpecification,
-        loss_fn=nn.MSELoss(),
+        loss_fn: Any = nn.MSELoss(),
         batch_size: int = 64,
     ):
         super().__init__(

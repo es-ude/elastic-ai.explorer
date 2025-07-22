@@ -1,19 +1,20 @@
 from pathlib import Path
-import pandas
+import pandas as pd
 
-from elasticai.explorer.utils import utils
-from elasticai.explorer.utils.utils import plot_parallel_coordinates
+from elasticai.explorer.utils import data_utils
+from elasticai.explorer.utils.data_utils import read_csv
+from elasticai.explorer.utils.visualize import plot_parallel_coordinates
 from settings import MAIN_EXPERIMENT_DIR
 
 
 def build_search_space_measurements_file(
     latencies: list[int], metrics_path: Path, model_parameter_path: Path, csv_path: Path
-) -> pandas.DataFrame:
-    metric_list = utils.load_json(metrics_path)
-    sample_list = utils.load_json(model_parameter_path)
+) -> pd.DataFrame:
+    metric_list = data_utils.load_json(metrics_path)
+    sample_list = data_utils.load_json(model_parameter_path)
 
-    dataframe = pandas.DataFrame.from_dict(metric_list)
-    dataframe2 = pandas.DataFrame.from_dict(sample_list)
+    dataframe = pd.DataFrame.from_dict(metric_list)
+    dataframe2 = pd.DataFrame.from_dict(sample_list)
 
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
@@ -21,10 +22,6 @@ def build_search_space_measurements_file(
     data_merged.to_csv(csv_path)
 
     return data_merged
-
-
-def read_csv(csv_path) -> pandas.DataFrame:
-    return pandas.read_csv(csv_path)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.search_space import MLP
 from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
-from elasticai.explorer.utils import utils
+from elasticai.explorer.utils import data_utils
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -113,10 +113,10 @@ class Explorer:
             self.search_space, hwnas_cfg, dataset_spec, trainer
         )
 
-        utils.save_list_to_json(
+        data_utils.save_list_to_json(
             model_parameters, path_to_dir=self._model_dir, filename="models.json"
         )
-        utils.save_list_to_json(
+        data_utils.save_list_to_json(
             metrics, path_to_dir=self._metric_dir, filename="metrics.json"
         )
         hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")

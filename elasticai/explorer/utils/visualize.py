@@ -1,14 +1,25 @@
 import logging
 import os
 from pathlib import Path
-
+from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import plotly.express as px
 
-from elasticai.explorer.utils import utils
-from elasticai.explorer.utils.utils import compute_kendall
+from elasticai.explorer.utils import data_utils
+from elasticai.explorer.utils.stats import compute_kendall
 
 logger = logging.getLogger(__name__)
+
+
+def plot_parallel_coordinates(df: pd.DataFrame):
+    fig = px.parallel_coordinates(
+        df,
+        color="default",
+        color_continuous_scale=px.colors.diverging.Tealrose,
+    )
+    fig.show()
 
 
 class Metrics:
@@ -21,21 +32,21 @@ class Metrics:
     ):
         self.raw_measured_accuracies: list[float] = accuracy_list
         self.raw_measured_latencies: list[int] = latency_list
-        self.metric_list = utils.load_json(path_to_metrics)
-        self.sample_list = utils.load_json(path_to_samples)
+        self.metric_list = data_utils.load_json(path_to_metrics)
+        self.sample_list = data_utils.load_json(path_to_samples)
         self._structure()
 
     def _structure(self):
 
         number_of_models = len(self.sample_list)
-        self.structured_est_metrics: list[list[float]] = np.reshape(
+        self.structured_est_metrics: List[List[List[float]]] = np.reshape(
             np.arange(0, 3 * 2 * number_of_models, 1, dtype=float),
             [3, 2, number_of_models],
-        )
-        self.structured_samples: list[str] = []
-        self.structured_est_flops: list[float] = []
-        self.structured_est_accuracies: list[float] = []
-        self.structured_est_combined: list[float] = []
+        )  # type: ignore
+        self.structured_samples: List[str] = []
+        self.structured_est_flops: List[float] = []
+        self.structured_est_accuracies: List[float] = []
+        self.structured_est_combined: List[float] = []
 
         # first dimension accuracy, Latency, Combined
         # second dimension estimation, measured
@@ -62,11 +73,11 @@ class Metrics:
             self.structured_est_metrics[1][1][n] = float(latency) / 1000
 
 
-class Visualizer:
+class BarPlotVisualizer:
 
     def __init__(self, metrics: Metrics, plot_dir: Path):
-        self.data: list[list[float]] = metrics.structured_est_metrics
-        self.labels: list[str] = metrics.structured_samples
+        self.data: List[List[List[float]]] = metrics.structured_est_metrics
+        self.labels: List[str] = metrics.structured_samples
         self.metrics: Metrics = metrics
         self.plot_dir: Path = plot_dir
 

@@ -19,7 +19,7 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.training.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
-from elasticai.explorer.utils.visualizer import Metrics
+from elasticai.explorer.utils.visualize import Metrics
 from settings import ROOT_DIR
 
 nni.enable_global_logging(False)

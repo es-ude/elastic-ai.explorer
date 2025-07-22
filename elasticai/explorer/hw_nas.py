@@ -49,11 +49,17 @@ def evaluate_model(
     }
     for epoch in range(n_epochs):
         trainer.train_epoch(model, epoch)
-        _, val_loss = trainer.validate(model)
-        metric["val_loss"] = val_loss
-        metric["default"] = -metric["val_loss"] - (
-            metric["flops log10"] * flops_weight
-        )
+        val_accuracy, val_loss = trainer.validate(model)
+        if val_accuracy:
+            metric["val_accuracy"] = val_loss
+            metric["default"] = metric["val_accuracy"] - (
+                metric["flops log10"] * flops_weight
+            )
+        else:
+            metric["val_loss"] = val_loss
+            metric["default"] = -metric["val_loss"] - (
+                metric["flops log10"] * flops_weight
+            )
         nni.report_intermediate_result(metric)
 
     nni.report_final_result(metric)
