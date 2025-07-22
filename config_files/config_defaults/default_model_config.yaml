@@ -1,0 +1,2 @@
+ModelConfig:
+  model_type: "MLP"

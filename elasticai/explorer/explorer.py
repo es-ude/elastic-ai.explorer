@@ -3,13 +3,13 @@ import logging
 from pathlib import Path
 from typing import Optional, Any, Type
 
+from nni.nas.nn.pytorch import ModelSpace
 from torch import nn
 from torch.nn import Module
-from torch.utils.data import Dataset
-from nni.nas.nn.pytorch import ModelSpace
 
-from elasticai.explorer import hw_nas
+from elasticai.explorer import utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
+from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
@@ -92,8 +92,9 @@ class Explorer:
         self.model_cfg = model_cfg
         self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
-    def generate_search_space(self):
-        self.search_space = MLP()
+    def generate_search_space(self, search_space: ModelSpace):
+
+        self.search_space = search_space
         self.logger.info("Generated search space:\n %s", self.search_space)
 
     def search(

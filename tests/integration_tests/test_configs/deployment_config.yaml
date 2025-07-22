@@ -7,16 +7,18 @@ DeploymentConfig:
   #The Username/user-account of the target device to connect to.
   target_user: "transfair"
 
-  target_platform_type: "rpi4"
-  #The path (on host) to additional pre-compiled libraries neccessary for execution on target.
-  #Optional.
-  compiled_library_path: "./code/libtorch"
+  target_platform_type: "rpi5"
+  
+  Docker:
+    #The path (on host) to additional pre-compiled libraries neccessary for execution on target.
+    #Optional.
+    compiled_library_path: "./code/libtorch"
 
-  # Tag of Crosscompiler Image
-  compiler_tag: "cross"
+    # Tag of Crosscompiler Image
+    compiler_tag: "cross"
 
-  # Full path to Crosscompiler Docker Image
-  path_to_dockerfile:  "/home/robin/code/elastic-ai.explorer/docker/Dockerfile.picross"
+    # Full path to Crosscompiler Docker Image
+    path_to_dockerfile:  "/home/robin/code/elastic-ai.explorer/docker/Dockerfile.picross"
 
-  # Full path to docker buildcontext
-  build_context: "/home/robin/code/elastic-ai.explorer/docker"
+    # Full path to docker buildcontext
+    build_context: "/home/robin/code/elastic-ai.explorer/docker"
