@@ -41,22 +41,23 @@ def evaluate_model(
 
     trainer = trainer_class(device, optimizer, dataset_spec)
 
-
     metric = {
         "default": 0,
         "val_loss": 0,
+        "val_accuracy": 0,
         "flops log10": math.log10(flops),
     }
     for epoch in range(n_epochs):
         trainer.train_epoch(model, epoch)
         val_accuracy, val_loss = trainer.validate(model)
+        metric["val_loss"] = val_loss
         if val_accuracy:
-            metric["val_accuracy"] = val_loss
+            metric["val_accuracy"] = val_accuracy
             metric["default"] = metric["val_accuracy"] - (
                 metric["flops log10"] * flops_weight
             )
         else:
-            metric["val_loss"] = val_loss
+            metric["val_accuracy"] = -1
             metric["default"] = -metric["val_loss"] - (
                 metric["flops log10"] * flops_weight
             )

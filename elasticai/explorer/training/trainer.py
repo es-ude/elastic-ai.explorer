@@ -49,14 +49,14 @@ class Trainer(ABC):
         model: nn.Module,
         epochs: int,
         early_stopping: bool = True,
-        patience: int = 2,
-        min_delta: float = 0.001,
+        patience: int = 3,
+        min_delta: float = 0.0,
     ):
         """Override this method to customize behavior."""
 
         self.epochs = epochs
 
-        best_val_loss = 0.0
+        best_val_loss = float("inf")
         patience_counter = 0
         best_model_state = model.state_dict()
 
@@ -135,24 +135,31 @@ class MLPTrainer(Trainer):
             float: Accuracy on validation data.
         """
 
-        test_loss = 0
+        val_loss = 0.0
         correct = 0
+        total = 0
+
         model.to(self.device)
         model.eval()
+
         with torch.no_grad():
             for data, target in self.val_loader:
                 data, target = data.to(self.device), target.to(self.device)
                 output = model(data)
-                pred = output.argmax(dim=1, keepdim=True)
-                correct += pred.eq(target.view_as(pred)).sum().item()
-        test_loss /= len(self.val_loader.dataset)  # type: ignore
-        accuracy = 100.0 * correct / len(self.val_loader.dataset)  # type: ignore
+                loss = self.loss_fn(output, target)
+                val_loss += loss.item() * data.size(0)
+                pred = output.argmax(dim=1)
+                correct += pred.eq(target).sum().item()
+                total += target.size(0)
+
+        val_loss /= total
+        accuracy = 100.0 * correct / total
+
         self.logger.info(
-            "Validation set: Accuracy: {}/{} ({:.0f}%)\n".format(
-                correct, len(self.val_loader.dataset), accuracy  # type: ignore
-            )
+            f"Validation set: Accuracy: {correct}/{total} ({accuracy:.2f}%)"
         )
-        return accuracy, test_loss
+        self.logger.info(f"Validation set: Loss: {val_loss:.4f}")
+        return accuracy, val_loss
 
     def test(self, model: nn.Module) -> Tuple[float | None, float]:
         """
@@ -165,21 +172,24 @@ class MLPTrainer(Trainer):
 
         test_loss = 0
         correct = 0
+        total = 0
         model.to(self.device)
         model.eval()
         with torch.no_grad():
             for data, target in self.test_loader:
                 data, target = data.to(self.device), target.to(self.device)
                 output = model(data)
+                loss = self.loss_fn(output, target)
+                test_loss += loss.item() * data.size(0)
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
-        test_loss /= len(self.test_loader.dataset)  # type: ignore
-        accuracy = 100.0 * correct / len(self.test_loader.dataset)  # type: ignore
+                total += target.size(0)
+        test_loss /= total
+        accuracy = 100.0 * correct / total
         self.logger.info(
-            "Test set: Accuracy: {}/{} ({:.0f}%)\n".format(
-                correct, len(self.test_loader.dataset), accuracy  # type: ignore
-            )
+            "Test set: Accuracy: {}/{} ({:.0f}%)\n".format(correct, total, accuracy)
         )
+        self.logger.info(f"Test set: Loss: {test_loss:.4f}")
         return accuracy, test_loss
 
     def train_epoch(self, model: nn.Module, epoch: int):
