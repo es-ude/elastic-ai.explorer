@@ -12,10 +12,6 @@ from nni.nas.experiment import NasExperiment
 from nni.nas.nn.pytorch import ModelSpace
 from nni.experiment import TrialResult
 from nni.nas.nn.pytorch import ModelSpace
-from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
-from torchvision.transforms import transforms
-
 
 from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig

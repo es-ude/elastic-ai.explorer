@@ -28,7 +28,6 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.training.trainer import MLPTrainer
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.utils.visualize import Metrics
-from settings import ROOT_DIR 
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -77,7 +76,7 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
-    search_space
+    search_space,
 ) -> Metrics:
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
@@ -88,7 +87,7 @@ def find_generate_measure_for_pi(
     top_models = explorer.search(
         hwnas_cfg, dataset_spec=dataset_spec, trainer=MLPTrainer
     )
-    explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip")) 
+    explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
     latency_measurements = []
     accuracy_measurements = []
 
@@ -179,6 +178,5 @@ if __name__ == "__main__":
         Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
     )
     search_space = CombinedSearchSpace(search_space)
-
 
     find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg, search_space)

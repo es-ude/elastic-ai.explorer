@@ -23,7 +23,6 @@ from nni.nas.space import model_context
 from torch import nn
 from torch.nn import Linear, ModuleList, Conv2d
 
-from elasticai.explorer.hw_nas.search_space.operations import BlockFactory, LinearBlock
 
 
 class SearchSpace(ModelSpace):
