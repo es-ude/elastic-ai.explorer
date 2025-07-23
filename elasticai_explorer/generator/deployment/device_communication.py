@@ -26,7 +26,7 @@ class Host(ABC):
         pass
 
 
-class RPIHost:
+class RPIHost(Host):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.host_name = deploy_cfg.target_name
         self.user = deploy_cfg.target_user
@@ -56,12 +56,13 @@ class RPIHost:
             )
         return result.stdout
 
-    def put_file(self, local_path: str, remote_path: str):
+    def put_file(self, local_path: str, remote_path: str | None) -> str:
         try:
             with self._get_connection() as conn:
                 conn.put(local_path, remote_path)
         except (socket_error, AuthenticationException) as exc:
             self._raise_authentication_err(exc)
+        return ""
 
     def _raise_authentication_err(self, exc):
         raise SSHException(

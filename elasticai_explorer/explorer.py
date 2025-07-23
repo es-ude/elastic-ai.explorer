@@ -34,9 +34,9 @@ class Explorer:
         """
         self.logger = logging.getLogger("explorer")
         self.default_model: Optional[nn.Module] = None
-        self.target_hw_platform: Optional[Generator] = None
+        self.generator: Optional[Generator] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
-        self.generator: Optional[ModelCompiler] = None
+        self.model_generator: Optional[ModelCompiler] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space: Optional[Type[ModelSpace] | Module] = None
         self.model_cfg: Optional[ModelConfig] = None
@@ -115,18 +115,18 @@ class Explorer:
         return top_models
 
     def choose_target_hw(self, deploy_cfg: DeploymentConfig):
-        self.target_hw_platform = self.knowledge_repository.fetch_hw_info(
+        self.generator = self.knowledge_repository.fetch_hw_info(
             deploy_cfg.target_platform_name
         )
-        self.generator = self.target_hw_platform.model_generator()
-        self.hw_manager = self.target_hw_platform.platform_manager(
-            self.target_hw_platform.communication_protocol(deploy_cfg),
-            self.target_hw_platform.compiler(deploy_cfg),
+        self.model_generator = self.generator.model_generator()
+        self.hw_manager = self.generator.platform_manager(
+            self.generator.communication_protocol(deploy_cfg),
+            self.generator.compiler(deploy_cfg),
         )
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
             deploy_cfg.target_platform_name,
-            self.target_hw_platform,
+            self.generator,
         )
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
@@ -166,8 +166,8 @@ class Explorer:
 
     def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> Any:
         model_path = self._model_dir / model_name
-        if self.generator:
-            return self.generator.generate(model, model_path)
+        if self.model_generator:
+            return self.model_generator.generate(model, model_path)
         else:
             self.logger.error(
                 "Generator is not initialized! First run choose_target_hw(deploy_cfg), before generate_for_hw_platform()"

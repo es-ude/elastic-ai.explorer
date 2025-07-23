@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
-from elasticai_explorer.generator.deployment.compiler import RPICompiler
-from elasticai_explorer.generator.deployment.device_communication import RPIHost
+from elasticai_explorer.generator.deployment.compiler import Compiler
+from elasticai_explorer.generator.deployment.device_communication import Host
 from settings import ROOT_DIR
 
 CONTEXT_PATH = ROOT_DIR / "docker"
@@ -19,9 +19,9 @@ class Metric(Enum):
 
 class HWManager(ABC):
 
-    def __init__(self, target: RPIHost, compiler: RPICompiler):
+    def __init__(self, target: Host, compiler: Compiler):
         self.compiler = compiler
-        self.target: RPIHost = target
+        self.target: Host = target
 
     @abstractmethod
     def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
@@ -42,7 +42,7 @@ class HWManager(ABC):
 
 class PIHWManager(HWManager):
 
-    def __init__(self, target: RPIHost, compiler: RPICompiler):
+    def __init__(self, target: Host, compiler: Compiler):
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.manager.PIHWManager"
         )
