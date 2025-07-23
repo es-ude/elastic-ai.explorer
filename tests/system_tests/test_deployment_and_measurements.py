@@ -2,11 +2,12 @@ import shutil
 from elasticai_explorer.config import HWNASConfig, ModelConfig, DeploymentConfig
 from elasticai_explorer.explorer import Explorer
 from elasticai_explorer.knowledge_repository import Generator, KnowledgeRepository
-from elasticai_explorer.platforms.deployment.compiler import RPICompiler
-from elasticai_explorer.platforms.deployment.manager import PIHWManager, Metric
-from elasticai_explorer.platforms.generator.model_compiler import TorchscriptCompiler
-from elasticai_explorer.platforms.deployment.device_communication import RPIHost
-from torch.utils.data import DataLoader
+from elasticai_explorer.generator.deployment.compiler import RPICompiler
+from elasticai_explorer.generator.deployment.manager import PIHWManager, Metric
+from elasticai_explorer.generator.model_compiler.model_compiler import (
+    TorchscriptCompiler,
+)
+from elasticai_explorer.generator.deployment.device_communication import RPIHost
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 from pathlib import Path
@@ -22,7 +23,7 @@ class TestDeploymentAndMeasurement:
         )
         self.model_cfg = ModelConfig()
         knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
+        knowledge_repository.register_generator(
             Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",

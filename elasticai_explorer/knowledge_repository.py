@@ -4,10 +4,10 @@ from typing import Type
 import numpy as np
 
 from elasticai_explorer import utils
-from elasticai_explorer.platforms.deployment.compiler import Compiler
-from elasticai_explorer.platforms.deployment.device_communication import Host
-from elasticai_explorer.platforms.deployment.manager import HWManager
-from elasticai_explorer.platforms.generator.model_compiler import ModelCompiler
+from elasticai_explorer.generator.deployment.compiler import Compiler
+from elasticai_explorer.generator.deployment.device_communication import Host
+from elasticai_explorer.generator.deployment.manager import HWManager
+from elasticai_explorer.generator.model_compiler.model_compiler import ModelCompiler
 
 
 @dataclass
@@ -24,7 +24,7 @@ class KnowledgeRepository:
     def __init__(self):
         self.supported_generators = {}
 
-    def register_hw_platform(self, generator: Generator):
+    def register_generator(self, generator: Generator):
         self.supported_generators[generator.name] = generator
 
     def fetch_hw_info(self, name: str) -> Generator:

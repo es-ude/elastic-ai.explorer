@@ -11,8 +11,8 @@ from elasticai_explorer import utils
 from elasticai_explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
 from elasticai_explorer.hw_nas import hw_nas
 from elasticai_explorer.knowledge_repository import KnowledgeRepository, Generator
-from elasticai_explorer.platforms.deployment.manager import HWManager, Metric
-from elasticai_explorer.platforms.generator.model_compiler import ModelCompiler
+from elasticai_explorer.generator.deployment.manager import HWManager, Metric
+from elasticai_explorer.generator.model_compiler.model_compiler import ModelCompiler
 from settings import MAIN_EXPERIMENT_DIR
 
 

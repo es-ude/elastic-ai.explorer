@@ -2,8 +2,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from elasticai_explorer.platforms.deployment.compiler import RPICompiler
-from elasticai_explorer.platforms.deployment.manager import CONTEXT_PATH
+from elasticai_explorer.generator.deployment.compiler import RPICompiler
+from elasticai_explorer.generator.deployment.manager import CONTEXT_PATH
 
 
 class TestCompiler(unittest.TestCase):

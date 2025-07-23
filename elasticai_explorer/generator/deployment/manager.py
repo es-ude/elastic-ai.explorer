@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
-from elasticai_explorer.platforms.deployment.compiler import RPICompiler
-from elasticai_explorer.platforms.deployment.device_communication import RPIHost
+from elasticai_explorer.generator.deployment.compiler import RPICompiler
+from elasticai_explorer.generator.deployment.device_communication import RPIHost
 from settings import ROOT_DIR
 
 CONTEXT_PATH = ROOT_DIR / "docker"

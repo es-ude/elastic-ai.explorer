@@ -1,6 +1,5 @@
 import os
 import torch
-from elasticai_explorer.hw_nas import search_space
 from elasticai_explorer.config import HWNASConfig, DeploymentConfig
 from elasticai_explorer.explorer import Explorer
 from elasticai_explorer.hw_nas.search_space.construct_sp import (
@@ -8,10 +7,12 @@ from elasticai_explorer.hw_nas.search_space.construct_sp import (
     yml_to_dict,
 )
 from elasticai_explorer.knowledge_repository import Generator, KnowledgeRepository
-from elasticai_explorer.platforms.deployment.compiler import RPICompiler
-from elasticai_explorer.platforms.generator.model_compiler import TorchscriptCompiler
-from elasticai_explorer.platforms.deployment.device_communication import RPIHost
-from elasticai_explorer.platforms.deployment.manager import PIHWManager
+from elasticai_explorer.generator.deployment.compiler import RPICompiler
+from elasticai_explorer.generator.model_compiler.model_compiler import (
+    TorchscriptCompiler,
+)
+from elasticai_explorer.generator.deployment.device_communication import RPIHost
+from elasticai_explorer.generator.deployment.manager import PIHWManager
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
 from pathlib import Path
@@ -25,7 +26,7 @@ class TestHWNasSetupAndSearch:
 
     def setUp(self):
         knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
+        knowledge_repository.register_generator(
             Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",

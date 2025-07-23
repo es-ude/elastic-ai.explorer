@@ -22,13 +22,13 @@ from elasticai_explorer.knowledge_repository import (
     Generator,
     Metrics,
 )
-from elasticai_explorer.platforms.deployment.compiler import RPICompiler
-from elasticai_explorer.platforms.deployment.device_communication import RPIHost
-from elasticai_explorer.platforms.deployment.manager import (
+from elasticai_explorer.generator.deployment.compiler import RPICompiler
+from elasticai_explorer.generator.deployment.device_communication import RPIHost
+from elasticai_explorer.generator.deployment.manager import (
     PIHWManager,
     Metric,
 )
-from elasticai_explorer.platforms.generator.model_compiler import (
+from elasticai_explorer.generator.model_compiler.model_compiler import (
     TorchscriptCompiler,
 )
 from elasticai_explorer.trainer import MLPTrainer
@@ -41,7 +41,7 @@ logger = logging.getLogger("explorer.main")
 
 def setup_knowledge_repository_pi() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
-    knowledge_repository.register_hw_platform(
+    knowledge_repository.register_generator(
         Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
@@ -52,7 +52,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         )
     )
 
-    knowledge_repository.register_hw_platform(
+    knowledge_repository.register_generator(
         Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
