@@ -5,8 +5,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from elasticai.explorer.knowledge_repository import Metrics
-from elasticai.explorer.utils import compute_kendall
+from elasticai_explorer.knowledge_repository import Metrics
+from elasticai_explorer.utils import compute_kendall
 
 logger = logging.getLogger(__name__)
 

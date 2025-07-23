@@ -2,23 +2,36 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any, Literal
 import torch
 from torch import nn
 
 
-class Generator(ABC):
+class ModelCompiler(ABC):
     @abstractmethod
-    def generate(self, model: nn.Module, path: Path) -> any:
+    def generate(
+        self,
+        model: nn.Module,
+        path: Path,
+        quantization: Literal["full_precision"] = "full_precision",
+    ) -> Any:
         pass
+        
 
-
-class PIGenerator(Generator):
+class TorchscriptCompiler(ModelCompiler):
     def __init__(self):
         self.logger = logging.getLogger(
             "explorer.platforms.generator.generator.PIGenerator"
         )
 
-    def generate(self, model: nn.Module, path: Path):
+    def generate(
+        self,
+        model: nn.Module,
+        path: Path,
+        quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
+    ):
+        if quantization == "int8":
+            raise NotImplementedError("int8-Quantization is currently not supported.")
         self.logger.info("Generate torchscript model from %s", model)
         model.eval()
 
@@ -32,5 +45,5 @@ class PIGenerator(Generator):
         path = Path(os.path.realpath(path)).with_suffix(".pt")
         self.logger.info("Save model to %s", path)
         ts_model.save(path)
-
         return ts_model
+

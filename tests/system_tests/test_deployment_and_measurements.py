@@ -1,11 +1,11 @@
 import shutil
-from elasticai.explorer.config import HWNASConfig, ModelConfig, DeploymentConfig
-from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
-from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.platforms.deployment.device_communication import Host
+from elasticai_explorer.config import HWNASConfig, ModelConfig, DeploymentConfig
+from elasticai_explorer.explorer import Explorer
+from elasticai_explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai_explorer.platforms.deployment.compiler import RPICompiler
+from elasticai_explorer.platforms.deployment.manager import PIHWManager, Metric
+from elasticai_explorer.platforms.generator.model_compiler import TorchscriptCompiler
+from elasticai_explorer.platforms.deployment.device_communication import RPIHost
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -23,13 +23,13 @@ class TestDeploymentAndMeasurement:
         self.model_cfg = ModelConfig()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
-            HWPlatform(
+            Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PIGenerator,
+                TorchscriptCompiler,
                 PIHWManager,
-                Host,
-                Compiler,
+                RPIHost,
+                RPICompiler,
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository)
@@ -42,7 +42,7 @@ class TestDeploymentAndMeasurement:
         )
         path_to_dataset = Path("tests/system_tests/samples/data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
-        
+
         path_to_data_docker = "docker/data/mnist"
         shutil.make_archive(path_to_data_docker, "zip", path_to_dataset)
         self.RPI5explorer.hw_setup_on_target(Path(path_to_data_docker + ".zip"))

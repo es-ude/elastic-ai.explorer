@@ -7,12 +7,12 @@ from nni.nas.nn.pytorch import ModelSpace
 from torch import nn
 from torch.nn import Module
 
-from elasticai.explorer import utils
-from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
-from elasticai.explorer.hw_nas import hw_nas
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
-from elasticai.explorer.platforms.generator.generator import Generator
+from elasticai_explorer import utils
+from elasticai_explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
+from elasticai_explorer.hw_nas import hw_nas
+from elasticai_explorer.knowledge_repository import KnowledgeRepository, Generator
+from elasticai_explorer.platforms.deployment.manager import HWManager, Metric
+from elasticai_explorer.platforms.generator.model_compiler import ModelCompiler
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -34,9 +34,9 @@ class Explorer:
         """
         self.logger = logging.getLogger("explorer")
         self.default_model: Optional[nn.Module] = None
-        self.target_hw_platform: Optional[HWPlatform] = None
+        self.target_hw_platform: Optional[Generator] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
-        self.generator: Optional[Generator] = None
+        self.generator: Optional[ModelCompiler] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space: Optional[Type[ModelSpace] | Module] = None
         self.model_cfg: Optional[ModelConfig] = None

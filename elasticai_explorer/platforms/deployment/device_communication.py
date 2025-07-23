@@ -1,17 +1,32 @@
+from abc import ABC, abstractmethod
 import logging
 from socket import error as socket_error
 
 from fabric import Connection
 from paramiko.ssh_exception import AuthenticationException
 
-from elasticai.explorer.config import DeploymentConfig
+from elasticai_explorer.config import DeploymentConfig
 
 
 class SSHException(Exception):
     pass
 
 
-class Host:
+class Host(ABC):
+    @abstractmethod
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        pass
+
+    @abstractmethod
+    def put_file(self, local_path: str, remote_path: str | None) -> str:
+        pass
+
+    @abstractmethod
+    def run_command(self, command: str) -> str:
+        pass
+
+
+class RPIHost:
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.host_name = deploy_cfg.target_name
         self.user = deploy_cfg.target_user

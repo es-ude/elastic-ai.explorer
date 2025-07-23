@@ -1,17 +1,17 @@
 import os
 import torch
-from elasticai.explorer.hw_nas import search_space
-from elasticai.explorer.config import HWNASConfig, DeploymentConfig
-from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
+from elasticai_explorer.hw_nas import search_space
+from elasticai_explorer.config import HWNASConfig, DeploymentConfig
+from elasticai_explorer.explorer import Explorer
+from elasticai_explorer.hw_nas.search_space.construct_sp import (
     CombinedSearchSpace,
     yml_to_dict,
 )
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai_explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai_explorer.platforms.deployment.compiler import RPICompiler
+from elasticai_explorer.platforms.generator.model_compiler import TorchscriptCompiler
+from elasticai_explorer.platforms.deployment.device_communication import RPIHost
+from elasticai_explorer.platforms.deployment.manager import PIHWManager
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import sample_MLP
 from pathlib import Path
@@ -26,13 +26,13 @@ class TestHWNasSetupAndSearch:
     def setUp(self):
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
-            HWPlatform(
+            Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PIGenerator,
+                TorchscriptCompiler,
                 PIHWManager,
-                Host,
-                Compiler,
+                RPIHost,
+                RPICompiler,
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository)
@@ -48,10 +48,10 @@ class TestHWNasSetupAndSearch:
     def test_search(self):
         self.setUp()
         search_space = yml_to_dict(
-            Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+            Path("elasticai_explorer/hw_nas/search_space/search_space.yml")
         )
         search_space = CombinedSearchSpace(search_space)
-        self.RPI5explorer.generate_search_space(search_space) # type: ignore
+        self.RPI5explorer.generate_search_space(search_space)  # type: ignore
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
         assert len(top_k_models) == 2
 

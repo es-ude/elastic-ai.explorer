@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
-from elasticai.explorer.platforms.deployment.manager import (
+from elasticai_explorer.platforms.deployment.manager import (
     CommandBuilder,
     PIHWManager,
     CONTEXT_PATH,

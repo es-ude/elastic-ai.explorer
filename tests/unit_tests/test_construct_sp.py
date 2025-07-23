@@ -4,7 +4,7 @@ import yaml
 from nni.nas.execution import SequentialExecutionEngine
 from torch import nn
 
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
+from elasticai_explorer.hw_nas.search_space.construct_sp import (
     calculate_conv_output_shape,
     SearchSpace,
     CombinedSearchSpace,

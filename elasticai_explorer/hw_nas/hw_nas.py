@@ -13,9 +13,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import HWNASConfig
-from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
-from elasticai.explorer.trainer import MLPTrainer
+from elasticai_explorer.config import HWNASConfig
+from elasticai_explorer.hw_nas.cost_estimator import FlopsEstimator
+from elasticai_explorer.trainer import MLPTrainer
 
 logger = logging.getLogger("explorer.nas")
 

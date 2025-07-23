@@ -3,18 +3,18 @@ from pathlib import Path
 from typing import Type
 import numpy as np
 
-from elasticai.explorer import utils
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import HWManager
-from elasticai.explorer.platforms.generator.generator import Generator
+from elasticai_explorer import utils
+from elasticai_explorer.platforms.deployment.compiler import Compiler
+from elasticai_explorer.platforms.deployment.device_communication import Host
+from elasticai_explorer.platforms.deployment.manager import HWManager
+from elasticai_explorer.platforms.generator.model_compiler import ModelCompiler
 
 
 @dataclass
-class HWPlatform:
+class Generator:
     name: str
     info: str
-    model_generator: Type[Generator]
+    model_generator: Type[ModelCompiler]
     platform_manager: Type[HWManager]
     communication_protocol: Type[Host]
     compiler: Type[Compiler]
@@ -22,13 +22,13 @@ class HWPlatform:
 
 class KnowledgeRepository:
     def __init__(self):
-        self.supported_hw_platforms = {}
+        self.supported_generators = {}
 
-    def register_hw_platform(self, platform: HWPlatform):
-        self.supported_hw_platforms[platform.name] = platform
+    def register_hw_platform(self, generator: Generator):
+        self.supported_generators[generator.name] = generator
 
-    def fetch_hw_info(self, name: str) -> HWPlatform:
-        return self.supported_hw_platforms[name]
+    def fetch_hw_info(self, name: str) -> Generator:
+        return self.supported_generators[name]
 
 
 class Metrics:

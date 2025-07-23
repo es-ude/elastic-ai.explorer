@@ -1,14 +1,33 @@
+from abc import ABC, abstractmethod
 import logging
 from pathlib import Path
 
 from python_on_whales import docker
 
-from elasticai.explorer.config import DeploymentConfig
+from elasticai_explorer.config import DeploymentConfig
 
 
-class Compiler:
+class Compiler(ABC):
+    @abstractmethod
     def __init__(self, deploy_cfg: DeploymentConfig):
-        self.logger = logging.getLogger("Compiler")
+        pass
+
+    @abstractmethod
+    def is_setup(self) -> bool:
+        pass
+
+    @abstractmethod
+    def setup(self) -> None:
+        pass
+
+    @abstractmethod
+    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
+        pass
+
+
+class RPICompiler(Compiler):
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        self.logger = logging.getLogger("RPICompiler")
         self.tag: str = deploy_cfg.docker.compiler_tag  # "cross"
         self.path_to_dockerfile: Path = Path(
             deploy_cfg.docker.path_to_dockerfile
@@ -27,7 +46,7 @@ class Compiler:
         docker.build(self.context_path, file=self.path_to_dockerfile, tags=self.tag)
         self.logger.debug("Crosscompiler available now.")
 
-    def compile_code(self, name_of_executable: str, sourcecode_filename: str):
+    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
         docker.build(
             self.context_path,
             file=self.context_path / "Dockerfile.loader",
@@ -37,7 +56,6 @@ class Compiler:
                 "PROGRAM_CODE": sourcecode_filename,
                 "HOST_LIBTORCH_PATH": str(self.libtorch_path),
             },
-            cache=False,
         )
         path_to_executable = self.context_path / "bin" / name_of_executable
         self.logger.info(

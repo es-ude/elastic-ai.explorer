@@ -10,28 +10,28 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
-from elasticai.explorer.data_to_csv import build_search_space_measurements_file
-from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
+from elasticai_explorer.config import DeploymentConfig, HWNASConfig
+from elasticai_explorer.data_to_csv import build_search_space_measurements_file
+from elasticai_explorer.explorer import Explorer
+from elasticai_explorer.hw_nas.search_space.construct_sp import (
     yml_to_dict,
     CombinedSearchSpace,
 )
-from elasticai.explorer.knowledge_repository import (
+from elasticai_explorer.knowledge_repository import (
     KnowledgeRepository,
-    HWPlatform,
+    Generator,
     Metrics,
 )
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import (
+from elasticai_explorer.platforms.deployment.compiler import RPICompiler
+from elasticai_explorer.platforms.deployment.device_communication import RPIHost
+from elasticai_explorer.platforms.deployment.manager import (
     PIHWManager,
     Metric,
 )
-from elasticai.explorer.platforms.generator.generator import (
-    PIGenerator,
+from elasticai_explorer.platforms.generator.model_compiler import (
+    TorchscriptCompiler,
 )
-from elasticai.explorer.trainer import MLPTrainer
+from elasticai_explorer.trainer import MLPTrainer
 
 nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -42,24 +42,24 @@ logger = logging.getLogger("explorer.main")
 def setup_knowledge_repository_pi() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
-        HWPlatform(
+        Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            PIGenerator,
+            TorchscriptCompiler,
             PIHWManager,
-            Host,
-            Compiler,
+            RPIHost,
+            RPICompiler,
         )
     )
 
     knowledge_repository.register_hw_platform(
-        HWPlatform(
+        Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            PIGenerator,
+            TorchscriptCompiler,
             PIHWManager,
-            Host,
-            Compiler,
+            RPIHost,
+            RPICompiler,
         )
     )
 
@@ -190,15 +190,13 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
     explorer.choose_target_hw(deploy_cfg)
-    search_space = yml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
-    )
+    search_space = yml_to_dict(Path("hw_nas/search_space/search_space.yml"))
     search_space = CombinedSearchSpace(search_space)
 
     find_generate_measure_for_pi(explorer, deploy_cfg, hwnas_cfg, search_space)
 
     # search_space = yml_to_dict(
-    #     Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    #     Path("explorer/hw_nas/search_space/search_space.yml")
     # )
     # search_space = CombinedSearchSpace(search_space)
     # search_models(explorer, hwnas_cfg, search_space)

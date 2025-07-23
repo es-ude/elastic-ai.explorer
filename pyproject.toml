@@ -52,8 +52,9 @@ markers = [
   "simulation: possibly slow running integration tests including hw simulation"
 ]
 testpaths = [
-    "elasticai",
+    "explorer",
     "tests",
+    "examples"
 ]
 python_files = ["*_test.py", "test_*.py"]
 addopts = [
