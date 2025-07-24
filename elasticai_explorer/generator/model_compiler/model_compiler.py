@@ -8,6 +8,7 @@ import torch
 from torch import nn
 
 from elasticai.creator.torch2ir.torch2ir import get_default_converter
+from elasticai.creator.ir2vhdl.ir2vhdl import Ir2Vhdl
 
 
 class QuantizationSchemes(str, Enum):
@@ -26,11 +27,11 @@ class ModelCompiler(ABC):
         pass
 
     def get_supported_layers(self) -> Optional[set[type]]:
-        """Override if necessary. None means no constraints."""
+        """Override if necessary. "None" means no constraints."""
         return None
 
     def get_supported_quantization_schemes(self) -> Optional[set[QuantizationSchemes]]:
-        """Override if necessary. None means no constraints."""
+        """Override if necessary. "None" means no constraints."""
         return None
 
     def _validate_model(
@@ -102,8 +103,12 @@ class CreatorModelCompiler(ModelCompiler):
     ):
 
         self._validate_model(model, quantization_scheme)
+        model = model
         default_converter = get_default_converter()
         ir = default_converter.convert(model)
+        #ir2Vhdl = Ir2Vhdl(ir)
+        #ir2Vhdl.register_iterable()
+    
 
     def get_supported_layers(self) -> Optional[set[type]]:
         return {
