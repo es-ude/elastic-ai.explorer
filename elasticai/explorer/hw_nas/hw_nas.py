@@ -22,12 +22,14 @@ from elasticai.explorer.trainer import MLPTrainer
 logger = logging.getLogger("explorer.nas")
 
 
-def objective_wrapper(trial: optuna.Trial, search_space_cfg: dict[str, Any], device: str) -> float:
+def objective_wrapper(
+    trial: optuna.Trial, search_space_cfg: dict[str, Any], device: str
+) -> float:
 
     def objective(trial: optuna.Trial) -> float:
         global accuracy
         flops_weight = 3.0  # TODO: make configurable
-        n_epochs = 2    # TODO: make configurable
+        n_epochs = 2  # TODO: make configurable
 
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
@@ -38,7 +40,8 @@ def objective_wrapper(trial: optuna.Trial, search_space_cfg: dict[str, Any], dev
             shuffle=True,
         )
         test_loader = DataLoader(
-            MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
+            MNIST("data/mnist", download=True, train=False, transform=transf),
+            batch_size=64,
         )
 
         search_space = SearchSpace(search_space_cfg)
@@ -55,11 +58,13 @@ def objective_wrapper(trial: optuna.Trial, search_space_cfg: dict[str, Any], dev
 
             metric["accuracy"] = trainer.test(model, test_loader)
 
-            metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
+            metric["default"] = metric["accuracy"] - (
+                metric["flops log10"] * flops_weight
+            )
             trial.report(metric["default"], epoch)  # TODO: report accuracy, too
 
-        return metric["default"]    # TODO: report accuracy, too
-    
+        return metric["default"]  # TODO: report accuracy, too
+
     return objective(trial)
 
 
@@ -75,9 +80,20 @@ def search(
         direction="maximize",
     )
     study.optimize(
-        partial(objective_wrapper, search_space_cfg=search_space, device=hwnas_cfg.host_processor),
-        callbacks=[MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,TrialState.RUNNING, TrialState.WAITING))],
-        n_jobs=(os.cpu_count() // 4),  # TODO: Use user defined portion of the available CPU cores
+        partial(
+            objective_wrapper,
+            search_space_cfg=search_space,
+            device=hwnas_cfg.host_processor,
+        ),
+        callbacks=[
+            MaxTrialsCallback(
+                hwnas_cfg.max_search_trials,
+                states=(TrialState.COMPLETE, TrialState.RUNNING, TrialState.WAITING),
+            )
+        ],
+        n_jobs=(
+            os.cpu_count() // 4
+        ),  # TODO: Use user defined portion of the available CPU cores
         show_progress_bar=True,
     )
 
@@ -86,14 +102,18 @@ def search(
     # best_metrics = study.best_value
 
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
-    eval: Callable[[FrozenTrial], float] = lambda trial: trial.value if trial.value is not None else float("-inf")
+
+    eval: Callable[[FrozenTrial], float] = lambda trial: (
+        trial.value if trial.value is not None else float("-inf")
+    )
     test_results.sort(key=eval, reverse=True)
 
-    top_k_models = test_results[:hwnas_cfg.top_n_models]
+    top_k_models = test_results[: hwnas_cfg.top_n_models]
+
     if len(top_k_models) == 0:
         logger.warning("No models found in the search space.")
         return [], {}, []
-    
+
     top_k_model_numbers: list[int] = []
     top_k_params: dict[str, Any] = {}
     top_k_metrics: list[float] = []
@@ -104,4 +124,3 @@ def search(
         top_k_metrics.append(eval(model))
 
     return top_k_models, top_k_params, top_k_metrics
-
