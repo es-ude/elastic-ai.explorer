@@ -57,6 +57,7 @@ class SearchSpace:
         self.input_shape = self.search_space_cfg["input"]
         for block in self.blocks:
             self.create_block(trial, block)
+        # TODO: Add output layer
         return nn.Sequential(*self.layers)
 
 

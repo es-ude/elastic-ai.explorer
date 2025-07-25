@@ -10,6 +10,7 @@ from optuna.study import MaxTrialsCallback
 
 from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 
+import torch
 from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
@@ -69,7 +70,7 @@ def objective_wrapper(
 
 
 def search(
-    search_space: Any, hwnas_cfg: HWNASConfig
+    search_space_cfg: Any, hwnas_cfg: HWNASConfig
 ) -> tuple[list[Any], dict[str, Any], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -82,7 +83,7 @@ def search(
     study.optimize(
         partial(
             objective_wrapper,
-            search_space_cfg=search_space,
+            search_space_cfg=search_space_cfg,
             device=hwnas_cfg.host_processor,
         ),
         callbacks=[
@@ -92,14 +93,19 @@ def search(
             )
         ],
         n_jobs=(
-            os.cpu_count() // 4
+            math.floor(os.cpu_count() / 8) # type: ignore
         ),  # TODO: Use user defined portion of the available CPU cores
         show_progress_bar=True,
     )
 
+    # FIXME: Put this example outside of the search function
     # best_model = study.best_trial
     # best_parameters = study.best_params
     # best_metrics = study.best_value
+    # search_space = SearchSpace(search_space_cfg)
+    # model = search_space.create_model_sample(best_model)
+    # input = torch.randn(1, 1, 28, 28).to(hwnas_cfg.host_processor)
+    # result = model(input)
 
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
 

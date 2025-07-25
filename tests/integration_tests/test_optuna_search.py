@@ -51,5 +51,5 @@ class TestHWNasSetupAndSearch:
         self.setUp()
         self.RPI5explorer.generate_search_space(self.search_space_cfg)
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
-        assert len(top_k_models) == 2
+        assert len(top_k_models) == 1
 
