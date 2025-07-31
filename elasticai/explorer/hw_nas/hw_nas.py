@@ -1,17 +1,13 @@
 import logging
 import math
-import os
 from typing import Any, Callable
 from functools import partial
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
-
-from elasticai.explorer import hw_nas
 from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 
-import torch
 from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
@@ -64,17 +60,17 @@ def objective_wrapper(
             metric["default"] = metric["accuracy"] - (
                 metric["flops log10"] * flops_weight
             )
-            trial.report(metric["default"], epoch)  # TODO: report accuracy, too
+            trial.report(metric["default"], epoch)
         trial.set_user_attr("accuracy", metric["accuracy"])
         trial.set_user_attr("flops_log10", metric["flops log10"])
-        return metric["default"]  # TODO: report accuracy, too
+        return metric["default"]
 
     return objective(trial)
 
 
 def search(
-    search_space_cfg: Any, hwnas_cfg: HWNASConfig
-) -> tuple[list[Any], dict[str, Any], list[Any]]:
+    search_space_cfg: dict, hwnas_cfg: HWNASConfig
+) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
@@ -102,15 +98,6 @@ def search(
         show_progress_bar=True,
     )
 
-    # FIXME: Put this example outside of the search function
-    # best_model = study.best_trial
-    # best_parameters = study.best_params
-    # best_metrics = study.best_value
-    # search_space = SearchSpace(search_space_cfg)
-    # model = search_space.create_model_sample(best_model)
-    # input = torch.randn(1, 1, 28, 28).to(hwnas_cfg.host_processor)
-    # result = model(input)
-
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
 
     eval: Callable[[FrozenTrial], float] = lambda trial: (
@@ -122,15 +109,16 @@ def search(
 
     if len(top_k_models) == 0:
         logger.warning("No models found in the search space.")
-        return [], {}, []
+        return [], [], []
 
-    top_k_model_numbers: list[int] = []
-    top_k_params: dict[str, Any] = {}
+    top_k_model_numbers: list[Any] = []
+    top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
+    search_space = SearchSpace(search_space_cfg)
 
     for model in top_k_models:
-        top_k_model_numbers.append(model.number)
-        top_k_params.update(model.params)
+        top_k_model_numbers.append(search_space.create_model_sample(model))
+        top_k_params.append(model.params)
         top_k_metrics.append(
             {
                 "default": eval(model),

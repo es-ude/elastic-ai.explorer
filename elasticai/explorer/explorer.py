@@ -37,7 +37,7 @@ class Explorer:
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
         self.generator: Optional[Generator] = None
         self.hw_manager: Optional[HWManager] = None
-        self.search_space: Optional[dict] = None
+        self.search_space_cfg: Optional[dict] = None
         self.model_cfg: Optional[ModelConfig] = None
 
         if not experiment_name:
@@ -86,10 +86,9 @@ class Explorer:
         self.model_cfg = model_cfg
         self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
-    def generate_search_space(self, search_space):
-
-        self.search_space = search_space
-        self.logger.info("Generated search space:\n %s", self.search_space)
+    def generate_search_space(self, search_space: dict):
+        self.search_space_cfg = search_space
+        self.logger.info("Generated search space:\n %s", self.search_space_cfg)
 
     def search(self, hwnas_cfg: HWNASConfig) -> list[Any]:
 
@@ -98,10 +97,15 @@ class Explorer:
             hwnas_cfg.max_search_trials,
             hwnas_cfg.top_n_models,
         )
-
-        top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space, hwnas_cfg
-        )
+        if self.search_space_cfg:
+            top_models, model_parameters, metrics = hw_nas.search(
+                self.search_space_cfg, hwnas_cfg
+            )
+        else:
+            self.logger.error(
+                "Generate a searchspace before starting the HW-NAS with Explorer.search()!"
+            )
+            exit(-1)
 
         utils.save_list_to_json(
             model_parameters, path_to_dir=self._model_dir, filename="models.json"
