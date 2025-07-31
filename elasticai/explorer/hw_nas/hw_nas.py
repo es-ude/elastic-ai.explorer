@@ -71,7 +71,7 @@ def objective_wrapper(
 
 def search(
     search_space_cfg: Any, hwnas_cfg: HWNASConfig
-) -> tuple[list[Any], dict[str, Any], list[Any]]:
+) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
@@ -93,19 +93,12 @@ def search(
             )
         ],
         n_jobs=(
-            math.floor(os.cpu_count() / 8) # type: ignore
+            math.floor(os.cpu_count() / 8)  # type: ignore
         ),  # TODO: Use user defined portion of the available CPU cores
         show_progress_bar=True,
     )
 
-    # FIXME: Put this example outside of the search function
-    # best_model = study.best_trial
-    # best_parameters = study.best_params
-    # best_metrics = study.best_value
-    # search_space = SearchSpace(search_space_cfg)
-    # model = search_space.create_model_sample(best_model)
-    # input = torch.randn(1, 1, 28, 28).to(hwnas_cfg.host_processor)
-    # result = model(input)
+   
 
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
 
@@ -118,15 +111,17 @@ def search(
 
     if len(top_k_models) == 0:
         logger.warning("No models found in the search space.")
-        return [], {}, []
+        return [], [], []
 
-    top_k_model_numbers: list[int] = []
-    top_k_params: dict[str, Any] = {}
+    top_k_model_numbers: list[Any] = []
+    top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[float] = []
 
+    search_space = SearchSpace(search_space_cfg)
+
     for model in top_k_models:
-        top_k_model_numbers.append(model.number)
-        top_k_params.update(model.params)
+        top_k_model_numbers.append(search_space.create_model_sample(model))
+        top_k_params.append(model.params)
         top_k_metrics.append(eval(model))
 
     return top_k_models, top_k_params, top_k_metrics
