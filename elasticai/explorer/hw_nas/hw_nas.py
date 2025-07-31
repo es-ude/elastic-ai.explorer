@@ -69,7 +69,7 @@ def objective_wrapper(
 
 
 def search(
-    search_space_cfg: Any, hwnas_cfg: HWNASConfig
+    search_space_cfg: dict, hwnas_cfg: HWNASConfig
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
