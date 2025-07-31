@@ -68,7 +68,6 @@ def objective_wrapper(
         trial.set_user_attr("accuracy", metric["accuracy"])
         trial.set_user_attr("flops_log10", metric["flops log10"])
         return metric["default"]  # TODO: report accuracy, too
-    
 
     return objective(trial)
 
@@ -98,6 +97,7 @@ def search(
                 states=(TrialState.COMPLETE, TrialState.RUNNING, TrialState.WAITING),
             )
         ],
+        n_trials=math.ceil(hwnas_cfg.max_search_trials / hwnas_cfg.n_cpu_cores),
         n_jobs=(hwnas_cfg.n_cpu_cores),
         show_progress_bar=True,
     )
@@ -131,9 +131,12 @@ def search(
     for model in top_k_models:
         top_k_model_numbers.append(model.number)
         top_k_params.update(model.params)
-        top_k_metrics.append({"default": eval(model), "accuracy": model.user_attrs["accuracy"], "flops log10": model.user_attrs["flops_log10"]})
-
-        
-
+        top_k_metrics.append(
+            {
+                "default": eval(model),
+                "accuracy": model.user_attrs["accuracy"],
+                "flops log10": model.user_attrs["flops_log10"],
+            }
+        )
 
     return top_k_models, top_k_params, top_k_metrics
