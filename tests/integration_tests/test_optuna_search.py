@@ -1,13 +1,12 @@
 from functools import partial
 import optuna
-import pytest
 import torch
 from optuna.study import MaxTrialsCallback
 from optuna.trial import TrialState
-import yaml
 
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.hw_nas import objective_wrapper
 from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace, yml_to_dict
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -50,6 +49,7 @@ class TestFrozenTrialToModel:
         self.search_space_cfg = yml_to_dict(
             Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
         )
+        self.search_space = SearchSpace(self.search_space_cfg)
 
     def test_frozentrial_to_model(self):
         study = optuna.create_study(
@@ -78,12 +78,19 @@ class TestFrozenTrialToModel:
             n_trials=self.hwnas_cfg.max_search_trials,
             show_progress_bar=True,
         )
-
         best_model = study.best_trial
-        search_space = SearchSpace(self.search_space_cfg)
-        model = search_space.create_model_sample(best_model)
+        model = self.search_space.create_model_sample(best_model)
         input = torch.randn(1, 1, 28, 28).to(self.hwnas_cfg.host_processor)
         model.eval()
         model.to(self.hwnas_cfg.host_processor)
         result = model(input)
         assert len(result[0]) == 10
+
+    def test_hw_nas_search(self):
+        top_models, model_parameters, metrics = hw_nas.search(
+            self.search_space_cfg, self.hwnas_cfg
+        )
+        assert len(top_models) == 2
+        assert len(model_parameters) == 2
+        assert len(metrics) == 2
+        assert type(metrics[0]["accuracy"]) is float

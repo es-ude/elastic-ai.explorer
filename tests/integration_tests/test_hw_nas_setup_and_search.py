@@ -57,3 +57,7 @@ class TestHWNasSetupAndSearch:
             type(torch.jit.load(self.RPI5explorer.model_dir / self.model_name))
             == torch.jit._script.RecursiveScriptModule  # type: ignore
         )
+    def test_search(self):
+        self.RPI5explorer.generate_search_space(self.search_space_cfg)
+        top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
+        assert len(top_k_models) == 2
