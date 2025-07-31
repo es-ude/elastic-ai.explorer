@@ -65,8 +65,10 @@ def objective_wrapper(
                 metric["flops log10"] * flops_weight
             )
             trial.report(metric["default"], epoch)  # TODO: report accuracy, too
-
+        trial.set_user_attr("accuracy", metric["accuracy"])
+        trial.set_user_attr("flops_log10", metric["flops log10"])
         return metric["default"]  # TODO: report accuracy, too
+    
 
     return objective(trial)
 
@@ -124,11 +126,14 @@ def search(
 
     top_k_model_numbers: list[int] = []
     top_k_params: dict[str, Any] = {}
-    top_k_metrics: list[float] = []
+    top_k_metrics: list[dict] = []
 
     for model in top_k_models:
         top_k_model_numbers.append(model.number)
         top_k_params.update(model.params)
-        top_k_metrics.append(eval(model))
+        top_k_metrics.append({"default": eval(model), "accuracy": model.user_attrs["accuracy"], "flops log10": model.user_attrs["flops_log10"]})
+
+        
+
 
     return top_k_models, top_k_params, top_k_metrics
