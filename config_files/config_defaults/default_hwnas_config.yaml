@@ -2,4 +2,7 @@ HWNASConfig:
   host_processor: "auto" 
   max_search_trials: 1
   top_n_models: 1
+  n_cpu_cores: 1
+  n_estimation_epochs: 3
+  flops_weight: 2
 
