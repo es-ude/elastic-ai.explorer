@@ -76,7 +76,9 @@ class HWNASConfig(Config):
             self.host_processor = "cuda" if torch.cuda.is_available() else "cpu"
         self.max_search_trials: int = self._parse_optional("max_search_trials", 6)
         self.top_n_models: int = self._parse_optional("top_n_models", 2)
-
+        self.n_cpu_cores: int = self._parse_optional("n_cpu_cores", 1)
+        self.n_estimation_epochs: int = self._parse_optional("n_estimation_epochs", 3)
+        self.flops_weight: float = self._parse_optional("flops_weight", 2.0)
 
 class DeploymentConfig(Config):
     """The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it."""

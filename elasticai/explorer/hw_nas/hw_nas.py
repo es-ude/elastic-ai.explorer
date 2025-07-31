@@ -8,6 +8,7 @@ import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 
+from elasticai.explorer import hw_nas
 from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 
 import torch
@@ -24,13 +25,14 @@ logger = logging.getLogger("explorer.nas")
 
 
 def objective_wrapper(
-    trial: optuna.Trial, search_space_cfg: dict[str, Any], device: str
+    trial: optuna.Trial,
+    search_space_cfg: dict[str, Any],
+    device: str,
+    n_estimation_epochs: int,
+    flops_weight: float,
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
-        global accuracy
-        flops_weight = 3.0  # TODO: make configurable
-        n_epochs = 2  # TODO: make configurable
 
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
@@ -54,7 +56,7 @@ def objective_wrapper(
         flops = flops_estimator.estimate_flops(model, sample)
         metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
 
-        for epoch in range(n_epochs):
+        for epoch in range(n_estimation_epochs):
             trainer.train_epoch(model, train_loader, epoch)
 
             metric["accuracy"] = trainer.test(model, test_loader)
@@ -85,6 +87,8 @@ def search(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
             device=hwnas_cfg.host_processor,
+            n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
+            flops_weight=hwnas_cfg.flops_weight,
         ),
         callbacks=[
             MaxTrialsCallback(
@@ -92,9 +96,7 @@ def search(
                 states=(TrialState.COMPLETE, TrialState.RUNNING, TrialState.WAITING),
             )
         ],
-        n_jobs=(
-            math.floor(os.cpu_count() / 8) # type: ignore
-        ),  # TODO: Use user defined portion of the available CPU cores
+        n_jobs=(hwnas_cfg.n_cpu_cores),
         show_progress_bar=True,
     )
 
