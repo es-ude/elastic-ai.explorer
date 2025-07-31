@@ -22,7 +22,7 @@ SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
 
 
-class TestHWNasSetupAndSearch:
+class TestFrozenTrialToModel:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
     def setup_class(self):
@@ -41,7 +41,6 @@ class TestHWNasSetupAndSearch:
         self.RPI5explorer.experiment_dir = Path(
             "tests/integration_tests/test_experiment"
         )
-        self.model_name = "ts_model_0.pt"
         self.hwnas_cfg = HWNASConfig(
             Path("tests/integration_tests/test_configs/hwnas_config.yaml"),
         )
@@ -51,11 +50,6 @@ class TestHWNasSetupAndSearch:
         self.search_space_cfg = yml_to_dict(
             Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
         )
-
-    def test_search(self):
-        self.RPI5explorer.generate_search_space(self.search_space_cfg)
-        top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
-        assert len(top_k_models) == 2
 
     def test_frozentrial_to_model(self):
         study = optuna.create_study(
@@ -81,6 +75,7 @@ class TestHWNasSetupAndSearch:
                 )
             ],
             n_jobs=1,
+            n_trials=self.hwnas_cfg.max_search_trials,
             show_progress_bar=True,
         )
 

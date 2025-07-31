@@ -1,18 +1,13 @@
 import logging
 import math
-import os
 from typing import Any, Callable
 from functools import partial
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
-
-from elasticai.explorer import hw_nas
-from elasticai.explorer.hw_nas import search_space
 from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 
-import torch
 from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
@@ -65,10 +60,10 @@ def objective_wrapper(
             metric["default"] = metric["accuracy"] - (
                 metric["flops log10"] * flops_weight
             )
-            trial.report(metric["default"], epoch)  # TODO: report accuracy, too
+            trial.report(metric["default"], epoch)
         trial.set_user_attr("accuracy", metric["accuracy"])
         trial.set_user_attr("flops_log10", metric["flops log10"])
-        return metric["default"]  # TODO: report accuracy, too
+        return metric["default"]
 
     return objective(trial)
 
@@ -102,8 +97,6 @@ def search(
         n_jobs=(hwnas_cfg.n_cpu_cores),
         show_progress_bar=True,
     )
-
-   
 
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
 

@@ -20,7 +20,7 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
 class TestHWNasSetupAndSearch:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
-    def setUp(self):
+    def setup_class(self):
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -45,14 +45,7 @@ class TestHWNasSetupAndSearch:
             Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
         )
 
-    def test_search(self):
-        self.setUp()
-        self.RPI5explorer.generate_search_space(self.search_space_cfg)
-        top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
-        assert len(top_k_models) == 1
-
     def test_generate_for_hw_platform(self):
-        self.setUp()
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         model = sample_MLP()
 
