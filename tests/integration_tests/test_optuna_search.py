@@ -67,6 +67,8 @@ class TestHWNasSetupAndSearch:
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
                 device=self.hwnas_cfg.host_processor,
+                n_estimation_epochs=self.hwnas_cfg.n_estimation_epochs,
+                flops_weight=self.hwnas_cfg.flops_weight,
             ),
             callbacks=[
                 MaxTrialsCallback(
@@ -90,4 +92,3 @@ class TestHWNasSetupAndSearch:
         model.to(self.hwnas_cfg.host_processor)
         result = model(input)
         assert len(result[0]) == 10
-     

@@ -10,3 +10,12 @@ HWNASConfig:
   #The number of top models returned by HW-NAS.
   top_n_models: 2
 
+  # The number of CPU-cores used to run the HW-NAS.
+  n_cpu_cores: 1
+
+  # The number of training epochs for accuracy estimation.
+  n_estimation_epochs: 2
+
+  # The weight of the FLOPs-Estimation for the Proxymetric.
+  # proxy_metric = accuracy_estimation - log10(flops_estimation) * flops_weight
+  flops_weight: 2

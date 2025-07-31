@@ -9,6 +9,7 @@ license = "LICENSE"
 requires-python = ">=3.11"
 dependencies = [
     "fabric>=3.2.2",
+    "fvcore>=0.1.5.post20221221",
     "matplotlib>=3.10.1",
     "optuna>=4.4.0",
     "plotly>=6.0.1",
