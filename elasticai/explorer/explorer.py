@@ -1,17 +1,17 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any, Type
+from typing import Optional, Any
 from torch import nn
-from torch.nn import Module
 
 from elasticai.explorer import utils
 from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
+from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
-from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -86,8 +86,8 @@ class Explorer:
         self.model_cfg = model_cfg
         self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
 
-    def generate_search_space(self, search_space: dict):
-        self.search_space_cfg = search_space
+    def generate_search_space(self, path_to_searchspace_yaml: Path):
+        self.search_space_cfg = yaml_to_dict(path_to_searchspace_yaml)
         self.logger.info("Generated search space:\n %s", self.search_space_cfg)
 
     def search(self, hwnas_cfg: HWNASConfig) -> list[Any]:

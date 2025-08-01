@@ -105,25 +105,25 @@ def search(
     )
     test_results.sort(key=eval, reverse=True)
 
-    top_k_models = test_results[: hwnas_cfg.top_n_models]
+    top_k_frozen_trials = test_results[: hwnas_cfg.top_n_models]
 
-    if len(top_k_models) == 0:
+    if len(top_k_frozen_trials) == 0:
         logger.warning("No models found in the search space.")
         return [], [], []
 
-    top_k_model_numbers: list[Any] = []
+    top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
     search_space = SearchSpace(search_space_cfg)
 
-    for model in top_k_models:
-        top_k_model_numbers.append(search_space.create_model_sample(model))
-        top_k_params.append(model.params)
+    for frozen_trial in top_k_frozen_trials:
+        top_k_models.append(search_space.create_model_sample(frozen_trial))
+        top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
-                "default": eval(model),
-                "accuracy": model.user_attrs["accuracy"],
-                "flops log10": model.user_attrs["flops_log10"],
+                "default": eval(frozen_trial),
+                "accuracy": frozen_trial.user_attrs["accuracy"],
+                "flops log10": frozen_trial.user_attrs["flops_log10"],
             }
         )
 

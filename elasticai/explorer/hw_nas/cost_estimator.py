@@ -1,11 +1,9 @@
-
-import torch
-
 import torch
 from fvcore.nn import FlopCountAnalysis
-class FlopsEstimator:
-    """Wrapper for FlopsProfiler could extend in future"""
 
+
+class FlopsEstimator:
+    """Wrapper for FlopsProfiler"""
 
     def estimate_flops(self, model: torch.nn.Module, data_sample) -> int:
         """Computes FLOPS for a single module.
@@ -16,16 +14,7 @@ class FlopsEstimator:
         Returns:
             int: The FLOPS-estimate
         """
-        
 
-
-        # Compute FLOPs
         flops = FlopCountAnalysis(model, data_sample)
-        print("Total FLOPs:", flops.total())
-        print("FLOPs by operation:", flops.by_operator())
 
-        # register_flops_formula(nn.Linear, linear_flops)
-        # profiler = FlopsProfiler(model, data_sample)
-
-        # return float(profiler.expression)
-        return flops.total()  
+        return flops.total()

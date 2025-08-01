@@ -3,7 +3,10 @@ import torch
 from elasticai.explorer.hw_nas import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace, yml_to_dict
+from elasticai.explorer.hw_nas.search_space.construct_sp import (
+    SearchSpace,
+    yaml_to_dict,
+)
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.generator.generator import PIGenerator
@@ -37,12 +40,11 @@ class TestHWNasSetupAndSearch:
             "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.hwnas_cfg = HWNASConfig()
+        self.hwnas_cfg = HWNASConfig(
+            Path("tests/integration_tests/test_configs/hwnas_config.yaml")
+        )
         self.deploy_cfg = DeploymentConfig(
             Path("tests/integration_tests/test_configs/deployment_config.yaml")
-        )
-        self.search_space_cfg = yml_to_dict(
-            Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
         )
 
     def test_generate_for_hw_platform(self):
@@ -57,7 +59,8 @@ class TestHWNasSetupAndSearch:
             type(torch.jit.load(self.RPI5explorer.model_dir / self.model_name))
             == torch.jit._script.RecursiveScriptModule  # type: ignore
         )
+
     def test_search(self):
-        self.RPI5explorer.generate_search_space(self.search_space_cfg)
+        self.RPI5explorer.generate_search_space(Path("elasticai/explorer/hw_nas/search_space/search_space.yml"))
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
         assert len(top_k_models) == 2

@@ -8,7 +8,10 @@ from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.hw_nas import objective_wrapper
-from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace, yml_to_dict
+from elasticai.explorer.hw_nas.search_space.construct_sp import (
+    SearchSpace,
+    yaml_to_dict,
+)
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.generator.generator import PIGenerator
@@ -46,8 +49,8 @@ class TestFrozenTrialToModel:
         self.deploy_cfg = DeploymentConfig(
             Path("tests/integration_tests/test_configs/deployment_config.yaml")
         )
-        self.search_space_cfg = yml_to_dict(
-            Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+        self.search_space_cfg = yaml_to_dict(
+            Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
         self.search_space = SearchSpace(self.search_space_cfg)
 

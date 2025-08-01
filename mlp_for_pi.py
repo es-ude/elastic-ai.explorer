@@ -13,8 +13,7 @@ from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.search_space.construct_sp import (
-    yml_to_dict,
-    CombinedSearchSpace,
+    yaml_to_dict,
 )
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
@@ -65,7 +64,6 @@ def find_generate_measure_for_pi(
     hwnas_cfg: HWNASConfig,
 ) -> Metrics:
     explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space()
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
@@ -125,10 +123,9 @@ def find_generate_measure_for_pi(
     )
 
 
-def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: ModelSpace):
+def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig):
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
@@ -167,8 +164,8 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
-    search_space = yml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    search_space_cfg = explorer.generate_search_space(
+        Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
     )
-    search_space = CombinedSearchSpace(search_space)
-    search_models(explorer, hwnas_cfg, search_space)
+
+    search_models(explorer, hwnas_cfg)
