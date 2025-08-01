@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 import torch
 import yaml
@@ -138,7 +139,7 @@ blocks:
     def test_construct_mixed_sp_multiple_blocks(
         self, search_space_dict_mult_blocks, op_1, op_2
     ):
-        search_space = CombinedSearchSpace(search_space_dict_mult_blocks)
+        search_space = SearchSpace(search_space_dict_mult_blocks)
         x = torch.randn(5, 1, 28, 28)
 
         sample_model = search_space.freeze(
@@ -227,6 +228,6 @@ blocks:
 
 
 def objective(trial):
-    search_space = yaml_to_dict("search_space.yml")
+    search_space = yaml_to_dict(Path("elasticai/explorer/hw_nas/search_space/search_space.yaml"))
     search_space = SearchSpace(search_space)
     return search_space.create_model_sample(trial)

@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 import torch
 from optuna import trial, Trial
 from optuna.trial import FixedTrial
@@ -100,13 +101,13 @@ class SearchSpace:
 
 
 def objective(trial):
-    search_space = yaml_to_dict("search_space.yml")
+    search_space = yaml_to_dict(Path("elasticai/explorer/hw_nas/search_space/search_space.yaml"))
     search_space = SearchSpace(search_space)
     return search_space.create_model_sample(trial)
 
 
 if __name__ == "__main__":
-    search_space = yaml_to_dict("search_space.yml")
+    search_space = yaml_to_dict(Path("elasticai/explorer/hw_nas/search_space/search_space.yaml"))
     search_space = SearchSpace(search_space)
     sample = {
         "num_layers_b1": 2,

@@ -61,6 +61,6 @@ class TestHWNasSetupAndSearch:
         )
 
     def test_search(self):
-        self.RPI5explorer.generate_search_space(Path("elasticai/explorer/hw_nas/search_space/search_space.yml"))
+        self.RPI5explorer.generate_search_space(Path("elasticai/explorer/hw_nas/search_space/search_space.yaml"))
         top_k_models = self.RPI5explorer.search(self.hwnas_cfg)
         assert len(top_k_models) == 2
