@@ -44,13 +44,15 @@ class TestFrozenTrialToModel:
             "tests/integration_tests/test_experiment"
         )
         self.hwnas_cfg = HWNASConfig(
-            Path("tests/integration_tests/test_configs/hwnas_config.yaml"),
+            Path(ROOT_DIR / "tests/integration_tests/test_configs/hwnas_config.yaml")
         )
         self.deploy_cfg = DeploymentConfig(
-            Path("tests/integration_tests/test_configs/deployment_config.yaml")
+            Path(
+                ROOT_DIR / "tests/integration_tests/test_configs/deployment_config.yaml"
+            )
         )
         self.search_space_cfg = yaml_to_dict(
-            Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+            Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
         self.search_space = SearchSpace(self.search_space_cfg)
 

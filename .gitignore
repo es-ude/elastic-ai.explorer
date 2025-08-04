@@ -16,7 +16,7 @@ docker/data
 #experiments logs
 experiments/
 experiment_data.csv
-
+tests/integration_tests/data
 #plots
 plots/
 
