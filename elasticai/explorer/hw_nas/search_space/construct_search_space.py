@@ -1,17 +1,6 @@
 import math
-from pathlib import Path
-from typing import Iterable
-
-import torch
-from optuna import trial, Trial
-from optuna.trial import FixedTrial
 from torch import nn
-
-from elasticai.explorer.hw_nas.search_space.utils import (
-    calculate_conv_output_shape,
-    yaml_to_dict,
-)
-from settings import ROOT_DIR
+from elasticai.explorer.hw_nas.search_space.utils import calculate_conv_output_shape
 
 activation_mapping = {"relu": nn.ReLU(), "sigmoid": nn.Sigmoid()}
 
@@ -100,14 +89,6 @@ class SearchSpace:
             self.create_block(trial, block)
 
         return nn.Sequential(*self.layers)
-
-
-def objective(trial):
-    search_space = yaml_to_dict(
-        ROOT_DIR / Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
-    )
-    search_space = SearchSpace(search_space)
-    return search_space.create_model_sample(trial)
 
 
 def parse_search_param(trial, name, param):

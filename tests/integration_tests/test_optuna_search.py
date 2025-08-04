@@ -8,7 +8,7 @@ from optuna.trial import TrialState
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.hw_nas import objective_wrapper
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
+from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     SearchSpace,
     yaml_to_dict,
 )

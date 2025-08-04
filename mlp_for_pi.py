@@ -10,9 +10,6 @@ from torchvision.transforms import transforms
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
-    yaml_to_dict,
-)
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,

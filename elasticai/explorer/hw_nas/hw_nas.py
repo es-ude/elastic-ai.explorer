@@ -6,7 +6,7 @@ from functools import partial
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
-from elasticai.explorer.hw_nas.search_space.construct_sp import SearchSpace
+from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 
 from torch.optim.adam import Adam
 from torch.utils.data import DataLoader

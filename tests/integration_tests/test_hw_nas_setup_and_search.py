@@ -3,7 +3,7 @@ import torch
 from elasticai.explorer.hw_nas import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
+from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     SearchSpace,
     yaml_to_dict,
 )

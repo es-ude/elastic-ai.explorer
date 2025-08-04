@@ -1,18 +1,16 @@
-import os
-import re
 from pathlib import Path
 import pytest
 import torch
 import yaml
-from optuna.trial import FixedTrial, FrozenTrial
+from optuna.trial import FixedTrial
 from torch import nn
 
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
+from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     calculate_conv_output_shape,
     SearchSpace,
-    yaml_to_dict,
     parse_search_param,
 )
+from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from settings import ROOT_DIR
 
 yaml_mock = """input: 784
