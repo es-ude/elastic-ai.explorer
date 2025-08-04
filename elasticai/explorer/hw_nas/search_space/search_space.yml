@@ -7,7 +7,6 @@ blocks:
     activation: [ "relu", "sigmoid"]
     linear:
       #überall range oder choices
-   #   activation: [ "relu", "sigmoid"]
       width: [16, 32, 5, 4]
     conv2D:
       kernel_size: [1, 2]
@@ -15,11 +14,10 @@ blocks:
       out_channels: [ 10, 4]
   - block: "2"
     op_candidates: ["linear"]
-    activation: [ "relu", "sigmoid"]
+    activation: [ "relu", "identity"]
     depth: [1, 2]
     linear:
       width: [ 11, 21 ]
-    #  activation: [ "sigmoid" ]
 #  - block: "3"
 #    op_candidates: ["linear"]
 #    depth: 3

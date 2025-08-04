@@ -31,9 +31,6 @@ dev = [
     "wheel<0.38",
     "pip<23"
 ]
-nomac = [
-    "nni==3.0",
-]
 
 
 [tool.uv]

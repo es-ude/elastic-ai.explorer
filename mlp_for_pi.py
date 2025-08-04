@@ -2,9 +2,7 @@ import logging.config
 import shutil
 from pathlib import Path
 
-import nni
 import torch
-from nni.nas.nn.pytorch import ModelSpace
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -14,7 +12,6 @@ from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.search_space.construct_sp import (
     yml_to_dict,
-    CombinedSearchSpace,
 )
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
@@ -27,7 +24,6 @@ from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
 
-nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
@@ -125,7 +121,7 @@ def find_generate_measure_for_pi(
     )
 
 
-def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: ModelSpace):
+def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
@@ -170,5 +166,4 @@ if __name__ == "__main__":
     search_space = yml_to_dict(
         Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
     )
-    search_space = CombinedSearchSpace(search_space)
     search_models(explorer, hwnas_cfg, search_space)
