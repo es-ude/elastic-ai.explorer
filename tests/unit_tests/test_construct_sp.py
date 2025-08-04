@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 import torch
 import yaml
@@ -5,7 +6,9 @@ from optuna.trial import FixedTrial
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.construct_sp import (
-    calculate_conv_output_shape, SearchSpace, yml_to_dict,
+    calculate_conv_output_shape,
+    SearchSpace,
+    yaml_to_dict,
 )
 
 yaml_mock = """input: 784
@@ -136,7 +139,7 @@ blocks:
     def test_construct_mixed_sp_multiple_blocks(
         self, search_space_dict_mult_blocks, op_1, op_2
     ):
-        search_space = CombinedSearchSpace(search_space_dict_mult_blocks)
+        search_space = SearchSpace(search_space_dict_mult_blocks)
         x = torch.randn(5, 1, 28, 28)
 
         sample_model = search_space.freeze(
@@ -162,7 +165,6 @@ blocks:
         )
         assert sample_model(x).shape == torch.Size([5, 10])
 
-
     @pytest.mark.parametrize(
         "depth, width_0, width_1, width_2, width_3",
         [(2, 16, 32, 5, 4), (3, 16, 32, 5, 4), (1, 16, 32, 5, 4)],
@@ -170,10 +172,22 @@ blocks:
     def test_construct_convolutional_and_linear_search_space_single_block(
         self, search_space_dict, depth, width_0, width_1, width_2, width_3
     ):
-        sample = {"num_layers_b1": 2, "num_layers_b2": 1, "operation_b1": "conv2d", "operation_b2": "linear",
-                  "layer_width_b2_l0": 21, "out_channels_b1_l0": 4, "out_channels_b1_l1": 10, "stride_b1_l0": 1,
-                  "stride_b1_l1": 1, "kernel_size_b1_l0": 2, "kernel_size_b1_l1": 2, "activation_func_b1_l0": "relu",
-                  "activation_func_b1_l1": "relu", "activation_func_b2_l0": "sigmoid"}
+        sample = {
+            "num_layers_b1": 2,
+            "num_layers_b2": 1,
+            "operation_b1": "conv2d",
+            "operation_b2": "linear",
+            "layer_width_b2_l0": 21,
+            "out_channels_b1_l0": 4,
+            "out_channels_b1_l1": 10,
+            "stride_b1_l0": 1,
+            "stride_b1_l1": 1,
+            "kernel_size_b1_l0": 2,
+            "kernel_size_b1_l1": 2,
+            "activation_func_b1_l0": "relu",
+            "activation_func_b1_l1": "relu",
+            "activation_func_b2_l0": "sigmoid",
+        }
         #  sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid" }
         model = objective(FixedTrial(sample))
         search_space = SearchSpace(search_space_dict)
@@ -212,7 +226,8 @@ blocks:
         )
         assert sample_model2(x).shape == torch.Size([5, 10])
 
+
 def objective(trial):
-    search_space = yml_to_dict("search_space.yml")
+    search_space = yaml_to_dict(Path("elasticai/explorer/hw_nas/search_space/search_space.yaml"))
     search_space = SearchSpace(search_space)
     return search_space.create_model_sample(trial)

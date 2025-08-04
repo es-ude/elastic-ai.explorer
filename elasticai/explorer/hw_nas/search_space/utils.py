@@ -1,4 +1,5 @@
 import copy
+from pathlib import Path
 
 import yaml
 
@@ -30,11 +31,12 @@ def _convert_to_tuples(values) -> list[tuple[int, int]]:
     return [x if isinstance(x, tuple) else (x, x) for x in values]
 
 
-def yml_to_dict(file):
+def yaml_to_dict(file_path: Path) -> dict:
 
-    with open(file) as stream:
+    with open(file_path) as stream:
         try:
             search_space = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
+            return {}
         return search_space

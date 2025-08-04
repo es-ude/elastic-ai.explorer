@@ -1,13 +1,11 @@
-
 import torch
-#from nni.nas.profiler.pytorch.flops import FlopsProfiler
+from fvcore.nn import FlopCountAnalysis
 
 
 class FlopsEstimator:
-    """Wrapper for FlopsProfiler could extend in future"""
+    """Wrapper for FlopsProfiler"""
 
-
-    def estimate_flops(self, model: torch.nn.Module, data_sample) -> float:
+    def estimate_flops(self, model: torch.nn.Module, data_sample) -> int:
         """Computes FLOPS for a single module.
 
         Args:
@@ -17,7 +15,6 @@ class FlopsEstimator:
             int: The FLOPS-estimate
         """
 
-        # profiler = FlopsProfiler(model, data_sample)
+        flops = FlopCountAnalysis(model, data_sample)
 
-        # return float(profiler.expression)
-        return 1.0  # FIXME: Dummy just to make it work for now, later should be implemented without NNI
+        return flops.total()

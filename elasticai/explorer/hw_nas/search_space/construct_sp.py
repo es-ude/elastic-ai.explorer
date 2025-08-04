@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 import torch
 from optuna import trial, Trial
 from optuna.trial import FixedTrial
@@ -6,7 +7,7 @@ from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.utils import (
     calculate_conv_output_shape,
-    yml_to_dict,
+    yaml_to_dict,
 )
 
 activation_mapping = {"relu": nn.ReLU(), "sigmoid": nn.Sigmoid()}
@@ -78,6 +79,7 @@ class SearchSpace:
         self.input_shape = self.search_space_cfg["input"]
         for block in self.blocks:
             self.create_block(trial, block)
+        # TODO: Add output layer
         return nn.Sequential(*self.layers)
 
 
@@ -99,27 +101,36 @@ class SearchSpace:
 
 
 def objective(trial):
-    search_space = yml_to_dict("search_space.yml")
+    search_space = yaml_to_dict(
+        Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    )
     search_space = SearchSpace(search_space)
     return search_space.create_model_sample(trial)
 
 
 if __name__ == "__main__":
-    #   search_space= yml_to_dict("search_space.yml")
-    #   search_space=SearchSpace(search_space)
-    #   sample={"num_layers_b1": 2,"num_layers_b2": 1, "operation_b1":"conv2d","operation_b2":"linear","layer_width_b2_l0": 21,"out_channels_b1_l0": 4,"out_channels_b1_l1": 10,"stride_b1_l0": 1,"stride_b1_l1": 1,"kernel_size_b1_l0": 2, "kernel_size_b1_l1": 2,"activation_func_b1_l0": "relu","activation_func_b1_l1": "relu" ,"activation_func_b2_l0": "sigmoid"  }
-    # #  sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid" }
-    #   model=objective(FixedTrial(sample))
-    #   print(model)
-    #   test_sample= torch.ones(4, 1, 28, 28)
-    #   print(model(test_sample))
-    shape = calculate_conv_output_shape([1, 2222, 2222], 12, 1, 1)
-    shape = calculate_conv_output_shape(shape, 12, 10, 3)
-    shape = calculate_conv_output_shape(shape, 12, 8, 6)
-    print(shape)
-
-    for i in range(4):
-        shape = calculate_conv_output_shape(shape, 12, 2, 1, 1, 1)
-        shape = calculate_conv_output_shape(shape, 12, 3, 3)
-
-    print(shape)
+    search_space = yaml_to_dict(
+        Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    )
+    search_space = SearchSpace(search_space)
+    sample = {
+        "num_layers_b1": 2,
+        "num_layers_b2": 1,
+        "operation_b1": "conv2d",
+        "operation_b2": "linear",
+        "layer_width_b2_l0": 21,
+        "out_channels_b1_l0": 4,
+        "out_channels_b1_l1": 10,
+        "stride_b1_l0": 1,
+        "stride_b1_l1": 1,
+        "kernel_size_b1_l0": 2,
+        "kernel_size_b1_l1": 2,
+        "activation_func_b1_l0": "relu",
+        "activation_func_b1_l1": "relu",
+        "activation_func_b2_l0": "sigmoid",
+    }
+    #  sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid" }
+    model = objective(FixedTrial(sample))
+    print(model)
+    test_sample = torch.ones(4, 1, 28, 28)
+    print(model(test_sample))

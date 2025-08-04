@@ -63,12 +63,7 @@ class Config:
 class HWNASConfig(Config):
     """HWNASConfig that defines the HW-Nas Behavior and its execution on host."""
 
-    def __init__(
-        self,
-        config_path: Path = Path(
-            "config_files/config_defaults/default_hwnas_config.yaml"
-        ),
-    ):
+    def __init__(self, config_path: Path | None = None):
         super().__init__(config_path)
         self._original_yaml_dict = self._parse_optional("HWNASConfig", {})
         self.host_processor: str = self._parse_optional("host_processor", "auto")
@@ -76,6 +71,9 @@ class HWNASConfig(Config):
             self.host_processor = "cuda" if torch.cuda.is_available() else "cpu"
         self.max_search_trials: int = self._parse_optional("max_search_trials", 6)
         self.top_n_models: int = self._parse_optional("top_n_models", 2)
+        self.n_cpu_cores: int = self._parse_optional("n_cpu_cores", 1)
+        self.n_estimation_epochs: int = self._parse_optional("n_estimation_epochs", 3)
+        self.flops_weight: float = self._parse_optional("flops_weight", 2.0)
 
 
 class DeploymentConfig(Config):

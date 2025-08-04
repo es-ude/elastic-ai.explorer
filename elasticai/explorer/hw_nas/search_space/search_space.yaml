@@ -14,7 +14,7 @@ blocks:
       out_channels: [ 10, 4]
   - block: "2"
     op_candidates: ["linear"]
-    activation: [ "relu", "identity"]
+    activation: [ "relu", "sigmoid"]
     depth: [1, 2]
     linear:
       width: [ 11, 21 ]

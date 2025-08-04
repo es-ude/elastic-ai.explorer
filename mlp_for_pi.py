@@ -11,7 +11,7 @@ from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.search_space.construct_sp import (
-    yml_to_dict,
+    yaml_to_dict,
 )
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
@@ -163,7 +163,6 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
-    search_space = yml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
-    )
+    search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+
     search_models(explorer, hwnas_cfg, search_space)
