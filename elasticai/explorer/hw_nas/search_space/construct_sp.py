@@ -9,6 +9,7 @@ from elasticai.explorer.hw_nas.search_space.utils import (
     calculate_conv_output_shape,
     yaml_to_dict,
 )
+from settings import ROOT_DIR
 
 activation_mapping = {"relu": nn.ReLU(), "sigmoid": nn.Sigmoid()}
 
@@ -26,6 +27,7 @@ class SearchSpace:
         if isinstance(self.input_shape, list):
             self.layers.append(nn.Flatten())
             self.input_shape = math.prod(self.input_shape)
+
         for i in range(num_layers):
             layer_width = trial.suggest_categorical(
                 "layer_width_b{}_l{}".format(block_id, i), search_params["width"]
@@ -33,9 +35,12 @@ class SearchSpace:
             activation = trial.suggest_categorical(
                 "activation_func_b{}_l{}".format(block_id, i), block["activation"]
             )
-            self.layers.append(nn.Linear(self.input_shape, layer_width))
-            self.layers.append(activation_mapping[activation])
+            if self.is_last_block(block_id) and i == (num_layers - 1):
+                self.layers.append(nn.Linear(self.input_shape, self.output_shape))
+            else:
+                self.layers.append(nn.Linear(self.input_shape, layer_width))
             self.input_shape = layer_width
+            self.layers.append(activation_mapping[activation])
 
     def createConv2d(self, trial, block, num_layers, search_params):
         block_id = block["block"]
@@ -61,6 +66,9 @@ class SearchSpace:
                 self.input_shape, out_channels, kernel_size, stride
             )
 
+    def is_last_block(self, block_id):
+        return self.blocks[-1]["block"] == block_id
+
     def create_block(self, trial, block: dict):
         operation_candidates = block["op_candidates"]
         num_layers = trial.suggest_categorical(
@@ -69,6 +77,7 @@ class SearchSpace:
         operation = trial.suggest_categorical(
             "operation_b{}".format(block["block"]), operation_candidates
         )
+
         match operation:
             case "linear":
                 self.createLinear(trial, block, num_layers, block["linear"])
@@ -77,9 +86,10 @@ class SearchSpace:
 
     def create_model_sample(self, trial):
         self.input_shape = self.search_space_cfg["input"]
+        self.output_shape = self.search_space_cfg["output"]
         for block in self.blocks:
             self.create_block(trial, block)
-        # TODO: Add output layer
+
         return nn.Sequential(*self.layers)
 
 
@@ -102,7 +112,7 @@ class SearchSpace:
 
 def objective(trial):
     search_space = yaml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+        ROOT_DIR / Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
     )
     search_space = SearchSpace(search_space)
     return search_space.create_model_sample(trial)
@@ -110,7 +120,7 @@ def objective(trial):
 
 if __name__ == "__main__":
     search_space = yaml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+        ROOT_DIR / Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
     )
     search_space = SearchSpace(search_space)
     sample = {
