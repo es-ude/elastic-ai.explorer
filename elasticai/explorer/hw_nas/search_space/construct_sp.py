@@ -1,5 +1,7 @@
 import math
 from pathlib import Path
+from typing import Iterable
+
 import torch
 from optuna import trial, Trial
 from optuna.trial import FixedTrial
@@ -29,11 +31,13 @@ class SearchSpace:
             self.input_shape = math.prod(self.input_shape)
 
         for i in range(num_layers):
-            layer_width = trial.suggest_categorical(
-                "layer_width_b{}_l{}".format(block_id, i), search_params["width"]
+            layer_width = parse_search_param(
+                trial, "layer_width_b{}_l{}".format(block_id, i), search_params["width"]
             )
-            activation = trial.suggest_categorical(
-                "activation_func_b{}_l{}".format(block_id, i), block["activation"]
+            activation = parse_search_param(
+                trial,
+                "activation_func_b{}_l{}".format(block_id, i),
+                block["activation"],
             )
             if self.is_last_block(block_id) and i == (num_layers - 1):
                 self.layers.append(nn.Linear(self.input_shape, self.output_shape))
@@ -45,18 +49,23 @@ class SearchSpace:
     def createConv2d(self, trial, block, num_layers, search_params):
         block_id = block["block"]
         for i in range(num_layers):
-            out_channels = trial.suggest_categorical(
+            out_channels = parse_search_param(
+                trial,
                 "out_channels_b{}_l{}".format(block_id, i),
                 search_params["out_channels"],
             )
-            kernel_size = trial.suggest_categorical(
-                "kernel_size_b{}_l{}".format(block_id, i), search_params["kernel_size"]
+            kernel_size = parse_search_param(
+                trial,
+                "kernel_size_b{}_l{}".format(block_id, i),
+                search_params["kernel_size"],
             )
-            stride = trial.suggest_categorical(
-                "stride_b{}_l{}".format(block_id, i), search_params["stride"]
+            stride = parse_search_param(
+                trial, "stride_b{}_l{}".format(block_id, i), search_params["stride"]
             )
-            activation = trial.suggest_categorical(
-                "activation_func_b{}_l{}".format(block_id, i), block["activation"]
+            activation = parse_search_param(
+                trial,
+                "activation_func_b{}_l{}".format(block_id, i),
+                block["activation"],
             )
             self.layers.append(
                 nn.Conv2d(self.input_shape[0], out_channels, kernel_size, stride)
@@ -70,12 +79,11 @@ class SearchSpace:
         return self.blocks[-1]["block"] == block_id
 
     def create_block(self, trial, block: dict):
-        operation_candidates = block["op_candidates"]
-        num_layers = trial.suggest_categorical(
-            "num_layers_b{}".format(block["block"]), block["depth"]
+        num_layers = parse_search_param(
+            trial, "num_layers_b{}".format(block["block"]), block["depth"]
         )
-        operation = trial.suggest_categorical(
-            "operation_b{}".format(block["block"]), operation_candidates
+        operation = parse_search_param(
+            trial, "operation_b{}".format(block["block"]), block["op_candidates"]
         )
 
         match operation:
@@ -87,27 +95,11 @@ class SearchSpace:
     def create_model_sample(self, trial):
         self.input_shape = self.search_space_cfg["input"]
         self.output_shape = self.search_space_cfg["output"]
+        self.layers = []
         for block in self.blocks:
             self.create_block(trial, block)
 
         return nn.Sequential(*self.layers)
-
-
-#
-# def parse_depth(depth: int | str | list[int]):
-#     if isinstance(depth, int):
-#         max_depth = depth
-#     elif isinstance(depth, str):
-#         max_depth = depth[1]
-#         depth = nni.choice(label=f"depth", choices=[d for d in range(*depth)])
-#     elif isinstance(depth, list):
-#         max_depth = max(depth)
-#         depth = nni.choice(label=f"depth", choices=depth)
-#     else:
-#         raise ValueError("Depth must be int, tuple or list of ints")
-#     return depth, max_depth
-#
-#
 
 
 def objective(trial):
@@ -118,29 +110,13 @@ def objective(trial):
     return search_space.create_model_sample(trial)
 
 
-if __name__ == "__main__":
-    search_space = yaml_to_dict(
-        ROOT_DIR / Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
-    )
-    search_space = SearchSpace(search_space)
-    sample = {
-        "num_layers_b1": 2,
-        "num_layers_b2": 1,
-        "operation_b1": "conv2d",
-        "operation_b2": "linear",
-        "layer_width_b2_l0": 21,
-        "out_channels_b1_l0": 4,
-        "out_channels_b1_l1": 10,
-        "stride_b1_l0": 1,
-        "stride_b1_l1": 1,
-        "kernel_size_b1_l0": 2,
-        "kernel_size_b1_l1": 2,
-        "activation_func_b1_l0": "relu",
-        "activation_func_b1_l1": "relu",
-        "activation_func_b2_l0": "sigmoid",
-    }
-    #  sample={"num_layers": 2,"layer_op_l1":"linear","layer_op_l0":"conv2d","layer_width_l1": 128,"out_channels_l0": 16,"stride_l0": 1,"kernel_size_l0": 2, "activation_func_l0": "relu", "activation_func_l1": "sigmoid" }
-    model = objective(FixedTrial(sample))
-    print(model)
-    test_sample = torch.ones(4, 1, 28, 28)
-    print(model(test_sample))
+def parse_search_param(trial, name, param):
+    if isinstance(param, list):
+        return trial.suggest_categorical(name, param)
+    elif isinstance(param, dict) and "start" in param and "end" in param:
+        print(param)
+        if isinstance(param["start"], int):
+            return trial.suggest_int(name, param["start"], param["end"])
+    else:
+        return param
+    return ValueError("Search space parameter '{}' is invalid".format(name))

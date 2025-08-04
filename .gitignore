@@ -26,6 +26,8 @@ metrics/
 #libtorch 
 docker/code/libtorch*
 
+
+tests/data
 #bin 
 docker/bin
 

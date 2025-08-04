@@ -38,5 +38,4 @@ def yaml_to_dict(file_path: Path) -> dict:
             search_space = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
-            return {}
         return search_space
