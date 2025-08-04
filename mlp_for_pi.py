@@ -58,7 +58,7 @@ def find_generate_measure_for_pi(
     hwnas_cfg: HWNASConfig,
 ) -> Metrics:
     explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space()
+    explorer.generate_search_space(search_space)
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
