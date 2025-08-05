@@ -10,8 +10,8 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.hw_nas import objective_wrapper
 from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     SearchSpace,
-    yaml_to_dict,
 )
+from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.generator.generator import PIGenerator

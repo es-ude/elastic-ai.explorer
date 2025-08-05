@@ -20,6 +20,7 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
+from settings import ROOT_DIR
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
@@ -56,9 +57,10 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
+    search_space_path: Path,
 ) -> Metrics:
     explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space(search_space)
+    explorer.generate_search_space(search_space_path)
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
@@ -156,10 +158,16 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-
+    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
     search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
 
-    search_models(explorer, hwnas_cfg, search_space)
+    # search_models(explorer, hwnas_cfg, search_space)
+    find_generate_measure_for_pi(
+        explorer=explorer,
+        deploy_cfg=deploy_cfg,
+        hwnas_cfg=hwnas_cfg,
+        search_space_path=search_space,
+    )

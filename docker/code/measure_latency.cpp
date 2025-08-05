@@ -30,7 +30,7 @@ int main(int argc, const char *argv[]) {
 
     // Create a vector of inputs.
     std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(torch::ones({1, 3, 224, 224}));
+    inputs.push_back(torch::ones({1, 1, 28, 28}));
 
     c10::IValue output;
 
