@@ -80,23 +80,24 @@ def search(
         direction="maximize",
     )
     study.optimize(
-        partial(
-            objective_wrapper,
-            search_space_cfg=search_space_cfg,
-            device=hwnas_cfg.host_processor,
-            n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
-            flops_weight=hwnas_cfg.flops_weight,
-        ),
-        callbacks=[
-            MaxTrialsCallback(
-                hwnas_cfg.max_search_trials,
-                states=(TrialState.COMPLETE, TrialState.RUNNING, TrialState.WAITING),
-            )
-        ],
-        n_trials=math.ceil(hwnas_cfg.max_search_trials / hwnas_cfg.n_cpu_cores),
-        n_jobs=(hwnas_cfg.n_cpu_cores),
-        show_progress_bar=True,
-    )
+            partial(
+                objective_wrapper,
+                search_space_cfg=search_space_cfg,
+                device=hwnas_cfg.host_processor,
+                n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
+                flops_weight=hwnas_cfg.flops_weight,
+            ),
+            callbacks=[
+                MaxTrialsCallback(
+                    hwnas_cfg.max_search_trials,
+                    states=(TrialState.COMPLETE, TrialState.FAIL),
+                )
+            ],
+            n_trials=hwnas_cfg.max_search_trials,
+            n_jobs=hwnas_cfg.n_cpu_cores,
+            show_progress_bar=True,
+            gc_after_trial=True,
+        )
 
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
 

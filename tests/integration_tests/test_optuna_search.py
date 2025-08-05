@@ -1,3 +1,6 @@
+import math
+from numpy import argmax
+import pytest
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from functools import partial
 import optuna
@@ -19,9 +22,43 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from settings import ROOT_DIR
 from pathlib import Path
+from types import SimpleNamespace
 
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
+
+
+@pytest.fixture(
+    params=[
+        {
+            "flops_weight": 2,
+            "n_estimation_epochs": 1,
+            "max_search_trials": 8,
+            "host_processor": "cpu",
+            "n_cpu_cores": 4,
+            "top_n_models": 2,
+        },
+        {
+            "flops_weight": 2,
+            "n_estimation_epochs": 1,
+            "max_search_trials": 2,
+            "host_processor": "cpu",
+            "n_cpu_cores": 4,
+            "top_n_models": 2,
+        },
+        {
+            "flops_weight": 2,
+            "n_estimation_epochs": 1,
+            "max_search_trials": 4,
+            "host_processor": "cpu",
+            "n_cpu_cores": 4,
+            "top_n_models": 2,
+        },
+    ],
+    ids=["max_trials>cpu_cores", "max_trials<cpu_cores", "max_trials=cpu_cores"],
+)
+def hwnas_cfg(request):
+    return SimpleNamespace(**request.param)
 
 
 class TestFrozenTrialToModel:
@@ -43,9 +80,6 @@ class TestFrozenTrialToModel:
         self.RPI5explorer.experiment_dir = Path(
             "tests/integration_tests/test_experiment"
         )
-        self.hwnas_cfg = HWNASConfig(
-            Path(ROOT_DIR / "tests/integration_tests/test_configs/hwnas_config.yaml")
-        )
         self.deploy_cfg = DeploymentConfig(
             Path(
                 ROOT_DIR / "tests/integration_tests/test_configs/deployment_config.yaml"
@@ -56,7 +90,7 @@ class TestFrozenTrialToModel:
         )
         self.search_space = SearchSpace(self.search_space_cfg)
 
-    def test_frozentrial_to_model(self):
+    def test_frozentrial_to_model(self, hwnas_cfg):
         study = optuna.create_study(
             sampler=optuna.samplers.RandomSampler(),
             direction="maximize",
@@ -65,35 +99,35 @@ class TestFrozenTrialToModel:
             partial(
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
-                device=self.hwnas_cfg.host_processor,
-                n_estimation_epochs=self.hwnas_cfg.n_estimation_epochs,
-                flops_weight=self.hwnas_cfg.flops_weight,
+                device=hwnas_cfg.host_processor,
+                n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
+                flops_weight=hwnas_cfg.flops_weight,
             ),
             callbacks=[
                 MaxTrialsCallback(
-                    self.hwnas_cfg.max_search_trials,
-                    states=(
-                        TrialState.COMPLETE,
-                        TrialState.RUNNING,
-                        TrialState.WAITING,
-                    ),
+                    hwnas_cfg.max_search_trials,
+                    states=(TrialState.COMPLETE, TrialState.FAIL),
                 )
             ],
-            n_jobs=1,
-            n_trials=self.hwnas_cfg.max_search_trials,
+            n_trials=hwnas_cfg.max_search_trials,
+            n_jobs=hwnas_cfg.n_cpu_cores,
             show_progress_bar=True,
+            gc_after_trial=True,
         )
-        best_model = study.best_trial
-        model = self.search_space.create_model_sample(best_model)
-        input = torch.randn(1, 1, 28, 28).to(self.hwnas_cfg.host_processor)
-        model.eval()
-        model.to(self.hwnas_cfg.host_processor)
-        result = model(input)
-        assert len(result[0]) == 10
+        test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
+        assert len(test_results) == hwnas_cfg.max_search_trials
 
-    def test_hw_nas_search(self):
+        for trial in test_results:
+            model = self.search_space.create_model_sample(trial)
+            input = torch.randn(1, 1, 28, 28).to(hwnas_cfg.host_processor)
+            model.eval()
+            model.to(hwnas_cfg.host_processor)
+            result = model(input)
+            assert len(result[0]) == 10
+
+    def test_hw_nas_search(self, hwnas_cfg):
         top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space_cfg, self.hwnas_cfg
+            self.search_space_cfg, hwnas_cfg
         )
         assert len(top_models) == 2
         assert len(model_parameters) == 2
