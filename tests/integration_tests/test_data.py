@@ -14,8 +14,7 @@ from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
 
 
-
-class TestTimeSeriesDataset(MultivariateTimeseriesDataset, DownloadableSciebo):
+class TimeSeriesDatasetExample(MultivariateTimeseriesDataset, DownloadableSciebo):
     def __init__(
         self,
         root: Union[str, Path],
@@ -49,12 +48,12 @@ class TestData:
         os.makedirs(self.sample_dir, exist_ok=True)
 
     def test_dataset(self):
-        dataset = TestTimeSeriesDataset(root=self.sample_dir / "test_dataset.csv")
+        dataset = TimeSeriesDatasetExample(root=self.sample_dir / "test_dataset.csv")
         assert len(dataset) == 27
 
     def test_dataset_with_mlp_trainer(self):
         dataset_spec = DatasetSpecification(
-            TestTimeSeriesDataset,
+            TimeSeriesDatasetExample,
             self.sample_dir / "test_dataset.csv",
             None,
             [0.6, 0.2, 0.2],
@@ -68,8 +67,10 @@ class TestData:
             batch_size=2,
         )
         mlp_trainer.train(model, epochs=2)
-        assert mlp_trainer.validate(model)[0] >= 0
-        assert mlp_trainer.test(model)[0] >= 0
+        accuracy, loss = mlp_trainer.validate(model)
+        assert accuracy is not None
+        assert accuracy >= 0
+        assert loss >= 0
 
     def teardown_method(self):
         try:

@@ -1,11 +1,7 @@
 import os
 from pathlib import Path
-import pytest
 import torch
-import yaml
-from elasticai.explorer.hw_nas import search_space
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
-from elasticai.explorer.hw_nas.search_space.construct_sp import CombinedSearchSpace
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -39,47 +35,28 @@ class TestHWNasSetupAndSearch:
         )
         self.RPI5explorer = Explorer(knowledge_repository)
         self.RPI5explorer.experiment_dir = Path(
-            "tests/integration_tests/test_experiment"
+            ROOT_DIR / "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.hwnas_cfg = HWNASConfig()
+        self.hwnas_cfg = HWNASConfig(
+            ROOT_DIR / Path("tests/integration_tests/test_configs/hwnas_config.yaml")
+        )
         self.deploy_cfg = DeploymentConfig(
-            Path("tests/integration_tests/test_configs/deployment_config.yaml")
+            ROOT_DIR
+            / Path("tests/integration_tests/test_configs/deployment_config.yaml")
         )
 
-        path_to_dataset = Path("data/mnist")
+        path_to_dataset = Path(ROOT_DIR / "data/mnist")
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         self.dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
 
-        path_to_dataset = Path("data/mnist")
-        transf = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
-        self.dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
 
-    @pytest.fixture
-    def search_space_dict(self):
-        return yaml.safe_load(
-            """input: [1, 28, 28]
-output: 10
-blocks:
-  - block:  "1" #namefield muss noch rein
-    op_candidates: ["linear", "conv2d"]
-    depth: [1, 2, 3]
-    linear:
-      #überall range oder choices
-   #   activation: [ "relu", "sigmoid"]
-      width: [16, 32, 5, 4]
-    conv2D:
-      kernel_size: [1, 2]
-      stride: [1, 2]
-      out_channels: [ 10, 4]"""
+    def test_search(self):
+        self.RPI5explorer.generate_search_space(
+            Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
-
-    def test_search(self, search_space_dict):
-        self.RPI5explorer.generate_search_space(CombinedSearchSpace(search_space_dict))  # type: ignore
         top_k_models = self.RPI5explorer.search(
             self.hwnas_cfg, self.dataset_spec, MLPTrainer
         )

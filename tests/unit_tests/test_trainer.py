@@ -11,7 +11,7 @@ SEQ_LENGTH = 3
 BATCH_SIZE = 64
 
 
-class TestDataset(BaseDataset):
+class DatasetExample(BaseDataset):
 
     def __init__(
         self,
@@ -52,7 +52,7 @@ class SimpleLSTMAutoencoder(nn.Module):
 
 class TestAutoencoderTrainer:
     def setup_method(self):
-        self.dataset_spec = DatasetSpecification(TestDataset, Path(""), None)
+        self.dataset_spec = DatasetSpecification(DatasetExample, Path(""), None)
         self.autoencoder = SimpleLSTMAutoencoder(INPUT_DIM)
 
     def test_autoencoder_trainer(self):
