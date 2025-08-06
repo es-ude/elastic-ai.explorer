@@ -87,14 +87,7 @@ def search(
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
             ),
-            callbacks=[
-                MaxTrialsCallback(
-                    hwnas_cfg.max_search_trials,
-                    states=(TrialState.COMPLETE, TrialState.FAIL),
-                )
-            ],
             n_trials=hwnas_cfg.max_search_trials,
-            n_jobs=hwnas_cfg.n_cpu_cores,
             show_progress_bar=True,
             gc_after_trial=True,
         )

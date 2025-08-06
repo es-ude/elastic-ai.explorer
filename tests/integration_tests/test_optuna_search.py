@@ -35,27 +35,17 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
             "n_estimation_epochs": 1,
             "max_search_trials": 8,
             "host_processor": "cpu",
-            "n_cpu_cores": 4,
-            "top_n_models": 2,
+            "top_n_models": 4,
         },
         {
             "flops_weight": 2,
             "n_estimation_epochs": 1,
             "max_search_trials": 2,
             "host_processor": "cpu",
-            "n_cpu_cores": 4,
-            "top_n_models": 2,
-        },
-        {
-            "flops_weight": 2,
-            "n_estimation_epochs": 1,
-            "max_search_trials": 4,
-            "host_processor": "cpu",
-            "n_cpu_cores": 4,
-            "top_n_models": 2,
+            "top_n_models": 1,
         },
     ],
-    ids=["max_trials>cpu_cores", "max_trials<cpu_cores", "max_trials=cpu_cores"],
+    ids=["8_trials_4_top_models", "2_trials_1_top_model"],
 )
 def hwnas_cfg(request):
     return SimpleNamespace(**request.param)
@@ -78,7 +68,7 @@ class TestFrozenTrialToModel:
         )
         self.RPI5explorer = Explorer(knowledge_repository)
         self.RPI5explorer.experiment_dir = Path(
-            "tests/integration_tests/test_experiment"
+            ROOT_DIR / "tests/integration_tests/test_experiment"
         )
         self.deploy_cfg = DeploymentConfig(
             Path(
@@ -103,17 +93,11 @@ class TestFrozenTrialToModel:
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
             ),
-            callbacks=[
-                MaxTrialsCallback(
-                    hwnas_cfg.max_search_trials,
-                    states=(TrialState.COMPLETE, TrialState.FAIL),
-                )
-            ],
             n_trials=hwnas_cfg.max_search_trials,
-            n_jobs=hwnas_cfg.n_cpu_cores,
             show_progress_bar=True,
             gc_after_trial=True,
         )
+
         test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
         assert len(test_results) == hwnas_cfg.max_search_trials
 
@@ -129,7 +113,7 @@ class TestFrozenTrialToModel:
         top_models, model_parameters, metrics = hw_nas.search(
             self.search_space_cfg, hwnas_cfg
         )
-        assert len(top_models) == 2
-        assert len(model_parameters) == 2
-        assert len(metrics) == 2
+        assert len(top_models) == hwnas_cfg.top_n_models
+        assert len(model_parameters) == hwnas_cfg.top_n_models
+        assert len(metrics) == hwnas_cfg.top_n_models
         assert type(metrics[0]["accuracy"]) is float
