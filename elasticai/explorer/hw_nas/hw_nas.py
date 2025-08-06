@@ -1,14 +1,14 @@
 import logging
 import math
-from typing import Any
+from typing import Any, Callable
+from functools import partial
 
-import nni
-import torch
-from nni.nas import strategy
-from nni.nas.evaluator import FunctionalEvaluator
-from nni.nas.experiment import NasExperiment
-from nni.experiment import TrialResult
-from nni.nas.nn.pytorch import ModelSpace
+import optuna
+from optuna.trial import FrozenTrial, TrialState
+from optuna.study import MaxTrialsCallback
+from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+
+from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -20,81 +20,105 @@ from elasticai.explorer.trainer import MLPTrainer
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: torch.nn.Module, device: str):
-    global accuracy
-    flops_weight = 3.0
-    n_epochs = 2
+def objective_wrapper(
+    trial: optuna.Trial,
+    search_space_cfg: dict[str, Any],
+    device: str,
+    n_estimation_epochs: int,
+    flops_weight: float,
+) -> float:
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-    train_loader = DataLoader(
-        MNIST("data/mnist", download=True, transform=transf),
-        batch_size=64,
-        shuffle=True,
-    )
-    test_loader = DataLoader(
-        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
-    )
-    trainer = MLPTrainer(device, optimizer)
-    flops_estimator = FlopsEstimator()
-    sample, _ = next(iter(train_loader))
-    flops = flops_estimator.estimate_flops(model, sample)
-    metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
-    for epoch in range(n_epochs):
-        trainer.train_epoch(model, train_loader, epoch)
+    def objective(trial: optuna.Trial) -> float:
 
-        metric["accuracy"] = trainer.test(model, test_loader)
+        transf = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
+        train_loader = DataLoader(
+            MNIST("data/mnist", download=True, transform=transf),
+            batch_size=64,
+            shuffle=True,
+        )
+        test_loader = DataLoader(
+            MNIST("data/mnist", download=True, train=False, transform=transf),
+            batch_size=64,
+        )
 
-        metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
-        nni.report_intermediate_result(metric)
+        search_space = SearchSpace(search_space_cfg)
+        model = search_space.create_model_sample(trial)
+        trainer = MLPTrainer(device, optimizer=Adam(model.parameters(), lr=1e-3))
 
-    nni.report_final_result(metric)
+        flops_estimator = FlopsEstimator()
+        sample, _ = next(iter(train_loader))
+        flops = flops_estimator.estimate_flops(model, sample)
+        metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
+
+        for epoch in range(n_estimation_epochs):
+            trainer.train_epoch(model, train_loader, epoch)
+
+            metric["accuracy"] = trainer.test(model, test_loader)
+
+            metric["default"] = metric["accuracy"] - (
+                metric["flops log10"] * flops_weight
+            )
+            trial.report(metric["default"], epoch)
+        trial.set_user_attr("accuracy", metric["accuracy"])
+        trial.set_user_attr("flops_log10", metric["flops log10"])
+        return metric["default"]
+
+    return objective(trial)
 
 
 def search(
-    search_space: Any, hwnas_cfg: HWNASConfig
-) -> tuple[list[Any], list[Any], list[Any]]:
+    search_space_cfg: dict, hwnas_cfg: HWNASConfig
+) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
-    search_strategy = strategy.Random()
-    evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
-    experiment = NasExperiment(search_space, evaluator, search_strategy)
-    experiment.config.max_trial_number = hwnas_cfg.max_search_trials
-    experiment.run(port=8081)
-    top_models: list[ModelSpace] = experiment.export_top_models(
-        top_k=hwnas_cfg.top_n_models, formatter="instance"
+
+    study = optuna.create_study(
+        sampler=optuna.samplers.RandomSampler(),
+        direction="maximize",
     )
-    top_parameters = experiment.export_top_models(
-        top_k=hwnas_cfg.top_n_models, formatter="dict"
+    study.optimize(
+            partial(
+                objective_wrapper,
+                search_space_cfg=search_space_cfg,
+                device=hwnas_cfg.host_processor,
+                n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
+                flops_weight=hwnas_cfg.flops_weight,
+            ),
+            n_trials=hwnas_cfg.max_search_trials,
+            show_progress_bar=True,
+            gc_after_trial=True,
+        )
+
+    test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
+
+    eval: Callable[[FrozenTrial], float] = lambda trial: (
+        trial.value if trial.value is not None else float("-inf")
     )
-    test_results = experiment.export_data()
-    experiment.stop()
+    test_results.sort(key=eval, reverse=True)
 
-    metrics, parameters = _map_trial_params_to_found_models(
-        test_results, top_parameters
-    )
-    for model in top_models:
-        print("Simplify")
-        print(model.simplify())
-        print("Parameters")
-        print(model.parameters())
-        print(metrics)
-        print(parameters)
-    return top_models, parameters, metrics
+    top_k_frozen_trials = test_results[: hwnas_cfg.top_n_models]
 
+    if len(top_k_frozen_trials) == 0:
+        logger.warning("No models found in the search space.")
+        return [], [], []
 
-def _map_trial_params_to_found_models(
-    test_results: list[TrialResult], top_parameters: list[Any]
-):
-    parameters = list(range(len(top_parameters)))
-    metrics: list[Any] = list(range(len(top_parameters)))
-    for trial in test_results:
-        for i, top_parameter in enumerate(top_parameters):
-            if trial.parameter["sample"] == top_parameter:
-                parameters[i] = trial.parameter["sample"]
+    top_k_models: list[Any] = []
+    top_k_params: list[dict[str, Any]] = []
+    top_k_metrics: list[dict] = []
+    search_space = SearchSpace(search_space_cfg)
 
-                metrics[i] = trial.value
-    return metrics, parameters
+    for frozen_trial in top_k_frozen_trials:
+        top_k_models.append(search_space.create_model_sample(frozen_trial))
+        top_k_params.append(frozen_trial.params)
+        top_k_metrics.append(
+            {
+                "default": eval(frozen_trial),
+                "accuracy": frozen_trial.user_attrs["accuracy"],
+                "flops log10": frozen_trial.user_attrs["flops_log10"],
+            }
+        )
+
+    return top_k_models, top_k_params, top_k_metrics

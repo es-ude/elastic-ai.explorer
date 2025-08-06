@@ -2,9 +2,7 @@ import logging.config
 import shutil
 from pathlib import Path
 
-import nni
 import torch
-from nni.nas.nn.pytorch import ModelSpace
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -12,10 +10,6 @@ from torchvision.transforms import transforms
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.search_space.construct_sp import (
-    yml_to_dict,
-    CombinedSearchSpace,
-)
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
@@ -26,8 +20,8 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.trainer import MLPTrainer
+from settings import ROOT_DIR
 
-nni.enable_global_logging(False)
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
@@ -63,9 +57,10 @@ def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
+    search_space_path: Path,
 ) -> Metrics:
     explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space()
+    explorer.generate_search_space(search_space_path)
     top_models = explorer.search(hwnas_cfg)
 
     # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
@@ -125,7 +120,7 @@ def find_generate_measure_for_pi(
     )
 
 
-def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: ModelSpace):
+def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
@@ -163,12 +158,16 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space: Mode
 
 if __name__ == "__main__":
     hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-
+    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
-    search_space = yml_to_dict(
-        Path("elasticai/explorer/hw_nas/search_space/search_space.yml")
+    search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+
+    # search_models(explorer, hwnas_cfg, search_space)
+    find_generate_measure_for_pi(
+        explorer=explorer,
+        deploy_cfg=deploy_cfg,
+        hwnas_cfg=hwnas_cfg,
+        search_space_path=search_space,
     )
-    search_space = CombinedSearchSpace(search_space)
-    search_models(explorer, hwnas_cfg, search_space)
