@@ -1,21 +1,18 @@
 import logging
 import math
-from typing import Any, Callable
+from typing import Any, Callable, Type
 from functools import partial
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
-from optuna.study import MaxTrialsCallback
-from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 
 from torch.optim.adam import Adam
-from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
-from torchvision.transforms import transforms
 
+from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
-from elasticai.explorer.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
 
@@ -23,6 +20,8 @@ logger = logging.getLogger("explorer.nas")
 def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
+    dataset_spec: data.DatasetSpecification,
+    trainer_class: type[Trainer],
     device: str,
     n_estimation_epochs: int,
     flops_weight: float,
@@ -30,46 +29,48 @@ def objective_wrapper(
 
     def objective(trial: optuna.Trial) -> float:
 
-        transf = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
-        train_loader = DataLoader(
-            MNIST("data/mnist", download=True, transform=transf),
-            batch_size=64,
-            shuffle=True,
-        )
-        test_loader = DataLoader(
-            MNIST("data/mnist", download=True, train=False, transform=transf),
-            batch_size=64,
-        )
-
         search_space = SearchSpace(search_space_cfg)
         model = search_space.create_model_sample(trial)
-        trainer = MLPTrainer(device, optimizer=Adam(model.parameters(), lr=1e-3))
+        optimizer = Adam(model.parameters(), lr=1e-3)  # type: ignore
+        trainer = trainer_class(device, optimizer, dataset_spec)
 
         flops_estimator = FlopsEstimator()
-        sample, _ = next(iter(train_loader))
+        sample, _ = next(iter(trainer.test_loader))
         flops = flops_estimator.estimate_flops(model, sample)
-        metric = {"default": 0, "accuracy": 0, "flops log10": math.log10(flops)}
-
+        metric = {
+            "default": 0,
+            "val_loss": 0,
+            "val_accuracy": -1,
+            "flops log10": math.log10(flops),
+        }
         for epoch in range(n_estimation_epochs):
-            trainer.train_epoch(model, train_loader, epoch)
-
-            metric["accuracy"] = trainer.test(model, test_loader)
-
-            metric["default"] = metric["accuracy"] - (
-                metric["flops log10"] * flops_weight
-            )
+            trainer.train_epoch(model, epoch)
+            val_accuracy, val_loss = trainer.validate(model)
+            metric["val_loss"] = val_loss
+            if val_accuracy:
+                metric["val_accuracy"] = val_accuracy
+                metric["default"] = metric["val_accuracy"] - (
+                    metric["flops log10"] * flops_weight
+                )
+            else:
+                metric["val_accuracy"] = -1
+                metric["default"] = -metric["val_loss"] - (
+                    metric["flops log10"] * flops_weight
+                )
             trial.report(metric["default"], epoch)
-        trial.set_user_attr("accuracy", metric["accuracy"])
+        trial.set_user_attr("val_accuracy", metric["val_accuracy"])
         trial.set_user_attr("flops_log10", metric["flops log10"])
+        trial.set_user_attr("val_loss", metric["val_loss"])
         return metric["default"]
 
     return objective(trial)
 
 
 def search(
-    search_space_cfg: dict, hwnas_cfg: HWNASConfig
+    search_space_cfg: dict,
+    hwnas_cfg: HWNASConfig,
+    dataset_spec: data.DatasetSpecification,
+    trainer_class: Type[Trainer],
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -80,17 +81,19 @@ def search(
         direction="maximize",
     )
     study.optimize(
-            partial(
-                objective_wrapper,
-                search_space_cfg=search_space_cfg,
-                device=hwnas_cfg.host_processor,
-                n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
-                flops_weight=hwnas_cfg.flops_weight,
-            ),
-            n_trials=hwnas_cfg.max_search_trials,
-            show_progress_bar=True,
-            gc_after_trial=True,
-        )
+        partial(
+            objective_wrapper,
+            search_space_cfg=search_space_cfg,
+            device=hwnas_cfg.host_processor,
+            dataset_spec=dataset_spec,
+            trainer_class=trainer_class,
+            n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
+            flops_weight=hwnas_cfg.flops_weight,
+        ),
+        n_trials=hwnas_cfg.max_search_trials,
+        show_progress_bar=True,
+        gc_after_trial=True,
+    )
 
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
 
@@ -116,7 +119,8 @@ def search(
         top_k_metrics.append(
             {
                 "default": eval(frozen_trial),
-                "accuracy": frozen_trial.user_attrs["accuracy"],
+                "val_accuracy": frozen_trial.user_attrs["val_accuracy"],
+                "val_loss": frozen_trial.user_attrs["val_loss"],
                 "flops log10": frozen_trial.user_attrs["flops_log10"],
             }
         )

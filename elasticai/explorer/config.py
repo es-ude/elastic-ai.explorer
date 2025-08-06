@@ -107,17 +107,3 @@ class DeploymentConfig(Config):
         self.docker.compiled_library_path = Path(
             self._parse_optional("compiled_library_path", "./code/libtorch", "Docker")
         )
-
-
-class ModelConfig(Config):
-    """ModelConfig defines the type of deep neural network to search for."""
-
-    def __init__(
-        self,
-        config_path: Path = Path(
-            "config_files/config_defaults/default_model_config.yaml"
-        ),
-    ):
-        super().__init__(config_path)
-        self._original_yaml_dict = self._parse_optional("ModelConfig", {})
-        self.model_type: str = self._parse_optional("model_type", "MLP")

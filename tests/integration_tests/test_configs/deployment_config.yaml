@@ -2,10 +2,10 @@
 #If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
   #The Hostname of target device.
-  target_name: "transfair.local"
+  target_name: "transpi4.local"
 
   #The Username/user-account of the target device to connect to.
-  target_user: "robin"
+  target_user: "transfair"
 
   target_platform_type: "rpi5"
   
