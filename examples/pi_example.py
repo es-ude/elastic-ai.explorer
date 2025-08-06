@@ -19,7 +19,6 @@ from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.training.trainer import MLPTrainer
-from settings import ROOT_DIR
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
@@ -102,6 +101,7 @@ def find_generate_measure_for_pi(
     accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
     df = build_search_space_measurements_file(
         latencies,
+        accuracies,
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",

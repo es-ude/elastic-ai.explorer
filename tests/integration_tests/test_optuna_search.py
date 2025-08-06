@@ -1,4 +1,3 @@
-from numpy import argmax
 import pytest
 from elasticai.explorer.config import DeploymentConfig
 from functools import partial
@@ -19,7 +18,6 @@ from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
-from elasticai.explorer.training import trainer
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -122,7 +120,10 @@ class TestFrozenTrialToModel:
 
     def test_hw_nas_search(self, hwnas_cfg):
         top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space_cfg, hwnas_cfg= hwnas_cfg, dataset_spec=self.dataset_spec, trainer_class = MLPTrainer
+            self.search_space_cfg,
+            hwnas_cfg=hwnas_cfg,
+            dataset_spec=self.dataset_spec,
+            trainer_class=MLPTrainer,
         )
         assert len(top_models) == hwnas_cfg.top_n_models
         assert len(model_parameters) == hwnas_cfg.top_n_models

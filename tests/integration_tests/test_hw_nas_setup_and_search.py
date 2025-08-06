@@ -52,7 +52,6 @@ class TestHWNasSetupAndSearch:
         )
         self.dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
 
-
     def test_search(self):
         self.RPI5explorer.generate_search_space(
             Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
