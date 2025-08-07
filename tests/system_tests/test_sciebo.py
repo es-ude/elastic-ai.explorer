@@ -29,4 +29,4 @@ class TestSciebo:
         assert os.path.isfile(self.save_dir + "/test_data.csv")
 
     def teardown_class(self):
-        shutil.rmtree(self.save_dir)
+        shutil.rmtree(self.save_dir, ignore_errors=True)

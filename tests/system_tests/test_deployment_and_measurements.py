@@ -75,3 +75,7 @@ class TestDeploymentAndMeasurement:
             )
             == int
         )
+
+    def teardown_class(self):
+        shutil.rmtree(self.RPI5explorer.experiment_dir)
+        

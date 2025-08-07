@@ -1,3 +1,4 @@
+import shutil
 import pytest
 from elasticai.explorer.config import DeploymentConfig
 from functools import partial
@@ -129,3 +130,6 @@ class TestFrozenTrialToModel:
         assert len(model_parameters) == hwnas_cfg.top_n_models
         assert len(metrics) == hwnas_cfg.top_n_models
         assert type(metrics[0]["val_accuracy"]) is float
+
+    def teardown_class(self):
+        shutil.rmtree(self.RPI5explorer.experiment_dir, ignore_errors=True)
