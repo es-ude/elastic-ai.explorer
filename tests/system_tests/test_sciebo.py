@@ -4,15 +4,17 @@ from iesude.data.archives import Zip, PlainFile
 import shutil
 import os
 
+from settings import ROOT_DIR
+
 
 class TestSciebo:
     def setup_class(self):
-        self.save_dir = "tests/system_tests/samples/data"
+        self.save_dir = str(ROOT_DIR / "tests/system_tests/samples/data")
 
     def test_sciebo_download(self):
 
         get_file_from_sciebo(
-            path_to_save=self.save_dir + "/sciebo",
+            path_to_save= self.save_dir + "/sciebo",
             file_path_in_sciebo="mnist.zip",
             file_type=Zip,
         )
