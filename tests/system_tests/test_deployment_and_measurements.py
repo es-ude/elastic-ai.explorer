@@ -14,7 +14,7 @@ from settings import ROOT_DIR
 
 
 class TestDeploymentAndMeasurement:
-    def setUp(self):
+    def setup_class(self):
         self.hwnas_cfg = HWNASConfig(
             config_path=Path(
                 ROOT_DIR / "tests/system_tests/test_configs/hwnas_config.yaml"
@@ -46,17 +46,16 @@ class TestDeploymentAndMeasurement:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        path_to_dataset = Path(ROOT_DIR / "tests/system_tests/samples/data/mnist")
+        path_to_dataset = Path(ROOT_DIR / "data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
 
-        path_to_data_docker = str(ROOT_DIR / "docker/data/mnist")
+        path_to_data_docker = str(ROOT_DIR / "data/mnist")
         shutil.make_archive(str(path_to_data_docker), "zip", path_to_dataset)
         self.RPI5explorer.hw_setup_on_target(
             ROOT_DIR / Path(path_to_data_docker + ".zip")
         )
 
     def test_run_accuracy_measurement(self):
-        self.setUp()
         assert (
             type(
                 self.RPI5explorer.run_measurement(
@@ -67,7 +66,6 @@ class TestDeploymentAndMeasurement:
         )
 
     def test_run_latency_measurement(self):
-        self.setUp()
         assert (
             type(
                 self.RPI5explorer.run_measurement(

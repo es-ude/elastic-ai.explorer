@@ -14,7 +14,7 @@ class TestSciebo:
     def test_sciebo_download(self):
 
         get_file_from_sciebo(
-            path_to_save=self.save_dir + "/sciebo",
+            path_to_save= self.save_dir + "/sciebo",
             file_path_in_sciebo="mnist.zip",
             file_type=Zip,
         )
