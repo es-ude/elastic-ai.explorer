@@ -15,7 +15,6 @@
 #include "tflite_interpreter.h"
 #include "signal_queue.h"
 #include "processing_functions.h"
-// #include "led.h"
 #include "hardware_setup.h"
 #include "adxl345.h"
 
@@ -77,18 +76,10 @@ int main()
 {
     stdio_init_all();
     sleep_ms(2000);
-    uint64_t current_time, previous_time;
     int dataset_size = 256;
 
     interpreter = getInterpreter();
-    previous_time = to_us_since_boot(get_absolute_time());
     int correct = runInference(dataset_size);
-    current_time = to_us_since_boot(get_absolute_time());
-
-    uint64_t latency_us = current_time - previous_time;
-
-    printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", latency_us / dataset_size);
-    printf("|");
     printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", (static_cast<double>(correct) / dataset_size) * 100);
 
     sleep_ms(2000);

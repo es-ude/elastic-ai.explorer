@@ -15,7 +15,8 @@ project(gesture_recognition CXX C ASM)
 
 pico_sdk_init()
 
-add_subdirectory(app_full_precision)
+add_subdirectory(measure_accuracy)
+add_subdirectory(measure_latency)
 add_subdirectory(hw_lib)
 add_subdirectory(ml_utils)
 add_subdirectory(third_party)

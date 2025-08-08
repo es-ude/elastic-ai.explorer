@@ -28,7 +28,7 @@ class HWManager(ABC):
         self.target: Host = target
 
     @abstractmethod
-    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
+    def install_code_on_target(self, sourcecode_identifier: str):
         pass
 
     @abstractmethod
@@ -54,9 +54,9 @@ class PIHWManager(HWManager):
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
+    def install_code_on_target(self, sourcecode_identifier: str):
         path_to_executable = self.compiler.compile_code(
-            name_of_executable, sourcecode_filename
+            sourcecode_identifier + ".cpp", sourcecode_identifier
         )
         self.target.put_file(str(path_to_executable), ".")
 
@@ -120,36 +120,44 @@ class PicoHWManager(HWManager):
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, name_of_executable: str, sourcecode_filename: str):
-        self.name_of_executable = name_of_executable
-        self.sourcecode_filename = sourcecode_filename
+    def install_code_on_target(self, sourcecode_identifier: str):
+        self.name_of_executable = sourcecode_identifier + ".uf2"
+        self.sourcecode_filename = sourcecode_identifier
         if not self.compiler.is_setup():
             self.compiler.setup()
 
     def install_dataset_on_target(self, path_to_dataset: Path):
         shutil.copyfile(
             path_to_dataset / "mnist_images.h",
-            CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/mnist_images.h",
+            CONTEXT_PATH / "code/pico_crosscompiler/measure_accuracy/mnist_images.h",
         )
         shutil.copyfile(
             path_to_dataset / "mnist_labels.h",
-            CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/mnist_labels.h",
+            CONTEXT_PATH / "code/pico_crosscompiler/measure_accuracy/mnist_labels.h",
         )
+        # TODO change measure_latency to need no dataset
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
-
-        measurement_list = self.measurements.split("|")
+        self.logger.info("Put model %s on target", path_to_model)
 
         if metric is Metric.LATENCY:
-            if measurement_list[0]:
-                measurement = self._parse_measurement(measurement_list[0])
+            path_to_executable = self.compiler.compile_code(
+                "measure_latency.uf2", "measure_latency"
+            )
+            self.measurements = self.target.put_file(str(path_to_executable), None)
+            if self.measurements:
+                measurement = self._parse_measurement(self.measurements)
             else:
                 return self._parse_measurement(
-                    '{ "Latency": { "value": -1, "unit": "microseconds"}}'
+                    '{"Latency": { "value": -1, "unit": "microseconds"}}'
                 )
         else:
-            if measurement_list[0]:
-                measurement = self._parse_measurement(measurement_list[1])
+            path_to_executable = self.compiler.compile_code(
+                "measure_accuracy.uf2", "measure_accuracy"
+            )
+            self.measurements = self.target.put_file(str(path_to_executable), None)
+            if self.measurements:
+                measurement = self._parse_measurement(self.measurements)
             else:
                 return self._parse_measurement(
                     '{"Accuracy": { "value":  -1, "unit": "percent"}}'
@@ -161,14 +169,12 @@ class PicoHWManager(HWManager):
     def deploy_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
-            CONTEXT_PATH / "code/pico_crosscompiler/app_full_precision/model.cpp",
+            CONTEXT_PATH / "code/pico_crosscompiler/measure_accuracy/model.cpp",
         )
-        path_to_executable = self.compiler.compile_code(
-            self.name_of_executable, self.sourcecode_filename
+        shutil.copyfile(
+            path_to_model.parent / (path_to_model.stem + ".cpp"),
+            CONTEXT_PATH / "code/pico_crosscompiler/measure_latency/model.cpp",
         )
-        self.measurements = self.target.put_file(str(path_to_executable), None)
-
-        self.logger.info("Put model %s on target", path_to_model)
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)

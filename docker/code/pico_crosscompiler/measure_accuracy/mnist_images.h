@@ -1,7 +1,6 @@
 #ifndef MNIST_IMAGES_H
 #define MNIST_TEST_IMAGES_H
 
-// 256 MNIST-Bilder (28x28), normal (0.0 - 1.0)
 const float mnist_images[256][784] = {
   {
     -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, -0.424213f, 

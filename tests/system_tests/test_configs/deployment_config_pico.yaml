@@ -1,0 +1,26 @@
+#The DeploymentConfig gives the necessary information to connect to the target-device.
+#If parameters are not specified inside the config, they are set to default values.
+DeploymentConfig:
+  #The Hostname of target device / the port to the serial connection.
+  target_name: "/media/robin/RPI-RP2"
+
+  #The Username/user-account of the target device to connect to.
+  target_user: ""
+
+  target_platform_name: "pico"
+  
+  Docker:
+    #The path (on host) to additional pre-compiled libraries neccessary for execution on target.
+    #Optional.
+    compiled_library_path: "./code/pico_crosscompiler"
+
+    # Tag of Crosscompiler Image
+    compiler_tag: "picobase"
+
+    # Full path to Crosscompiler Docker Image
+    path_to_dockerfile:  "/home/robin/code/elastic-ai.explorer/docker/Dockerfile.picobase"
+
+    # Full path to docker buildcontext
+    build_context: "/home/robin/code/elastic-ai.explorer/docker"
+
+

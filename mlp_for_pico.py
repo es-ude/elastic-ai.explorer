@@ -1,16 +1,16 @@
 import json
 import logging
 import logging.config
-import os
 from pathlib import Path
 import torch
-from torchvision import datasets, transforms
+from torchvision import transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 import nni
 
 from torchvision.transforms import transforms
+from elasticai.explorer import utils
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig, ModelConfig
 from elasticai.explorer.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -35,6 +35,7 @@ from elasticai.explorer.platforms.generator.generator import (
     PicoGenerator,
 )
 from elasticai.explorer.trainer import MLPTrainer
+from elasticai.explorer.utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
 
 nni.enable_global_logging(False)
@@ -58,49 +59,6 @@ def setup_knowledge_repository_pico() -> KnowledgeRepository:
     return knowledge_repository
 
 
-def setup_mnist_for_cpp():
-
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-
-    mnist_test = datasets.MNIST(
-        root="data/mnist", train=False, download=True, transform=transf
-    )
-    images = []
-    labels = []
-
-    for i in range(256):
-        img, label = mnist_test[i]
-        images.append(img.squeeze().numpy())
-        labels.append(label)
-
-    os.makedirs("data/cpp-mnist", exist_ok=True)
-    with open("data/cpp-mnist/mnist_images.h", "w") as f:
-        f.write("#ifndef MNIST_IMAGES_H\n#define MNIST_TEST_IMAGES_H\n\n")
-        f.write("// 256 MNIST-Bilder (28x28), normal (0.0 - 1.0)\n")
-        f.write("const float mnist_images[256][784] = {\n")
-
-        for img in images:
-            flat = img.flatten()
-            f.write("  {\n    ")
-            for i in range(784):
-                f.write(f"{flat[i]:.6f}f")
-                if i < 783:
-                    f.write(", ")
-                if (i + 1) % 16 == 0 and i != 783:
-                    f.write("\n    ")
-            f.write("\n  },\n")
-
-        f.write("};\n\n#endif // MNIST_IMAGES_H\n")
-
-    with open("data/cpp-mnist/mnist_labels.h", "w") as f:
-        f.write("#ifndef MNIST_LABELS_H\n#define MNIST_LABELS_H\n\n")
-        f.write("const int mnist_labels[256] = {\n  ")
-        f.write(", ".join(str(l) for l in labels))
-        f.write("\n};\n\n#endif // MNIST_LABELS_H\n")
-
-
 def find_generate_measure_for_pico(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
@@ -115,7 +73,7 @@ def find_generate_measure_for_pico(
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    path_to_dataset = Path("data/mnist")
+    path_to_dataset = ROOT_DIR / Path("data/mnist")
     trainloader: DataLoader = DataLoader(
         MNIST(path_to_dataset, download=True, transform=transf),
         batch_size=64,
@@ -125,8 +83,8 @@ def find_generate_measure_for_pico(
         MNIST(path_to_dataset, download=True, train=False, transform=transf),
         batch_size=64,
     )
-
-    setup_mnist_for_cpp()
+    root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
+    setup_mnist_for_cpp(str(path_to_dataset), str(root_dir_cpp_mnist))
 
     latency_measurements = []
     accuracy_measurements_on_device = []
@@ -201,5 +159,5 @@ if __name__ == "__main__":
     search_space = CombinedSearchSpace(search_space)
 
     find_generate_measure_for_pico(
-        explorer, deploy_cfg, hwnas_cfg, search_space
-    )  # type:ignore
+        explorer, deploy_cfg, hwnas_cfg, search_space  # type:ignore
+    )
