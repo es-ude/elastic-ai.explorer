@@ -18,17 +18,21 @@ CONTEXT_PATH = ROOT_DIR / "docker"
 
 
 class Metric(Enum):
-    LATENCY = 1
-    ACCURACY = 2
+    LATENCY = "Latency"
+    ACCURACY = "Accuracy"
 
 
 class HWManager(ABC):
     def __init__(self, target: Host, compiler: Compiler):
         self.compiler = compiler
         self.target: Host = target
+        self._metric_to_programm: dict[Metric, str] = {}
+
+    def _register_metric_to_programm(self, metric: Metric, programm: str):
+        self._metric_to_programm.update({metric: programm})
 
     @abstractmethod
-    def install_code_on_target(self, sourcecode_identifier: str):
+    def install_code_on_target(self, sourcecode_identifier: str, metric: Metric):
         pass
 
     @abstractmethod
@@ -54,10 +58,11 @@ class PIHWManager(HWManager):
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, sourcecode_identifier: str):
+    def install_code_on_target(self, sourcecode_identifier: str, metric: Metric):
         path_to_executable = self.compiler.compile_code(
             sourcecode_identifier, sourcecode_identifier + ".cpp"
         )
+        self._register_metric_to_programm(metric, sourcecode_identifier)
         self.target.put_file(str(path_to_executable), ".")
 
     def install_dataset_on_target(self, path_to_dataset: Path):
@@ -67,15 +72,19 @@ class PIHWManager(HWManager):
         )
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
+        programm = self._metric_to_programm.get(metric)
+        if not programm:
+            raise Exception(f"No source code registered for Metric: {metric}")
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
         cmd = None
+
         match metric:
             case metric.ACCURACY:
-                cmd = self.build_command("measure_accuracy", [tail, "data"])
+                cmd = self.build_command(programm, [tail, "data"])
                 print("acc")
             case metric.LATENCY:
-                cmd = self.build_command("measure_latency", [tail])
+                cmd = self.build_command(programm, [tail])
                 print("lat")
 
         measurement = self.target.run_command(cmd)
@@ -120,9 +129,8 @@ class PicoHWManager(HWManager):
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, sourcecode_identifier: str):
-        self.name_of_executable = sourcecode_identifier + ".uf2"
-        self.sourcecode_filename = sourcecode_identifier
+    def install_code_on_target(self, sourcecode_identifier: str, metric: Metric):
+        self._register_metric_to_programm(metric, sourcecode_identifier)
         if not self.compiler.is_setup():
             self.compiler.setup()
 
@@ -137,30 +145,20 @@ class PicoHWManager(HWManager):
         )
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
-        self.logger.info("Put model %s on target", path_to_model)
+        self.deploy_model(path_to_model)
+        programm = self._metric_to_programm.get(metric)
+        if not programm:
+            self.logger.error(f"No source code registered for Metric: {metric}")
+            exit(-1)
 
-        if metric is Metric.LATENCY:
-            path_to_executable = self.compiler.compile_code(
-                "measure_latency.uf2", "measure_latency"
-            )
-            self.measurements = self.target.put_file(str(path_to_executable), None)
-            if self.measurements:
-                measurement = self._parse_measurement(self.measurements)
-            else:
-                return self._parse_measurement(
-                    '{"Latency": { "value": -1, "unit": "microseconds"}}'
-                )
+        path_to_executable = self.compiler.compile_code(f"{programm}.uf2", programm)
+        self.measurements = self.target.put_file(str(path_to_executable), None)
+        if self.measurements:
+            measurement = self._parse_measurement(self.measurements)
         else:
-            path_to_executable = self.compiler.compile_code(
-                "measure_accuracy.uf2", "measure_accuracy"
+            return self._parse_measurement(
+                '{"' + metric.value + '": { "value": -1, "unit": "Error"}}'
             )
-            self.measurements = self.target.put_file(str(path_to_executable), None)
-            if self.measurements:
-                measurement = self._parse_measurement(self.measurements)
-            else:
-                return self._parse_measurement(
-                    '{"Accuracy": { "value":  -1, "unit": "percent"}}'
-                )
 
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
@@ -170,7 +168,6 @@ class PicoHWManager(HWManager):
             path_to_model.parent / (path_to_model.stem + ".cpp"),
             CONTEXT_PATH / "code/pico_crosscompiler/data/model.cpp",
         )
-
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)

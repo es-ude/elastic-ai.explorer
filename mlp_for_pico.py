@@ -98,7 +98,13 @@ def find_generate_measure_for_pico(
         accuracy_after_retrain_value = mlp_trainer.test(model, testloader=testloader)
         model_name = "ts_model_" + str(i) + ".tflite"
         explorer.generate_for_hw_platform(model, model_name)
-        explorer.hw_setup_on_target(Path("data/cpp-mnist"))
+
+        # TODO make this path to program or something else that is easier to configure as user.
+        metric_to_program = {
+            Metric.LATENCY: "measure_latency",
+            Metric.ACCURACY: "measure_accuracy",
+        }
+        explorer.hw_setup_on_target(metric_to_program, Path("data/cpp-mnist"))
 
         try:
             latency = explorer.run_measurement(Metric.LATENCY, model_name)

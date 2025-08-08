@@ -14,7 +14,6 @@ from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatf
 from elasticai.explorer.platforms.deployment.manager import (
     HWManager,
     Metric,
-    PicoHWManager,
 )
 from elasticai.explorer.platforms.generator.generator import Generator
 from settings import MAIN_EXPERIMENT_DIR
@@ -134,24 +133,27 @@ class Explorer:
         )
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
-    def hw_setup_on_target(self, path_to_testdata: Path | None):
+    def hw_setup_on_target(
+        self, metric_to_program: dict[Metric, str], path_to_testdata: Path | None
+    ):
         """
         Args:
             path_to_testdata: Path to zipped testdata relative to docker context. Testdata has to be in docker context.
         """
         self.logger.info("Setup Hardware target for experiments.")
 
-        if self.hw_manager:
-            if path_to_testdata:
-                self.hw_manager.install_dataset_on_target(path_to_testdata)
-            self.hw_manager.install_code_on_target("measure_latency")
-            self.hw_manager.install_code_on_target("measure_accuracy")
-            
-        else:
+        if not self.hw_manager:
             self.logger.error(
-                "HwManager is not initialized! First run choose_target_hw(deploy_cfg), before hw_setup_on_target()"
+                "HwManager is not initialized! First run choose_target_hw(deploy_cfg) before hw_setup_on_target()."
             )
             exit(-1)
+
+        if path_to_testdata:
+            self.hw_manager.install_dataset_on_target(path_to_testdata)
+
+        for metric, program_name in metric_to_program.items():
+            self.logger.info(f"Installing program for {metric.name}: {program_name}")
+            self.hw_manager.install_code_on_target(program_name, metric)
 
     def run_measurement(self, metric: Metric, model_name: str) -> dict:
         model_path = self._model_dir / model_name

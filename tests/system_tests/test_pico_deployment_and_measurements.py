@@ -51,8 +51,12 @@ class TestPicoDeploymentAndMeasurement:
         root_dir_mnist = str(ROOT_DIR / "data/mnist")
         root_dir_cpp_mnist = str(ROOT_DIR / "data/cpp-mnist")
         setup_mnist_for_cpp(root_dir_mnist, root_dir_cpp_mnist)
-        self.pico_explorer.hw_setup_on_target(Path(root_dir_cpp_mnist))
 
+        metric_to_program_id = {
+            Metric.ACCURACY: "measure_accuracy",
+            Metric.LATENCY: "measure_latency",
+        }
+        self.pico_explorer.hw_setup_on_target(metric_to_program_id, Path(root_dir_cpp_mnist))
 
     def test_pico_accuracy_measurment(self):
         assert math.isclose(

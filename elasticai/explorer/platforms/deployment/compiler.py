@@ -23,6 +23,7 @@ class Compiler(ABC):
     @abstractmethod
     def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
         pass
+    # TODO remove name of executable
 
 
 class RPICompiler(Compiler):

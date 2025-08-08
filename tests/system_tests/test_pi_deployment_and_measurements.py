@@ -50,7 +50,14 @@ class TestPIDeploymentAndMeasurement:
 
         path_to_data_docker = str(ROOT_DIR / "docker/data/mnist")
         shutil.make_archive(path_to_data_docker, "zip", path_to_dataset)
-        self.RPI5explorer.hw_setup_on_target(Path(path_to_data_docker + ".zip"))
+
+        metric_to_program = {
+            Metric.LATENCY: "measure_latency",
+            Metric.ACCURACY: "measure_accuracy",
+        }
+        self.RPI5explorer.hw_setup_on_target(
+            metric_to_program, Path(path_to_data_docker + ".zip")
+        )
 
     def test_run_accuracy_measurement(self):
         self.setUp()

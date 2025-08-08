@@ -16,7 +16,7 @@ class TestPiHWManager:
         builder.add_argument("model_0.pt")
         builder.add_argument("dataset")
         command = builder.build()
-        assert "./measure_latency model_0.pt dataset"== command
+        assert "./measure_latency model_0.pt dataset" == command
 
     def test_run_latency_measurements(self):
         target = MagicMock()
@@ -27,12 +27,11 @@ class TestPiHWManager:
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
+        self.hwmanager._register_metric_to_programm(Metric.LATENCY, "measure_latency")
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_latency"
         metric = Metric.LATENCY
-        result = self.hwmanager.measure_metric(
-            metric, path_to_model=path
-        )
-        assert expected== result
+        result = self.hwmanager.measure_metric(metric, path_to_model=path)
+        assert expected == result
 
     def test_run_accuracy_measurements(self):
         target = MagicMock()
@@ -43,12 +42,8 @@ class TestPiHWManager:
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
+        self.hwmanager._register_metric_to_programm(Metric.ACCURACY, "measure_accuracy")
         path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_accuracy"
         metric = Metric.ACCURACY
-        result = self.hwmanager.measure_metric(
-            metric, path_to_model=path
-        )
+        result = self.hwmanager.measure_metric(metric, path_to_model=path)
         assert expected == result
-
-
-
