@@ -13,6 +13,7 @@ target_link_libraries(measure_accuracy
     sensor_lib
     led_lib
     ml_utils
+    data
     pico_stdlib
     pico-tflmicro
 )

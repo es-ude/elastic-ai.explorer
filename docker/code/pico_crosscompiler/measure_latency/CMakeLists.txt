@@ -12,6 +12,7 @@ target_link_libraries(measure_latency
     hardware_setup
     sensor_lib
     led_lib
+    data
     ml_utils
     pico_stdlib
     pico-tflmicro

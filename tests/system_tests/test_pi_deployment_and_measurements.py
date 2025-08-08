@@ -21,7 +21,7 @@ class TestPIDeploymentAndMeasurement:
         )
         self.deploy_cfg = DeploymentConfig(
             config_path=ROOT_DIR
-            / Path("tests/system_tests/test_configs/deployment_config_pico.yaml")
+            / Path("tests/system_tests/test_configs/deployment_config_pi.yaml")
         )
         self.model_cfg = ModelConfig()
         knowledge_repository = KnowledgeRepository()

@@ -27,7 +27,6 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
 )
 from elasticai.explorer.platforms.deployment.manager import (
-    CONTEXT_PATH,
     PicoHWManager,
     Metric,
 )

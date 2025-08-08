@@ -5,7 +5,7 @@ from python_on_whales import docker
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH, PicoHWManager
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
@@ -27,18 +27,18 @@ class TestPicoGenerateAndCompile:
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository)
-        self.RPI5explorer.experiment_dir = Path(
+        self.RPI5explorer.experiment_dir = ROOT_DIR / Path(
             "tests/integration_tests/test_experiment"
         )
         self.model_name = "model"
 
         self.hwnas_cfg = HWNASConfig(
-            config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")
+            config_path=ROOT_DIR
+            / Path("tests/integration_tests/test_configs/hwnas_config.yaml")
         )
         self.deploy_cfg = DeploymentConfig(
-            config_path=Path(
-                "tests/integration_tests/test_configs/deployment_config_pico.yaml"
-            )
+            config_path=ROOT_DIR
+            / Path("tests/integration_tests/test_configs/deployment_config_pico.yaml")
         )
 
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)
@@ -61,15 +61,17 @@ class TestPicoGenerateAndCompile:
 
     def test_pico_docker_compile(self):
 
-        expected_name_of_executable = "app_full_precision.uf2"
-        path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
+        expected_name_of_executable = "measure_accuracy.uf2"
+        self.path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
 
         compiler = PicoCompiler(deploy_cfg=self.deploy_cfg)
         if not compiler.is_setup():
             compiler.setup()
-        compiler.compile_code(expected_name_of_executable, "app_full_precision")
-        if not Path(path_to_executable).resolve().is_file():
-            raise AssertionError("File does not exist: %s" % str(path_to_executable))
+        compiler.compile_code(expected_name_of_executable, "measure_accuracy")
+        if not Path(self.path_to_executable).resolve().is_file():
+            raise AssertionError(
+                "File does not exist: %s" % str(self.path_to_executable)
+            )
 
     def teardown_method(self):
 
@@ -82,5 +84,10 @@ class TestPicoGenerateAndCompile:
 
         try:
             os.remove(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))
+        except:
+            pass
+
+        try:
+            os.remove(self.path_to_executable)
         except:
             pass

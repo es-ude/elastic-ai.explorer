@@ -17,6 +17,7 @@ pico_sdk_init()
 
 add_subdirectory(measure_accuracy)
 add_subdirectory(measure_latency)
+add_subdirectory(data)
 add_subdirectory(hw_lib)
 add_subdirectory(ml_utils)
 add_subdirectory(third_party)

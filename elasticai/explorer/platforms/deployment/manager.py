@@ -56,7 +56,7 @@ class PIHWManager(HWManager):
 
     def install_code_on_target(self, sourcecode_identifier: str):
         path_to_executable = self.compiler.compile_code(
-            sourcecode_identifier + ".cpp", sourcecode_identifier
+            sourcecode_identifier, sourcecode_identifier + ".cpp"
         )
         self.target.put_file(str(path_to_executable), ".")
 
@@ -129,13 +129,12 @@ class PicoHWManager(HWManager):
     def install_dataset_on_target(self, path_to_dataset: Path):
         shutil.copyfile(
             path_to_dataset / "mnist_images.h",
-            CONTEXT_PATH / "code/pico_crosscompiler/measure_accuracy/mnist_images.h",
+            CONTEXT_PATH / "code/pico_crosscompiler/data/mnist_images.h",
         )
         shutil.copyfile(
             path_to_dataset / "mnist_labels.h",
-            CONTEXT_PATH / "code/pico_crosscompiler/measure_accuracy/mnist_labels.h",
+            CONTEXT_PATH / "code/pico_crosscompiler/data/mnist_labels.h",
         )
-        # TODO change measure_latency to need no dataset
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         self.logger.info("Put model %s on target", path_to_model)
@@ -169,12 +168,9 @@ class PicoHWManager(HWManager):
     def deploy_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
-            CONTEXT_PATH / "code/pico_crosscompiler/measure_accuracy/model.cpp",
+            CONTEXT_PATH / "code/pico_crosscompiler/data/model.cpp",
         )
-        shutil.copyfile(
-            path_to_model.parent / (path_to_model.stem + ".cpp"),
-            CONTEXT_PATH / "code/pico_crosscompiler/measure_latency/model.cpp",
-        )
+
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)
