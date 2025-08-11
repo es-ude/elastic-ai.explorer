@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import logging
 import os
 from pathlib import Path
 from typing import Callable, Type, Union
@@ -9,10 +10,12 @@ from iesude.data.archives import PlainFile
 from iesude.data.extractable import ExtractableFn
 import owncloud
 
+logger = logging.getLogger("explorer.download")
+
 
 class Downloadable(ABC):
     @abstractmethod
-    def _download(self, root, file_path_in_sciebo, file_type):
+    def _download(self):
         pass
 
 
@@ -26,7 +29,8 @@ def get_file_from_sciebo(
     ):
         return
 
-    for i in range(10):
+    timeout = 0
+    while timeout < 5:
         try:
             if file_type is PlainFile:
                 dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
@@ -34,20 +38,19 @@ def get_file_from_sciebo(
                 dataset.download(parent)
                 save_path = Path(path_to_save).parent.parent / Path(file_path_in_sciebo)
                 os.renames(save_path, path_to_save)
-
             else:
                 dataset = DataSet(file_path=file_path_in_sciebo, file_type=file_type)
                 dataset.download(path_to_save)
+            break
         except owncloud.HTTPResponseError as err:
-            if i < 10:
-                continue
+            logger.error(err)
+            if timeout < 5:
+                timeout += 1
             else:
                 raise err
-        else:
-            break
 
 
-class DownloadableSciebo:
+class DownloadableSciebo(Downloadable):
     def __init__(
         self,
         download_path: Union[str, Path],

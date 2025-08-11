@@ -128,5 +128,5 @@ class DatasetSpecification:
     dataset_location: Path
     transform: Compose | None = None
     test_train_val_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
-    shuffel: bool = False
+    shuffle: bool = False
     split_seed: int = 42

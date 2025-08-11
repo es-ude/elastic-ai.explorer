@@ -35,13 +35,13 @@ class Trainer(ABC):
         )
 
         self.train_loader = DataLoader(
-            train_subset, batch_size=batch_size, shuffle=dataset_spec.shuffel
+            train_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
         )
         self.val_loader = DataLoader(
-            val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffel
+            val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
         )
         self.test_loader = DataLoader(
-            test_subset, batch_size=batch_size, shuffle=dataset_spec.shuffel
+            test_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
         )
 
     def train(

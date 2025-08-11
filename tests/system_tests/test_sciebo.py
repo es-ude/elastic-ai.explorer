@@ -4,10 +4,12 @@ from iesude.data.archives import Zip, PlainFile
 import shutil
 import os
 
+from settings import ROOT_DIR
+
 
 class TestSciebo:
     def setup_class(self):
-        self.save_dir = "tests/system_tests/samples/data"
+        self.save_dir = str(ROOT_DIR / "tests/system_tests/samples/data")
 
     def test_sciebo_download(self):
 
