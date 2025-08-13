@@ -10,7 +10,7 @@ from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH, PicoHWManager
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from settings import ROOT_DIR
-from tests.integration_tests.samples.sample_MLP import sample_MLP
+from tests.integration_tests.samples import sample_MLP
 
 
 class TestPicoGenerateAndCompile:
@@ -45,7 +45,7 @@ class TestPicoGenerateAndCompile:
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)
-        model = sample_MLP()
+        model = sample_MLP.SampleMLP(28 * 28)
 
         self.RPI5explorer.generate_for_hw_platform(
             model=model, model_name=self.model_name

@@ -1,161 +1,165 @@
 import logging
 import math
-import os
-from typing import Any, Callable, cast
+from typing import Any, Callable, Type
+from functools import partial
+from enum import Enum
 
-import nni
-import torch
-from nni.nas.strategy import Random, GridSearch, RegularizedEvolution
-from nni.nas.strategy.middleware import Filter, Chain
-from nni.nas.evaluator import FunctionalEvaluator
-from nni.nas.experiment import NasExperiment
-from nni.experiment import TrialResult
-from nni.nas.nn.pytorch import ModelSpace
-from nni.nas.space import ExecutableModelSpace, SimplifiedModelSpace
-from nni.experiment import TrialResult
-from nni.nas.nn.pytorch import ModelSpace
-from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
-from torchvision.transforms import transforms
+import optuna
+from optuna.trial import FrozenTrial, TrialState
 
+from torch.optim.adam import Adam
+
+from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
-from elasticai.explorer.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
 
 
-def evaluate_model(model: ModelSpace, device: str):
-    global accuracy
-    flops_weight = 2.0   # TODO: make configurable
-    n_epochs = 2
+class SearchAlgorithm(Enum):
+    RANDOM_SEARCH = "random"
+    GRID_SEARCH = "grid"
+    EVOlUTIONARY_SEARCH = "evolution"
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-    train_loader = DataLoader(
-        MNIST("data/mnist", download=True, transform=transf),
-        batch_size=64,
-        shuffle=True,
-    )
-    test_loader = DataLoader(
-        MNIST("data/mnist", download=True, train=False, transform=transf), batch_size=64
-    )
-    trainer = MLPTrainer(device, optimizer)
-    cost_estimator = CostEstimator()
-    flops = cost_estimator.estimate_flops(model)
-    params = cost_estimator.compute_num_params(model)
-    metric = {
-        "default": 0,
-        "accuracy": 0,
-        "flops log10": math.log10(flops),
-        "params": params,
-    }
-    for epoch in range(n_epochs):
-        trainer.train_epoch(model, train_loader, epoch)
 
-        metric["accuracy"] = trainer.test(model, test_loader)
-        metric["default"] = metric["accuracy"] - (metric["flops log10"] * flops_weight)
-        nni.report_intermediate_result(metric)
+def objective_wrapper(
+    trial: optuna.Trial,
+    search_space_cfg: dict[str, Any],
+    dataset_spec: data.DatasetSpecification,
+    trainer_class: type[Trainer],
+    device: str,
+    n_estimation_epochs: int,
+    flops_weight: float,
+    constraints: dict[str, int] = {},
+) -> float:
 
-    nni.report_final_result(metric)
+    def objective(trial: optuna.Trial) -> float:
+
+        search_space = SearchSpace(search_space_cfg)
+        model = search_space.create_model_sample(trial)
+        optimizer = Adam(model.parameters(), lr=1e-3)  # type: ignore
+        trainer = trainer_class(device, optimizer, dataset_spec)
+
+        cost_estimator = CostEstimator()
+        sample, _ = next(iter(trainer.test_loader))
+        flops = cost_estimator.estimate_flops(model, sample)
+        params = cost_estimator.compute_num_params(model)
+
+        le_zero_constraints = ()
+        max_flops = constraints.get("max_flops")
+        max_params = constraints.get("max_params")
+        if max_flops:
+            le_zero_constraints = le_zero_constraints + (flops - max_flops,)
+        if max_params:
+            le_zero_constraints = le_zero_constraints + (params - max_params,)
+        trial.set_user_attr("constraint", le_zero_constraints)
+
+        # TODO remove useless metric dict
+        metric = {
+            "default": 0,
+            "val_loss": 0,
+            "val_accuracy": -1,
+            "flops log10": math.log10(flops),
+        }
+        for epoch in range(n_estimation_epochs):
+            trainer.train_epoch(model, epoch)
+            val_accuracy, val_loss = trainer.validate(model)
+            metric["val_loss"] = val_loss
+            if val_accuracy:
+                metric["val_accuracy"] = val_accuracy
+                metric["default"] = metric["val_accuracy"] - (
+                    metric["flops log10"] * flops_weight
+                )
+            else:
+                metric["val_accuracy"] = -1
+                metric["default"] = -metric["val_loss"] - (
+                    metric["flops log10"] * flops_weight
+                )
+            trial.report(metric["default"], epoch)
+        trial.set_user_attr("val_accuracy", metric["val_accuracy"])
+        trial.set_user_attr("flops_log10", metric["flops log10"])
+        trial.set_user_attr("val_loss", metric["val_loss"])
+
+        return metric["default"]
+
+    return objective(trial)
+
+
+def constraints(trial):
+    return trial.user_attrs["constraint"]
 
 
 def search(
-    search_space: Any, hwnas_cfg: HWNASConfig
-) -> tuple[list[Any], list[Any], list[Any]]:
+    search_space_cfg: dict,
+    hwnas_cfg: HWNASConfig,
+    dataset_spec: data.DatasetSpecification,
+    trainer_class: Type[Trainer],
+) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
+    search_space = SearchSpace(search_space_cfg)
+    # TODO hardconstraints for all allgorithms / test algorithms
+    match hwnas_cfg.search_algorithm:
+        case SearchAlgorithm.RANDOM_SEARCH:
+            sampler = optuna.samplers.RandomSampler()
+        case SearchAlgorithm.GRID_SEARCH:
+            sampler = optuna.samplers.GridSampler(search_space_cfg)
+        case SearchAlgorithm.EVOlUTIONARY_SEARCH:
+            sampler = optuna.samplers.NSGAIISampler(constraints_func=constraints)
+        case _:
+            sampler = optuna.samplers.RandomSampler()
 
-    filters: list[Filter] = []
-    cost_estimator = CostEstimator()
-
-    def make_filter(
-        model_space: ModelSpace,
-        max_val: float | str,
-        estimate: Callable[[ModelSpace], float],
-    ) -> Filter:
-        def constraint(sample: SimplifiedModelSpace) -> bool:
-            assert sample.sample is not None
-            frozen_model = cast(ModelSpace, model_space.freeze(sample.sample))
-            return estimate(frozen_model) < float(max_val)
-
-        return Filter(cast(Callable[[ExecutableModelSpace], bool], constraint))
-
-    for key, value in hwnas_cfg.hw_constraints.items():
-        if key == "max_flops":
-            filters.append(
-                make_filter(search_space, value, cost_estimator.estimate_flops)
-            )
-        elif key == "max_params":
-            filters.append(
-                make_filter(search_space, value, cost_estimator.compute_num_params)
-            )
-        else:
-            logger.warning("Unknown hardware constraint: %s", key)
-
-    if hwnas_cfg.search_algorithm == "grid":
-        search_strategy = GridSearch()
-    elif hwnas_cfg.search_algorithm == "regularized_evolution":
-        search_strategy = RegularizedEvolution(
-            population_size=20,
-            sample_size=10,
-            mutation_prob=0.1,  
-        )   # TODO: make configurable
-    else:
-        if hwnas_cfg.search_algorithm != "random":
-            logger.warning(
-                "Unknown search algorithm: %s, using random search instead.",
-                hwnas_cfg.search_algorithm,
-            )
-        search_strategy = Random()
-
-    if filters:
-        search_strategy = Chain(search_strategy, *filters)
-
-    num_cpus = os.cpu_count()
-    assert num_cpus is not None, "CPU count must be defined"
-
-    evaluator = FunctionalEvaluator(evaluate_model, device=hwnas_cfg.host_processor)
-    experiment = NasExperiment(search_space, evaluator, search_strategy)
-    experiment.config.max_trial_number = hwnas_cfg.max_search_trials
-    experiment.config.trial_concurrency = (
-        num_cpus // 2
-    )  # Use half of the available CPUs
-    experiment.run(port=8081)
-    top_models: list[ModelSpace] = experiment.export_top_models(
-        top_k=hwnas_cfg.top_n_models, formatter="instance"
+    study = optuna.create_study(
+        sampler=sampler,
+        direction="maximize",
     )
-    top_parameters = experiment.export_top_models(
-        top_k=hwnas_cfg.top_n_models, formatter="dict"
+
+    study.optimize(
+        partial(
+            objective_wrapper,
+            search_space_cfg=search_space_cfg,
+            device=hwnas_cfg.host_processor,
+            dataset_spec=dataset_spec,
+            trainer_class=trainer_class,
+            n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
+            flops_weight=hwnas_cfg.flops_weight,
+            constraints=hwnas_cfg.hw_constraints,
+        ),
+        n_trials=hwnas_cfg.max_search_trials,
+        show_progress_bar=True,
+        gc_after_trial=True,
     )
-    test_results = experiment.export_data()
-    experiment.stop()
 
-    metrics, parameters = _map_trial_params_to_found_models(
-        test_results, top_parameters
+    test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
+
+    eval: Callable[[FrozenTrial], float] = lambda trial: (
+        trial.value if trial.value is not None else float("-inf")
     )
-    for model in top_models:
-        print("Simplify")
-        print(model.simplify())
-        print("Parameters")
-        print(model.parameters())
-        print(metrics)
-        print(parameters)
-    return top_models, parameters, metrics
+    test_results.sort(key=eval, reverse=True)
 
+    top_k_frozen_trials = test_results[: hwnas_cfg.top_n_models]
 
-def _map_trial_params_to_found_models(
-    test_results: list[TrialResult], top_parameters: list[Any]
-):
-    parameters = list(range(len(top_parameters)))
-    metrics: list[Any] = list(range(len(top_parameters)))
-    for trial in test_results:
-        for i, top_parameter in enumerate(top_parameters):
-            if trial.parameter["sample"] == top_parameter:
-                parameters[i] = trial.parameter["sample"]
+    if len(top_k_frozen_trials) == 0:
+        logger.warning("No models found in the search space.")
+        return [], [], []
 
-                metrics[i] = trial.value
-    return metrics, parameters
+    top_k_models: list[Any] = []
+    top_k_params: list[dict[str, Any]] = []
+    top_k_metrics: list[dict] = []
+
+    for frozen_trial in top_k_frozen_trials:
+        top_k_models.append(search_space.create_model_sample(frozen_trial))
+        top_k_params.append(frozen_trial.params)
+        top_k_metrics.append(
+            {
+                "default": eval(frozen_trial),
+                "val_accuracy": frozen_trial.user_attrs["val_accuracy"],
+                "val_loss": frozen_trial.user_attrs["val_loss"],
+                "flops log10": frozen_trial.user_attrs["flops_log10"],
+            }
+        )
+
+    return top_k_models, top_k_params, top_k_metrics

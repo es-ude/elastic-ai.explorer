@@ -11,5 +11,5 @@ HWNASConfig:
   top_n_models: 2
 
   #The search strategy to use for the HW-NAS experiment.
-  #Options: random, grid, regularized_evolution
-  search_strategy: "grid"
+  #Options: random, grid, evolution
+  search_algorithm: "grid"

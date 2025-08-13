@@ -2,23 +2,22 @@ input: [1, 28, 28]
 output: 10
 blocks:
   - block:  "1" #namefield muss noch rein
-    op_candidates: ["conv2d", "linear"]
+    op_candidates: ["linear", "conv2d"]
     depth: [1, 2, 3]
+    activation: [ "relu", "sigmoid"]
     linear:
       #überall range oder choices
-   #   activation: [ "relu", "sigmoid"]
-      width: [ 2, 4, 8, 16, 32, 64, 128, 256, 512]
+      width: [16, 32, 5, 4]
     conv2D:
-      kernel_size: [1, 3]
+      kernel_size: [1, 2]
       stride: [2]
       out_channels: [ 10, 4]
   - block: "2"
     op_candidates: ["linear"]
-    depth: 1
+    activation: [ "relu", "sigmoid"]
+    depth: [1, 2]
     linear:
-      width: [ 2, 4, 8, 16, 32, 64, 128, 256, 512]
-    
-    #  activation: [ "sigmoid" ]
+      width: [ 11, 21 ]
 #  - block: "3"
 #    op_candidates: ["linear"]
 #    depth: 3

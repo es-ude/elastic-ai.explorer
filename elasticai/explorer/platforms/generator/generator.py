@@ -54,7 +54,7 @@ class PIGenerator(Generator):
         ts_model = torch.jit.script(model)
         path = Path(os.path.realpath(path)).with_suffix(".pt")
         self.logger.info("Save model to %s", path)
-        ts_model.save(path)
+        ts_model.save(path)  # type: ignore
 
         return ts_model
 

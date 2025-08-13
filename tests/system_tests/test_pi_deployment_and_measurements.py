@@ -1,5 +1,5 @@
 import shutil
-from elasticai.explorer.config import HWNASConfig, ModelConfig, DeploymentConfig
+from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
@@ -13,6 +13,7 @@ from pathlib import Path
 from settings import ROOT_DIR
 
 
+
 class TestPIDeploymentAndMeasurement:
     def setUp(self):
         self.hwnas_cfg = HWNASConfig(
@@ -23,7 +24,6 @@ class TestPIDeploymentAndMeasurement:
             config_path=ROOT_DIR
             / Path("tests/system_tests/test_configs/deployment_config_pi.yaml")
         )
-        self.model_cfg = ModelConfig()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(

@@ -16,7 +16,7 @@ docker/data
 #experiments logs
 experiments/
 experiment_data.csv
-
+tests/integration_tests/data
 #plots
 plots/
 
@@ -26,8 +26,13 @@ metrics/
 #libtorch 
 docker/code/libtorch*
 
+
+tests/data
 #bin 
 docker/bin
+
+#data
+docker/test_data
 
 #models
 models/
@@ -43,8 +48,9 @@ tests/system_tests/test_experiment/
 tests/system_tests/samples/data/
 #integration-tests
 tests/integration_tests/test_experiment/
-
-
+tests/integration_tests/samples/features.csv
+tests/integration_tests/samples/labels.csv
+tests/integration_tests/samples/test_dataset.csv
 # Distribution / packaging
 .Python
 build/

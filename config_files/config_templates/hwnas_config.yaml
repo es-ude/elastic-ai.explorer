@@ -11,10 +11,17 @@ HWNASConfig:
   top_n_models: 2
 
   # The search algorithm to use for the HW-NAS.
-  # Options: "random", "grid", "regularized_evolution"
+  # Options: "random", "grid", "evolution"
   search_algorithm: "random"
   
   # The hardware constraints for the search.
   # Currently, only "max_flops" and "max_params" are supported.
   # Max. capabilities of Raspberry Pi platforms: RPi4 ~ 4.4 GFLOPS, RPi5 ~ 10 GFLOPS.
   hw_constraints: {"max_flops": 10e9, "max_params": 1e6}
+  # The number of training epochs for accuracy estimation.
+  n_estimation_epochs: 2
+
+  # The weight of the FLOPs-Estimation for the Proxymetric.
+  # proxy_metric = accuracy_estimation - log10(flops_estimation) * flops_weight
+  flops_weight: 2
+

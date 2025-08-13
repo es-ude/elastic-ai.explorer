@@ -1,7 +1,5 @@
 import math
-import os
-import shutil
-from elasticai.explorer.config import HWNASConfig, ModelConfig, DeploymentConfig
+from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
@@ -15,7 +13,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 )
 from pathlib import Path
 
-from elasticai.explorer.utils import setup_mnist_for_cpp
+from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
 
 
@@ -29,7 +27,6 @@ class TestPicoDeploymentAndMeasurement:
             config_path=ROOT_DIR
             / Path("tests/system_tests/test_configs/deployment_config_pico.yaml")
         )
-        self.model_cfg = ModelConfig()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(

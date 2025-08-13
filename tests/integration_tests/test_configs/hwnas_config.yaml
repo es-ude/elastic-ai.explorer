@@ -2,7 +2,7 @@
 #If parameters are not specified inside the config, they are set to default values.
 HWNASConfig:
   #Processor type (cpu, cuda:n) of the host, the experiment should run on.
-  host_processor: "auto" 
+  host_processor: "cpu" 
 
   #The search trials the HW-NAS should do at max.
   max_search_trials: 2
@@ -10,3 +10,12 @@ HWNASConfig:
   #The number of top models returned by HW-NAS.
   top_n_models: 2
 
+  # The number of CPU-cores used to run the HW-NAS.
+  n_cpu_cores: 1
+
+  # The number of training epochs for accuracy estimation.
+  n_estimation_epochs: 2
+
+  # The weight of the FLOPs-Estimation for the Proxymetric.
+  # proxy_metric = accuracy_estimation - log10(flops_estimation) * flops_weight
+  flops_weight: 2
