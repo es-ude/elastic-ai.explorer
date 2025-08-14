@@ -15,15 +15,15 @@ dependencies = [
     "pandas>=2.3.1",
     "plotly>=6.0.1",
     "python-on-whales>=0.75.1",
-    "pytorch-lightning>=2.5.1",
     "scipy>=1.16.1",
     "torchvision==0.21.0",
     "torch>=2.4.0",
     "ai-edge-torch>=0.5.0",
     "pyserial>=3.5",
     "pandas>=2.2.3",
-    "tensorflow>=2.19.0",
+    "tensorflow==2.20.0",
     "iesude-data",
+    "tflite>=2.18.0",
 ]
 
 # Same as Black.
@@ -45,7 +45,7 @@ dev = [
 
 [tool.uv]
 default-groups = ["dev"]
-
+override-dependencies = ["tf-nightly; sys_platform == 'never'",]
 [tool.uv.sources]
 iesude-data = { git = "https://github.com/es-ude/data.git" }
 
