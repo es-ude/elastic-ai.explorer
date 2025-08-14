@@ -12,6 +12,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
     RPiHost,
 )
+from elasticai.explorer.platforms.generator import tflite_to_resolver
 from settings import ROOT_DIR
 
 CONTEXT_PATH = ROOT_DIR / "docker"
@@ -145,11 +146,15 @@ class PicoHWManager(HWManager):
         )
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
+        
         self.deploy_model(path_to_model)
         programm = self._metric_to_programm.get(metric)
         if not programm:
             self.logger.error(f"No source code registered for Metric: {metric}")
             exit(-1)
+        tflite_to_resolver.generate_resolver_h(
+            path_to_model, CONTEXT_PATH /f"code/pico_crosscompiler/{programm}/resolver_ops.h"
+        )
 
         path_to_executable = self.compiler.compile_code(f"{programm}.uf2", programm)
         self.measurements = self.target.put_file(str(path_to_executable), None)

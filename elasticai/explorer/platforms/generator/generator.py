@@ -3,7 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 import subprocess
-from typing import Any, List, Literal
+from typing import Any, Literal
 import numpy
 import torch
 from torch import nn
@@ -139,10 +139,11 @@ class PicoGenerator(Generator):
         sample_tflite_input = (torch.ones(1, 28, 28, 1),)
         # if quantization == "full_precision":
 
+        
         edge_model = ai_edge_torch.convert(
             nhwc_model, sample_args=sample_tflite_input
         )
-
+        
         # else:
         #     edge_model, torch_output = self._quantize(model, sample_inputs)
 
@@ -150,4 +151,4 @@ class PicoGenerator(Generator):
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))
-    
+        

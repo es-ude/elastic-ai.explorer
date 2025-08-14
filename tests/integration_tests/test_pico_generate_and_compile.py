@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from python_on_whales import docker
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.explorer import Explorer
@@ -8,6 +7,7 @@ from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeReposit
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH, PicoHWManager
+from elasticai.explorer.platforms.generator import tflite_to_resolver
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from settings import ROOT_DIR
 from tests.integration_tests.samples import sample_MLP
@@ -73,6 +73,22 @@ class TestPicoGenerateAndCompile:
                 "File does not exist: %s" % str(self.path_to_executable)
             )
 
+    def test_tflite_to_resolver(self):
+        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
+        model = sample_MLP.SampleMLP(28 * 28)
+
+        self.RPI5explorer.generate_for_hw_platform(
+            model=model, model_name=self.model_name
+        )
+        sample_model_path = self.RPI5explorer.model_dir / (self.model_name + ".tflite")
+        tflite_to_resolver.generate_resolver_h(
+            sample_model_path, self.RPI5explorer.experiment_dir / "resolver_ops.h"
+        )
+
+        assert (
+            os.path.exists(self.RPI5explorer.experiment_dir / "resolver_ops.h") == True
+        )
+
     def teardown_method(self):
 
         try:
@@ -89,5 +105,9 @@ class TestPicoGenerateAndCompile:
 
         try:
             os.remove(self.path_to_executable)
+        except:
+            pass
+        try:
+            os.remove(self.RPI5explorer.experiment_dir / "resolver_ops.h")
         except:
             pass

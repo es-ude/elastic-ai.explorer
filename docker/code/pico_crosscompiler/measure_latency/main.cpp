@@ -15,7 +15,6 @@
 #include "tflite_interpreter.h"
 #include "signal_queue.h"
 #include "processing_functions.h"
-// #include "led.h"
 #include "hardware_setup.h"
 #include "adxl345.h"
 
@@ -31,14 +30,7 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
 {
     std::unique_ptr<tflite::MicroMutableOpResolver<11>> resolver(new tflite::MicroMutableOpResolver<11>());
 
-    resolver->AddAdd();
-    resolver->AddRelu();
-    resolver->AddFullyConnected();
-    resolver->AddReshape();
-    resolver->AddDepthwiseConv2D();
-    resolver->AddTranspose();
-    resolver->AddConv2D();
-    resolver->AddLogistic();
+    #include "resolver_ops.h"
 
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
