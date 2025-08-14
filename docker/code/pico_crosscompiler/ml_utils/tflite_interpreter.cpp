@@ -67,14 +67,7 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         return -1;
     }
 
-    // for (uint32_t y = 0; y < 28; ++y) {
-    //     for (uint32_t x = 0; x < 28; ++x) {
-    //         uint32_t idx_flat = y * 28 + x; // flat input buffer index
-    //         // NCHW format: [0][0][y][x] -> flat index: ((0 * C + 0) * H + y) * W + x
-    //         uint32_t nchw_index = y * 28 + x; // still linear here, but you can generalize if needed
-    //         this->input->data.f[nchw_index] = inputBuffer[idx_flat];
-    //     }
-    // }
+
     for (uint32_t inputIdx = 0; inputIdx < 784; inputIdx++)
     {
         const float x = inputBuffer[inputIdx];

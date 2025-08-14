@@ -150,3 +150,4 @@ class PicoGenerator(Generator):
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))
+    

@@ -37,6 +37,7 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
     resolver->AddDepthwiseConv2D();
     resolver->AddTranspose();
     resolver->AddConv2D();
+    resolver->AddLogistic();
 
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
