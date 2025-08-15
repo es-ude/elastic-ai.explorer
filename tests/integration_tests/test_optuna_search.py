@@ -1,11 +1,9 @@
-import math
-from numpy import argmax
 import pytest
-from elasticai.explorer.config import HWNASConfig, DeploymentConfig
+from elasticai.explorer.config import DeploymentConfig
 from functools import partial
 import optuna
 import torch
-from optuna.study import MaxTrialsCallback
+from torchvision import transforms
 from optuna.trial import TrialState
 
 from elasticai.explorer.explorer import Explorer
@@ -20,6 +18,8 @@ from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
+from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
 from pathlib import Path
 from types import SimpleNamespace
@@ -79,6 +79,13 @@ class TestFrozenTrialToModel:
             Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
         self.search_space = SearchSpace(self.search_space_cfg)
+        self.dataset_spec = DatasetSpecification(
+            MNISTWrapper,
+            Path(ROOT_DIR / "data/mnist"),
+            transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            ),
+        )
 
     def test_frozentrial_to_model(self, hwnas_cfg):
         study = optuna.create_study(
@@ -90,6 +97,8 @@ class TestFrozenTrialToModel:
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
                 device=hwnas_cfg.host_processor,
+                dataset_spec=self.dataset_spec,
+                trainer_class=MLPTrainer,
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
             ),
@@ -111,9 +120,12 @@ class TestFrozenTrialToModel:
 
     def test_hw_nas_search(self, hwnas_cfg):
         top_models, model_parameters, metrics = hw_nas.search(
-            self.search_space_cfg, hwnas_cfg
+            self.search_space_cfg,
+            hwnas_cfg=hwnas_cfg,
+            dataset_spec=self.dataset_spec,
+            trainer_class=MLPTrainer,
         )
         assert len(top_models) == hwnas_cfg.top_n_models
         assert len(model_parameters) == hwnas_cfg.top_n_models
         assert len(metrics) == hwnas_cfg.top_n_models
-        assert type(metrics[0]["accuracy"]) is float
+        assert type(metrics[0]["val_accuracy"]) is float

@@ -18,6 +18,7 @@ dependencies = [
     "pytorch-lightning>=2.5.1",
     "scipy>=1.16.1",
     "torchvision==0.19.0",
+    "iesude-data",
 ]
 
 # Same as Black.
@@ -36,8 +37,12 @@ dev = [
 ]
 
 
+
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.uv.sources]
+iesude-data = { git = "https://github.com/es-ude/data.git" }
 
 [tool.black]
 preview = true

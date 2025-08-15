@@ -3,24 +3,22 @@ import shutil
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
+from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
-from elasticai.explorer.data_to_csv import build_search_space_measurements_file
+from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
+from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
-    Metrics,
 )
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.trainer import MLPTrainer
-from settings import ROOT_DIR
+from elasticai.explorer.training.trainer import MLPTrainer
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
@@ -53,35 +51,31 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
     return knowledge_repository
 
 
+def setup_mnist(path_to_test_data: Path):
+    transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    shutil.make_archive(
+        str(path_to_test_data), "zip", f"{str(path_to_test_data)}/MNIST/raw"
+    )
+    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, transf)
+    return dataset_spec
+
+
 def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
     search_space_path: Path,
-) -> Metrics:
+):
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space_path)
-    top_models = explorer.search(hwnas_cfg)
 
-    # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-    path_to_dataset = Path("data/mnist")
-    trainloader: DataLoader = DataLoader(
-        MNIST(path_to_dataset, download=True, transform=transf),
-        batch_size=64,
-        shuffle=True,
-    )
-    testloader: DataLoader = DataLoader(
-        MNIST(path_to_dataset, download=True, train=False, transform=transf),
-        batch_size=64,
-    )
+    path_to_test_data = Path("data/mnist")
+    dataset_spec = setup_mnist(path_to_test_data)
 
-    path_to_test_data = "docker/data/mnist"
-    shutil.make_archive(path_to_test_data, "zip", "data/mnist/MNIST/raw")
-    explorer.hw_setup_on_target(Path(path_to_test_data + ".zip"))
-
+    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
     latency_measurements = []
     accuracy_measurements = []
 
@@ -89,10 +83,11 @@ def find_generate_measure_for_pi(
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
             device=retrain_device,
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
+            optimizer=Adam(model.parameters(), lr=1e-3),
+            dataset_spec=dataset_spec,
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
-        mlp_trainer.test(model, testloader=testloader)
+        mlp_trainer.train(model, epochs=6)
+        mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name)
 
@@ -106,50 +101,34 @@ def find_generate_measure_for_pi(
     accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
     df = build_search_space_measurements_file(
         latencies,
+        accuracies,
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",
     )
     logger.info("Models:\n %s", df)
 
-    return Metrics(
-        explorer.metric_dir / "metrics.json",
-        explorer.model_dir / "models.json",
-        accuracies,
-        latencies,
-    )
-
 
 def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
-    top_models = explorer.search(hwnas_cfg)
+    path_to_test_data = Path("data/mnist")
+    dataset_spec = setup_mnist(path_to_test_data)
 
-    # Creating Train and Test set from MNIST #TODO build a generic dataclass/datawrapper
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-    path_to_dataset = Path("data/mnist")
-    trainloader: DataLoader = DataLoader(
-        MNIST(path_to_dataset, download=True, transform=transf),
-        batch_size=64,
-        shuffle=True,
-    )
-    testloader: DataLoader = DataLoader(
-        MNIST(path_to_dataset, download=True, train=False, transform=transf),
-        batch_size=64,
-    )
+    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         print(f"found model {i}:  {model}")
 
         mlp_trainer = MLPTrainer(
             device=retrain_device,
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
+            optimizer=Adam(model.parameters(), lr=1e-3),
+            dataset_spec=dataset_spec,
         )
-        mlp_trainer.train(model, trainloader=trainloader, epochs=3)
-        mlp_trainer.test(model, testloader=testloader)
+        mlp_trainer.train(model, epochs=3)
+        mlp_trainer.test(model)
         print("=================================================")
         model_name = "ts_model_" + str(i) + ".pt"
 
@@ -164,7 +143,6 @@ if __name__ == "__main__":
 
     search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
 
-    # search_models(explorer, hwnas_cfg, search_space)
     find_generate_measure_for_pi(
         explorer=explorer,
         deploy_cfg=deploy_cfg,

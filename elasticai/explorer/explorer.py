@@ -1,16 +1,18 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, Type
 from torch import nn
 
-from elasticai.explorer import utils
-from elasticai.explorer.config import DeploymentConfig, ModelConfig, HWNASConfig
+from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
+from elasticai.explorer.training.trainer import Trainer
+from elasticai.explorer.training import data
+from elasticai.explorer.utils import data_utils
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -22,7 +24,7 @@ class Explorer:
     def __init__(
         self,
         knowledge_repository: KnowledgeRepository,
-        experiment_name: str | None = None,
+        experiment_name: Optional[str] = None,
     ):
         """
         Args:
@@ -37,7 +39,6 @@ class Explorer:
         self.generator: Optional[Generator] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
-        self.model_cfg: Optional[ModelConfig] = None
 
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
@@ -45,7 +46,7 @@ class Explorer:
             self.experiment_name: str = experiment_name
 
     @property
-    def experiment_name(self):
+    def experiment_name(self):  # type: ignore
         return self._experiment_name
 
     @property
@@ -65,7 +66,7 @@ class Explorer:
         return self._plot_dir
 
     @experiment_name.setter
-    def experiment_name(self, value: str):
+    def experiment_name(self, value: str):  # type: ignore
         """Setting experiment name updates the experiment pathes aswell."""
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
@@ -81,15 +82,16 @@ class Explorer:
     def set_default_model(self, model: nn.Module):
         self.default_model = model
 
-    def set_model_cfg(self, model_cfg: ModelConfig):
-        self.model_cfg = model_cfg
-        self.model_cfg.dump_as_yaml(self._model_dir / "model_config.yaml")
-
     def generate_search_space(self, path_to_searchspace: Path):
         self.search_space_cfg = yaml_to_dict(path_to_searchspace)
         self.logger.info("Generated search space:\n %s", self.search_space_cfg)
 
-    def search(self, hwnas_cfg: HWNASConfig) -> list[Any]:
+    def search(
+        self,
+        hwnas_cfg: HWNASConfig,
+        dataset_spec: data.DatasetSpecification,
+        trainer_type: Type[Trainer],
+    ) -> list[Any]:
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials for top %d models ",
@@ -98,7 +100,7 @@ class Explorer:
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg, hwnas_cfg
+                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type
             )
         else:
             self.logger.error(
@@ -106,10 +108,10 @@ class Explorer:
             )
             exit(-1)
 
-        utils.save_list_to_json(
+        data_utils.save_list_to_json(
             model_parameters, path_to_dir=self._model_dir, filename="models.json"
         )
-        utils.save_list_to_json(
+        data_utils.save_list_to_json(
             metrics, path_to_dir=self._metric_dir, filename="metrics.json"
         )
         hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
@@ -132,7 +134,7 @@ class Explorer:
         )
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
-    def hw_setup_on_target(self, path_to_testdata: Path | None):
+    def hw_setup_on_target(self, path_to_testdata: Optional[Path]):
         """
         Args:
             path_to_testdata: Path to zipped testdata relative to docker context. Testdata has to be in docker context.

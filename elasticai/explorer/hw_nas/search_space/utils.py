@@ -34,8 +34,5 @@ def _convert_to_tuples(values) -> list[tuple[int, int]]:
 def yaml_to_dict(file_path: Path) -> dict:
 
     with open(file_path) as stream:
-        try:
-            search_space = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
+        search_space = yaml.safe_load(stream)
         return search_space

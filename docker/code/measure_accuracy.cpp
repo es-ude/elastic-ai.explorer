@@ -64,6 +64,6 @@ int main(int argc, const char* argv[]) {
   }
 
   test_loss /= dataset_size;
-  std::printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", static_cast<double>(correct) / dataset_size);
+  std::printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", (static_cast<double>(correct) / dataset_size) * 100.0);
 
 }
