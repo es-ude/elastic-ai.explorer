@@ -49,7 +49,7 @@ class TestDeploymentAndMeasurement:
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
 
-        path_to_data_docker = str(ROOT_DIR / "data/mnist")
+        path_to_data_docker = str(ROOT_DIR / "docker/data/mnist")
         shutil.make_archive(str(path_to_data_docker), "zip", path_to_dataset)
         self.RPI5explorer.hw_setup_on_target(
             ROOT_DIR / Path(path_to_data_docker + ".zip")
@@ -78,4 +78,3 @@ class TestDeploymentAndMeasurement:
 
     def teardown_class(self):
         shutil.rmtree(self.RPI5explorer.experiment_dir)
-        
