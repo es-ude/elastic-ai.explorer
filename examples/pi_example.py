@@ -158,7 +158,7 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
-    path_to_test_data = Path("data/mnist")
+    path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)

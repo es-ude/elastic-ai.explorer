@@ -13,9 +13,8 @@ from pathlib import Path
 from settings import ROOT_DIR
 
 
-
-class TestPIDeploymentAndMeasurement:
-    def setUp(self):
+class TestDeploymentAndMeasurement:
+    def setup_class(self):
         self.hwnas_cfg = HWNASConfig(
             config_path=ROOT_DIR
             / Path("tests/system_tests/test_configs/hwnas_config.yaml")
@@ -45,7 +44,7 @@ class TestPIDeploymentAndMeasurement:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        path_to_dataset = ROOT_DIR / Path("tests/system_tests/samples/data/mnist")
+        path_to_dataset = Path(ROOT_DIR / "data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
 
         path_to_data_docker = str(ROOT_DIR / "docker/data/mnist")
@@ -60,7 +59,6 @@ class TestPIDeploymentAndMeasurement:
         )
 
     def test_run_accuracy_measurement(self):
-        self.setUp()
         assert (
             type(
                 self.RPI5explorer.run_measurement(
@@ -71,7 +69,6 @@ class TestPIDeploymentAndMeasurement:
         )
 
     def test_run_latency_measurement(self):
-        self.setUp()
         assert (
             type(
                 self.RPI5explorer.run_measurement(
@@ -81,3 +78,6 @@ class TestPIDeploymentAndMeasurement:
             )
             == int
         )
+
+    def teardown_class(self):
+        shutil.rmtree(self.RPI5explorer.experiment_dir)

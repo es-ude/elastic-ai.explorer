@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import shutil
 import torch
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -132,3 +133,6 @@ class TestHWNasSetupAndSearch:
             type(torch.jit.load(self.RPI5explorer.model_dir / self.model_name))
             == torch.jit._script.RecursiveScriptModule  # type: ignore
         )
+
+    def teardown_class(self):
+        shutil.rmtree(self.RPI5explorer.experiment_dir, ignore_errors=True)

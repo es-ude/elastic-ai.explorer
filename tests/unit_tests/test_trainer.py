@@ -51,7 +51,7 @@ class SimpleLSTMAutoencoder(nn.Module):
 
 
 class TestAutoencoderTrainer:
-    def setup_method(self):
+    def setup_class(self):
         self.dataset_spec = DatasetSpecification(DatasetExample, Path(""), None)
         self.autoencoder = SimpleLSTMAutoencoder(INPUT_DIM)
 

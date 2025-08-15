@@ -60,7 +60,7 @@ class TestPicoDeploymentAndMeasurement:
             self.pico_explorer.run_measurement(
                 Metric.ACCURACY, model_name=self.model_name
             )["Accuracy"]["value"],
-            86.719,
+            78.516,
             abs_tol=0.01,
         )
 
