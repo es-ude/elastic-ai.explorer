@@ -103,7 +103,7 @@ class Explorer:
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type
+                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type, experiment_dir=self.experiment_dir
             )
         else:
             self.logger.error(
@@ -172,10 +172,18 @@ class Explorer:
             exit(-1)
         return measurement
 
-    def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> Any:
+    def generate_for_hw_platform(
+        self, model: nn.Module, model_name: str, dataset_spec: data.DatasetSpecification
+    ) -> Any:
         model_path = self._model_dir / model_name
+
+        dataset = dataset_spec.dataset_type(
+            dataset_spec.dataset_location,
+            transform=dataset_spec.transform,
+        )
+        sample_input, _ = next(iter(dataset))
         if self.generator:
-            return self.generator.generate(model, model_path)
+            return self.generator.generate(model, model_path, sample_input)
         else:
             self.logger.error(
                 "Generator is not initialized! First run choose_target_hw(deploy_cfg), before generate_for_hw_platform()"

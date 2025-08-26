@@ -23,6 +23,7 @@ class Generator(ABC):
         self,
         model: nn.Module,
         path: Path,
+        input_sample: torch.Tensor,
         quantization: Literal["full_precision"] = "full_precision",
     ) -> Any:
         pass
@@ -38,6 +39,7 @@ class PIGenerator(Generator):
         self,
         model: nn.Module,
         path: Path,
+        input_sample: torch.Tensor,
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         if quantization == "int8":
@@ -129,26 +131,31 @@ class PicoGenerator(Generator):
         self,
         model: nn.Module,
         path: Path,
+        input_sample: torch.Tensor,
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         self.logger.info("Generate torchscript model from %s", model)
-        #FIXME only for mnist
-        sample_inputs = (torch.ones(1, 1, 28, 28),)
-        torch_output = model(*sample_inputs)
-        nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
-        sample_tflite_input = (torch.ones(1, 28, 28, 1),)
-        # if quantization == "full_precision":
+        # FIXME only for mnist
+
+        input_sample_NCHW = input_sample.unsqueeze(1)
+        input_tuple_NCHW = (input_sample_NCHW,)
+        input_tuple_NHWC = (input_sample_NCHW.permute(0, 2, 3, 1),)
 
         
-        edge_model = ai_edge_torch.convert(
-            nhwc_model, sample_args=sample_tflite_input
-        )
-        
-        # else:
-        #     edge_model, torch_output = self._quantize(model, sample_inputs)
+        torch_output = model(*input_tuple_NCHW)
+        nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
+        sample_tflite_input = input_tuple_NHWC
+        if quantization == "full_precision":
+            edge_model = ai_edge_torch.convert(
+                nhwc_model, sample_args=sample_tflite_input
+            )
+        else:
+            edge_model, torch_output = self._quantize(model, input_tuple_NCHW)
+            self.logger.warning(
+                "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
+            )
 
         edge_output = edge_model(*sample_tflite_input)
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))
-        

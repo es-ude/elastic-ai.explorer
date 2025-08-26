@@ -39,7 +39,7 @@ def objective_wrapper(
 
         search_space = SearchSpace(search_space_cfg)
         model = search_space.create_model_sample(trial)
-        optimizer = Adam(model.parameters(), lr=1e-3)  # type: ignore
+        optimizer = Adam(model.parameters(), lr=1e-3)
         trainer = trainer_class(device, optimizer, dataset_spec)
 
         cost_estimator = CostEstimator()

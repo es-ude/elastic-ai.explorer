@@ -85,7 +85,7 @@ def find_generate_measure_for_pico(
         mlp_trainer.train(model, epochs=retrain_epochs)
         accuracy_after_retrain_value, _ = mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".tflite"
-        explorer.generate_for_hw_platform(model, model_name)
+        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
         # TODO make this path to program or something else that is easier to configure as user.
         metric_to_program = {
