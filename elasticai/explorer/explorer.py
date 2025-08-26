@@ -103,7 +103,7 @@ class Explorer:
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type, experiment_dir=self.experiment_dir
+                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type
             )
         else:
             self.logger.error(

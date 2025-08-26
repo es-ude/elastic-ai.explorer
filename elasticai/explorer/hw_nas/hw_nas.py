@@ -56,33 +56,24 @@ def objective_wrapper(
             le_zero_constraints = le_zero_constraints + (params - max_params,)
         trial.set_user_attr("constraint", le_zero_constraints)
 
-        # TODO remove useless metric dict
-        metric = {
-            "default": 0,
-            "val_loss": 0,
-            "val_accuracy": -1,
-            "flops log10": math.log10(flops),
-        }
+        default = 0
+        val_loss = float("inf")
+        val_accuracy = 0
+        flops_log10 = math.log10(flops)
+
         for epoch in range(n_estimation_epochs):
             trainer.train_epoch(model, epoch)
             val_accuracy, val_loss = trainer.validate(model)
-            metric["val_loss"] = val_loss
             if val_accuracy:
-                metric["val_accuracy"] = val_accuracy
-                metric["default"] = metric["val_accuracy"] - (
-                    metric["flops log10"] * flops_weight
-                )
+                default = val_accuracy - (flops_log10 * flops_weight)
             else:
-                metric["val_accuracy"] = -1
-                metric["default"] = -metric["val_loss"] - (
-                    metric["flops log10"] * flops_weight
-                )
-            trial.report(metric["default"], epoch)
-        trial.set_user_attr("val_accuracy", metric["val_accuracy"])
-        trial.set_user_attr("flops_log10", metric["flops log10"])
-        trial.set_user_attr("val_loss", metric["val_loss"])
-
-        return metric["default"]
+                val_accuracy = -1
+                default = -val_loss - (flops_log10 * flops_weight)
+            trial.report(default, epoch)
+        trial.set_user_attr("val_accuracy", val_accuracy)
+        trial.set_user_attr("flops_log10", flops_log10)
+        trial.set_user_attr("val_loss", val_loss)
+        return default
 
     return objective(trial)
 
