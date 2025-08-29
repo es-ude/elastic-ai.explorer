@@ -199,120 +199,6 @@ class SupervisedTrainer(Trainer):
         return self.evaluate(model, self.test_loader, "Test")
 
 
-class ClassificationTrainer(Trainer):
-    """Trainer class for MLPs written in Pytorch."""
-
-    def __init__(
-        self,
-        device: str,
-        optimizer: Optimizer,
-        dataset_spec: DatasetSpecification,
-        loss_fn: Any = nn.CrossEntropyLoss(),
-        batch_size: int = 64,
-    ):
-        super().__init__(
-            device,
-            optimizer,
-            dataset_spec,
-            loss_fn,
-            batch_size,
-        )
-        self.logger = logging.getLogger("explorer.ClassificationTrainer")
-
-    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
-        """
-        Args:
-            model: The NN-Model to validate.
-
-        Returns:
-            float: Accuracy on validation data.
-        """
-
-        val_loss = 0.0
-        correct = 0
-        total = 0
-
-        model.to(self.device)
-        model.eval()
-
-        with torch.no_grad():
-            for data, target in self.val_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                output = model(data)
-                loss = self.loss_fn(output, target)
-                val_loss += loss.item() * data.size(0)
-                pred = output.argmax(dim=1)
-                correct += pred.eq(target).sum().item()
-                total += target.size(0)
-
-        val_loss /= total
-        accuracy = 100.0 * correct / total
-
-        self.logger.info(
-            f"Validation set: Accuracy: {correct}/{total} ({accuracy:.2f}%)"
-        )
-        self.logger.info(f"Validation set: Loss: {val_loss:.4f}")
-        return accuracy, val_loss
-
-    def test(self, model: nn.Module) -> Tuple[float | None, float]:
-        """
-        Args:
-            model: The NN-Model to test.
-
-        Returns:
-            float: Accuracy on test data.
-        """
-
-        test_loss = 0
-        correct = 0
-        total = 0
-        model.to(self.device)
-        model.eval()
-        with torch.no_grad():
-            for data, target in self.test_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                output = model(data)
-                loss = self.loss_fn(output, target)
-                test_loss += loss.item() * data.size(0)
-                pred = output.argmax(dim=1, keepdim=True)
-                correct += pred.eq(target.view_as(pred)).sum().item()
-                total += target.size(0)
-        test_loss /= total
-        accuracy = 100.0 * correct / total
-        self.logger.info(
-            "Test set: Accuracy: {}/{} ({:.0f}%)\n".format(correct, total, accuracy)
-        )
-        self.logger.info(f"Test set: Loss: {test_loss:.4f}")
-        return accuracy, test_loss
-
-    def train_epoch(self, model: nn.Module, epoch: int):
-        """Trains model for only one epoch.
-
-        Args:
-            model: The NN-Model to test.
-            epoch: Current epoch number.
-        """
-        model.to(device=self.device)
-        model.train(True)
-        for batch_idx, (data, target) in enumerate(self.train_loader):
-            data, target = data.to(self.device), target.to(self.device)
-            self.optimizer.zero_grad()
-            output = model(data)
-            loss = self.loss_fn(output, target)
-            loss.backward()
-            self.optimizer.step()
-            if batch_idx % 10 == 0:
-                self.logger.debug(
-                    "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                        epoch,
-                        batch_idx * len(data),
-                        len(self.train_loader.dataset),  # type: ignore
-                        100.0 * batch_idx / len(self.train_loader),
-                        loss.item(),
-                    )
-                )
-
-
 class ReconstructionAutoencoderTrainer(Trainer):
 
     def __init__(
@@ -349,31 +235,22 @@ class ReconstructionAutoencoderTrainer(Trainer):
         train_loss /= len(self.train_loader)
         self.logger.debug("Train Epoch: {}\tLoss: {:.6f}".format(epoch, train_loss))
 
-    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
+    def evaluate(self, model: nn.Module, data_loader: DataLoader, description):
         model.to(device=self.device)
         model.eval()
-        val_loss = 0
+        total_loss = 0
         with torch.no_grad():
-            for batch in self.val_loader:
+            for batch in data_loader:
                 batch = batch.to(self.device)
                 reconstructed = model(batch)
                 loss = self.loss_fn(reconstructed, batch)
-                val_loss += loss.item()
-        val_loss /= len(self.val_loader)
+                total_loss += loss.item()
+        total_loss /= len(data_loader)
+        self.logger.info("{} Loss: {:.6f}".format(description, total_loss))
+        return None, total_loss
 
-        self.logger.info("Test Loss: {:.6f}".format(val_loss))
-        return None, val_loss
+    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
+        return self.evaluate(model, self.val_loader, "Validation")
 
     def test(self, model: nn.Module) -> Tuple[float | None, float]:
-        model.to(device=self.device)
-        model.eval()
-        test_loss = 0
-        with torch.no_grad():
-            for batch in self.test_loader:
-                batch = batch.to(self.device)
-                reconstructed = model(batch)
-                loss = self.loss_fn(reconstructed, batch)
-                test_loss += loss.item()
-        test_loss /= len(self.test_loader)
-        self.logger.info("Test Loss: {:.6f}".format(test_loss))
-        return None, test_loss
+        return self.evaluate(model, self.test_loader, "Test")
