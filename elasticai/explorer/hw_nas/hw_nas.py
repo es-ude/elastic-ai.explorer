@@ -45,10 +45,10 @@ def objective_wrapper(
         }
         for epoch in range(n_estimation_epochs):
             trainer.train_epoch(model, epoch)
-            val_accuracy, val_loss = trainer.validate(model)
+            val_metrics, val_loss = trainer.validate(model)
             metric["val_loss"] = val_loss
-            if val_accuracy:
-                metric["val_accuracy"] = val_accuracy
+            if "accuracy" in val_metrics:
+                metric["val_accuracy"] = val_metrics["accuracy"] * 100
                 metric["default"] = metric["val_accuracy"] - (
                     metric["flops log10"] * flops_weight
                 )
