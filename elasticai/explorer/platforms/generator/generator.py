@@ -137,20 +137,20 @@ class PicoGenerator(Generator):
         self.logger.info("Generate torchscript model from %s", model)
         # FIXME only for mnist
 
-        input_sample_NCHW = input_sample.unsqueeze(1)
-        input_tuple_NCHW = (input_sample_NCHW,)
-        input_tuple_NHWC = (input_sample_NCHW.permute(0, 2, 3, 1),)
+        input_sample_nchw = input_sample.unsqueeze(1)
+        input_tuple_nchw = (input_sample_nchw,)
+        input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 3, 1),)
 
         
-        torch_output = model(*input_tuple_NCHW)
+        torch_output = model(*input_tuple_nchw)
         nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
-        sample_tflite_input = input_tuple_NHWC
+        sample_tflite_input = input_tuple_nhwc
         if quantization == "full_precision":
             edge_model = ai_edge_torch.convert(
                 nhwc_model, sample_args=sample_tflite_input
             )
         else:
-            edge_model, torch_output = self._quantize(model, input_tuple_NCHW)
+            edge_model, torch_output = self._quantize(model, input_tuple_nchw)
             self.logger.warning(
                 "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
             )

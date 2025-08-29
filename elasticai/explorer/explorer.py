@@ -70,7 +70,7 @@ class Explorer:
 
     @experiment_name.setter
     def experiment_name(self, value: str):  # type: ignore
-        """Setting experiment name updates the experiment pathes aswell."""
+        """Setting experiment name updates the experiment paths as well."""
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
         self._update_experiment_paths()

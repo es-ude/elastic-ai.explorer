@@ -92,7 +92,7 @@ def search(
     Returns: top-models, model-parameters, metrics
     """
     search_space = SearchSpace(search_space_cfg)
-    # TODO hardconstraints for all allgorithms / test algorithms
+    # TODO hardconstraints for all algorithms / test algorithms
     match hwnas_cfg.search_algorithm:
         case SearchAlgorithm.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()

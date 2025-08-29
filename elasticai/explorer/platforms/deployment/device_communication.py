@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import shutil
 from socket import error as socket_error
-import sys
 import time
 
 from fabric import Connection
@@ -109,15 +108,15 @@ class PicoHost(Host):
 
     def put_file(self, local_path: str, remote_path: str | None) -> str:
         time_passed = 0
-        sleep_intervall = 0.5
+        sleep_interval = 0.5
         self.logger.info("Wait for pico to deploy...")
         while not os.path.isdir(self.host_name):
-            time.sleep(sleep_intervall)
-            time_passed = time_passed + sleep_intervall
+            time.sleep(sleep_interval)
+            time_passed = time_passed + sleep_interval
             if time_passed > self.timeout_s:
                 time.sleep(4)
                 self.logger.error("Timeout on Pico-Communication")
-                self.logger.info("Manual Reboot neccessary")
+                self.logger.info("Manual Reboot necessary")
 
         shutil.copyfile(
             local_path,
@@ -128,10 +127,10 @@ class PicoHost(Host):
     def _wait_for_pico(self, port):
         self.logger.info("Wait for pico answer on Port " + port + "...")
         time_passed = 0
-        sleep_intervall = 0.5
+        sleep_interval = 0.5
         while not os.path.exists(port):
-            time.sleep(sleep_intervall)
-            time_passed = time_passed + sleep_intervall
+            time.sleep(sleep_interval)
+            time_passed = time_passed + sleep_interval
             if time_passed > self.timeout_s:
                 self.logger.error("Timeout on Pico-Communication")
                 exit(-1)

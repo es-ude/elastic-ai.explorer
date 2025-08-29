@@ -4,7 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-import re
+
 import shutil
 
 from elasticai.explorer.platforms.deployment.compiler import Compiler
@@ -74,8 +74,8 @@ class PIHWManager(HWManager):
         )
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
-        path_to_programm = self._metric_to_source.get(metric)
-        if not path_to_programm:
+        source = self._metric_to_source.get(metric)
+        if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
@@ -83,10 +83,10 @@ class PIHWManager(HWManager):
 
         match metric:
             case metric.ACCURACY:
-                cmd = self.build_command(path_to_programm.stem, [tail, "data"])
+                cmd = self.build_command(source.stem, [tail, "data"])
                 print("acc")
             case metric.LATENCY:
-                cmd = self.build_command(path_to_programm.stem, [tail])
+                cmd = self.build_command(source.stem, [tail])
                 print("lat")
 
         measurement = self.target.run_command(cmd)

@@ -12,12 +12,12 @@ DeploymentConfig:
 
 
   # TODO add different categories for Serial and SSH
-  # The port on which serial connection is setup, neccessary for Pico. Optional. Defaults to "/dev/ttyACM0".
+  # The port on which serial connection is setup, necessary for Pico. Optional. Defaults to "/dev/ttyACM0".
 
   #serial_port: <serial-port>
   
   Docker:
-    # The path (on host) to additional pre-compiled libraries neccessary for execution on target. If docker is used for deployment,
+    # The path (on host) to additional pre-compiled libraries necessary for execution on target. If docker is used for deployment,
     # It needs to be in the docker build-context. Path must be relative to build-context.
     # Optional. Defaults to "./code/libtorch".
     compiled_library_path: "<path/to/library>"
@@ -28,5 +28,5 @@ DeploymentConfig:
     # Full path to Crosscompiler Docker Image
     path_to_dockerfile: "<path-to-project>/docker/Dockerfile.picross"
 
-    # Full path to docker buildcontext
+    # Full path to docker build context
     build_context: "<path-to-project>/docker"

@@ -79,7 +79,7 @@ class TestPicoGenerateAndCompile:
         compiler = PicoCompiler(deploy_cfg=self.deploy_cfg)
         if not compiler.is_setup():
             compiler.setup()
-        compiler.compile_code(expected_name_of_executable, "measure_accuracy")
+        compiler.compile_code(Path("code/measure_accuracy.cpp"))
         if not Path(self.path_to_executable).resolve().is_file():
             raise AssertionError(
                 "File does not exist: %s" % str(self.path_to_executable)
