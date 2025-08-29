@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, Mock
 from elasticai.explorer.platforms.deployment.manager import (
     CommandBuilder,
     PIHWManager,
-    CONTEXT_PATH,
+    DOCKER_CONTEXT_DIR,
     Metric,
 )
 
@@ -27,8 +27,8 @@ class TestPiHWManager:
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
-        self.hwmanager._register_metric_to_programm(Metric.LATENCY, "measure_latency")
-        path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_latency"
+        self.hwmanager._register_metric_to_source(Metric.LATENCY, "measure_latency")
+        path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_latency"
         metric = Metric.LATENCY
         result = self.hwmanager.measure_metric(metric, path_to_model=path)
         assert expected == result
@@ -42,8 +42,8 @@ class TestPiHWManager:
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
-        self.hwmanager._register_metric_to_programm(Metric.ACCURACY, "measure_accuracy")
-        path: Path = Path(str(CONTEXT_PATH)) / "bin" / "measure_accuracy"
+        self.hwmanager._register_metric_to_source(Metric.ACCURACY, "measure_accuracy")
+        path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_accuracy"
         metric = Metric.ACCURACY
         result = self.hwmanager.measure_metric(metric, path_to_model=path)
         assert expected == result

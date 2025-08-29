@@ -87,13 +87,13 @@ def find_generate_measure_for_pico(
         model_name = "ts_model_" + str(i) + ".tflite"
         explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
-        # TODO make this path to program or something else that is easier to configure as user.
-        metric_to_program = {
-            Metric.LATENCY: "measure_latency",
-            Metric.ACCURACY: "measure_accuracy",
+
+        metric_to_source = {
+            Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"), 
+            Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"), 
         }
         explorer.hw_setup_on_target(
-            metric_to_program, ROOT_DIR / Path("data/cpp-mnist")
+            metric_to_source, ROOT_DIR / Path("data/cpp-mnist")
         )
 
         try:

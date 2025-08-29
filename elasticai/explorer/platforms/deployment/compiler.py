@@ -21,18 +21,15 @@ class Compiler(ABC):
         pass
 
     @abstractmethod
-    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
+    def compile_code(self, source: Path) -> Path:
         pass
-    # TODO remove name of executable
 
 
 class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.logger = logging.getLogger("RPICompiler")
         self.tag: str = deploy_cfg.docker.compiler_tag  # "cross"
-        self.path_to_dockerfile: Path = Path(
-            deploy_cfg.docker.path_to_dockerfile
-        )  # CONTEXT_PATH / "Dockerfile.picross"
+        self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.libtorch_path: Path = Path(deploy_cfg.docker.library_path)
         if not self.is_setup():
@@ -47,18 +44,18 @@ class RPICompiler(Compiler):
         docker.build(self.context_path, file=self.path_to_dockerfile, tags=self.tag)
         self.logger.debug("Crosscompiler available now.")
 
-    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
+    def compile_code(self, source: Path) -> Path:
         docker.build(
             self.context_path,
-            file=self.context_path / "Dockerfile.loader",
+            file=self.context_path / "Dockerfile.picross",
             output={"type": "local", "dest": str(self.context_path / "bin")},
             build_args={
-                "NAME_OF_EXECUTABLE": name_of_executable,
-                "PROGRAM_CODE": sourcecode_filename,
+                "NAME_OF_EXECUTABLE": source.stem,
+                "PROGRAM_CODE": str(source),
                 "HOST_LIBTORCH_PATH": str(self.libtorch_path),
             },
         )
-        path_to_executable = self.context_path / "bin" / name_of_executable
+        path_to_executable = self.context_path / "bin" / source.stem
         self.logger.info(
             "Compilation finished. Program available in %s", path_to_executable
         )
@@ -90,7 +87,7 @@ class PicoCompiler(Compiler):
             },
         )
 
-    def compile_code(self, name_of_executable: str, sourcecode_filename: str) -> Path:
+    def compile_code(self, source: Path) -> Path:
 
         docker.build(
             context_path=self.context_path,
@@ -98,9 +95,9 @@ class PicoCompiler(Compiler):
             output={"type": "local", "dest": str(self.context_path / "bin")},
             file=self.context_path / "Dockerfile.picocross",
             build_args={
-                "NAME_OF_EXECUTABLE": name_of_executable,
-                "SOURCE_CODE": sourcecode_filename,
+                "SOURCE_NAME": source.stem,
+                "PATH_TO_SOURCE": str(source),
                 "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
             },
         )
-        return self.context_path / "bin" / name_of_executable
+        return self.context_path / "bin" / (source.stem + ".uf2")

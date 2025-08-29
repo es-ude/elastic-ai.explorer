@@ -3,7 +3,11 @@ from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
-from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
+from elasticai.explorer.platforms.deployment.manager import (
+    DOCKER_CONTEXT_DIR,
+    PIHWManager,
+    Metric,
+)
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from torchvision.datasets import MNIST
@@ -47,18 +51,18 @@ class TestDeploymentAndMeasurement:
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
 
-        path_to_data_docker = str(ROOT_DIR / "docker/data/mnist")
+        path_to_data_docker = str(ROOT_DIR / "data/mnist")
         shutil.make_archive(path_to_data_docker, "zip", path_to_dataset)
 
-        metric_to_program = {
-            Metric.LATENCY: "measure_latency",
-            Metric.ACCURACY: "measure_accuracy",
+        metric_to_source = {
+            Metric.ACCURACY: Path("code/measure_accuracy.cpp"), #test relative path
+            Metric.LATENCY: DOCKER_CONTEXT_DIR / Path("code/measure_latency.cpp"), # test absolute path
         }
         self.RPI5explorer.hw_setup_on_target(
-            metric_to_program, Path(path_to_data_docker + ".zip")
+            metric_to_source, Path(path_to_data_docker + ".zip")
         )
 
-    def test_run_accuracy_measurement(self):
+    def test_pi_accuracy_measurement(self):
         assert (
             type(
                 self.RPI5explorer.run_measurement(
@@ -68,7 +72,7 @@ class TestDeploymentAndMeasurement:
             == float
         )
 
-    def test_run_latency_measurement(self):
+    def test_pi_latency_measurement(self):
         assert (
             type(
                 self.RPI5explorer.run_measurement(

@@ -97,12 +97,12 @@ def find_generate_measure_for_pi(
     dataset_spec = setup_mnist(path_to_test_data)
 
     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
-    metric_to_program_id = {
-        Metric.ACCURACY: "measure_accuracy",
-        Metric.LATENCY: "measure_latency",
-    }
+    metric_to_source = {
+            Metric.ACCURACY: Path("code/measure_accuracy.cpp"), 
+            Metric.LATENCY: Path("code/measure_latency.cpp"),
+        }
     explorer.hw_setup_on_target(
-        metric_to_program_id, Path(str(path_to_test_data) + ".zip")
+        metric_to_source, Path(str(path_to_test_data) + ".zip")
     )
     latency_measurements = []
     accuracy_measurements = []
@@ -115,10 +115,10 @@ def find_generate_measure_for_pi(
             optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
         )
-        mlp_trainer.train(model, epochs=3)
+        mlp_trainer.train(model, epochs=retrain_epochs)
         accuracy_after_retrain_value, _ = mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".pt"
-        explorer.generate_for_hw_platform(model, model_name)
+        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
         latency = explorer.run_measurement(Metric.LATENCY, model_name)
         latency_measurements.append(latency)
@@ -177,7 +177,7 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
         print("=================================================")
         model_name = "ts_model_" + str(i) + ".pt"
 
-        explorer.generate_for_hw_platform(model, model_name)
+        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
 
 if __name__ == "__main__":

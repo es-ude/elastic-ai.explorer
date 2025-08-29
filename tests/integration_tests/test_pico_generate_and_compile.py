@@ -6,7 +6,10 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.manager import CONTEXT_PATH, PicoHWManager
+from elasticai.explorer.platforms.deployment.manager import (
+    DOCKER_CONTEXT_DIR,
+    PicoHWManager,
+)
 from elasticai.explorer.platforms.generator import tflite_to_resolver
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from torchvision import transforms
@@ -69,7 +72,9 @@ class TestPicoGenerateAndCompile:
     def test_pico_docker_compile(self):
 
         expected_name_of_executable = "measure_accuracy.uf2"
-        self.path_to_executable = CONTEXT_PATH / "bin" / expected_name_of_executable
+        self.path_to_executable = (
+            DOCKER_CONTEXT_DIR / "bin" / expected_name_of_executable
+        )
 
         compiler = PicoCompiler(deploy_cfg=self.deploy_cfg)
         if not compiler.is_setup():

@@ -98,7 +98,13 @@ class PicoHost(Host):
                 line = self._read_serial_once(ser)
         except serial.SerialException as e:
             self.logger.error("Error with serial communication!")
-            exit(1)
+            raise e
+        except PermissionError as e:
+            self.logger.error(
+                "Permission Error with serial communication! Probably you need to add the user to dialout and tty group."
+            )
+            raise e
+
         return line
 
     def put_file(self, local_path: str, remote_path: str | None) -> str:

@@ -1,7 +1,7 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import List, Optional, Any, Type
+from typing import Optional, Any, Type
 from torch import nn
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
@@ -138,11 +138,13 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_program: dict[Metric, str], path_to_testdata: Path | None
+        self, metric_to_source: dict[Metric, Path], path_to_testdata: Path | None
     ):
         """
         Args:
-            path_to_testdata: Path to zipped testdata relative to docker context. Testdata has to be in docker context.
+            path_to_testdata: Path to testdata. Format depends on the HWManager implementation.
+            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context.
+              E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
         """
         self.logger.info("Setup Hardware target for experiments.")
 
@@ -155,9 +157,9 @@ class Explorer:
         if path_to_testdata:
             self.hw_manager.install_dataset_on_target(path_to_testdata)
 
-        for metric, program_name in metric_to_program.items():
-            self.logger.info(f"Installing program for {metric.name}: {program_name}")
-            self.hw_manager.install_code_on_target(program_name, metric)
+        for metric, source in metric_to_source.items():
+            self.logger.info(f"Installing program for {metric.name}: {source}")
+            self.hw_manager.install_code_on_target(source, metric)
 
     def run_measurement(self, metric: Metric, model_name: str) -> dict:
         model_path = self._model_dir / model_name

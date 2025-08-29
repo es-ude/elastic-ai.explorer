@@ -4,6 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
+import re
 import shutil
 
 from elasticai.explorer.platforms.deployment.compiler import Compiler
@@ -13,9 +14,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     RPiHost,
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
-from settings import ROOT_DIR
-
-CONTEXT_PATH = ROOT_DIR / "docker"
+from settings import DOCKER_CONTEXT_DIR
 
 
 class Metric(Enum):
@@ -27,13 +26,13 @@ class HWManager(ABC):
     def __init__(self, target: Host, compiler: Compiler):
         self.compiler = compiler
         self.target: Host = target
-        self._metric_to_programm: dict[Metric, str] = {}
+        self._metric_to_source: dict[Metric, Path] = {}
 
-    def _register_metric_to_programm(self, metric: Metric, programm: str):
-        self._metric_to_programm.update({metric: programm})
+    def _register_metric_to_source(self, metric: Metric, source: Path):
+        self._metric_to_source.update({metric: source})
 
     @abstractmethod
-    def install_code_on_target(self, sourcecode_identifier: str, metric: Metric):
+    def install_code_on_target(self, source: Path, metric: Metric):
         pass
 
     @abstractmethod
@@ -59,11 +58,13 @@ class PIHWManager(HWManager):
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, sourcecode_identifier: str, metric: Metric):
-        path_to_executable = self.compiler.compile_code(
-            sourcecode_identifier, sourcecode_identifier + ".cpp"
-        )
-        self._register_metric_to_programm(metric, sourcecode_identifier)
+    def install_code_on_target(self, source: Path, metric: Metric):
+        if source.is_relative_to(DOCKER_CONTEXT_DIR):
+            relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        else:
+            relative_path = Path("/" + str(source))
+        path_to_executable = self.compiler.compile_code(relative_path)
+        self._register_metric_to_source(metric, relative_path)
         self.target.put_file(str(path_to_executable), ".")
 
     def install_dataset_on_target(self, path_to_dataset: Path):
@@ -73,8 +74,8 @@ class PIHWManager(HWManager):
         )
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
-        programm = self._metric_to_programm.get(metric)
-        if not programm:
+        path_to_programm = self._metric_to_source.get(metric)
+        if not path_to_programm:
             raise Exception(f"No source code registered for Metric: {metric}")
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
@@ -82,10 +83,10 @@ class PIHWManager(HWManager):
 
         match metric:
             case metric.ACCURACY:
-                cmd = self.build_command(programm, [tail, "data"])
+                cmd = self.build_command(path_to_programm.stem, [tail, "data"])
                 print("acc")
             case metric.LATENCY:
-                cmd = self.build_command(programm, [tail])
+                cmd = self.build_command(path_to_programm.stem, [tail])
                 print("lat")
 
         measurement = self.target.run_command(cmd)
@@ -130,33 +131,38 @@ class PicoHWManager(HWManager):
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)
 
-    def install_code_on_target(self, sourcecode_identifier: str, metric: Metric):
-        self._register_metric_to_programm(metric, sourcecode_identifier)
-        if not self.compiler.is_setup():
-            self.compiler.setup()
+    def install_code_on_target(self, source: Path, metric: Metric):
+        if source.is_relative_to(DOCKER_CONTEXT_DIR):
+            relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        else:
+            relative_path = Path("/" + str(source))
+        self._register_metric_to_source(metric, relative_path)
 
     def install_dataset_on_target(self, path_to_dataset: Path):
+        # TODO make this more general
         shutil.copyfile(
             path_to_dataset / "mnist_images.h",
-            CONTEXT_PATH / "code/pico_crosscompiler/data/mnist_images.h",
+            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/mnist_images.h",
         )
         shutil.copyfile(
             path_to_dataset / "mnist_labels.h",
-            CONTEXT_PATH / "code/pico_crosscompiler/data/mnist_labels.h",
+            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/mnist_labels.h",
         )
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
-        
+
         self.deploy_model(path_to_model)
-        programm = self._metric_to_programm.get(metric)
-        if not programm:
+        source = self._metric_to_source.get(metric)
+        if not source:
             self.logger.error(f"No source code registered for Metric: {metric}")
             exit(-1)
+        path_to_resolver = Path(str(DOCKER_CONTEXT_DIR) + f"{source}/resolver_ops.h")
         tflite_to_resolver.generate_resolver_h(
-            path_to_model, CONTEXT_PATH /f"code/pico_crosscompiler/{programm}/resolver_ops.h"
+            path_to_model,
+            path_to_resolver,
         )
 
-        path_to_executable = self.compiler.compile_code(f"{programm}.uf2", programm)
+        path_to_executable = self.compiler.compile_code(source)
         self.measurements = self.target.put_file(str(path_to_executable), None)
         if self.measurements:
             measurement = self._parse_measurement(self.measurements)
@@ -171,7 +177,7 @@ class PicoHWManager(HWManager):
     def deploy_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
-            CONTEXT_PATH / "code/pico_crosscompiler/data/model.cpp",
+            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/model.cpp",
         )
 
     def _parse_measurement(self, result: str) -> dict:

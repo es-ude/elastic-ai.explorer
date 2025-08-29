@@ -14,7 +14,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 from pathlib import Path
 
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
 
 class TestPicoDeploymentAndMeasurement:
@@ -49,13 +49,15 @@ class TestPicoDeploymentAndMeasurement:
         root_dir_cpp_mnist = str(ROOT_DIR / "data/cpp-mnist")
         setup_mnist_for_cpp(root_dir_mnist, root_dir_cpp_mnist)
 
-        metric_to_program_id = {
-            Metric.ACCURACY: "measure_accuracy",
-            Metric.LATENCY: "measure_latency",
+        metric_to_source = {
+            Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"), #test relative path
+            Metric.LATENCY: DOCKER_CONTEXT_DIR / Path("code/pico_crosscompiler/measure_latency"), # test absolute path
         }
-        self.pico_explorer.hw_setup_on_target(metric_to_program_id, Path(root_dir_cpp_mnist))
+        self.pico_explorer.hw_setup_on_target(
+            metric_to_source, Path(root_dir_cpp_mnist)
+        )
 
-    def test_pico_accuracy_measurment(self):
+    def test_pico_accuracy_measurement(self):
         assert math.isclose(
             self.pico_explorer.run_measurement(
                 Metric.ACCURACY, model_name=self.model_name
@@ -64,7 +66,7 @@ class TestPicoDeploymentAndMeasurement:
             abs_tol=0.01,
         )
 
-    def test_run_latency_measurement(self):
+    def test_pico_latency_measurement(self):
         assert (
             type(
                 self.pico_explorer.run_measurement(
