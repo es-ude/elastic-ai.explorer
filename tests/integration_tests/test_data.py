@@ -9,7 +9,7 @@ from elasticai.explorer.training.data import (
 import torch
 
 from elasticai.explorer.training.download import DownloadableSciebo
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import ClassificationTrainer
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
 
@@ -60,7 +60,7 @@ class TestData:
         )
         model = SampleMLP(2)
 
-        mlp_trainer = MLPTrainer(
+        mlp_trainer = ClassificationTrainer(
             device="cpu",
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
             dataset_spec=dataset_spec,

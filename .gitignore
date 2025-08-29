@@ -12,7 +12,8 @@ docker/bin
 docker/data
 /docker/code/libtorch
 .DS_Store
-
+/docker/code/pico_crosscompiler/app_full_precision
+/docker/code/pico_crosscompiler/third_party
 #experiments logs
 experiments/
 experiment_data.csv

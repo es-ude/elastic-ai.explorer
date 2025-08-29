@@ -18,7 +18,7 @@ from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import SupervisedTrainer
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
@@ -74,14 +74,14 @@ def find_generate_measure_for_pi(
     path_to_test_data = Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    top_models = explorer.search(hwnas_cfg, dataset_spec, SupervisedTrainer)
     explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
     latency_measurements = []
     accuracy_measurements = []
 
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(
+        mlp_trainer = SupervisedTrainer(
             device=retrain_device,
             optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
@@ -116,13 +116,13 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
     path_to_test_data = Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    top_models = explorer.search(hwnas_cfg, dataset_spec, ClassificationTrainer)
 
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         print(f"found model {i}:  {model}")
 
-        mlp_trainer = MLPTrainer(
+        mlp_trainer = ClassificationTrainer(
             device=retrain_device,
             optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,

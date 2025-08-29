@@ -19,7 +19,7 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import ClassificationTrainer
 from settings import ROOT_DIR
 from pathlib import Path
 from types import SimpleNamespace
@@ -98,7 +98,7 @@ class TestFrozenTrialToModel:
                 search_space_cfg=self.search_space_cfg,
                 device=hwnas_cfg.host_processor,
                 dataset_spec=self.dataset_spec,
-                trainer_class=MLPTrainer,
+                trainer_class=ClassificationTrainer,
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
             ),
@@ -123,7 +123,7 @@ class TestFrozenTrialToModel:
             self.search_space_cfg,
             hwnas_cfg=hwnas_cfg,
             dataset_spec=self.dataset_spec,
-            trainer_class=MLPTrainer,
+            trainer_class=ClassificationTrainer,
         )
         assert len(top_models) == hwnas_cfg.top_n_models
         assert len(model_parameters) == hwnas_cfg.top_n_models

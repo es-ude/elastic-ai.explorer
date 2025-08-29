@@ -12,6 +12,10 @@ blocks:
       kernel_size: [1, 2]
       stride: [1, 2]
       out_channels: [ 10, 4]
+    lstm:
+      hidden_size: [10, 20]
+      num_layers: [1, 5]
+      bidirectional: False
   - block: "2"
     op_candidates: ["linear"]
     activation: [ "relu", "sigmoid"]

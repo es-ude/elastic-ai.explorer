@@ -64,6 +64,37 @@ class SearchSpace:
                 self.input_shape, out_channels, kernel_size, stride
             )
 
+    def createLSTM(self, trial, block, num_layers, search_params):
+        block_id = block["block"]
+        if isinstance(self.input_shape, list):
+            self.layers.append(nn.Flatten())
+            self.input_shape = math.prod(self.input_shape)
+        for i in range(num_layers):
+            hidden_size = parse_search_param(
+                trial,
+                "hidden_size_b{}_l{}".format(block_id, i),
+                search_params["hidden_size"],
+            )
+            num_lstm_layers = parse_search_param(
+                trial,
+                "num_lstm_layers_b{}_l{}".format(block_id, i),
+                search_params["num_lstm_layers"],
+            )
+            bidirectional = parse_search_param(
+                trial,
+                "bidirectional_b{}_l{}".format(block_id, i),
+                search_params["bidirectional"],
+            )
+            self.layers.append(
+                nn.LSTM(
+                    self.input_shape,
+                    hidden_size,
+                    num_layers=num_lstm_layers,
+                    bidirectional=bidirectional,
+                )
+            )
+            self.input_shape = hidden_size
+
     def is_last_block(self, block_id):
         return self.blocks[-1]["block"] == block_id
 
@@ -80,6 +111,8 @@ class SearchSpace:
                 self.createLinear(trial, block, num_layers, block["linear"])
             case "conv2d":
                 self.createConv2d(trial, block, num_layers, block["conv2D"])
+            case "lstm":
+                self.createLSTM(trial, block, num_layers, block["lstm"])
 
     def create_model_sample(self, trial):
         self.input_shape = self.search_space_cfg["input"]

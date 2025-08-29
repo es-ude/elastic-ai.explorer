@@ -10,7 +10,7 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager
 from torchvision import transforms
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import ClassificationTrainer
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 
@@ -57,7 +57,7 @@ class TestHWNasSetupAndSearch:
             Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
         top_k_models = self.RPI5explorer.search(
-            self.hwnas_cfg, self.dataset_spec, MLPTrainer
+            self.hwnas_cfg, self.dataset_spec, ClassificationTrainer
         )
         assert len(top_k_models) == 2
 
