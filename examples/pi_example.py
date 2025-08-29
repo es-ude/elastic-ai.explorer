@@ -1,5 +1,6 @@
 import logging.config
 import shutil
+from functools import partial
 from pathlib import Path
 
 import torch
@@ -18,9 +19,14 @@ from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import PIGenerator
-from elasticai.explorer.training.trainer import SupervisedTrainer
+from elasticai.explorer.training.trainer import (
+    SupervisedTrainer,
+    accuracy_fn,
+    trainer_factory,
+)
+from settings import ROOT_DIR
 
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 
@@ -56,7 +62,7 @@ def setup_mnist(path_to_test_data: Path):
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
     shutil.make_archive(
-        str(path_to_test_data), "zip", f"{str(path_to_test_data)}/MNIST/raw"
+        str(path_to_test_data), "zip", ROOT_DIR / f"{str(path_to_test_data)}/MNIST/raw"
     )
     dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, transf)
     return dataset_spec
@@ -71,7 +77,7 @@ def find_generate_measure_for_pi(
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space_path)
 
-    path_to_test_data = Path("data/mnist")
+    path_to_test_data = Path(ROOT_DIR / "data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
     top_models = explorer.search(hwnas_cfg, dataset_spec, SupervisedTrainer)
@@ -110,22 +116,22 @@ def find_generate_measure_for_pi(
 
 
 def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
+    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
     path_to_test_data = Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
+    top_models = explorer.search(hwnas_cfg, dataset_spec, SupervisedTrainer)
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, ClassificationTrainer)
-
-    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         print(f"found model {i}:  {model}")
 
-        mlp_trainer = ClassificationTrainer(
+        mlp_trainer = SupervisedTrainer(
             device=retrain_device,
             optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
+            extra_metrics={"accuracy": accuracy_fn},
         )
         mlp_trainer.train(model, epochs=3)
         mlp_trainer.test(model)
@@ -136,12 +142,16 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
+    hwnas_cfg = HWNASConfig(config_path=Path(ROOT_DIR / "configs/hwnas_config.yaml"))
+    deploy_cfg = DeploymentConfig(
+        config_path=ROOT_DIR / Path("configs/deployment_config.yaml")
+    )
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
-    search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    search_space = Path(
+        ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml"
+    )
 
     find_generate_measure_for_pi(
         explorer=explorer,

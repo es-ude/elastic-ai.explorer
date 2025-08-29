@@ -9,7 +9,8 @@ from elasticai.explorer.training.data import (
 import torch
 
 from elasticai.explorer.training.download import DownloadableSciebo
-from elasticai.explorer.training.trainer import ClassificationTrainer
+from elasticai.explorer.training.trainer import SupervisedTrainer
+
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
 
@@ -60,16 +61,16 @@ class TestData:
         )
         model = SampleMLP(2)
 
-        mlp_trainer = ClassificationTrainer(
+        mlp_trainer = SupervisedTrainer(
             device="cpu",
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
             dataset_spec=dataset_spec,
             batch_size=2,
         )
         mlp_trainer.train(model, epochs=2)
-        accuracy, loss = mlp_trainer.validate(model)
-        assert accuracy is not None
-        assert accuracy >= 0
+
+        metrics, loss = mlp_trainer.validate(model)
+        assert metrics["accuracy"] >= 0
         assert loss >= 0
 
     def teardown_method(self):

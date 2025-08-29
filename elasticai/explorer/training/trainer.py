@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Tuple, Callable
+from typing import Any, Tuple, Callable, Type
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
@@ -17,11 +17,13 @@ class Trainer(ABC):
         dataset_spec: DatasetSpecification,
         loss_fn: Any = nn.CrossEntropyLoss(),
         batch_size: int = 64,
+        extra_metrics: dict = {},
     ):
         self.logger = logging.getLogger("explorer.Trainer")
         self.device = device
         self.optimizer = optimizer
         self.loss_fn = loss_fn
+        self.extra_metrics = extra_metrics
 
         dataset = dataset_spec.dataset_type(
             dataset_spec.dataset_location,
@@ -86,7 +88,7 @@ class Trainer(ABC):
             self.logger.info("Loaded best model from early stopping.")
 
     @abstractmethod
-    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
+    def validate(self, model: nn.Module) -> Tuple[dict, float]:
         """
         Returns:
             Tuple[float, float]: (Accuracy, Loss)
@@ -94,7 +96,7 @@ class Trainer(ABC):
         pass
 
     @abstractmethod
-    def test(self, model: nn.Module) -> Tuple[float | None, float]:
+    def test(self, model: nn.Module) -> Tuple[dict, float]:
         """
         Returns:
             Tuple[float, float]: (Accuracy, Loss)
@@ -123,14 +125,9 @@ class SupervisedTrainer(Trainer):
         extra_metrics: dict[str, Callable] = {"accuracy": accuracy_fn},
     ):
         super().__init__(
-            device,
-            optimizer,
-            dataset_spec,
-            loss_fn,
-            batch_size,
+            device, optimizer, dataset_spec, loss_fn, batch_size, extra_metrics
         )
-        self.logger = logging.getLogger("explorer.RegressionTrainer")
-        self.extra_metrics = extra_metrics
+        self.logger = logging.getLogger("explorer.SupervisedTrainer")
 
     def train_epoch(self, model: nn.Module, epoch: int):
         """Trains model for only one epoch.
@@ -187,7 +184,7 @@ class SupervisedTrainer(Trainer):
         ):
             metric_avg[name] = metric_total / metric_count
             self.logger.info(
-                f"{description} set: {name}: {metric_total}/{metric_count} ({metric_avg:.4f}%)"
+                f"{description} set: {name}: {metric_total}/{metric_count} ({metric_avg[name]:.4f}%)"
             )
         self.logger.info(f"{description} set: Loss: {avg_loss:.4f}")
         return metric_avg, avg_loss
@@ -247,10 +244,25 @@ class ReconstructionAutoencoderTrainer(Trainer):
                 total_loss += loss.item()
         total_loss /= len(data_loader)
         self.logger.info("{} Loss: {:.6f}".format(description, total_loss))
-        return None, total_loss
+        return {}, total_loss
 
-    def validate(self, model: nn.Module) -> Tuple[float | None, float]:
+    def validate(self, model: nn.Module) -> Tuple[dict, float]:
         return self.evaluate(model, self.val_loader, "Validation")
 
-    def test(self, model: nn.Module) -> Tuple[float | None, float]:
+    def test(self, model: nn.Module) -> Tuple[dict, float]:
         return self.evaluate(model, self.test_loader, "Test")
+
+
+def trainer_factory(
+    trainer_class: Type[Trainer],
+    device: str,
+    optimizer: Optimizer,
+    dataset_spec: DatasetSpecification,
+    loss_fn: Any = nn.CrossEntropyLoss(),
+    batch_size: int = 64,
+    extra_metrics: dict[str, Callable] = {"accuracy": accuracy_fn},
+):
+
+    return trainer_class(
+        device, optimizer, dataset_spec, loss_fn, batch_size, extra_metrics
+    )
