@@ -27,8 +27,9 @@ class TestPiHWManager:
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
-        self.hwmanager._register_metric_to_source(Metric.LATENCY, "measure_latency")
         path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_latency"
+        self.hwmanager._register_metric_to_source(Metric.LATENCY, Path("measure_latency"))
+        
         metric = Metric.LATENCY
         result = self.hwmanager.measure_metric(metric, path_to_model=path)
         assert expected == result
@@ -42,7 +43,7 @@ class TestPiHWManager:
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = PIHWManager(target, compiler)
-        self.hwmanager._register_metric_to_source(Metric.ACCURACY, "measure_accuracy")
+        self.hwmanager._register_metric_to_source(Metric.ACCURACY, Path("measure_accuracy"))
         path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_accuracy"
         metric = Metric.ACCURACY
         result = self.hwmanager.measure_metric(metric, path_to_model=path)

@@ -6,7 +6,7 @@ from enum import Enum
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
-
+from optuna.study import MaxTrialsCallback
 from torch.optim.adam import Adam
 
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
@@ -46,15 +46,18 @@ def objective_wrapper(
         sample, _ = next(iter(trainer.test_loader))
         flops = cost_estimator.estimate_flops(model, sample)
         params = cost_estimator.compute_num_params(model)
-
-        le_zero_constraints = ()
         max_flops = constraints.get("max_flops")
         max_params = constraints.get("max_params")
-        if max_flops:
-            le_zero_constraints = le_zero_constraints + (flops - max_flops,)
-        if max_params:
-            le_zero_constraints = le_zero_constraints + (params - max_params,)
-        trial.set_user_attr("constraint", le_zero_constraints)
+        if max_flops and flops > max_flops:
+            logger.info(
+                f"Trial {trial.number} pruned because flops {flops} > max_flops {max_flops}"
+            )
+            raise optuna.TrialPruned()
+        if max_params and params > max_params:
+            logger.info(
+                f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
+            )
+            raise optuna.TrialPruned()
 
         default = 0
         val_loss = float("inf")
@@ -78,10 +81,6 @@ def objective_wrapper(
     return objective(trial)
 
 
-def constraints(trial):
-    return trial.user_attrs["constraint"]
-
-
 def search(
     search_space_cfg: dict,
     hwnas_cfg: HWNASConfig,
@@ -92,14 +91,13 @@ def search(
     Returns: top-models, model-parameters, metrics
     """
     search_space = SearchSpace(search_space_cfg)
-    # TODO hardconstraints for all algorithms / test algorithms
     match hwnas_cfg.search_algorithm:
         case SearchAlgorithm.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
         case SearchAlgorithm.GRID_SEARCH:
             sampler = optuna.samplers.GridSampler(search_space_cfg)
         case SearchAlgorithm.EVOlUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(constraints_func=constraints)
+            sampler = optuna.samplers.NSGAIISampler()
         case _:
             sampler = optuna.samplers.RandomSampler()
 
@@ -119,7 +117,13 @@ def search(
             flops_weight=hwnas_cfg.flops_weight,
             constraints=hwnas_cfg.hw_constraints,
         ),
-        n_trials=hwnas_cfg.max_search_trials,
+        n_trials=None,
+        callbacks=[
+            MaxTrialsCallback(
+                hwnas_cfg.max_search_trials,
+                states=None,
+            )
+        ],
         show_progress_bar=True,
         gc_after_trial=True,
     )

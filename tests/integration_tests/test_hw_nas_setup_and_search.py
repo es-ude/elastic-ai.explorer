@@ -108,7 +108,6 @@ class TestHWNasSetupAndSearch:
         assert len(top_k_models) == 2
 
     def test_constraint_search(self):
-        # TODO there is no hard constraints with optuna, there needs to be a better test
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
@@ -120,6 +119,7 @@ class TestHWNasSetupAndSearch:
             self.dataset_spec,
             MLPTrainer,
         )
+        assert len(top_k_models) == 0
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)
