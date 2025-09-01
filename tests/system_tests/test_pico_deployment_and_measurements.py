@@ -13,9 +13,9 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 )
 from pathlib import Path
 
-from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
+from elasticai.explorer.training import data
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
-
+from torchvision import transforms
 
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
@@ -45,16 +45,17 @@ class TestPicoDeploymentAndMeasurement:
         self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.pico_explorer.choose_target_hw(self.deploy_cfg)
         self.model_name = "ts_model_0.tflite"
-        root_dir_mnist = str(ROOT_DIR / "data/mnist")
-        root_dir_cpp_mnist = str(ROOT_DIR / "data/cpp-mnist")
-        setup_mnist_for_cpp(root_dir_mnist, root_dir_cpp_mnist)
+        root_dir_mnist = ROOT_DIR / "data/mnist"
 
         metric_to_source = {
             Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"), #test relative path
             Metric.LATENCY: DOCKER_CONTEXT_DIR / Path("code/pico_crosscompiler/measure_latency"), # test absolute path
         }
+        transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
         self.pico_explorer.hw_setup_on_target(
-            metric_to_source, Path(root_dir_cpp_mnist)
+            metric_to_source, data.DatasetSpecification(data.MNISTWrapper, root_dir_mnist, transform=transf)
         )
 
     def test_pico_accuracy_measurement(self):

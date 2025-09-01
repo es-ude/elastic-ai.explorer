@@ -68,7 +68,7 @@ def find_generate_measure_for_pico(
     )
     path_to_dataset = ROOT_DIR / Path("data/mnist")
     root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
-    setup_mnist_for_cpp(str(path_to_dataset), str(root_dir_cpp_mnist))
+    setup_mnist_for_cpp(str(path_to_dataset), str(root_dir_cpp_mnist), transf)
     dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
 
@@ -87,14 +87,11 @@ def find_generate_measure_for_pico(
         model_name = "ts_model_" + str(i) + ".tflite"
         explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
-
         metric_to_source = {
-            Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"), 
-            Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"), 
+            Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
+            Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
         }
-        explorer.hw_setup_on_target(
-            metric_to_source, ROOT_DIR / Path("data/cpp-mnist")
-        )
+        explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
         try:
             latency = explorer.run_measurement(Metric.LATENCY, model_name)

@@ -7,14 +7,14 @@
 
 int main(int argc, const char *argv[])
 {
-  if (argc != 3)
+  if (argc != 2)
   {
-    std::cerr << "usage: example-app <path-to-exported-script-module> <path-to-data>\n";
+    std::cerr << "usage: example-app <path-to-exported-script-module>\n";
     return -1;
   }
 
   torch::jit::script::Module module;
-  std::string data_path = argv[2];
+  std::string data_path = "data/mnist/MNIST/raw";
   try
   {
     // Deserialize the ScriptModule from a file using torch::jit::load().

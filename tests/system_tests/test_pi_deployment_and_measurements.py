@@ -14,6 +14,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 from pathlib import Path
 
+from elasticai.explorer.training import data
 from settings import ROOT_DIR
 
 
@@ -50,16 +51,15 @@ class TestDeploymentAndMeasurement:
         )
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
-
-        path_to_data_docker = str(ROOT_DIR / "data/mnist")
-        shutil.make_archive(path_to_data_docker, "zip", path_to_dataset)
-
+        transf = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
         metric_to_source = {
-            Metric.ACCURACY: Path("code/measure_accuracy.cpp"), #test relative path
+            Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"), #test relative path
             Metric.LATENCY: DOCKER_CONTEXT_DIR / Path("code/measure_latency.cpp"), # test absolute path
         }
         self.RPI5explorer.hw_setup_on_target(
-            metric_to_source, Path(path_to_data_docker + ".zip")
+            metric_to_source, data.DatasetSpecification(data.MNISTWrapper, path_to_dataset, transf)
         )
 
     def test_pi_accuracy_measurement(self):

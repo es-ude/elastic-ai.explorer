@@ -82,9 +82,6 @@ class Explorer:
         self._experiment_name: str = self._experiment_dir.stem
         self._update_experiment_paths()
 
-    def set_default_model(self, model: nn.Module):
-        self.default_model = model
-
     def generate_search_space(self, path_to_searchspace: Path):
         self.search_space_cfg = yaml_to_dict(path_to_searchspace)
         self.logger.info("Generated search space:\n %s", self.search_space_cfg)
@@ -138,7 +135,7 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], path_to_testdata: Path | None
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
     ):
         """
         Args:
@@ -154,8 +151,8 @@ class Explorer:
             )
             exit(-1)
 
-        if path_to_testdata:
-            self.hw_manager.install_dataset_on_target(path_to_testdata)
+       
+        self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():
             self.logger.info(f"Installing program for {metric.name}: {source}")

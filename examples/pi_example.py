@@ -76,9 +76,6 @@ def setup_mnist(path_to_test_data: Path):
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    shutil.make_archive(
-        str(path_to_test_data), "zip", f"{str(path_to_test_data)}/MNIST/raw"
-    )
     dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, transf)
     return dataset_spec
 
@@ -98,12 +95,10 @@ def find_generate_measure_for_pi(
 
     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
     metric_to_source = {
-            Metric.ACCURACY: Path("code/measure_accuracy.cpp"), 
-            Metric.LATENCY: Path("code/measure_latency.cpp"),
-        }
-    explorer.hw_setup_on_target(
-        metric_to_source, Path(str(path_to_test_data) + ".zip")
-    )
+        Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
+        Metric.LATENCY: Path("code/measure_latency.cpp"),
+    }
+    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
     latency_measurements = []
     accuracy_measurements = []
     accuracy_after_retrain = []

@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 
 import shutil
-
+import tarfile
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import (
     Host,
@@ -14,6 +14,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     RPiHost,
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
+from elasticai.explorer.training.data import DatasetSpecification
 from settings import DOCKER_CONTEXT_DIR
 
 
@@ -36,7 +37,7 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def install_dataset_on_target(self, path_to_dataset: Path):
+    def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
         pass
 
     @abstractmethod
@@ -67,11 +68,19 @@ class PIHWManager(HWManager):
         self._register_metric_to_source(metric, relative_path)
         self.target.put_file(str(path_to_executable), ".")
 
-    def install_dataset_on_target(self, path_to_dataset: Path):
-        self.target.put_file(str(path_to_dataset), ".")
-        self.target.run_command(
-            f"unzip -q -o {os.path.split(path_to_dataset)[-1]} -d data"
-        )
+    def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
+        # Compress the dataset folder to tar.gz
+
+        dataset_dir = dataset_spec.dataset_location
+        archive_name = dataset_dir.with_suffix(".tar.gz")
+        with tarfile.open(archive_name, "w:gz") as tar:
+            tar.add(dataset_dir, arcname=dataset_dir.name)
+
+        # Transfer the archive to the target
+        self.target.put_file(str(archive_name), ".")
+
+        # Decompress the archive on the target
+        self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         source = self._metric_to_source.get(metric)
@@ -83,7 +92,7 @@ class PIHWManager(HWManager):
 
         match metric:
             case metric.ACCURACY:
-                cmd = self.build_command(source.stem, [tail, "data"])
+                cmd = self.build_command(source.stem, [tail])
                 print("acc")
             case metric.LATENCY:
                 cmd = self.build_command(source.stem, [tail])
@@ -138,16 +147,11 @@ class PicoHWManager(HWManager):
             relative_path = Path("/" + str(source))
         self._register_metric_to_source(metric, relative_path)
 
-    def install_dataset_on_target(self, path_to_dataset: Path):
-        # TODO make this more general
-        shutil.copyfile(
-            path_to_dataset / "mnist_images.h",
-            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/mnist_images.h",
-        )
-        shutil.copyfile(
-            path_to_dataset / "mnist_labels.h",
-            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/mnist_labels.h",
-        )
+    def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
+        target_dir = DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data"
+        for file in dataset_spec.dataset_location.iterdir():
+            if file.is_file():
+                shutil.copyfile(file, target_dir / file.name)
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
 

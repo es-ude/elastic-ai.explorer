@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 from typing import Any
 import pandas as pd
-from torchvision import datasets, transforms
-from torchvision.transforms import transforms
+from torchvision import datasets
+
 
 
 def save_list_to_json(list: list, path_to_dir: Path, filename: str):
@@ -22,11 +22,7 @@ def read_csv(csv_path) -> pd.DataFrame:
     return pd.read_csv(csv_path)
 
 
-def setup_mnist_for_cpp(root_dir_mnist: str, root_dir_cpp_mnist: str):
-
-    transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
+def setup_mnist_for_cpp(root_dir_mnist: str, root_dir_cpp_mnist: str, transf: Any):
 
     mnist_test = datasets.MNIST(
         root=root_dir_mnist, train=False, download=True, transform=transf

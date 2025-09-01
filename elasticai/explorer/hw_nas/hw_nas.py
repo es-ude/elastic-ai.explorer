@@ -97,7 +97,10 @@ def search(
         case SearchAlgorithm.GRID_SEARCH:
             sampler = optuna.samplers.GridSampler(search_space_cfg)
         case SearchAlgorithm.EVOlUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler()
+            sampler = optuna.samplers.NSGAIISampler(
+                population_size=20,
+                mutation_prob=0.1,
+            )
         case _:
             sampler = optuna.samplers.RandomSampler()
 
@@ -118,12 +121,7 @@ def search(
             constraints=hwnas_cfg.hw_constraints,
         ),
         n_trials=None,
-        callbacks=[
-            MaxTrialsCallback(
-                hwnas_cfg.max_search_trials,
-                states=None,
-            )
-        ],
+        callbacks=[MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)],
         show_progress_bar=True,
         gc_after_trial=True,
     )
