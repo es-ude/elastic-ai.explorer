@@ -1,16 +1,19 @@
 #The DeploymentConfig gives the necessary information to connect to the target-device.
 #If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
-  #The Hostname of target device.
-  target_name: "transfair.local"
-
-  #The Username/user-account of the target device to connect to.
-  target_user: "robin"
 
   target_platform_type: "rpi5"
+
+  SSH:
+    #The Hostname of target device.
+    target_name: "transfair.local"
+
+    #The Username/user-account of the target device to connect to.
+    target_user: "robin"
+
   
   Docker:
-    #The path (on host) to additional pre-compiled libraries neccessary for execution on target.
+    #The path (on host) to additional pre-compiled libraries necessary for execution on target.
     #Optional.
     compiled_library_path: "./code/libtorch"
 

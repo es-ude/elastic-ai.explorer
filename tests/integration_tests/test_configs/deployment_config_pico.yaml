@@ -1,16 +1,14 @@
 #The DeploymentConfig gives the necessary information to connect to the target-device.
 #If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
-  #The Hostname of target device.
-  target_name: ""
-
-  #The Username/user-account of the target device to connect to.
-  target_user: ""
 
   target_platform_name: "pico"
+  Serial:
+    #The port on which serial connection is setup, necessary for Pico. Optional. Defaults to "/dev/ttyACM0".
+    serial_port: "/dev/ttyACM0"
   
   Docker:
-    #The path (on host) to additional pre-compiled libraries neccessary for execution on target.
+    #The path (on host) to additional pre-compiled libraries necessary for execution on target.
     #Optional.
     compiled_library_path: "./code/pico_crosscompiler"
 

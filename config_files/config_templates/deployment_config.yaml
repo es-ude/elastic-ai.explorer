@@ -1,21 +1,28 @@
 # The DeploymentConfig gives the necessary information to connect to the target-device and deploy the model(s) on it.
 # If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
-  # The Hostname of target device.
-  target_name: "<host>"
-
-  # The Username/user-account of the target device to connect to.
-  target_user: "<user>"
-
-  # Select one of the supported hardware platforms: "rpi4", "rpi5". Optional. Defaults to "rpi5".
+  # Select one of the supported hardware platforms: "rpi4", "rpi5" or "pico". Optional. Defaults to "rpi5".
   target_platform_name: <platform_name>
 
+  # This is used for RPi4/5. The target device must be reachable via established SSH-key. Optional.
+  SSH:
+    # The Hostname of target device. Optional. Defaults to "".
+    target_name: "<host>"
 
-  # TODO add different categories for Serial and SSH
-  # The port on which serial connection is setup, necessary for Pico. Optional. Defaults to "/dev/ttyACM0".
+    # The Username/user-account of the target device to connect to. Optional. Defaults to "".
+    target_user: "<user>"
 
-  #serial_port: <serial-port>
-  
+  # This is used for Pico. The target device must be reachable via serial connection. Optional.
+  Serial:
+    # The port on which serial connection is setup, necessary for Pico. Optional. Defaults to "/dev/ttyACM0".
+    serial_port: <serial-port>
+
+    # The path to which the Pico is mounted on the host system. Optional. Defaults to "".
+    device_path: <device-path>
+
+    # The baud rate for the serial connection. Optional. Defaults to 115200.
+    baud_rate: <baud-rate>  
+
   Docker:
     # The path (on host) to additional pre-compiled libraries necessary for execution on target. If docker is used for deployment,
     # It needs to be in the docker build-context. Path must be relative to build-context.

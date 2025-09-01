@@ -85,16 +85,18 @@ class DeploymentConfig(Config):
         self._original_yaml_dict: dict[Any, Any] = self._parse_mandatory(
             "DeploymentConfig"
         )
-
-        self.target_name: str = self._parse_mandatory("target_name")
-        self.target_user: str = self._parse_mandatory("target_user")
         self.target_platform_name: str = self._parse_optional(
             "target_platform_name", "rpi5"
         )
-        self.serial_port: str = self._parse_optional(
-            "serial_port", "/dev/ttyACM0"
-        )
 
+        self.target_name: str = self._parse_optional("target_name", "", "SSH")
+        self.target_user: str = self._parse_optional("target_user", "", "SSH")
+
+        self.serial_port: str = self._parse_optional(
+            "serial_port", "/dev/ttyACM0", "Serial"
+        )
+        self.device_path: str = self._parse_optional("device_path", "", "Serial")
+        self.baud_rate: int = self._parse_optional("baud_rate", 115200, "Serial")
         self.docker = DockerParameter
         self.docker.compiler_tag = self._parse_optional(
             "compiler_tag", "cross", "Docker"

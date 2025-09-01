@@ -81,8 +81,8 @@ class RPiHost(Host):
 
 class PicoHost(Host):
     def __init__(self, deploy_cfg: DeploymentConfig):
-        self.BAUD_RATE = 115200
-        self.host_name = deploy_cfg.target_name
+        self.BAUD_RATE = deploy_cfg.baud_rate
+        self.host_name = deploy_cfg.device_path
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.device_communication.PicoHost"
         )
