@@ -12,6 +12,8 @@ docker/bin
 docker/data
 /docker/code/libtorch
 .DS_Store
+mnist_images.h
+mnist_labels.h
 
 #experiments logs
 experiments/

@@ -8,7 +8,7 @@ from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.manager import (
+from elasticai.explorer.platforms.deployment.hw_manager import (
     HWManager,
     Metric,
 )

@@ -7,10 +7,10 @@ from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai.explorer.platforms.deployment.hw_manager import PIHWManager
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai.explorer.platforms.deployment.hw_manager import PIHWManager
 from torchvision import transforms
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR

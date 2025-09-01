@@ -6,7 +6,7 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.manager import (
+from elasticai.explorer.platforms.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     PicoHWManager,
 )

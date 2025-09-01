@@ -3,7 +3,7 @@ from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
-from elasticai.explorer.platforms.deployment.manager import (
+from elasticai.explorer.platforms.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     PIHWManager,
     Metric,

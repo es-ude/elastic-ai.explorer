@@ -18,7 +18,7 @@ from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeReposit
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai.explorer.platforms.deployment.hw_manager import PIHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR

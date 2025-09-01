@@ -17,7 +17,7 @@ from elasticai.explorer.knowledge_repository import (
 )
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.manager import (
+from elasticai.explorer.platforms.deployment.hw_manager import (
     PIHWManager,
     Metric,
     PicoHWManager,

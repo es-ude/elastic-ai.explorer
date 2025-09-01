@@ -19,7 +19,7 @@ from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
 from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
 )
-from elasticai.explorer.platforms.deployment.manager import (
+from elasticai.explorer.platforms.deployment.hw_manager import (
     PicoHWManager,
     Metric,
 )
