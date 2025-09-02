@@ -5,10 +5,10 @@ from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeReposit
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
-    PIHWManager,
+    RPiHWManager,
     Metric,
 )
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
@@ -34,8 +34,8 @@ class TestDeploymentAndMeasurement:
             HWPlatform(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PIGenerator,
-                PIHWManager,
+                RPiGenerator,
+                RPiHWManager,
                 RPiHost,
                 RPICompiler,
             )
@@ -68,7 +68,10 @@ class TestDeploymentAndMeasurement:
         self.RPI5explorer.hw_setup_on_target(
             metric_to_source,
             data.DatasetSpecification(
-                data.MNISTWrapper, path_to_dataset, root_dir_cpp_mnist, transf
+                dataset_type=data.MNISTWrapper,
+                dataset_location=path_to_dataset,
+                deployable_dataset_path=root_dir_cpp_mnist,
+                transform=transf,
             ),
         )
 

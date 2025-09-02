@@ -1,6 +1,5 @@
 from tflite.Model import Model
 import tflite
-import sys
 from pathlib import Path
 
 # Mapping from TFLite builtin op name -> MicroMutableOpResolver method
@@ -71,7 +70,7 @@ def generate_resolver_h(tflite_file, output_file):
         if op in OP_TO_RESOLVER:
             resolver_calls.append(f"    resolver->{OP_TO_RESOLVER[op]}();")
         else:
-            resolver_calls.append(f"    // TODO: Add mapping for {op}")
+            resolver_calls.append(f"    // Add mapping for {op}")
 
     with open(output_file, "w") as f:
         f.write("// Auto-generated resolver ops\n")

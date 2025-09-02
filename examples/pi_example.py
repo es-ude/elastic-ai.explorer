@@ -1,6 +1,5 @@
 import json
 import logging.config
-import shutil
 from pathlib import Path
 
 import torch
@@ -15,17 +14,10 @@ from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
 )
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.hw_manager import (
-    PIHWManager,
-    Metric,
-    PicoHWManager,
-)
-from elasticai.explorer.platforms.generator.generator import (
-    PIGenerator,
-    PicoGenerator,
-)
+from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager, Metric
+from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
 
@@ -40,8 +32,8 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         HWPlatform(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            PIGenerator,
-            PIHWManager,
+            RPiGenerator,
+            RPiHWManager,
             RPiHost,
             RPICompiler,
         )
@@ -51,24 +43,12 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         HWPlatform(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            PIGenerator,
-            PIHWManager,
+            RPiGenerator,
+            RPiHWManager,
             RPiHost,
             RPICompiler,
         )
     )
-
-    knowledge_repository.register_hw_platform(
-        HWPlatform(
-            "pico_RP2040",
-            "Pico with RP2040 MCU and 2MB control memory",
-            PicoGenerator,
-            PicoHWManager,
-            RPiHost,
-            PicoCompiler,
-        )
-    )
-
     return knowledge_repository
 
 
@@ -76,7 +56,12 @@ def setup_mnist(path_to_test_data: Path):
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, path_to_test_data, transf)
+    dataset_spec = DatasetSpecification(
+        dataset_type=MNISTWrapper,
+        dataset_location=path_to_test_data,
+        deployable_dataset_path=path_to_test_data,
+        transform=transf,
+    )
     return dataset_spec
 
 

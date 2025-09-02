@@ -2,10 +2,8 @@ import json
 import logging
 import logging.config
 from pathlib import Path
-import torch
-from torchvision import transforms
-from torchvision.transforms import transforms
 
+import torch
 from torchvision.transforms import transforms
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
@@ -69,7 +67,12 @@ def find_generate_measure_for_pico(
     path_to_dataset = ROOT_DIR / Path("data/mnist")
     root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
     setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
-    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, root_dir_cpp_mnist,  transf)
+    dataset_spec = DatasetSpecification(
+        dataset_type=MNISTWrapper,
+        dataset_location=path_to_dataset,
+        deployable_dataset_path=root_dir_cpp_mnist,
+        transform=transf,
+    )
     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
 
     latency_measurements = []

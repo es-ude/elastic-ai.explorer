@@ -47,7 +47,6 @@ class TestPicoDeploymentAndMeasurement:
         self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.pico_explorer.choose_target_hw(self.deploy_cfg)
         self.model_name = "ts_model_0.tflite"
-        root_dir_mnist = ROOT_DIR / "data/mnist"
 
         metric_to_source = {
             Metric.ACCURACY: Path(
@@ -70,7 +69,10 @@ class TestPicoDeploymentAndMeasurement:
         )
 
         self.dataset_spec = data.DatasetSpecification(
-            data.MNISTWrapper, path_to_dataset, path_to_deployable_dataset, transf
+            dataset_type=data.MNISTWrapper,
+            dataset_location=path_to_dataset,
+            deployable_dataset_path=path_to_deployable_dataset,
+            transform=transf,
         )
         self.pico_explorer.hw_setup_on_target(metric_to_source, self.dataset_spec)
 

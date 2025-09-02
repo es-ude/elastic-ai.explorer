@@ -53,11 +53,11 @@ class TestData:
 
     def test_dataset_with_mlp_trainer(self):
         dataset_spec = DatasetSpecification(
-            TimeSeriesDatasetExample,
-            self.sample_dir / "test_dataset.csv",
-            self.sample_dir / "test_dataset.csv",
-            None,
-            [0.6, 0.2, 0.2],
+            dataset_type=TimeSeriesDatasetExample,
+            dataset_location=self.sample_dir / "test_dataset.csv",
+            deployable_dataset_path=self.sample_dir / "test_dataset.csv",
+            transform=None,
+            test_train_val_ratio=[0.6, 0.2, 0.2],
         )
         model = SampleMLP(2)
 

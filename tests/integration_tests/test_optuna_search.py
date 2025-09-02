@@ -16,9 +16,9 @@ from elasticai.explorer.hw_nas.search_space.construct_search_space import (
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.hw_manager import PIHWManager
+from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -65,8 +65,8 @@ class TestFrozenTrialToModel:
             HWPlatform(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PIGenerator,
-                PIHWManager,
+                RPiGenerator,
+                RPiHWManager,
                 Host,
                 Compiler,
             )
@@ -85,10 +85,10 @@ class TestFrozenTrialToModel:
         )
         self.search_space = SearchSpace(self.search_space_cfg)
         self.dataset_spec = DatasetSpecification(
-            MNISTWrapper,
-            Path(ROOT_DIR / "data/mnist"),
-            Path(ROOT_DIR / "data/mnist"),
-            transforms.Compose(
+            dataset_type=MNISTWrapper,
+            dataset_location=Path(ROOT_DIR / "data/mnist"),
+            deployable_dataset_path=Path(ROOT_DIR / "data/mnist"),
+            transform=transforms.Compose(
                 [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
             ),
         )

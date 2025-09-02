@@ -49,7 +49,7 @@ class HWManager(ABC):
         pass
 
 
-class PIHWManager(HWManager):
+class RPiHWManager(HWManager):
 
     def __init__(self, target: RPiHost, compiler: Compiler):
 
@@ -69,21 +69,16 @@ class PIHWManager(HWManager):
         self.target.put_file(str(path_to_executable), ".")
 
     def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
-        # Compress the dataset folder to tar.gz
 
-        if not dataset_spec.deployable_dataset_path:
-            raise ValueError(
-                "DatasetSpecification must have deployable_dataset_path set."
-            )
-        dataset_dir = dataset_spec.deployable_dataset_path
+        if dataset_spec.deployable_dataset_path:
+            dataset_dir = dataset_spec.deployable_dataset_path
+        else:
+            dataset_dir = dataset_spec.dataset_location
         archive_name = dataset_dir.with_suffix(".tar.gz")
         with tarfile.open(archive_name, "w:gz") as tar:
             tar.add(dataset_dir, arcname=dataset_dir.name)
 
-        # Transfer the archive to the target
         self.target.put_file(str(archive_name), ".")
-
-        # Decompress the archive on the target
         self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:

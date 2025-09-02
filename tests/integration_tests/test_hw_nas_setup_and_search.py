@@ -7,10 +7,9 @@ from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import RPICompiler
-from elasticai.explorer.platforms.deployment.hw_manager import PIHWManager
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
+from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.hw_manager import PIHWManager
 from torchvision import transforms
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -29,8 +28,8 @@ class TestHWNasSetupAndSearch:
             HWPlatform(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PIGenerator,
-                PIHWManager,
+                RPiGenerator,
+                RPiHWManager,
                 RPiHost,
                 RPICompiler,
             )
@@ -53,7 +52,10 @@ class TestHWNasSetupAndSearch:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         self.dataset_spec = DatasetSpecification(
-            MNISTWrapper, path_to_dataset, path_to_dataset, transf
+            dataset_type=MNISTWrapper,
+            dataset_location=path_to_dataset,
+            deployable_dataset_path=path_to_dataset,
+            transform=transf,
         )
 
     def test_search(self):
