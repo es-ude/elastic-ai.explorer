@@ -87,6 +87,7 @@ class TestFrozenTrialToModel:
         self.dataset_spec = DatasetSpecification(
             MNISTWrapper,
             Path(ROOT_DIR / "data/mnist"),
+            Path(ROOT_DIR / "data/mnist"),
             transforms.Compose(
                 [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
             ),

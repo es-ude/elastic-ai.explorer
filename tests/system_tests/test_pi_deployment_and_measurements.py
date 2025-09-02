@@ -15,6 +15,7 @@ from torchvision.transforms import transforms
 from pathlib import Path
 
 from elasticai.explorer.training import data
+from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
 
 
@@ -52,14 +53,23 @@ class TestDeploymentAndMeasurement:
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
         transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
+        root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
+        setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
         metric_to_source = {
-            Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"), #test relative path
-            Metric.LATENCY: DOCKER_CONTEXT_DIR / Path("code/measure_latency.cpp"), # test absolute path
+            Metric.ACCURACY: Path(
+                "code/measure_accuracy_mnist.cpp"
+            ),  # test relative path
+            Metric.LATENCY: (
+                DOCKER_CONTEXT_DIR / Path("code/measure_latency.cpp")
+            ),  # test absolute path
         }
         self.RPI5explorer.hw_setup_on_target(
-            metric_to_source, data.DatasetSpecification(data.MNISTWrapper, path_to_dataset, transf)
+            metric_to_source,
+            data.DatasetSpecification(
+                data.MNISTWrapper, path_to_dataset, root_dir_cpp_mnist, transf
+            ),
         )
 
     def test_pi_accuracy_measurement(self):

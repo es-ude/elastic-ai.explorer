@@ -76,7 +76,7 @@ def setup_mnist(path_to_test_data: Path):
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, transf)
+    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, path_to_test_data, transf)
     return dataset_spec
 
 

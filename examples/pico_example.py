@@ -68,8 +68,8 @@ def find_generate_measure_for_pico(
     )
     path_to_dataset = ROOT_DIR / Path("data/mnist")
     root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
-    setup_mnist_for_cpp(str(path_to_dataset), str(root_dir_cpp_mnist), transf)
-    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
+    setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
+    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, root_dir_cpp_mnist,  transf)
     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
 
     latency_measurements = []

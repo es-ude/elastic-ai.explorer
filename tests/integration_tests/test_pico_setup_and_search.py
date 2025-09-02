@@ -47,7 +47,7 @@ class TestPicoHWNasSetupAndSearch:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        self.dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
+        self.dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, None, transf)
 
     def test_search(self):
         self.explorer.generate_search_space(

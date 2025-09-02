@@ -14,6 +14,7 @@ from elasticai.explorer.platforms.generator import tflite_to_resolver
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
+from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
 from tests.integration_tests.samples import sample_MLP
 
@@ -50,8 +51,18 @@ class TestPicoGenerateAndCompile:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        path_to_dataset = Path(ROOT_DIR / "data/mnist")
-        self.dataset_spec = DatasetSpecification(MNISTWrapper, path_to_dataset, transf)
+        path_to_dataset = ROOT_DIR / "data/mnist"
+        path_to_deployable_dataset = ROOT_DIR / "data/cpp-mnist"
+
+        setup_mnist_for_cpp(
+            root_dir_mnist=path_to_dataset,
+            root_dir_cpp_mnist=path_to_deployable_dataset,
+            transf=transf,
+        )
+
+        self.dataset_spec = DatasetSpecification(
+            MNISTWrapper, path_to_dataset, path_to_deployable_dataset, transf
+        )
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)

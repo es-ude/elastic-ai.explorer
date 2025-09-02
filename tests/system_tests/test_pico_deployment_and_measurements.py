@@ -14,8 +14,10 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 from pathlib import Path
 
 from elasticai.explorer.training import data
+from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from torchvision import transforms
+
 
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
@@ -48,15 +50,29 @@ class TestPicoDeploymentAndMeasurement:
         root_dir_mnist = ROOT_DIR / "data/mnist"
 
         metric_to_source = {
-            Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"), #test relative path
-            Metric.LATENCY: DOCKER_CONTEXT_DIR / Path("code/pico_crosscompiler/measure_latency"), # test absolute path
+            Metric.ACCURACY: Path(
+                "code/pico_crosscompiler/measure_accuracy"
+            ),  # test relative path
+            Metric.LATENCY: (
+                DOCKER_CONTEXT_DIR / Path("code/pico_crosscompiler/measure_latency")
+            ),  # test absolute path
         }
         transf = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-        self.pico_explorer.hw_setup_on_target(
-            metric_to_source, data.DatasetSpecification(data.MNISTWrapper, root_dir_mnist, transform=transf)
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
+        path_to_dataset = ROOT_DIR / "data/mnist"
+        path_to_deployable_dataset = ROOT_DIR / "data/cpp-mnist"
+
+        setup_mnist_for_cpp(
+            root_dir_mnist=path_to_dataset,
+            root_dir_cpp_mnist=path_to_deployable_dataset,
+            transf=transf,
+        )
+
+        self.dataset_spec = data.DatasetSpecification(
+            data.MNISTWrapper, path_to_dataset, path_to_deployable_dataset, transf
+        )
+        self.pico_explorer.hw_setup_on_target(metric_to_source, self.dataset_spec)
 
     def test_pico_accuracy_measurement(self):
         assert math.isclose(

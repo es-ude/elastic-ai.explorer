@@ -71,7 +71,11 @@ class PIHWManager(HWManager):
     def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
         # Compress the dataset folder to tar.gz
 
-        dataset_dir = dataset_spec.dataset_location
+        if not dataset_spec.deployable_dataset_path:
+            raise ValueError(
+                "DatasetSpecification must have deployable_dataset_path set."
+            )
+        dataset_dir = dataset_spec.deployable_dataset_path
         archive_name = dataset_dir.with_suffix(".tar.gz")
         with tarfile.open(archive_name, "w:gz") as tar:
             tar.add(dataset_dir, arcname=dataset_dir.name)
@@ -149,7 +153,11 @@ class PicoHWManager(HWManager):
 
     def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
         target_dir = DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data"
-        for file in dataset_spec.dataset_location.iterdir():
+        if not dataset_spec.deployable_dataset_path:
+            raise ValueError(
+                "For deployment on Pico the DatasetSpecification must have deployable_dataset_path set."
+            )
+        for file in dataset_spec.deployable_dataset_path.iterdir():
             if file.is_file():
                 shutil.copyfile(file, target_dir / file.name)
 

@@ -55,6 +55,7 @@ class TestData:
         dataset_spec = DatasetSpecification(
             TimeSeriesDatasetExample,
             self.sample_dir / "test_dataset.csv",
+            self.sample_dir / "test_dataset.csv",
             None,
             [0.6, 0.2, 0.2],
         )

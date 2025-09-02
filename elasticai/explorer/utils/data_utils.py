@@ -6,7 +6,6 @@ import pandas as pd
 from torchvision import datasets
 
 
-
 def save_list_to_json(list: list, path_to_dir: Path, filename: str):
     os.makedirs(path_to_dir, exist_ok=True)
     with open(path_to_dir / filename, "w+") as outfile:
@@ -22,7 +21,7 @@ def read_csv(csv_path) -> pd.DataFrame:
     return pd.read_csv(csv_path)
 
 
-def setup_mnist_for_cpp(root_dir_mnist: str, root_dir_cpp_mnist: str, transf: Any):
+def setup_mnist_for_cpp(root_dir_mnist: Path, root_dir_cpp_mnist: Path, transf: Any):
 
     mnist_test = datasets.MNIST(
         root=root_dir_mnist, train=False, download=True, transform=transf
@@ -36,7 +35,7 @@ def setup_mnist_for_cpp(root_dir_mnist: str, root_dir_cpp_mnist: str, transf: An
         labels.append(label)
 
     os.makedirs(root_dir_cpp_mnist, exist_ok=True)
-    with open(root_dir_cpp_mnist + "/mnist_images.h", "w") as f:
+    with open(root_dir_cpp_mnist / "mnist_images.h", "w") as f:
         f.write("#ifndef MNIST_IMAGES_H\n#define MNIST_TEST_IMAGES_H\n\n")
         f.write("const float mnist_images[256][784] = {\n")
 
@@ -53,7 +52,7 @@ def setup_mnist_for_cpp(root_dir_mnist: str, root_dir_cpp_mnist: str, transf: An
 
         f.write("};\n\n#endif // MNIST_IMAGES_H\n")
 
-    with open(root_dir_cpp_mnist + "/mnist_labels.h", "w") as f:
+    with open(root_dir_cpp_mnist / "mnist_labels.h", "w") as f:
         f.write("#ifndef MNIST_LABELS_H\n#define MNIST_LABELS_H\n\n")
         f.write("const int mnist_labels[256] = {\n  ")
         f.write(", ".join(str(l) for l in labels))
