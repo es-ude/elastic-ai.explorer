@@ -11,10 +11,9 @@
 
 #include "model.h"
 #include "tflite_interpreter.h"
-#include "signal_queue.h"
-#include "processing_functions.h"
+
+
 #include "hardware_setup.h"
-#include "adxl345.h"
 
 const uint32_t TENSOR_ARENA_SIZE = (110 * 1024);
 const uint32_t CHANNEL_COUNT = 1;

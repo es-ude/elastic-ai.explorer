@@ -2,14 +2,13 @@
 import logging
 import logging.config
 from pathlib import Path
-from re import S
 
 import torch
 from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.device_communication import PicoHost
 from elasticai.explorer.platforms.deployment.hw_manager import Metric, PicoHWManager
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
 import torch.nn as nn
@@ -38,7 +37,7 @@ class LSTMAutoencoder(nn.Module):
         return reconstructed
 
 
-class EmptyDataset(BaseDataset):
+class TensorOnesDataset(BaseDataset):
     def __init__(
         self, root: str = "", transform=None, target_transform=None, *args, **kwargs
     ):
@@ -59,7 +58,7 @@ def setup_for_pico():
             "Pico mit RP2040",
             PicoGenerator,
             PicoHWManager,
-            RPiHost,
+            PicoHost,
             PicoCompiler,
         )
     )
@@ -79,7 +78,7 @@ if __name__ == "__main__":
     model_name = "lstm_model.tflite"
 
     dataset_spec = DatasetSpecification(
-        dataset_type=EmptyDataset,
+        dataset_type=TensorOnesDataset,
         dataset_location=Path("data/empty_dataset"),
         deployable_dataset_path=Path("data/empty_dataset"),
         transform=None,

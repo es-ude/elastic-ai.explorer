@@ -13,10 +13,7 @@
 
 #include "model.h"
 #include "tflite_interpreter.h"
-#include "signal_queue.h"
-#include "processing_functions.h"
 #include "hardware_setup.h"
-#include "adxl345.h"
 
 const uint32_t TENSOR_ARENA_SIZE = (60 * 1024);
 const uint32_t CHANNEL_COUNT = 1;
@@ -34,7 +31,6 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
 
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
-    resolver->AddL
     // printf("Created Interpreter pointer.\n");
     interpreter->initialize();
 
