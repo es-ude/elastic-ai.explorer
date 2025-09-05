@@ -7,6 +7,9 @@ HWNASConfig:
   # The search trials the HW-NAS should do at max.
   max_search_trials: 4
 
+  # Whether to count only completed trials towards the max_search_trials OR to count all trials (including failed ones).
+  count_only_completed_trials: false
+
   # The number of top models returned by HW-NAS.
   top_n_models: 2
 

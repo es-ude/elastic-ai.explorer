@@ -1,3 +1,4 @@
+from gc import callbacks
 import logging
 import math
 from typing import Any, Callable, Type
@@ -109,6 +110,13 @@ def search(
         direction="maximize",
     )
 
+    if hwnas_cfg.count_only_completed_trials:
+        n_trials = None
+        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))]
+    else:
+        n_trials = hwnas_cfg.max_search_trials
+        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)]
+
     study.optimize(
         partial(
             objective_wrapper,
@@ -120,8 +128,8 @@ def search(
             flops_weight=hwnas_cfg.flops_weight,
             constraints=hwnas_cfg.hw_constraints,
         ),
-        n_trials=None,
-        callbacks=[MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)],
+        n_trials=n_trials,
+        callbacks=callbacks,
         show_progress_bar=True,
         gc_after_trial=True,
     )

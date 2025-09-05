@@ -1,4 +1,5 @@
-FROM cross AS builder
+ARG BASE_IMAGE=cross
+FROM ${BASE_IMAGE}:latest AS builder
 
 ARG HOST_LIBTORCH_PATH="./code/libtorch"
 ARG PROGRAM_CODE

@@ -39,6 +39,7 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
             "top_n_models": 4,
             "hw_constraints": {},
             "search_algorithm": "evolution",
+            "count_only_completed_trials": False,
         },
         {
             "flops_weight": 2,
@@ -48,6 +49,7 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
             "top_n_models": 1,
             "hw_constraints": {},
             "search_algorithm": "evolution",
+            "count_only_completed_trials": True,
         },
     ],
     ids=["6_trials_4_top_models", "2_trials_1_top_model"],

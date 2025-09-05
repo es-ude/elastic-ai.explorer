@@ -29,8 +29,8 @@ DeploymentConfig:
     # Optional. Defaults to "./code/libtorch".
     compiled_library_path: "<path/to/library>"
 
-    # Tag of Crosscompiler Image
-    compiler_tag: "cross"
+    # Name of the Crosscompiler Image
+    image_name: "cross"
 
     # Full path to Crosscompiler Docker Image
     path_to_dockerfile: "<path-to-project>/docker/Dockerfile.picross"

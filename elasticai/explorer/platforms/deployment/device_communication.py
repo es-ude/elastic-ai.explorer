@@ -23,7 +23,7 @@ class Host(ABC):
         pass
 
     @abstractmethod
-    def put_file(self, local_path: str, remote_path: str | None) -> str:
+    def put_file(self, local_path: Path, remote_path: str | None) -> str:
         pass
 
     @abstractmethod
@@ -61,7 +61,7 @@ class RPiHost(Host):
             )
         return result.stdout
 
-    def put_file(self, local_path: str, remote_path: str | None) -> str:
+    def put_file(self, local_path: Path, remote_path: str | None) -> str:
         try:
             with self._get_connection() as conn:
                 conn.put(local_path, remote_path)
@@ -106,7 +106,7 @@ class PicoHost(Host):
 
         return line
 
-    def put_file(self, local_path: str, remote_path: str | None) -> str:
+    def put_file(self, local_path: Path, remote_path: str | None) -> str:
         time_passed = 0
         sleep_interval = 0.5
         self.logger.info("Wait for pico to deploy...")
@@ -120,7 +120,7 @@ class PicoHost(Host):
 
         shutil.copyfile(
             local_path,
-            self.host_name + "/" + Path(local_path).name,
+            Path(self.host_name) / Path(local_path).name,
         )
         return self._get_measurement()
 

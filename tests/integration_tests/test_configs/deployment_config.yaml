@@ -9,8 +9,8 @@ DeploymentConfig:
     # Optional.
     compiled_library_path: "./code/libtorch"
 
-    # Tag of Crosscompiler Image
-    compiler_tag: "cross"
+    # Name of Crosscompiler Image
+    image_name: "cross"
 
     # Full path to Crosscompiler Docker Image
     path_to_dockerfile:  "/home/robin/code/elastic-ai.explorer/docker/Dockerfile.picross"

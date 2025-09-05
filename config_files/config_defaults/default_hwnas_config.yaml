@@ -6,4 +6,4 @@ HWNASConfig:
   search_algorithm: "random"
   n_estimation_epochs: 3
   flops_weight: 2.0
-
+  count_only_completed_trials: false

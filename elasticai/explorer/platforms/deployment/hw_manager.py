@@ -54,7 +54,7 @@ class RPiHWManager(HWManager):
     def __init__(self, target: RPiHost, compiler: Compiler):
 
         self.logger = logging.getLogger(
-            "explorer.platforms.deployment.manager.PIHWManager"
+            "explorer.platforms.deployment.manager.RPIHWManager"
         )
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
@@ -66,7 +66,7 @@ class RPiHWManager(HWManager):
             relative_path = Path("/" + str(source))
         path_to_executable = self.compiler.compile_code(relative_path)
         self._register_metric_to_source(metric, relative_path)
-        self.target.put_file(str(path_to_executable), ".")
+        self.target.put_file(path_to_executable, ".")
 
     def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
 
@@ -78,7 +78,7 @@ class RPiHWManager(HWManager):
         with tarfile.open(archive_name, "w:gz") as tar:
             tar.add(dataset_dir, arcname=dataset_dir.name)
 
-        self.target.put_file(str(archive_name), ".")
+        self.target.put_file(archive_name, ".")
         self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
@@ -105,7 +105,7 @@ class RPiHWManager(HWManager):
 
     def deploy_model(self, path_to_model: Path):
         self.logger.info("Put model %s on target", path_to_model)
-        self.target.put_file(str(path_to_model), ".")
+        self.target.put_file(path_to_model, ".")
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)
@@ -170,7 +170,7 @@ class PicoHWManager(HWManager):
         )
 
         path_to_executable = self.compiler.compile_code(source)
-        self.measurements = self.target.put_file(str(path_to_executable), None)
+        self.measurements = self.target.put_file(path_to_executable, None)
         if self.measurements:
             measurement = self._parse_measurement(self.measurements)
         else:

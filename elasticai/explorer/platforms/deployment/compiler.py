@@ -28,7 +28,7 @@ class Compiler(ABC):
 class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.logger = logging.getLogger("RPICompiler")
-        self.tag: str = deploy_cfg.docker.compiler_tag  # "cross"
+        self.image_name: str = deploy_cfg.docker.image_name  # "cross"
         self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.libtorch_path: Path = Path(deploy_cfg.docker.library_path)
@@ -36,12 +36,14 @@ class RPICompiler(Compiler):
             self.setup()
 
     def is_setup(self) -> bool:
-        return bool(docker.images(self.tag))
+        return bool(docker.images(self.image_name))
 
     # todo: docker image in docker_registry
     def setup(self) -> None:
         self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
-        docker.build(self.context_path, file=self.path_to_dockerfile, tags=self.tag)
+        docker.build(
+            self.context_path, file=self.path_to_dockerfile, tags=self.image_name
+        )
         self.logger.debug("Crosscompiler available now.")
 
     def compile_code(self, source: Path) -> Path:
@@ -50,6 +52,7 @@ class RPICompiler(Compiler):
             file=self.context_path / "Dockerfile.picross",
             output={"type": "local", "dest": str(self.context_path / "bin")},
             build_args={
+                "BASE_IMAGE": self.image_name,
                 "NAME_OF_EXECUTABLE": source.stem,
                 "PROGRAM_CODE": str(source),
                 "HOST_LIBTORCH_PATH": str(self.libtorch_path),
@@ -67,7 +70,7 @@ class PicoCompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.logger = logging.getLogger("PicoCompiler")
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
-        self.tag: str = deploy_cfg.docker.compiler_tag
+        self.image_name: str = deploy_cfg.docker.image_name
         self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.cross_compiler_path: Path = Path(deploy_cfg.docker.library_path)
@@ -75,12 +78,12 @@ class PicoCompiler(Compiler):
             self.setup()
 
     def is_setup(self) -> bool:
-        return bool(docker.images(self.tag))
+        return bool(docker.images(self.image_name))
 
     def setup(self) -> None:
         docker.build(
             context_path=self.context_path,
-            tags=self.tag,
+            tags=self.image_name,
             file=self.path_to_dockerfile,
             build_args={
                 "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
@@ -95,6 +98,7 @@ class PicoCompiler(Compiler):
             output={"type": "local", "dest": str(self.context_path / "bin")},
             file=self.context_path / "Dockerfile.picocross",
             build_args={
+                "BASE_IMAGE": self.image_name,
                 "SOURCE_NAME": source.stem,
                 "PATH_TO_SOURCE": str(source),
                 "CROSS_COMPILER_PATH": str(self.cross_compiler_path),

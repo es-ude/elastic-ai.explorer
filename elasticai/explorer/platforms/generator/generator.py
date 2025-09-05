@@ -5,9 +5,9 @@ from pathlib import Path
 import subprocess
 from typing import Any, Literal
 import numpy
+
 import torch
 from torch import nn
-import ai_edge_torch
 from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
 from torch._export import capture_pre_autograd_graph
 

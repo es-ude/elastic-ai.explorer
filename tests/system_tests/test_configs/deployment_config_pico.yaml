@@ -15,8 +15,8 @@ DeploymentConfig:
     #Optional.
     compiled_library_path: "./code/pico_crosscompiler"
 
-    # Tag of Crosscompiler Image
-    compiler_tag: "picobase"
+    # Name of Crosscompiler Image
+    image_name: "picobase"
 
     # Full path to Crosscompiler Docker Image
     path_to_dockerfile:  "/home/robin/code/elastic-ai.explorer/docker/Dockerfile.picobase"

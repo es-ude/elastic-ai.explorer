@@ -13,7 +13,7 @@ logger = logging.getLogger("explorer.config")
 
 @dataclass
 class DockerParameter:
-    compiler_tag: str
+    image_name: str
     library_path: Path
     path_to_dockerfile: Path
     build_context: Path
@@ -75,7 +75,7 @@ class HWNASConfig(Config):
         self.top_n_models: int = self._parse_optional("top_n_models", 2)
         self.n_estimation_epochs: int = self._parse_optional("n_estimation_epochs", 3)
         self.flops_weight: float = self._parse_optional("flops_weight", 2.0)
-
+        self.count_only_completed_trials: bool = self._parse_optional("count_only_completed_trials", False)
 
 class DeploymentConfig(Config):
     """The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it."""
@@ -98,9 +98,7 @@ class DeploymentConfig(Config):
         self.device_path: str = self._parse_optional("device_path", "", "Serial")
         self.baud_rate: int = self._parse_optional("baud_rate", 115200, "Serial")
         self.docker = DockerParameter
-        self.docker.compiler_tag = self._parse_optional(
-            "compiler_tag", "cross", "Docker"
-        )
+        self.docker.image_name = self._parse_optional("image_name", "cross", "Docker")
         self.docker.path_to_dockerfile = Path(
             self._parse_optional(
                 "path_to_dockerfile",
