@@ -126,6 +126,7 @@ class MultivariateTimeseriesDataset(BaseDataset):
 class DatasetSpecification:
     dataset_type: Type[BaseDataset]
     dataset_location: Path
+    deployable_dataset_path: Path | None = None # This should be the path to the data that is deployed to the target device.
     transform: Compose | None = None
     test_train_val_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
     shuffle: bool = False

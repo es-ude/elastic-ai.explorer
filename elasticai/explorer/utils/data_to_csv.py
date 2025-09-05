@@ -9,7 +9,8 @@ from settings import MAIN_EXPERIMENT_DIR
 
 def build_search_space_measurements_file(
     latencies: list[int],
-    accuracies: list[int],
+    accuracies_after_retrain: list[int],
+    accuracies_on_device: list[int],
     metrics_path: Path,
     model_parameter_path: Path,
     csv_path: Path,
@@ -22,7 +23,8 @@ def build_search_space_measurements_file(
 
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
     data_merged["latency in us"] = latencies
-    data_merged["accuracy in %"] = accuracies
+    data_merged["accuracy after retrain in %"] = accuracies_after_retrain
+    data_merged["accuracy on device in %"] = accuracies_on_device
 
     data_merged.to_csv(csv_path)
 

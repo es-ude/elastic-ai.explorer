@@ -1,11 +1,15 @@
-# elastic-ai.explorer
-HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms
+# Elastic-Ai.Explorer
+HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms, automated deployment and testing.
+Currently supported are the **Raspberry Pi 4/5** and the **Raspberry Pi Pico**. 
 
+This project is still in active development and has no official release yet.
 
-# install dependencies
-Recommended: Use UV as a Package Manager.  https://docs.astral.sh/uv/configuration/installer/
+# Install Dependencies
+Recommended:
+Use **UV** as a Package Manager (https://docs.astral.sh/uv/configuration/installer/)
 
-Run following command in project root.
+Then Run following command in project root. 
+
 For Linux Users run:
 
 ```
@@ -23,15 +27,16 @@ If you don't need dev dependencies add:
  --no-dev
  ```
 
+## Additionally:
+ To compile for deployment on hardware you need to install:
 
-# using the docker part
-To use first build Dockerfile.cross:
-```
- docker buildx build -f Dockerfile.picross --tag cross .
- ```
+### Either:
+- Docker-Desktop (https://docs.docker.com/desktop/)
 
- then afterwards
+### Or:
+- The Docker Engine (https://docs.docker.com/engine/install/)
+- And the Docker-Buildx-Plugin (https://github.com/docker/buildx)
 
- ```
- docker buildx build -f Dockerfile.loader -o type=local,dest=./bin .
-  ```
+# Examples 
+For the full workflow from HW-NAS to Tests on Device, see the "examples" Folder.
+To configure the example for your specific setup, create your own "hwnas_config.yaml" and "deployment_config.yaml" with the help of the templates in "config_files/config_templates".

@@ -10,7 +10,7 @@ def compute_kendall(list_x: List[Any], list_y: List[Any]) -> Any:
         list_y: list of numeric values
 
     Returns:
-        Any: the correlation coeficient
+        Any: the correlation coefficient
     """
 
     # Taking values from the above example in Lists
