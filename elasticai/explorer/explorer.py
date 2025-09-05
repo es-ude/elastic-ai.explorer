@@ -135,7 +135,7 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
     ):
         """
         Args:
@@ -151,7 +151,6 @@ class Explorer:
             )
             exit(-1)
 
-       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():

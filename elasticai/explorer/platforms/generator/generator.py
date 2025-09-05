@@ -136,9 +136,9 @@ class PicoGenerator(Generator):
     ):
         self.logger.info("Generate torchscript model from %s", model)
 
-        input_sample_nchw = input_sample.unsqueeze(1)
+        input_sample_nchw = input_sample#input_sample.unsqueeze(1)
         input_tuple_nchw = (input_sample_nchw,)
-        input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 3, 1),)
+        input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 1),)
 
         torch_output = model(*input_tuple_nchw)
         nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
@@ -152,8 +152,9 @@ class PicoGenerator(Generator):
             self.logger.warning(
                 "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
             )
-
+        
         edge_output = edge_model(*sample_tflite_input)
+        self.logger.debug(f"Sample output full precision: ", edge_output)
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))

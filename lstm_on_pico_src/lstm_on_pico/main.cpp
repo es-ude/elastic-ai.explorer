@@ -8,8 +8,6 @@
 #include "pico/time.h"
 #include "pico/bootrom.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-#include "mnist_images.h"
-#include "mnist_labels.h"
 
 #include "model.h"
 #include "tflite_interpreter.h"
@@ -18,9 +16,9 @@
 #include "hardware_setup.h"
 #include "adxl345.h"
 
-const uint32_t TENSOR_ARENA_SIZE = (60 * 1024);
+const uint32_t TENSOR_ARENA_SIZE = (100 * 1024);
 const uint32_t CHANNEL_COUNT = 1;
-const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 784;
+const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 5;
 const uint32_t OUTPUT_FEATURE_COUNT = 10;
 const uint32_t INFERENCE_EVERY_NTH_POINTS = 10;
 
@@ -34,7 +32,7 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
 
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
-    resolver->AddL
+
     // printf("Created Interpreter pointer.\n");
     interpreter->initialize();
 
@@ -55,12 +53,11 @@ int runInference(int dataset_size)
     for (uint32_t sample_index = 0; sample_index < dataset_size; sample_index++)
     {
 
-        memcpy(inputBuffer, mnist_images[sample_index], sizeof(float) * INPUT_FEATURE_COUNT);
-        int result = interpreter->runInference(inputBuffer, outputBuffer);
-        if (mnist_labels[sample_index] == result)
+        for (uint32_t i = 0; i < 5; i++)
         {
-            correct++;
+            inputBuffer[i] = 1;
         }
+        int result = interpreter->runInference(inputBuffer, outputBuffer);
     }
 
     return correct;
@@ -70,11 +67,10 @@ int main()
 {
     stdio_init_all();
     sleep_ms(2000);
-    int dataset_size = 256;
 
     interpreter = getInterpreter();
     int correct = runInference(dataset_size);
-    printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", (static_cast<double>(correct) / dataset_size) * 100);
+    printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", 0.0f);
 
     sleep_ms(2000);
     doFirmwareUpgradeReset();
