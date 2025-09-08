@@ -12,6 +12,6 @@ DeploymentConfig:
 
   Docker:
     compiled_library_path: "./code/libtorch"
-    compiler_name: "cross"
+    image_name: "cross"
     path_to_dockerfile: "./docker/Dockerfile.picross"
     build_context: "./docker"
