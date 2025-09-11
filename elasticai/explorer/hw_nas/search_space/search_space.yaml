@@ -10,7 +10,7 @@ blocks:
       width: [16, 32, 5, 4]
     conv2D:
       kernel_size: [1, 2]
-      stride: [1, 2]
+      stride: [2]
       out_channels: [ 10, 4]
   - block: "2"
     op_candidates: ["linear"]

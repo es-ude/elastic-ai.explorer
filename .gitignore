@@ -12,6 +12,8 @@ docker/bin
 docker/data
 /docker/code/libtorch
 .DS_Store
+mnist_images.h
+mnist_labels.h
 
 #experiments logs
 experiments/
@@ -36,7 +38,7 @@ docker/test_data
 
 #models
 models/
-
+docker/code/pico_crosscompiler/*/model.cpp
 #individual configs
 configs/
 
@@ -209,3 +211,4 @@ cython_debug/
 
 #Vscode
 .vscode/
+.cspell/

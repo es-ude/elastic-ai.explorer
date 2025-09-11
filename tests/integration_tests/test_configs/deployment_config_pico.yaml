@@ -1,0 +1,22 @@
+#The DeploymentConfig gives the necessary information to connect to the target-device.
+#If parameters are not specified inside the config, they are set to default values.
+DeploymentConfig:
+
+  target_platform_name: "pico"
+  Serial:
+    #The port on which serial connection is setup, necessary for Pico. Optional. Defaults to "/dev/ttyACM0".
+    serial_port: "/dev/ttyACM0"
+  
+  Docker:
+    #The path (on host) to additional pre-compiled libraries necessary for execution on target.
+    #Optional.
+    compiled_library_path: "./code/pico_crosscompiler"
+
+    # Name of Crosscompiler Image
+    image_name: "picobase"
+
+    # Full path to Crosscompiler Docker Image
+    path_to_dockerfile:  "/home/robin/code/elastic-ai.explorer/docker/Dockerfile.picobase"
+
+    # Full path to docker buildcontext
+    build_context: "/home/robin/code/elastic-ai.explorer/docker"
