@@ -15,6 +15,9 @@ docker/data
 mnist_images.h
 mnist_labels.h
 
+#Anomaly detection
+anomaly_detection2
+
 #experiments logs
 experiments/
 experiment_data.csv

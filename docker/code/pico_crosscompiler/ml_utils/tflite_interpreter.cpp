@@ -49,8 +49,8 @@ int TfLiteInterpreter::initialize()
         printf("Expect model with Float32 input/output tensor\n");
     }
 
-    this->inputFeatureCount = this->input->bytes;
-    this->outputFeatureCount = this->output->bytes;
+    this->inputFeatureCount = this->input->bytes / sizeof(float);
+    this->outputFeatureCount = this->output->bytes / sizeof(float);
 
     this->initialized = true;
 
@@ -68,7 +68,7 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
     }
 
 
-    for (uint32_t inputIdx = 0; inputIdx < 784; inputIdx++)
+    for (uint32_t inputIdx = 0; inputIdx < this->inputFeatureCount; inputIdx++)
     {
         const float x = inputBuffer[inputIdx];
         this->input->data.f[inputIdx] = x;
@@ -81,23 +81,13 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         return -2;
     }
 
-    for (uint32_t outputIdx = 0; outputIdx < 10; outputIdx++)
+    for (uint32_t outputIdx = 0; outputIdx < this->outputFeatureCount; outputIdx++)
     {
         float output_y = this->output->data.f[outputIdx];
         outputBuffer[outputIdx] = output_y;
 
         // printf("Output %d is %.04f \n", outputIdx ,output_y);
     }
-
-    int max_idx = 0;
-    float max_val = output->data.f[0];
-    for (int i = 0; i < 10; ++i)
-    {
-        if (output->data.f[i] > max_val)
-        {
-            max_val = output->data.f[i];
-            max_idx = i;
-        }
-    }
-    return max_idx;
+   
+    return outputBuffer[0];
 }

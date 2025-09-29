@@ -100,7 +100,6 @@ class PicoCompiler(Compiler):
             build_args={
                 "BASE_IMAGE": self.image_name,
                 "SOURCE_NAME": source.stem,
-                "PATH_TO_SOURCE": str(source),
                 "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
             },
         )

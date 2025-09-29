@@ -12,14 +12,13 @@
 #include "model.h"
 #include "tflite_interpreter.h"
 
-
 #include "hardware_setup.h"
 
-const uint32_t TENSOR_ARENA_SIZE = (110 * 1024);
+const uint32_t TENSOR_ARENA_SIZE = (100 * 1024);
 const uint32_t CHANNEL_COUNT = 1;
-const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 1;
-const uint32_t OUTPUT_FEATURE_COUNT = 10;
-const uint32_t INFERENCE_EVERY_NTH_POINTS = 10;
+const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 5;
+const uint32_t OUTPUT_FEATURE_COUNT = 5;
+const uint32_t INFERENCE_EVERY_NTH_POINTS = 5;
 
 std::unique_ptr<TfLiteInterpreter> interpreter = nullptr;
 
@@ -27,7 +26,7 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
 {
     std::unique_ptr<tflite::MicroMutableOpResolver<11>> resolver(new tflite::MicroMutableOpResolver<11>());
 
-    #include "resolver_ops.h"
+#include "resolver_ops.h"
 
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
@@ -51,10 +50,11 @@ int runInference(int dataset_size)
     int correct = 0;
     for (uint32_t sample_index = 0; sample_index < dataset_size; sample_index++)
     {
-
-        inputBuffer[0] = static_cast<float>(1);
+        for (uint32_t i = 0; i < INPUT_FEATURE_COUNT; i++)
+        {
+            inputBuffer[i] = 1.0f;
+        }
         int result = interpreter->runInference(inputBuffer, outputBuffer);
-
     }
 
     return correct;
@@ -64,13 +64,19 @@ int main()
 {
     stdio_init_all();
     sleep_ms(2000);
-    int dataset_size = 256;
-
+    int dataset_size = 64;
+    uint64_t current_time, previous_time;
     interpreter = getInterpreter();
+    previous_time = to_us_since_boot(get_absolute_time());
     int correct = runInference(dataset_size);
-    printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", (static_cast<double>(1)));
+    current_time = to_us_since_boot(get_absolute_time());
+
+    uint64_t latency_us = current_time - previous_time;
+
+    printf("{ \"Latency\": { \"value\": %llu, \"unit\": \"microseconds\"}}", latency_us / dataset_size);
 
     sleep_ms(2000);
+
     doFirmwareUpgradeReset();
 
     return 0;
