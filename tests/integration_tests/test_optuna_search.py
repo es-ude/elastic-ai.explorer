@@ -14,11 +14,13 @@ from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     SearchSpace,
 )
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
+from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai.explorer.generator.deployment.compiler import Compiler
+from elasticai.explorer.generator.model_generator.model_generator import (
+    TorchscriptModelGenerator,
+)
+from elasticai.explorer.generator.deployment.device_communication import Host
+from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -64,10 +66,10 @@ class TestFrozenTrialToModel:
     def setup_class(self):
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
-            HWPlatform(
+            Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                RPiGenerator,
+                TorchscriptModelGenerator,
                 RPiHWManager,
                 Host,
                 Compiler,

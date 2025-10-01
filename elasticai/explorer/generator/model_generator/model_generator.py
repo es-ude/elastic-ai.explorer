@@ -1,10 +1,14 @@
+from enum import Enum
 import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 import subprocess
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 import numpy
+
+from elasticai.creator.torch2ir.torch2ir import get_default_converter
+from elasticai.creator.ir2vhdl.ir2vhdl import Ir2Vhdl
 
 import torch
 from torch import nn
@@ -17,22 +21,56 @@ from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
 from ai_edge_torch.quantize.quant_config import QuantConfig
 
 
-class Generator(ABC):
+class QuantizationSchemes(str, Enum):
+    FULL_PRECISION_FLOAT32 = "full_precision_float32"
+    INT8_UNIFORM = "int8_uniform"
+
+
+class ModelGenerator(ABC):
     @abstractmethod
     def generate(
         self,
         model: nn.Module,
         path: Path,
         input_sample: torch.Tensor,
-        quantization: Literal["full_precision"] = "full_precision",
+        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
     ) -> Any:
         pass
 
+    def get_supported_layers(self) -> Optional[set[type]]:
+        """Override if necessary. "None" means no constraints."""
+        return None
 
-class RPiGenerator(Generator):
+    def get_supported_quantization_schemes(self) -> Optional[set[QuantizationSchemes]]:
+        """Override if necessary. "None" means no constraints."""
+        return None
+
+    def _validate_model(
+        self, model: nn.Module, quantization_scheme: QuantizationSchemes
+    ):
+        """Override if necessary"""
+        supported_layers = self.get_supported_layers()
+        supported_quantization_schemes = self.get_supported_quantization_schemes()
+        if supported_layers is not None:
+            for layer in model.modules():
+                if layer is model:
+                    continue
+                if type(layer) not in supported_layers:
+                    raise NotImplementedError(
+                        f"Layer {type(layer).__name__} wird von {self.__class__.__name__} nicht unterstützt"
+                    )
+
+        if supported_quantization_schemes is not None:
+            if quantization_scheme not in supported_quantization_schemes:
+                raise NotImplementedError(
+                    f"Layer {quantization_scheme} wird von {self.__class__.__name__} nicht unterstützt"
+                )
+
+
+class TorchscriptModelGenerator(ModelGenerator):
     def __init__(self):
         self.logger = logging.getLogger(
-            "explorer.platforms.generator.generator.PIGenerator"
+            "explorer.generator.generator.generator.PIGenerator"
         )
 
     def generate(
@@ -40,10 +78,12 @@ class RPiGenerator(Generator):
         model: nn.Module,
         path: Path,
         input_sample: torch.Tensor,
-        quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
+        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
     ):
-        if quantization == "int8":
-            raise NotImplementedError("int8-Quantization is currently not supported.")
+        if quantization_scheme == QuantizationSchemes.INT8_UNIFORM:
+            raise NotImplementedError(
+                "int8-Uniform-Quantization is currently not supported."
+            )
         self.logger.info("Generate torchscript model from %s", model)
         model.eval()
 
@@ -61,10 +101,10 @@ class RPiGenerator(Generator):
         return ts_model
 
 
-class PicoGenerator(Generator):
+class TFliteModelGenerator(ModelGenerator):
     def __init__(self):
         self.logger = logging.getLogger(
-            "explorer.platforms.generator.generator.RP2040GeneratorFullPrecision"
+            "explorer.generator.generator.generator.RP2040GeneratorFullPrecision"
         )
 
     def _validate(self, torch_output, edge_output):
@@ -132,7 +172,7 @@ class PicoGenerator(Generator):
         model: nn.Module,
         path: Path,
         input_sample: torch.Tensor,
-        quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
+        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
     ):
         self.logger.info("Generate torchscript model from %s", model)
 
@@ -143,7 +183,7 @@ class PicoGenerator(Generator):
         torch_output = model(*input_tuple_nchw)
         nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
         sample_tflite_input = input_tuple_nhwc
-        if quantization == "full_precision":
+        if quantization_scheme == QuantizationSchemes.FULL_PRECISION_FLOAT32:
             edge_model = ai_edge_torch.convert(
                 nhwc_model, sample_args=sample_tflite_input
             )
@@ -157,3 +197,40 @@ class PicoGenerator(Generator):
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))
         self._model_to_cpp(path.with_suffix(".tflite"))
+
+
+class CreatorModelGenerator(ModelGenerator):
+    def __init__(self) -> None:
+        self.logger = logging.getLogger(
+            "explorer.generator.model_compiler.model_compiler.CreatorModelCompiler"
+        )
+
+    def generate(
+        self,
+        model: nn.Module,
+        path: Path,
+        input_sample: torch.Tensor,
+        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
+    ):
+
+        self._validate_model(model, quantization_scheme)
+        model = model
+        default_converter = get_default_converter()
+        ir = default_converter.convert(model)
+        for impl in ir:
+            print("implementation: ", impl)
+        ir2Vhdl = Ir2Vhdl()
+        vhdl_code = ir2Vhdl(ir)  # type:ignore
+        for code in vhdl_code:
+            print("VHDL code: ", code)
+
+    def get_supported_layers(self) -> Optional[set[type]]:
+        return {
+            nn.Linear,
+            nn.Conv1d,
+            nn.ReLU,
+            nn.MaxPool1d,
+            nn.BatchNorm1d,
+            nn.Flatten,
+            nn.Sigmoid,
+        }

@@ -24,6 +24,7 @@ dependencies = [
     "tensorflow==2.20.0",
     "iesude-data",
     "tflite>=2.18.0",
+    "elasticai-creator>=0.66.0",
 ]
 
 # Same as Black.

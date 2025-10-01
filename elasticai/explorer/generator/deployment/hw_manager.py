@@ -7,13 +7,13 @@ from pathlib import Path
 
 import shutil
 import tarfile
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.device_communication import (
+from elasticai.explorer.generator.deployment.compiler import Compiler
+from elasticai.explorer.generator.deployment.device_communication import (
     Host,
     PicoHost,
     RPiHost,
 )
-from elasticai.explorer.platforms.generator import tflite_to_resolver
+from elasticai.explorer.generator.model_generator import tflite_to_resolver
 from elasticai.explorer.training.data import DatasetSpecification
 from settings import DOCKER_CONTEXT_DIR
 
@@ -54,7 +54,7 @@ class RPiHWManager(HWManager):
     def __init__(self, target: RPiHost, compiler: Compiler):
 
         self.logger = logging.getLogger(
-            "explorer.platforms.deployment.manager.RPIHWManager"
+            "explorer.generator.deployment.manager.RPIHWManager"
         )
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
@@ -134,7 +134,7 @@ class PicoHWManager(HWManager):
     def __init__(self, target: PicoHost, compiler: Compiler):
 
         self.logger = logging.getLogger(
-            "explorer.platforms.deployment.manager.PicoHWManager"
+            "explorer.generator.deployment.manager.PicoHWManager"
         )
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)

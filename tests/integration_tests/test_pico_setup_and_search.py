@@ -1,11 +1,13 @@
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
-from elasticai.explorer.platforms.generator.generator import PicoGenerator
-from elasticai.explorer.platforms.deployment.device_communication import PicoHost
-from elasticai.explorer.platforms.deployment.hw_manager import PicoHWManager
+from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai.explorer.generator.deployment.compiler import PicoCompiler
+from elasticai.explorer.generator.model_generator.model_generator import (
+    TFliteModelGenerator,
+)
+from elasticai.explorer.generator.deployment.device_communication import PicoHost
+from elasticai.explorer.generator.deployment.hw_manager import PicoHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -23,10 +25,10 @@ class TestPicoHWNasSetupAndSearch:
     def setup_method(self):
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
-            HWPlatform(
+            Generator(
                 "pico",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PicoGenerator,
+                TFliteModelGenerator,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,

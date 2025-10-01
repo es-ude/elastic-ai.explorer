@@ -3,15 +3,17 @@ from pathlib import Path
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.hw_manager import (
+from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai.explorer.generator.deployment.compiler import PicoCompiler
+from elasticai.explorer.generator.deployment.device_communication import RPiHost
+from elasticai.explorer.generator.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     PicoHWManager,
 )
-from elasticai.explorer.platforms.generator import tflite_to_resolver
-from elasticai.explorer.platforms.generator.generator import PicoGenerator
+from elasticai.explorer.generator.model_generator import tflite_to_resolver
+from elasticai.explorer.generator.model_generator.model_generator import (
+    TFliteModelGenerator,
+)
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
@@ -23,10 +25,10 @@ class TestPicoGenerateAndCompile:
     def setup_method(self):
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
-            HWPlatform(
+            Generator(
                 "pico",
                 "Pico mit RP2040",
-                PicoGenerator,
+                TFliteModelGenerator,
                 PicoHWManager,
                 RPiHost,
                 PicoCompiler,

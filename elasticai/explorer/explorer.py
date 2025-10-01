@@ -7,12 +7,12 @@ from torch import nn
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.hw_manager import (
+from elasticai.explorer.knowledge_repository import KnowledgeRepository, Generator
+from elasticai.explorer.generator.deployment.hw_manager import (
     HWManager,
     Metric,
 )
-from elasticai.explorer.platforms.generator.generator import Generator
+from elasticai.explorer.generator.model_generator.model_generator import ModelGenerator
 from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
@@ -37,9 +37,9 @@ class Explorer:
         """
         self.logger = logging.getLogger("explorer")
         self.default_model: Optional[nn.Module] = None
-        self.target_hw_platform: Optional[HWPlatform] = None
+        self.target_hw_platform: Optional[Generator] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
-        self.generator: Optional[Generator] = None
+        self.generator: Optional[ModelGenerator] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
 
@@ -135,7 +135,7 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
     ):
         """
         Args:
@@ -151,7 +151,6 @@ class Explorer:
             )
             exit(-1)
 
-       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():

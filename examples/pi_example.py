@@ -12,12 +12,14 @@ from elasticai.explorer.utils.data_to_csv import build_search_space_measurements
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
-    HWPlatform,
+    Generator,
 )
-from elasticai.explorer.platforms.deployment.compiler import RPICompiler
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
-from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager, Metric
-from elasticai.explorer.platforms.generator.generator import RPiGenerator
+from elasticai.explorer.generator.deployment.compiler import RPICompiler
+from elasticai.explorer.generator.deployment.device_communication import RPiHost
+from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager, Metric
+from elasticai.explorer.generator.model_generator.model_generator import (
+    TorchscriptModelGenerator,
+)
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
 
@@ -29,10 +31,10 @@ logger = logging.getLogger("explorer.main")
 def setup_knowledge_repository_pi() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
-        HWPlatform(
+        Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            RPiGenerator,
+            TorchscriptModelGenerator,
             RPiHWManager,
             RPiHost,
             RPICompiler,
@@ -40,10 +42,10 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
     )
 
     knowledge_repository.register_hw_platform(
-        HWPlatform(
+        Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            RPiGenerator,
+            TorchscriptModelGenerator,
             RPiHWManager,
             RPiHost,
             RPICompiler,

@@ -36,7 +36,7 @@ class RPiHost(Host):
         self.host_name = deploy_cfg.target_name
         self.user = deploy_cfg.target_user
         self.logger = logging.getLogger(
-            "explorer.platforms.deployment.device_communication.Host"
+            "explorer.generator.deployment.device_communication.Host"
         )
 
     def _get_connection(self):
@@ -84,7 +84,7 @@ class PicoHost(Host):
         self.BAUD_RATE = deploy_cfg.baud_rate
         self.host_name = deploy_cfg.device_path
         self.logger = logging.getLogger(
-            "explorer.platforms.deployment.device_communication.PicoHost"
+            "explorer.generator.deployment.device_communication.PicoHost"
         )
         self.serial_port = deploy_cfg.serial_port
         self.timeout_s = 40
