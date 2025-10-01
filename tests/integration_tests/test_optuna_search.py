@@ -1,6 +1,6 @@
 import shutil
 import pytest
-from elasticai.explorer.config import DeploymentConfig
+from elasticai.explorer.config import DeploymentConfig, HardwareConstraints
 from functools import partial
 import optuna
 import torch
@@ -37,7 +37,7 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
             "max_search_trials": 6,
             "host_processor": "cpu",
             "top_n_models": 4,
-            "hw_constraints": {},
+            "hw_constraints": HardwareConstraints(),
             "search_algorithm": "evolution",
             "count_only_completed_trials": False,
         },
@@ -47,7 +47,7 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
             "max_search_trials": 2,
             "host_processor": "cpu",
             "top_n_models": 1,
-            "hw_constraints": {},
+            "hw_constraints": HardwareConstraints(),
             "search_algorithm": "evolution",
             "count_only_completed_trials": True,
         },
@@ -109,6 +109,7 @@ class TestFrozenTrialToModel:
                 trainer_class=MLPTrainer,
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
+                hw_constraints=hwnas_cfg.hw_constraints
             ),
             n_trials=hwnas_cfg.max_search_trials,
             show_progress_bar=True,

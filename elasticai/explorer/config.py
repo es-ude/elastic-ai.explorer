@@ -22,8 +22,8 @@ class DockerParameter:
 
 @dataclass
 class HardwareConstraints:
-    max_flops: int | None
-    max_params: int | None
+    max_flops: int | None = None
+    max_params: int | None = None
 
 
 class Config:
