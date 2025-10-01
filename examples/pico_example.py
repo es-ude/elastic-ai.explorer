@@ -31,7 +31,7 @@ from elasticai.explorer.utils.data_to_csv import build_search_space_measurements
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
 
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
@@ -139,14 +139,18 @@ def find_generate_measure_for_pico(
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/pico/hwnas_config.yaml"))
+    hwnas_cfg = HWNASConfig(
+        config_path=Path(ROOT_DIR / "configs/pico/hwnas_config.yaml")
+    )
     deploy_cfg = DeploymentConfig(
-        config_path=Path("configs/pico/deployment_config.yaml")
+        config_path=Path(ROOT_DIR / "configs/pico/deployment_config.yaml")
     )
 
     knowledge_repo = setup_knowledge_repository_pico()
     explorer = Explorer(knowledge_repo)
-    search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    search_space = Path(
+        ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml"
+    )
     retrain_epochs = 3
     find_generate_measure_for_pico(
         explorer, deploy_cfg, hwnas_cfg, search_space, retrain_epochs

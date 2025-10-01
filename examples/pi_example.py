@@ -21,7 +21,7 @@ from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
 
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 
@@ -161,12 +161,16 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
+    hwnas_cfg = HWNASConfig(config_path=Path(ROOT_DIR / "configs/hwnas_config.yaml"))
+    deploy_cfg = DeploymentConfig(
+        config_path=Path(ROOT_DIR / "configs/deployment_config.yaml")
+    )
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
-    search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    search_space = Path(
+        ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml"
+    )
 
     find_generate_measure_for_pi(
         explorer=explorer,
