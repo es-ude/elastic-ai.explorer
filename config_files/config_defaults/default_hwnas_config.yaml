@@ -2,7 +2,9 @@ HWNASConfig:
   host_processor: "auto"
   max_search_trials: 4
   top_n_models: 2
-  hw_constraints: {}
+  hw_constraints:
+    max_flops: None
+    max_params: None
   search_algorithm: "random"
   n_estimation_epochs: 3
   flops_weight: 2.0

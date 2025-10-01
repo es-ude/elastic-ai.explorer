@@ -12,7 +12,7 @@ from torch.optim.adam import Adam
 
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.training import data
-from elasticai.explorer.config import HWNASConfig
+from elasticai.explorer.config import HWNASConfig, HardwareConstraints
 from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
 from elasticai.explorer.training.trainer import Trainer
 
@@ -33,7 +33,7 @@ def objective_wrapper(
     device: str,
     n_estimation_epochs: int,
     flops_weight: float,
-    constraints: dict[str, int] = {},
+    hw_constraints: HardwareConstraints
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
@@ -47,16 +47,15 @@ def objective_wrapper(
         sample, _ = next(iter(trainer.test_loader))
         flops = cost_estimator.estimate_flops(model, sample)
         params = cost_estimator.compute_num_params(model)
-        max_flops = constraints.get("max_flops")
-        max_params = constraints.get("max_params")
-        if max_flops and flops > max_flops:
+        
+        if hw_constraints.max_flops and flops > hw_constraints.max_flops:
             logger.info(
-                f"Trial {trial.number} pruned because flops {flops} > max_flops {max_flops}"
+                f"Trial {trial.number} pruned because flops {flops} > max_flops {hw_constraints.max_flops}"
             )
             raise optuna.TrialPruned()
-        if max_params and params > max_params:
+        if hw_constraints.max_params and params > hw_constraints.max_params:
             logger.info(
-                f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
+                f"Trial {trial.number} pruned because params {params} > max_params {hw_constraints.max_params}"
             )
             raise optuna.TrialPruned()
 
@@ -126,7 +125,7 @@ def search(
             trainer_class=trainer_class,
             n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
             flops_weight=hwnas_cfg.flops_weight,
-            constraints=hwnas_cfg.hw_constraints,
+            hw_constraints=hwnas_cfg.hw_constraints,
         ),
         n_trials=n_trials,
         callbacks=callbacks,

@@ -21,3 +21,12 @@ def compute_kendall(list_x: List[Any], list_y: List[Any]) -> Any:
     corr, _ = kendalltau(rank_x, rank_y)
 
     return corr
+
+
+def e10_to_int(value: str) -> int:
+    try:
+        return int(eval(value.replace("e", "*10**")))
+    except:
+        raise ValueError(
+            f'Input value "{value}", seems not to be in scientific notation.'
+        )

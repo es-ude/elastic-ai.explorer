@@ -20,7 +20,9 @@ HWNASConfig:
   # The hardware constraints for the search.
   # Currently, only "max_flops" and "max_params" are supported.
   # Max. capabilities of Raspberry Pi platforms: RPi4 ~ 4.4 GFLOPS, RPi5 ~ 10 GFLOPS.
-  hw_constraints: {"max_flops": 10e9, "max_params": 1e6}
+  hw_constraints: 
+    max_flops: 10e9
+    max_params: 1e6
   # The number of training epochs for accuracy estimation.
   n_estimation_epochs: 2
 

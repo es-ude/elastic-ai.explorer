@@ -6,6 +6,7 @@ from typing import Any
 import torch
 import yaml
 
+from elasticai.explorer.utils.stats import e10_to_int
 from settings import ROOT_DIR
 
 logger = logging.getLogger("explorer.config")
@@ -17,6 +18,12 @@ class DockerParameter:
     library_path: Path
     path_to_dockerfile: Path
     build_context: Path
+
+
+@dataclass
+class HardwareConstraints:
+    max_flops: int | None
+    max_params: int | None
 
 
 class Config:
@@ -67,7 +74,17 @@ class HWNASConfig(Config):
         super().__init__(config_path)
         self._original_yaml_dict: dict = self._parse_optional("HWNASConfig", {})
         self.host_processor: str = self._parse_optional("host_processor", "auto")
-        self.hw_constraints: dict = self._parse_optional("hw_constraints", {})
+
+        max_params = self._parse_optional("max_params", None, category="hw_constraints")
+        max_flops = self._parse_optional("max_flops", None, category="hw_constraints")
+        if isinstance(max_flops, str):
+            max_flops = e10_to_int(max_flops)
+        if isinstance(max_params, str):
+            max_params = e10_to_int(max_params)
+        self.hw_constraints = HardwareConstraints(
+            max_flops=max_flops, max_params=max_params
+        )
+
         self.search_algorithm: str = self._parse_optional("search_algorithm", "random")
         if self.host_processor == "auto":
             self.host_processor = "cuda" if torch.cuda.is_available() else "cpu"
@@ -75,7 +92,10 @@ class HWNASConfig(Config):
         self.top_n_models: int = self._parse_optional("top_n_models", 2)
         self.n_estimation_epochs: int = self._parse_optional("n_estimation_epochs", 3)
         self.flops_weight: float = self._parse_optional("flops_weight", 2.0)
-        self.count_only_completed_trials: bool = self._parse_optional("count_only_completed_trials", False)
+        self.count_only_completed_trials: bool = self._parse_optional(
+            "count_only_completed_trials", False
+        )
+
 
 class DeploymentConfig(Config):
     """The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it."""
