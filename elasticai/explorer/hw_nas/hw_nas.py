@@ -12,7 +12,7 @@ from elasticai.explorer.hw_nas.search_space.construct_search_space import Search
 from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
-from elasticai.explorer.training.trainer import Trainer
+from elasticai.explorer.training.trainer import Trainer, TrainerFactory
 
 logger = logging.getLogger("explorer.nas")
 
@@ -20,9 +20,7 @@ logger = logging.getLogger("explorer.nas")
 def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
-    dataset_spec: data.DatasetSpecification,
-    trainer_class: type[Trainer],
-    device: str,
+    trainer_cls: Trainer,
     n_estimation_epochs: int,
     flops_weight: float,
 ) -> float:
@@ -31,8 +29,11 @@ def objective_wrapper(
 
         search_space = SearchSpace(search_space_cfg)
         model = search_space.create_model_sample(trial)
+        trainer = trainer_cls.create_instance()
         optimizer = Adam(model.parameters(), lr=1e-3)  # type: ignore
-        trainer = trainer_class(device, optimizer, dataset_spec)
+        trainer.configure_optimizer(optimizer)
+
+        # trainer = trainer_class(device, optimizer, dataset_spec)
 
         flops_estimator = FlopsEstimator()
         sample, _ = next(iter(trainer.test_loader))
@@ -69,8 +70,7 @@ def objective_wrapper(
 def search(
     search_space_cfg: dict,
     hwnas_cfg: HWNASConfig,
-    dataset_spec: data.DatasetSpecification,
-    trainer_class: Type[Trainer],
+    trainer: Trainer,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -84,9 +84,7 @@ def search(
         partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
-            device=hwnas_cfg.host_processor,
-            dataset_spec=dataset_spec,
-            trainer_class=trainer_class,
+            trainer_cls=trainer,
             n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
             flops_weight=hwnas_cfg.flops_weight,
         ),

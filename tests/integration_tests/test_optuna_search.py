@@ -1,4 +1,6 @@
 import pytest
+from torch import optim
+
 from elasticai.explorer.config import DeploymentConfig
 from functools import partial
 import optuna
@@ -92,13 +94,12 @@ class TestFrozenTrialToModel:
             sampler=optuna.samplers.RandomSampler(),
             direction="maximize",
         )
+        trainer = SupervisedTrainer(hwnas_cfg.host_processor, self.dataset_spec)
         study.optimize(
             partial(
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
-                device=hwnas_cfg.host_processor,
-                dataset_spec=self.dataset_spec,
-                trainer_class=SupervisedTrainer,
+                trainer_cls=trainer,
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
             ),
@@ -119,11 +120,11 @@ class TestFrozenTrialToModel:
             assert len(result[0]) == 10
 
     def test_hw_nas_search(self, hwnas_cfg):
+        trainer = SupervisedTrainer(hwnas_cfg.host_processor, self.dataset_spec)
         top_models, model_parameters, metrics = hw_nas.search(
             self.search_space_cfg,
             hwnas_cfg=hwnas_cfg,
-            dataset_spec=self.dataset_spec,
-            trainer_class=SupervisedTrainer,
+            trainer=trainer,
         )
         assert len(top_models) == hwnas_cfg.top_n_models
         assert len(model_parameters) == hwnas_cfg.top_n_models

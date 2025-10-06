@@ -10,7 +10,7 @@ from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
-from elasticai.explorer.training.trainer import Trainer
+from elasticai.explorer.training.trainer import Trainer, TrainerFactory
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
 from settings import MAIN_EXPERIMENT_DIR
@@ -89,8 +89,7 @@ class Explorer:
     def search(
         self,
         hwnas_cfg: HWNASConfig,
-        dataset_spec: data.DatasetSpecification,
-        trainer_type: Type[Trainer],
+        trainer: Trainer,
     ) -> list[Any]:
 
         self.logger.info(
@@ -100,7 +99,9 @@ class Explorer:
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type
+                self.search_space_cfg,
+                hwnas_cfg,
+                trainer=trainer,
             )
         else:
             self.logger.error(

@@ -4,6 +4,7 @@ from functools import partial
 from pathlib import Path
 
 import torch
+from torch import optim, nn
 from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
@@ -22,7 +23,6 @@ from elasticai.explorer.platforms.generator.generator import PIGenerator
 from elasticai.explorer.training.trainer import (
     SupervisedTrainer,
     accuracy_fn,
-    trainer_factory,
 )
 from settings import ROOT_DIR
 
@@ -80,7 +80,14 @@ def find_generate_measure_for_pi(
     path_to_test_data = Path(ROOT_DIR / "data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, SupervisedTrainer)
+    trainer = SupervisedTrainer(
+        hwnas_cfg.host_processor,
+        dataset_spec=dataset_spec,
+        loss_fn=nn.CrossEntropyLoss(),
+        batch_size=65,
+        extra_metrics={"accuracy": accuracy_fn},
+    )
+    top_models = explorer.search(hwnas_cfg, trainer)
     explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
     latency_measurements = []
     accuracy_measurements = []
@@ -89,9 +96,12 @@ def find_generate_measure_for_pi(
     for i, model in enumerate(top_models):
         mlp_trainer = SupervisedTrainer(
             device=retrain_device,
-            optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
+            loss_fn=nn.CrossEntropyLoss(),
+            batch_size=64,
+            extra_metrics={"accuracy": accuracy_fn},
         )
+        mlp_trainer.configure_optimizer(optimizer=Adam(model.parameters(), lr=1e-3))
         mlp_trainer.train(model, epochs=6)
         mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".pt"

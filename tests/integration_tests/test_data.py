@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from typing import Callable, Optional, Union
 import pandas as pd
+from torch import optim
+
 from elasticai.explorer.training.data import (
     DatasetSpecification,
     MultivariateTimeseriesDataset,
@@ -63,10 +65,10 @@ class TestData:
 
         mlp_trainer = SupervisedTrainer(
             device="cpu",
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
             dataset_spec=dataset_spec,
             batch_size=2,
         )
+        mlp_trainer.configure_optimizer(optim.Adam(model.parameters(), lr=1e-3)),
         mlp_trainer.train(model, epochs=2)
 
         metrics, loss = mlp_trainer.validate(model)

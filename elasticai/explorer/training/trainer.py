@@ -13,7 +13,6 @@ class Trainer(ABC):
     def __init__(
         self,
         device: str,
-        optimizer: Optimizer,
         dataset_spec: DatasetSpecification,
         loss_fn: Any = nn.CrossEntropyLoss(),
         batch_size: int = 64,
@@ -21,8 +20,9 @@ class Trainer(ABC):
     ):
         self.logger = logging.getLogger("explorer.Trainer")
         self.device = device
-        self.optimizer = optimizer
         self.loss_fn = loss_fn
+        self.dataset_spec = dataset_spec
+        self.batch_size = batch_size
         self.extra_metrics = extra_metrics
 
         dataset = dataset_spec.dataset_type(
@@ -44,6 +44,18 @@ class Trainer(ABC):
         )
         self.test_loader = DataLoader(
             test_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
+        )
+
+    def configure_optimizer(self, optimizer: Optimizer):
+        self.optimizer = optimizer
+
+    def create_instance(self):
+        return self.__class__(
+            self.device,
+            self.dataset_spec,
+            self.loss_fn,
+            self.batch_size,
+            self.extra_metrics,
         )
 
     def train(
@@ -89,18 +101,12 @@ class Trainer(ABC):
 
     @abstractmethod
     def validate(self, model: nn.Module) -> Tuple[dict, float]:
-        """
-        Returns:
-            Tuple[float, float]: (Accuracy, Loss)
-        """
+
         pass
 
     @abstractmethod
     def test(self, model: nn.Module) -> Tuple[dict, float]:
-        """
-        Returns:
-            Tuple[float, float]: (Accuracy, Loss)
-        """
+
         pass
 
     @abstractmethod
@@ -118,15 +124,12 @@ class SupervisedTrainer(Trainer):
     def __init__(
         self,
         device: str,
-        optimizer: Optimizer,
         dataset_spec: DatasetSpecification,
         loss_fn: Any = nn.CrossEntropyLoss(),
         batch_size: int = 64,
         extra_metrics: dict[str, Callable] = {"accuracy": accuracy_fn},
     ):
-        super().__init__(
-            device, optimizer, dataset_spec, loss_fn, batch_size, extra_metrics
-        )
+        super().__init__(device, dataset_spec, loss_fn, batch_size, extra_metrics)
         self.logger = logging.getLogger("explorer.SupervisedTrainer")
 
     def train_epoch(self, model: nn.Module, epoch: int):
@@ -201,14 +204,12 @@ class ReconstructionAutoencoderTrainer(Trainer):
     def __init__(
         self,
         device: str,
-        optimizer: Optimizer,
         dataset_spec: DatasetSpecification,
         loss_fn: Any = nn.MSELoss(),
         batch_size: int = 64,
     ):
         super().__init__(
             device,
-            optimizer,
             dataset_spec,
             loss_fn,
             batch_size,
@@ -253,16 +254,31 @@ class ReconstructionAutoencoderTrainer(Trainer):
         return self.evaluate(model, self.test_loader, "Test")
 
 
-def trainer_factory(
-    trainer_class: Type[Trainer],
-    device: str,
-    optimizer: Optimizer,
-    dataset_spec: DatasetSpecification,
-    loss_fn: Any = nn.CrossEntropyLoss(),
-    batch_size: int = 64,
-    extra_metrics: dict[str, Callable] = {"accuracy": accuracy_fn},
-):
+class TrainerFactory:
+    def __init__(
+        self,
+        dataset_spec: DatasetSpecification,
+        type: Type[Trainer],
+        device: str,
+        optimizer: Optimizer,
+        loss_fn: nn.CrossEntropyLoss(),
+        batch_size: int = 64,
+        extra_metrics: dict[str, Callable] = {"accuracy": accuracy_fn},
+    ):
+        self.dataset_spec = dataset_spec
+        self.device = device
+        self.optimizer = optimizer
+        self.loss_fn = loss_fn
+        self.batch_size = batch_size
+        self.extra_metrics = extra_metrics
+        self.type = type
 
-    return trainer_class(
-        device, optimizer, dataset_spec, loss_fn, batch_size, extra_metrics
-    )
+    def create_trainer(self):
+        return self.type(
+            self.device,
+            self.optimizer,
+            self.dataset_spec,
+            self.loss_fn,
+            self.batch_size,
+            self.extra_metrics,
+        )
