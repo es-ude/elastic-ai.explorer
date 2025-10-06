@@ -1,4 +1,3 @@
-
 import logging
 import logging.config
 from pathlib import Path
@@ -19,6 +18,7 @@ from settings import ROOT_DIR
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.lstm_on_pico")
+
 
 # LSTM Autoencoder
 class LSTMAutoencoder(nn.Module):
@@ -47,7 +47,7 @@ class TensorOnesDataset(BaseDataset):
         return 128
 
     def __getitem__(self, idx):
-        return torch.ones((1,5,1)), 1
+        return torch.ones((1, 5, 2)), 1
 
 
 def setup_for_pico():
@@ -66,16 +66,24 @@ def setup_for_pico():
 
 
 if __name__ == "__main__":
+
+    print(torch.cuda.is_available())
+    exit(1)
     deploy_cfg = DeploymentConfig(
         config_path=ROOT_DIR / Path("configs/pico_lstm/deployment_config.yaml")
     )
 
     knowledge_repository = setup_for_pico()
-    explorer = Explorer(knowledge_repository, "lstm_on_pico")
-    model = LSTMAutoencoder(input_dim=1)
+    explorer = Explorer(
+        knowledge_repository, "ConstMaxMin-AccelEngineSpeed_32_hidden"
+    )
+
 
     explorer.choose_target_hw(deploy_cfg)
     model_name = "lstm_model.tflite"
+    model = torch.load(
+        explorer.experiment_dir / "LSTMAutoencoder.pt", weights_only=False, map_location=torch.device('cpu')
+    )
 
     dataset_spec = DatasetSpecification(
         dataset_type=TensorOnesDataset,
@@ -88,8 +96,8 @@ if __name__ == "__main__":
     )
 
     metric_to_source = {
-            Metric.ACCURACY: Path("code/pico_crosscompiler/lstm_on_pico"),
-        }
+        Metric.LATENCY: Path("code/pico_crosscompiler/lstm_on_pico_latency"),
+    }
     explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
-    explorer.run_measurement(Metric.ACCURACY, model_name)
+    explorer.run_measurement(Metric.LATENCY, model_name)
