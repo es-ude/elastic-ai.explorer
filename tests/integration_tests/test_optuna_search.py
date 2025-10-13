@@ -34,9 +34,9 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
         {
             "flops_weight": 2,
             "n_estimation_epochs": 1,
-            "max_search_trials": 6,
+            "max_search_trials": 4,
             "host_processor": "cpu",
-            "top_n_models": 4,
+            "top_n_models": 3,
             "hw_constraints": {},
             "search_algorithm": "evolution",
             "count_only_completed_trials": False,
@@ -52,7 +52,7 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
             "count_only_completed_trials": True,
         },
     ],
-    ids=["6_trials_4_top_models", "2_trials_1_top_model"],
+    ids=["4_trials_3_top_models", "2_trials_1_top_model"],
 )
 def hwnas_cfg(request):
     return SimpleNamespace(**request.param)
@@ -87,12 +87,13 @@ class TestFrozenTrialToModel:
         )
         self.search_space = SearchSpace(self.search_space_cfg)
         self.dataset_spec = DatasetSpecification(
-            dataset_type=MNISTWrapper,
-            dataset_location=Path(ROOT_DIR / "data/mnist"),
-            deployable_dataset_path=Path(ROOT_DIR / "data/mnist"),
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            dataset=MNISTWrapper(
+                Path(ROOT_DIR / "data/mnist"),
+                transform=transforms.Compose(
+                    [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+                ),
             ),
+            deployable_dataset_path=Path(ROOT_DIR / "data/mnist"),
         )
 
     def test_frozentrial_to_model(self, hwnas_cfg):

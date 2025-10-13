@@ -21,6 +21,14 @@ RUN apt-get update && apt-get install -y \
 
 COPY ${CROSS_COMPILER_PATH} /code/pico_crosscompiler
 
+RUN cat <<'EOF' > /code/pico_crosscompiler/data/model.cpp
+#include <model.h>
+const unsigned char model_tflite[] = {1};
+const unsigned int model_tflite_len = 1;
+EOF
+
+
+
 RUN mkdir -p $PICO_SDK_PATH
 RUN mkdir -p $TFLITE_PATH
 

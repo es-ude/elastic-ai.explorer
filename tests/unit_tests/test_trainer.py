@@ -15,13 +15,10 @@ class DatasetExample(BaseDataset):
 
     def __init__(
         self,
-        root: str | Path,
-        transform: Callable[..., Any] | None = None,
-        target_transform: Callable[..., Any] | None = None,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(root, transform, target_transform, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.test_data = torch.randn(BATCH_SIZE, SEQ_LENGTH, INPUT_DIM)
 
@@ -53,7 +50,7 @@ class SimpleLSTMAutoencoder(nn.Module):
 class TestAutoencoderTrainer:
     def setup_class(self):
         self.dataset_spec = DatasetSpecification(
-            dataset_type=DatasetExample, dataset_location=Path(""), transform=None
+            dataset=DatasetExample(),
         )
         self.autoencoder = SimpleLSTMAutoencoder(INPUT_DIM)
 

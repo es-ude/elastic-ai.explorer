@@ -2,9 +2,10 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Type, Union
+from typing import Any, Callable, List, Optional, Union, Type
 import numpy as np
 import pandas as pd
+
 from torchvision.datasets import MNIST
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose
@@ -13,6 +14,29 @@ logger = logging.getLogger("explorer.data")
 
 
 class BaseDataset(Dataset):
+    @abstractmethod
+    def __len__(self) -> int:
+        pass
+
+    @abstractmethod
+    def __getitem__(self, idx) -> Any:
+        pass
+
+
+@dataclass
+class DatasetSpecification:
+    dataset: BaseDataset
+
+    # deployable_dataset_path is the path to the data that can be deployed to the target device for testing.
+    # If dataset deployment is not necessary, leave it unspecified. Specifics have to be implemented in corresponding Generator.
+    deployable_dataset_path: Path | None = None  
+
+    test_train_val_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
+    shuffle: bool = False
+    split_seed: int = 42
+
+
+class RootedDataset(BaseDataset):
     def __init__(
         self,
         root: Union[str, Path],
@@ -27,16 +51,8 @@ class BaseDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
-    @abstractmethod
-    def __len__(self) -> int:
-        pass
 
-    @abstractmethod
-    def __getitem__(self, idx) -> Any:
-        pass
-
-
-class MNISTWrapper(BaseDataset):
+class MNISTWrapper(RootedDataset):
     def __init__(
         self,
         root: Union[str, Path],
@@ -47,6 +63,7 @@ class MNISTWrapper(BaseDataset):
         **kwargs,
     ) -> None:
         super().__init__(root, transform, target_transform, *args, **kwargs)
+
         self.dataset = MNIST(
             root=self.root,
             transform=self.transform,
@@ -62,7 +79,7 @@ class MNISTWrapper(BaseDataset):
         return self.dataset[idx]
 
 
-class MultivariateTimeseriesDataset(BaseDataset):
+class MultivariateTimeseriesDataset(RootedDataset):
     """
     Base class for time series datasets with multiple features per time step and label.
     A feature itself should not have any channels.
@@ -120,14 +137,3 @@ class MultivariateTimeseriesDataset(BaseDataset):
                 return pd.read_json(file_path)
             case _:
                 raise ValueError(f"Unsupported filetype: {file_path}")
-
-
-@dataclass
-class DatasetSpecification:
-    dataset_type: Type[BaseDataset]
-    dataset_location: Path
-    deployable_dataset_path: Path | None = None # This should be the path to the data that is deployed to the target device.
-    transform: Compose | None = None
-    test_train_val_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
-    shuffle: bool = False
-    split_seed: int = 42

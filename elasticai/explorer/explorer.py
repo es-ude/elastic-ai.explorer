@@ -135,7 +135,7 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
     ):
         """
         Args:
@@ -151,7 +151,6 @@ class Explorer:
             )
             exit(-1)
 
-       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():
@@ -175,12 +174,7 @@ class Explorer:
         self, model: nn.Module, model_name: str, dataset_spec: data.DatasetSpecification
     ) -> Any:
         model_path = self._model_dir / model_name
-
-        dataset = dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            transform=dataset_spec.transform,
-        )
-        sample_input, _ = next(iter(dataset))
+        sample_input, _ = next(iter(dataset_spec.dataset))
         if self.generator:
             return self.generator.generate(model, model_path, sample_input)
         else:

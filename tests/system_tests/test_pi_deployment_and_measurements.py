@@ -51,10 +51,6 @@ class TestDeploymentAndMeasurement:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
-        MNIST(path_to_dataset, download=True, transform=transf)
-        transf = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
         root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
         setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
         metric_to_source = {
@@ -68,10 +64,11 @@ class TestDeploymentAndMeasurement:
         self.RPI5explorer.hw_setup_on_target(
             metric_to_source,
             data.DatasetSpecification(
-                dataset_type=data.MNISTWrapper,
-                dataset_location=path_to_dataset,
+                dataset=data.MNISTWrapper(
+                    path_to_dataset,
+                    transform=transf,
+                ),
                 deployable_dataset_path=root_dir_cpp_mnist,
-                transform=transf,
             ),
         )
 

@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.optim.optimizer import Optimizer
-from elasticai.explorer.training.data import DatasetSpecification
+from elasticai.explorer.training.data import DatasetSpecification, RootedDataset
 
 
 class Trainer(ABC):
@@ -22,14 +22,8 @@ class Trainer(ABC):
         self.device = device
         self.optimizer = optimizer
         self.loss_fn = loss_fn
-
-        dataset = dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            transform=dataset_spec.transform,
-        )
-
         train_subset, test_subset, val_subset = random_split(
-            dataset,
+            dataset_spec.dataset,
             dataset_spec.test_train_val_ratio,
             generator=torch.Generator().manual_seed(dataset_spec.split_seed),
         )

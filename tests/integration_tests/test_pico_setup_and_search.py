@@ -43,14 +43,13 @@ class TestPicoHWNasSetupAndSearch:
                 "tests/integration_tests/test_configs/deployment_config.yaml"
             )
         )
-        path_to_dataset = Path(ROOT_DIR / "data/mnist")
-        transf = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
         self.dataset_spec = DatasetSpecification(
-            dataset_type=MNISTWrapper,
-            dataset_location=path_to_dataset,
-            transform=transf,
+            dataset=MNISTWrapper(
+                Path(ROOT_DIR / "data/mnist"),
+                transform=transforms.Compose(
+                    [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+                ),
+            )
         )
 
     def test_search(self):
