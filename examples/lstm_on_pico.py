@@ -66,16 +66,13 @@ def setup_for_pico():
 
 
 if __name__ == "__main__":
-
-    print(torch.cuda.is_available())
-    exit(1)
     deploy_cfg = DeploymentConfig(
         config_path=ROOT_DIR / Path("configs/pico_lstm/deployment_config.yaml")
     )
 
     knowledge_repository = setup_for_pico()
     explorer = Explorer(
-        knowledge_repository, "ConstMaxMin-AccelEngineSpeed_32_hidden"
+        knowledge_repository, "ConstMaxMin-AccelEngineSpeed_32_hidden_versuch_3"
     )
 
 
