@@ -1,4 +1,3 @@
-from gc import callbacks
 import logging
 import math
 from typing import Any, Callable, Type

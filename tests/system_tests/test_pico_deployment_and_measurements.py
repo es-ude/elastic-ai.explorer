@@ -69,10 +69,8 @@ class TestPicoDeploymentAndMeasurement:
         )
 
         self.dataset_spec = data.DatasetSpecification(
-            dataset_type=data.MNISTWrapper,
-            dataset_location=path_to_dataset,
+            dataset=data.MNISTWrapper(root=path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_deployable_dataset,
-            transform=transf,
         )
         self.pico_explorer.hw_setup_on_target(metric_to_source, self.dataset_spec)
 
