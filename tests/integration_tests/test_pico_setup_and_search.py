@@ -1,4 +1,4 @@
-from elasticai.explorer.config import HWNASConfig, DeploymentConfig
+from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -35,9 +35,6 @@ class TestPicoHWNasSetupAndSearch:
         self.explorer = Explorer(knowledge_repository)
         self.explorer.experiment_dir = Path("tests/integration_tests/test_experiment")
 
-        self.hwnas_cfg = HWNASConfig(
-            config_path=Path("tests/integration_tests/test_configs/hwnas_config.yaml")
-        )
         self.deploy_cfg = DeploymentConfig(
             config_path=Path(
                 "tests/integration_tests/test_configs/deployment_config.yaml"
@@ -57,7 +54,5 @@ class TestPicoHWNasSetupAndSearch:
         self.explorer.generate_search_space(
             ROOT_DIR / Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
-        top_k_models = self.explorer.search(
-            self.hwnas_cfg, self.dataset_spec, MLPTrainer
-        )
+        top_k_models = self.explorer.search(self.dataset_spec, MLPTrainer)
         assert len(top_k_models) == 2

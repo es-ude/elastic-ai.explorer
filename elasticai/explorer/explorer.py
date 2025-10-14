@@ -4,8 +4,9 @@ from pathlib import Path
 from typing import Optional, Any, Type
 from torch import nn
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
+from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.hw_nas import hw_nas
+
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.hw_manager import (
@@ -88,19 +89,26 @@ class Explorer:
 
     def search(
         self,
-        hwnas_cfg: HWNASConfig,
         dataset_spec: data.DatasetSpecification,
-        trainer_type: Type[Trainer],
+        trainer_class: Type[Trainer],
+        search_algorithm: hw_nas.SearchAlgorithm = hw_nas.SearchAlgorithm.RANDOM_SEARCH,
+        hardware_constraints: hw_nas.HardwareConstraints =  hw_nas.HardwareConstraints(),
+        hw_nas_parameters: hw_nas.HWNASParameters =  hw_nas.HWNASParameters(),
     ) -> list[Any]:
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials for top %d models ",
-            hwnas_cfg.max_search_trials,
-            hwnas_cfg.top_n_models,
+            hw_nas_parameters.max_search_trials,
+            hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type
+                search_space_cfg=self.search_space_cfg,
+                dataset_spec=dataset_spec,
+                trainer_class=trainer_class,
+                search_algorithm=search_algorithm,
+                hw_nas_parameters=hw_nas_parameters,
+                hardware_constraints=hardware_constraints,
             )
         else:
             self.logger.error(
@@ -114,7 +122,6 @@ class Explorer:
         data_utils.save_list_to_json(
             metrics, path_to_dir=self._metric_dir, filename="metrics.json"
         )
-        hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
 
         return top_models
 
@@ -135,7 +142,7 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
     ):
         """
         Args:
@@ -151,7 +158,6 @@ class Explorer:
             )
             exit(-1)
 
-       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():

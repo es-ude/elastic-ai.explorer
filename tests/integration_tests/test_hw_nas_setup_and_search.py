@@ -2,7 +2,12 @@ import os
 from pathlib import Path
 import shutil
 import torch
-from elasticai.explorer.config import HWNASConfig, DeploymentConfig
+from elasticai.explorer.config import DeploymentConfig
+from elasticai.explorer.hw_nas.hw_nas import (
+    HWNASParameters,
+    HardwareConstraints,
+    SearchAlgorithm,
+)
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -39,9 +44,6 @@ class TestHWNasSetupAndSearch:
             ROOT_DIR / "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.hwnas_cfg = HWNASConfig(
-            ROOT_DIR / Path("tests/integration_tests/test_configs/hwnas_config.yaml")
-        )
         self.deploy_cfg = DeploymentConfig(
             ROOT_DIR
             / Path("tests/integration_tests/test_configs/deployment_config.yaml")
@@ -58,27 +60,15 @@ class TestHWNasSetupAndSearch:
             transform=transf,
         )
 
-    def test_search(self):
-        self.RPI5explorer.generate_search_space(
-            Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
-        )
-        top_k_models = self.RPI5explorer.search(
-            self.hwnas_cfg, self.dataset_spec, MLPTrainer
-        )
-
     def test_random_search(self):
 
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
 
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
+            dataset_spec=self.dataset_spec,
+            search_algorithm=SearchAlgorithm.RANDOM_SEARCH,
+            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 2
 
@@ -87,13 +77,10 @@ class TestHWNasSetupAndSearch:
 
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/grid_hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
+            dataset_spec=self.dataset_spec,
+            search_algorithm=SearchAlgorithm.GRID_SEARCH,
+            hw_nas_parameters=HWNASParameters(max_search_trials=2, top_n_models=2, device="cpu"),
+            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 2
 
@@ -101,27 +88,21 @@ class TestHWNasSetupAndSearch:
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/evolution_hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
+            dataset_spec=self.dataset_spec,
+            search_algorithm=SearchAlgorithm.EVOlUTIONARY_SEARCH,
+            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 2
 
     def test_constraint_search(self):
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         self.RPI5explorer.generate_search_space(search_space)
+
         top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/constraint_hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
+            dataset_spec=self.dataset_spec,
+            hardware_constraints=HardwareConstraints(1000, 100),
+            search_algorithm=SearchAlgorithm.EVOlUTIONARY_SEARCH,
+            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 0
 

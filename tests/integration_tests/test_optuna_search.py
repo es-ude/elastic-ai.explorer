@@ -1,5 +1,4 @@
 import shutil
-import pytest
 from elasticai.explorer.config import DeploymentConfig
 from functools import partial
 import optuna
@@ -9,7 +8,12 @@ from optuna.trial import TrialState
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas import hw_nas
-from elasticai.explorer.hw_nas.hw_nas import objective_wrapper
+from elasticai.explorer.hw_nas.hw_nas import (
+    HWNASParameters,
+    HardwareConstraints,
+    SearchAlgorithm,
+    objective_wrapper,
+)
 from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     SearchSpace,
 )
@@ -23,45 +27,23 @@ from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
 from pathlib import Path
-from types import SimpleNamespace
 
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
 OUTPUT_PATH = ROOT_DIR / "tests/outputs"
-
-
-@pytest.fixture(
-    params=[
-        {
-            "flops_weight": 2,
-            "n_estimation_epochs": 1,
-            "max_search_trials": 6,
-            "host_processor": "cpu",
-            "top_n_models": 4,
-            "hw_constraints": {},
-            "search_algorithm": "evolution",
-            "count_only_completed_trials": False,
-        },
-        {
-            "flops_weight": 2,
-            "n_estimation_epochs": 1,
-            "max_search_trials": 2,
-            "host_processor": "cpu",
-            "top_n_models": 1,
-            "hw_constraints": {},
-            "search_algorithm": "evolution",
-            "count_only_completed_trials": True,
-        },
-    ],
-    ids=["6_trials_4_top_models", "2_trials_1_top_model"],
-)
-def hwnas_cfg(request):
-    return SimpleNamespace(**request.param)
 
 
 class TestFrozenTrialToModel:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
     def setup_class(self):
+        self.hw_nas_params = HWNASParameters(
+            flops_weight=2,
+            n_estimation_epochs=1,
+            max_search_trials=4,
+            device="cpu",
+            top_n_models=3,
+        )
+        self.hw_constraints = HardwareConstraints()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -95,7 +77,7 @@ class TestFrozenTrialToModel:
             ),
         )
 
-    def test_frozentrial_to_model(self, hwnas_cfg):
+    def test_frozentrial_to_model(self):
         study = optuna.create_study(
             sampler=optuna.samplers.RandomSampler(),
             direction="maximize",
@@ -104,38 +86,41 @@ class TestFrozenTrialToModel:
             partial(
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
-                device=hwnas_cfg.host_processor,
+                device=self.hw_nas_params.device,
                 dataset_spec=self.dataset_spec,
                 trainer_class=MLPTrainer,
-                n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
-                flops_weight=hwnas_cfg.flops_weight,
+                n_estimation_epochs=self.hw_nas_params.n_estimation_epochs,
+                flops_weight=self.hw_nas_params.flops_weight,
+                constraints=self.hw_constraints,
             ),
-            n_trials=hwnas_cfg.max_search_trials,
+            n_trials=self.hw_nas_params.max_search_trials,
             show_progress_bar=True,
             gc_after_trial=True,
         )
 
         test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
-        assert len(test_results) == hwnas_cfg.max_search_trials
+        assert len(test_results) == self.hw_nas_params.max_search_trials
 
         for trial in test_results:
             model = self.search_space.create_model_sample(trial)
-            input = torch.randn(1, 1, 28, 28).to(hwnas_cfg.host_processor)
+            input = torch.randn(1, 1, 28, 28).to(self.hw_nas_params.device)
             model.eval()
-            model.to(hwnas_cfg.host_processor)
+            model.to(self.hw_nas_params.device)
             result = model(input)
             assert len(result[0]) == 10
 
-    def test_hw_nas_search(self, hwnas_cfg):
+    def test_hw_nas_search(self):
         top_models, model_parameters, metrics = hw_nas.search(
             self.search_space_cfg,
-            hwnas_cfg=hwnas_cfg,
             dataset_spec=self.dataset_spec,
             trainer_class=MLPTrainer,
+            search_algorithm=SearchAlgorithm.RANDOM_SEARCH,
+            hw_nas_parameters=self.hw_nas_params,
+            hardware_constraints=self.hw_constraints,
         )
-        assert len(top_models) == hwnas_cfg.top_n_models
-        assert len(model_parameters) == hwnas_cfg.top_n_models
-        assert len(metrics) == hwnas_cfg.top_n_models
+        assert len(top_models) == self.hw_nas_params.top_n_models
+        assert len(model_parameters) == self.hw_nas_params.top_n_models
+        assert len(metrics) == self.hw_nas_params.top_n_models
         assert type(metrics[0]["val_accuracy"]) is float
 
     def teardown_class(self):

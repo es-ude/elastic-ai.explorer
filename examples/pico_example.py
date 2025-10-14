@@ -6,9 +6,10 @@ from pathlib import Path
 import torch
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
+from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
@@ -54,7 +55,6 @@ def setup_knowledge_repository_pico() -> KnowledgeRepository:
 def find_generate_measure_for_pico(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
-    hwnas_cfg: HWNASConfig,
     search_space: Path,
     retrain_epochs: int = 4,
 ):
@@ -73,7 +73,12 @@ def find_generate_measure_for_pico(
         deployable_dataset_path=root_dir_cpp_mnist,
         transform=transf,
     )
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+
+    top_models = explorer.search(
+        trainer_class=MLPTrainer,
+        dataset_spec=dataset_spec,
+        hw_nas_parameters=HWNASParameters(max_search_trials=1, top_n_models=1),
+    )
 
     latency_measurements = []
     accuracy_measurements_on_device = []
@@ -139,7 +144,6 @@ def find_generate_measure_for_pico(
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/pico/hwnas_config.yaml"))
     deploy_cfg = DeploymentConfig(
         config_path=Path("configs/pico/deployment_config.yaml")
     )
@@ -148,6 +152,4 @@ if __name__ == "__main__":
     explorer = Explorer(knowledge_repo)
     search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
     retrain_epochs = 3
-    find_generate_measure_for_pico(
-        explorer, deploy_cfg, hwnas_cfg, search_space, retrain_epochs
-    )
+    find_generate_measure_for_pico(explorer, deploy_cfg, search_space, retrain_epochs)

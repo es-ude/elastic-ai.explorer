@@ -1,4 +1,4 @@
-from gc import callbacks
+from dataclasses import dataclass
 import logging
 import math
 from typing import Any, Callable, Type
@@ -8,15 +8,31 @@ from enum import Enum
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
+import torch
 from torch.optim.adam import Adam
 
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.training import data
-from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
 from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
+
+
+@dataclass
+class HardwareConstraints:
+    max_flops: int | None = None
+    max_params: int | None = None
+
+
+@dataclass
+class HWNASParameters:
+    max_search_trials: int = 2
+    top_n_models: int = 2
+    n_estimation_epochs: int = 2
+    flops_weight: float = 2.0
+    count_only_completed_trials: bool = False
+    device: str = "auto"
 
 
 class SearchAlgorithm(Enum):
@@ -33,7 +49,7 @@ def objective_wrapper(
     device: str,
     n_estimation_epochs: int,
     flops_weight: float,
-    constraints: dict[str, int] = {},
+    constraints: HardwareConstraints,
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
@@ -47,16 +63,15 @@ def objective_wrapper(
         sample, _ = next(iter(trainer.test_loader))
         flops = cost_estimator.estimate_flops(model, sample)
         params = cost_estimator.compute_num_params(model)
-        max_flops = constraints.get("max_flops")
-        max_params = constraints.get("max_params")
-        if max_flops and flops > max_flops:
+
+        if constraints.max_flops and flops > constraints.max_flops:
             logger.info(
-                f"Trial {trial.number} pruned because flops {flops} > max_flops {max_flops}"
+                f"Trial {trial.number} pruned because flops {flops} > max_flops {constraints.max_flops}"
             )
             raise optuna.TrialPruned()
-        if max_params and params > max_params:
+        if constraints.max_params and params > constraints.max_params:
             logger.info(
-                f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
+                f"Trial {trial.number} pruned because params {params} > max_params {constraints.max_params}"
             )
             raise optuna.TrialPruned()
 
@@ -84,19 +99,26 @@ def objective_wrapper(
 
 def search(
     search_space_cfg: dict,
-    hwnas_cfg: HWNASConfig,
     dataset_spec: data.DatasetSpecification,
     trainer_class: Type[Trainer],
+    search_algorithm: SearchAlgorithm,
+    hardware_constraints: HardwareConstraints,
+    hw_nas_parameters: HWNASParameters,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
+    if hw_nas_parameters.device == "auto":
+        hw_nas_parameters.device = "cuda" if torch.cuda.is_available() else "cpu"
+
     search_space = SearchSpace(search_space_cfg)
-    match hwnas_cfg.search_algorithm:
+    match search_algorithm:
         case SearchAlgorithm.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
         case SearchAlgorithm.GRID_SEARCH:
-            sampler = optuna.samplers.GridSampler(search_space_cfg)
+            sampler = optuna.samplers.GridSampler(
+                search_space=search_space.search_space_cfg
+            )
         case SearchAlgorithm.EVOlUTIONARY_SEARCH:
             sampler = optuna.samplers.NSGAIISampler(
                 population_size=20,
@@ -110,23 +132,29 @@ def search(
         direction="maximize",
     )
 
-    if hwnas_cfg.count_only_completed_trials:
+    if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
-        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))]
+        callbacks = [
+            MaxTrialsCallback(
+                hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,)
+            )
+        ]
     else:
-        n_trials = hwnas_cfg.max_search_trials
-        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)]
+        n_trials = hw_nas_parameters.max_search_trials
+        callbacks = [
+            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)
+        ]
 
     study.optimize(
         partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
-            device=hwnas_cfg.host_processor,
+            device=hw_nas_parameters.device,
             dataset_spec=dataset_spec,
             trainer_class=trainer_class,
-            n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
-            flops_weight=hwnas_cfg.flops_weight,
-            constraints=hwnas_cfg.hw_constraints,
+            n_estimation_epochs=hw_nas_parameters.n_estimation_epochs,
+            flops_weight=hw_nas_parameters.flops_weight,
+            constraints=hardware_constraints,
         ),
         n_trials=n_trials,
         callbacks=callbacks,
@@ -141,7 +169,7 @@ def search(
     )
     test_results.sort(key=eval, reverse=True)
 
-    top_k_frozen_trials = test_results[: hwnas_cfg.top_n_models]
+    top_k_frozen_trials = test_results[: hw_nas_parameters.top_n_models]
 
     if len(top_k_frozen_trials) == 0:
         logger.warning("No models found in the search space.")

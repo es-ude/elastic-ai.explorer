@@ -3,7 +3,6 @@ import logging
 import os
 from pathlib import Path
 from typing import Any
-import torch
 import yaml
 
 from settings import ROOT_DIR
@@ -59,23 +58,6 @@ class Config:
             )
             raise err
 
-
-class HWNASConfig(Config):
-    """HWNASConfig that defines the HW-Nas Behavior and its execution on host."""
-
-    def __init__(self, config_path: Path | None = None):
-        super().__init__(config_path)
-        self._original_yaml_dict: dict = self._parse_optional("HWNASConfig", {})
-        self.host_processor: str = self._parse_optional("host_processor", "auto")
-        self.hw_constraints: dict = self._parse_optional("hw_constraints", {})
-        self.search_algorithm: str = self._parse_optional("search_algorithm", "random")
-        if self.host_processor == "auto":
-            self.host_processor = "cuda" if torch.cuda.is_available() else "cpu"
-        self.max_search_trials: int = self._parse_optional("max_search_trials", 6)
-        self.top_n_models: int = self._parse_optional("top_n_models", 2)
-        self.n_estimation_epochs: int = self._parse_optional("n_estimation_epochs", 3)
-        self.flops_weight: float = self._parse_optional("flops_weight", 2.0)
-        self.count_only_completed_trials: bool = self._parse_optional("count_only_completed_trials", False)
 
 class DeploymentConfig(Config):
     """The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it."""

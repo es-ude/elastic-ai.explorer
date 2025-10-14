@@ -39,4 +39,4 @@ If you don't need dev dependencies add:
 
 # Examples 
 For the full workflow from HW-NAS to Tests on Device, see the "examples" Folder.
-To configure the example for your specific setup, create your own "hwnas_config.yaml" and "deployment_config.yaml" with the help of the templates in "config_files/config_templates".
+To configure the example for your specific setup, create your own "deployment_config.yaml" with the help of the templates in "config_files/config_templates".

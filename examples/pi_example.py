@@ -6,7 +6,7 @@ import torch
 from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
+from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -68,7 +68,6 @@ def setup_mnist(path_to_test_data: Path):
 def find_generate_measure_for_pi(
     explorer: Explorer,
     deploy_cfg: DeploymentConfig,
-    hwnas_cfg: HWNASConfig,
     search_space_path: Path,
     retrain_epochs: int = 4,
 ):
@@ -78,7 +77,7 @@ def find_generate_measure_for_pi(
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    top_models = explorer.search(dataset_spec, MLPTrainer)
     metric_to_source = {
         Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
         Metric.LATENCY: Path("code/measure_latency.cpp"),
@@ -134,14 +133,14 @@ def find_generate_measure_for_pi(
     logger.info("Models:\n %s", df)
 
 
-def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
+def search_models(explorer: Explorer, search_space):
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    top_models = explorer.search(dataset_spec, MLPTrainer)
 
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
@@ -161,7 +160,6 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
@@ -171,7 +169,6 @@ if __name__ == "__main__":
     find_generate_measure_for_pi(
         explorer=explorer,
         deploy_cfg=deploy_cfg,
-        hwnas_cfg=hwnas_cfg,
         search_space_path=search_space,
         retrain_epochs=3,
     )

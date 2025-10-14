@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
+from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
@@ -38,10 +38,6 @@ class TestPicoGenerateAndCompile:
         )
         self.model_name = "model"
 
-        self.hwnas_cfg = HWNASConfig(
-            config_path=ROOT_DIR
-            / Path("tests/integration_tests/test_configs/hwnas_config.yaml")
-        )
         self.deploy_cfg = DeploymentConfig(
             config_path=ROOT_DIR
             / Path("tests/integration_tests/test_configs/deployment_config_pico.yaml")
