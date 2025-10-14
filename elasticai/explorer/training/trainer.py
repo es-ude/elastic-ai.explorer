@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torch.optim.optimizer import Optimizer
-from elasticai.explorer.training.data import DatasetSpecification, RootedDataset
+from elasticai.explorer.training.data import DatasetSpecification
 
 
 class Trainer(ABC):
