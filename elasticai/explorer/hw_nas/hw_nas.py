@@ -112,13 +112,13 @@ def search(
         hw_nas_parameters.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     search_space = SearchSpace(search_space_cfg)
+
     match search_algorithm:
         case SearchAlgorithm.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
         case SearchAlgorithm.GRID_SEARCH:
-            sampler = optuna.samplers.GridSampler(
-                search_space=search_space.search_space_cfg
-            )
+            grid = search_space.to_grid()
+            sampler = optuna.samplers.GridSampler(search_space=grid)
         case SearchAlgorithm.EVOlUTIONARY_SEARCH:
             sampler = optuna.samplers.NSGAIISampler(
                 population_size=20,

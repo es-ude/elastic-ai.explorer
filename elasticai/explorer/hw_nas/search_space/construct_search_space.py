@@ -1,4 +1,5 @@
 import math
+from typing import Any, Sequence
 from torch import nn
 from elasticai.explorer.hw_nas.search_space.utils import calculate_conv_output_shape
 
@@ -34,6 +35,57 @@ class SearchSpace:
                 self.layers.append(nn.Linear(self.input_shape, layer_width))
             self.input_shape = layer_width
             self.layers.append(activation_mapping[activation])
+
+    def to_grid(self) -> dict[str, Sequence[Any]]:
+        def parse_params_for_grid(param) -> list[Any]:
+            # Expand ranges into an list of possible values
+            if isinstance(param, list):
+                return param
+            elif isinstance(param, dict) and "start" in param and "end" in param:
+                if isinstance(param["start"], int):
+                    return list(range(param["start"], param["end"] + 1))
+                else:
+                    raise  ValueError("Search space parameter '{}' is invalid".format(param))
+            else:
+                return [param]
+            
+        grid = {}
+
+        for block in self.blocks:
+            block_id = block["block"]
+            
+            depth_values = parse_params_for_grid(block.get("depth", 1))
+            grid[f"num_layers_b{block_id}"] = depth_values
+            max_depth = max(depth_values) if len(depth_values) > 0 else 1
+
+            ops = parse_params_for_grid(block.get("op_candidates", []))
+            if ops:
+                grid[f"operation_b{block_id}"] = ops
+
+            activations = parse_params_for_grid(block.get("activation", []))
+
+            for i in range(max_depth):
+                grid[f"activation_func_b{block_id}_l{i}"] = activations
+
+            linear = block.get("linear", {})
+            width = linear.get("width")
+            widths = parse_params_for_grid(width)
+            for i in range(max_depth):
+                grid[f"layer_width_b{block_id}_l{i}"] = widths
+
+            conv = block.get("conv2D", {})
+            for param_type, name_template in (
+                ("out_channels", "out_channels_b{}_l{}"),
+                ("kernel_size", "kernel_size_b{}_l{}"),
+                ("stride", "stride_b{}_l{}"),
+            ):
+                params = conv.get(param_type)
+                if params is not None:
+                    param_list = parse_params_for_grid(params)
+                    for i in range(max_depth):
+                        grid[name_template.format(block_id, i)] = param_list
+
+        return grid
 
     def createConv2d(self, trial, block, num_layers, search_params):
         block_id = block["block"]

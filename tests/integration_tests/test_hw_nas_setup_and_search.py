@@ -79,7 +79,6 @@ class TestHWNasSetupAndSearch:
         top_k_models = self.RPI5explorer.search(
             dataset_spec=self.dataset_spec,
             search_algorithm=SearchAlgorithm.GRID_SEARCH,
-            hw_nas_parameters=HWNASParameters(max_search_trials=2, top_n_models=2, device="cpu"),
             trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 2
