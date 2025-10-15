@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
+from dataclasses import field
 from typing import Any, Tuple, Callable, Type
 import torch
 from torch import nn
@@ -28,11 +29,12 @@ class Trainer(ABC):
         dataset = dataset_spec.dataset_type(
             dataset_spec.dataset_location,
             transform=dataset_spec.transform,
+            target_transform=dataset_spec.target_transform,
         )
 
         train_subset, test_subset, val_subset = random_split(
             dataset,
-            dataset_spec.test_train_val_ratio,
+            dataset_spec.train_test_val_ratio,
             generator=torch.Generator().manual_seed(dataset_spec.split_seed),
         )
 
@@ -143,6 +145,7 @@ class SupervisedTrainer(Trainer):
         model.train(True)
         for batch_idx, (data, target) in enumerate(self.train_loader):
             data, target = data.to(self.device), target.to(self.device)
+            #        target = target.unsqueeze(1)
             self.optimizer.zero_grad()
             output = model(data)
             loss = self.loss_fn(output, target)
@@ -172,6 +175,7 @@ class SupervisedTrainer(Trainer):
         with torch.no_grad():
             for data, target in data_loader:
                 data, target = data.to(self.device), target.to(self.device)
+                #  target = target.unsqueeze(1)
                 output = model(data)
                 loss = self.loss_fn(output, target)
                 total_loss += loss.item() * data.size(0)

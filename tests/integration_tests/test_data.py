@@ -59,6 +59,7 @@ class TestData:
             TimeSeriesDatasetExample,
             self.sample_dir / "test_dataset.csv",
             None,
+            None,
             [0.6, 0.2, 0.2],
         )
         model = SampleMLP(2)

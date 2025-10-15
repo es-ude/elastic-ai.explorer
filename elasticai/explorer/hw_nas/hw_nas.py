@@ -9,10 +9,9 @@ from optuna.trial import FrozenTrial, TrialState
 from torch.optim.adam import Adam
 
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
-from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import FlopsEstimator
-from elasticai.explorer.training.trainer import Trainer, TrainerFactory
+from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
 
@@ -30,7 +29,7 @@ def objective_wrapper(
         search_space = SearchSpace(search_space_cfg)
         model = search_space.create_model_sample(trial)
         trainer = trainer_cls.create_instance()
-        optimizer = Adam(model.parameters(), lr=1e-3)  # type: ignore
+        optimizer = Adam(model.parameters(), lr=0.01)  # type: ignore
         trainer.configure_optimizer(optimizer)
 
         # trainer = trainer_class(device, optimizer, dataset_spec)

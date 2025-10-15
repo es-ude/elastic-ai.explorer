@@ -1,9 +1,10 @@
-input: [1, 28, 28]
-output: 10
+#input: [1, 28, 28]
+input: 1
+output: 1
 blocks:
   - block:  "1" #namefield muss noch rein
-    op_candidates: ["linear", "conv2d"]
-    depth: [1, 2, 3]
+    op_candidates: ["lstm"]
+    depth: [1]
     activation: [ "relu", "sigmoid"]
     linear:
       #überall range oder choices
@@ -13,15 +14,15 @@ blocks:
       stride: [1, 2]
       out_channels: [ 10, 4]
     lstm:
-      hidden_size: [10, 20]
-      num_layers: [1, 5]
-      bidirectional: False
+      hidden_size: [10, 20, 50]
+      num_lstm_layers: [1, 2, 3]
+      bidirectional: [True, False]
   - block: "2"
     op_candidates: ["linear"]
-    activation: [ "relu", "sigmoid"]
-    depth: [1, 2]
+    activation: ["identity", "relu", "sigmoid"]
+    depth: [1, 2, 3]
     linear:
-      width: [ 11, 21 ]
+      width: [ 10, 20, 30]
 #  - block: "3"
 #    op_candidates: ["linear"]
 #    depth: 3

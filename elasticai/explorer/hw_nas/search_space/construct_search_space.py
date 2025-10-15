@@ -1,8 +1,14 @@
 import math
 from torch import nn
+
+from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
 from elasticai.explorer.hw_nas.search_space.utils import calculate_conv_output_shape
 
-activation_mapping = {"relu": nn.ReLU(), "sigmoid": nn.Sigmoid()}
+activation_mapping = {
+    "relu": nn.ReLU(),
+    "sigmoid": nn.Sigmoid(),
+    "identity": nn.Identity(),
+}
 
 
 class SearchSpace:
@@ -16,6 +22,7 @@ class SearchSpace:
     def createLinear(self, trial, block, num_layers, search_params):
         block_id = block["block"]
         if isinstance(self.input_shape, list):
+            print("is list")
             self.layers.append(nn.Flatten())
             self.input_shape = math.prod(self.input_shape)
 
@@ -85,15 +92,18 @@ class SearchSpace:
                 "bidirectional_b{}_l{}".format(block_id, i),
                 search_params["bidirectional"],
             )
+            # self.input_shape anders berechnen da nicht das gleiche wie feature shape
             self.layers.append(
-                nn.LSTM(
+                SimpleLSTM(
                     self.input_shape,
                     hidden_size,
                     num_layers=num_lstm_layers,
                     bidirectional=bidirectional,
+                    batch_first=True,
                 )
             )
-            self.input_shape = hidden_size
+
+            self.input_shape = hidden_size * 2 if bidirectional else hidden_size
 
     def is_last_block(self, block_id):
         return self.blocks[-1]["block"] == block_id
@@ -105,7 +115,7 @@ class SearchSpace:
         operation = parse_search_param(
             trial, "operation_b{}".format(block["block"]), block["op_candidates"]
         )
-
+        print("input_shape: ", self.input_shape)
         match operation:
             case "linear":
                 self.createLinear(trial, block, num_layers, block["linear"])
@@ -120,7 +130,7 @@ class SearchSpace:
         self.layers = []
         for block in self.blocks:
             self.create_block(trial, block)
-
+        print("out_put_shape: ", self.input_shape)
         return nn.Sequential(*self.layers)
 
 

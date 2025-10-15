@@ -1,12 +1,36 @@
+from pathlib import Path
+from typing import Union, Optional, Callable
+
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+from torchvision.transforms import Lambda, Compose
+from torchvision.transforms import v2
+
+from elasticai.explorer.config import HWNASConfig
+from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.search_space import architecture_components
+from elasticai.explorer.hw_nas.search_space.architecture_components import LinearOne
+from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
+from elasticai.explorer.training.data import DatasetSpecification, BaseDataset
+from elasticai.explorer.training.trainer import SupervisedTrainer
+from settings import ROOT_DIR
 
 
-class SineDataset(Dataset):
-    def __init__(self, seq_length=10, total_samples=1000):
+class SineDataset(BaseDataset):
+    def __init__(
+        self,
+        root,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        seq_length=50,
+        total_samples=1000,
+        *args,
+        **kwargs,
+    ):
+        super().__init__("", transform, target_transform, *args, **kwargs)
         x = np.linspace(0, 100, total_samples + seq_length)
         noise_level = 0.1
         self.data = (
@@ -25,7 +49,22 @@ class SineDataset(Dataset):
         target = self.data[idx + self.seq_length]
         return torch.tensor(seq, dtype=torch.float32).unsqueeze(-1), torch.tensor(
             target, dtype=torch.float32
-        )
+        ).unsqueeze(-1)
+
+
+class LSTMRegressor(nn.Module):
+    def __init__(self, input_size=1, hidden_size=50, num_layers=1):
+        super().__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, 1)
+
+    def forward(self, x):
+        # x: [batch, seq_len, input_size]
+        out, _ = self.lstm(x)
+        # take last output only
+        out = out[:, -1, :]  # [batch, hidden_size]
+        out = self.fc(out)  # [batch, 1]
+        return out.squeeze(-1)  # [batch]
 
 
 class SimpleLSTM(nn.Module):
@@ -39,31 +78,7 @@ class SimpleLSTM(nn.Module):
     def forward(self, x):
         lstm_out, _ = self.lstm(x)
         last_output = lstm_out[:, -1, :]
-        return self.linear(last_output)
-
-
-def train(model, train_loader):
-    # 0.028953095546891225
-    # 0.013809413783353647
-    # 0.011882943366034198
-    num_epochs = 100
-    learning_rate = 0.01
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    for epoch in range(num_epochs):
-        model.train()
-        total_loss = 0
-        for seqs, targets in train_loader:
-            outputs = model(seqs)
-            loss = criterion(outputs.squeeze(), targets)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            total_loss += loss.item()
-
-        print(
-            f"Epoch [{epoch + 1}/{num_epochs}], Train Loss: {total_loss / len(train_loader):.4f}"
-        )
+        return self.linear(last_output).squeeze(-1)
 
 
 def validate(model, test_loader):
@@ -74,12 +89,17 @@ def validate(model, test_loader):
     criterion = nn.MSELoss()
     with torch.no_grad():
         for seqs, target in test_loader:
-            target = target.unsqueeze(1)
             output = model(seqs)
-            preds.append(output.item())
-            targets.append(target.item())
+            print(output)
+            for i, out in enumerate(output):
+                preds.append(output[i].item())
+                targets.append(target[i].item())
+
             loss = criterion(output, target)
             total_loss += loss.item()
+    print(preds)
+    print(targets)
+    print(len(test_loader))
     print(total_loss / len(test_loader))
     # Plot
     plt.plot(targets, label="True")
@@ -89,66 +109,140 @@ def validate(model, test_loader):
     plt.show()
 
 
-# class TestAutoencoderTrainer:
-#     def setup_method(self):
-#         self.dataset_spec = DatasetSpecification(DatasetExample, Path(""), None)
-#         self.autoencoder = SimpleLSTMAutoencoder(INPUT_DIM)
-#
-#     def test_autoencoder_trainer(self):
-#
-#         autoencoder_trainer = ReconstructionAutoencoderTrainer(
-#             "cpu",
-#             optimizer=torch.optim.Adam(self.autoencoder.parameters(), lr=1e-3),  # type: ignore
-#             dataset_spec=self.dataset_spec,
-#         )
-#         autoencoder_trainer.train(self.autoencoder, 20)
-#         assert autoencoder_trainer.validate(self.autoencoder)[1] > 0
-#         assert autoencoder_trainer.test(self.autoencoder)[1] > 0
-#
-#
-# def search_for_timeseries(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
-#     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
-#     explorer.choose_target_hw(deploy_cfg)
-#     explorer.generate_search_space(search_space)
-#     dataset_spec = DatasetSpecification(DatasetExample, Path(""), None)
-#
-#     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
-#
-#     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-#     for i, model in enumerate(top_models):
-#         print(f"found model {i}:  {model}")
-#
-#         mlp_trainer = MLPTrainer(
-#             device=retrain_device,
-#             optimizer=Adam(model.parameters(), lr=1e-3),
-#             dataset_spec=dataset_spec,
-#         )
-#         mlp_trainer.train(model, epochs=3)
-#         mlp_trainer.test(model)
-#         print("=================================================")
-#         model_name = "ts_model_" + str(i) + ".pt"
-#
-#         explorer.generate_for_hw_platform(model, model_name)
-
-
-if __name__ == "__main__":
+def run_training():
     seq_length = 50
     batch_size = 32
-    dataset = SineDataset(seq_length=seq_length)
-    train_size = int(0.8 * len(dataset))
-    train_dataset, test_dataset = torch.utils.data.random_split(
-        dataset, [train_size, len(dataset) - train_size]
+    # SineDataset(root="", seq_length=seq_length)
+    data_spec = DatasetSpecification(
+        dataset_type=SineDataset,
+        dataset_location=Path(""),
+        transform=None,
+        target_transform=None,  # v2.Compose([v2.Lambda(lambda y: y.unsqueeze(1))]),
+        train_test_val_ratio=[0.7, 0.1, 0.2],
+        shuffle=False,
+        split_seed=42,
     )
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1)
-    model = SimpleLSTM()
-    train(model, train_loader)
-    validate(model, test_loader)
-    # hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-    # deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
-    # knowledge_repo = setup_knowledge_repository_pi()
-    # explorer = Explorer(knowledge_repo)
-    #
-    # search_space = Path("examples/search_space_example.yaml")
-    #
-    # search_for_timeseries(explorer, hwnas_cfg, search_space)
+    trainer = SupervisedTrainer(
+        "cpu",
+        dataset_spec=data_spec,
+        batch_size=batch_size,
+        loss_fn=nn.MSELoss(),
+        extra_metrics={},
+    )
+    model = SimpleLSTM(input_size=1, hidden_size=50)
+    trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
+    trainer.train(model, epochs=50, early_stopping=True)
+    metrics, loss = trainer.test(model)
+    print(metrics)
+    print(loss)
+    print("----------------")
+
+    validate(model, trainer.test_loader)
+
+
+def run_lstm_search():
+    search_space = Path(
+        ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml"
+    )
+
+    batch_size = 32
+    data_spec = DatasetSpecification(
+        dataset_type=SineDataset,
+        dataset_location=Path(""),
+        transform=None,
+        target_transform=None,  # v2.Compose([v2.Lambda(lambda y: y.unsqueeze(1))]),
+        train_test_val_ratio=[0.7, 0.1, 0.2],
+        shuffle=False,
+        split_seed=42,
+    )
+    trainer = SupervisedTrainer(
+        "cpu",
+        dataset_spec=data_spec,
+        batch_size=batch_size,
+        loss_fn=nn.MSELoss(),
+        extra_metrics={},
+    )
+    search_space_cfg = yaml_to_dict(search_space)
+    top_models, _, _ = hw_nas.search(
+        search_space_cfg,
+        HWNASConfig(Path(ROOT_DIR / "configs/hwnas_config.yaml")),
+        trainer=trainer,
+    )
+    model = top_models[0]
+    trainer = SupervisedTrainer(
+        "cpu",
+        dataset_spec=data_spec,
+        batch_size=batch_size,
+        loss_fn=nn.MSELoss(),
+        extra_metrics={},
+    )
+    trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
+    trainer.train(model, epochs=50, early_stopping=True)
+    validate(model, trainer.test_loader)
+
+
+def trythedata():
+    batch_size = 32
+    data_spec = DatasetSpecification(
+        dataset_type=SineDataset,
+        dataset_location=Path(""),
+        transform=None,
+        target_transform=None,  # v2.Compose([v2.Lambda(lambda y: y.unsqueeze(1))]),
+        train_test_val_ratio=[0.7, 0.1, 0.2],
+        shuffle=False,
+        split_seed=42,
+    )
+    trainer = SupervisedTrainer(
+        "cpu",
+        dataset_spec=data_spec,
+        batch_size=batch_size,
+        loss_fn=nn.MSELoss(),
+        extra_metrics={},
+    )
+
+    model = nn.Sequential(
+        architecture_components.SimpleLSTM(
+            input_size=1,
+            hidden_size=20,
+            num_layers=1,
+            bidirectional=False,
+            batch_first=True,
+        ),
+        LinearOne(20, 1),
+    )
+    trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
+    trainer.train(model, epochs=1, early_stopping=True)
+
+
+# Objekte: SearchspaceComponents
+# implementieren interface : kriegt predecessor-> hat infos über: output dimensionalität
+# wie input formatiert sein muss, -> eventuelle schritte zum umformatieren
+# evtl fehlermeldungen wenn ein predecessor keinen sinn macht (zb linear vor conv)
+# für jede layer eins, anzahl kann von blöcken gemanaged werden
+
+if __name__ == "__main__":
+    # dataset = SineDataset(root="", seq_length=50)
+    # d = DataLoader(dataset, 32)
+    run_lstm_search()
+    # trythedata()
+# run_training()
+# seq_length = 50
+# batch_size = 32
+# dataset = SineDataset(seq_length=seq_length)
+# train_size = int(0.8 * len(dataset))
+# train_dataset, test_dataset = torch.utils.data.random_split(
+#     dataset, [train_size, len(dataset) - train_size]
+# )
+# train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+# test_loader = DataLoader(test_dataset, batch_size=1)
+# model = SimpleLSTM()
+# train(model, train_loader)
+# validate(model, test_loader)
+# hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
+# deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
+# knowledge_repo = setup_knowledge_repository_pi()
+# explorer = Explorer(knowledge_repo)
+#
+# search_space = Path("examples/search_space_example.yaml")
+#
+# search_for_timeseries(explorer, hwnas_cfg, search_space)
