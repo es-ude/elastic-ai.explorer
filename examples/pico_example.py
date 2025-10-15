@@ -5,8 +5,6 @@ from pathlib import Path
 
 import torch
 from torchvision.transforms import transforms
-
-from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
@@ -14,9 +12,10 @@ from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
 )
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
+from elasticai.explorer.platforms.deployment.compiler import DockerParams, PicoCompiler
 from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
+    SerialParams,
 )
 from elasticai.explorer.platforms.deployment.hw_manager import (
     PicoHWManager,
@@ -30,7 +29,7 @@ from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
@@ -54,11 +53,12 @@ def setup_knowledge_repository_pico() -> KnowledgeRepository:
 
 def find_generate_measure_for_pico(
     explorer: Explorer,
-    deploy_cfg: DeploymentConfig,
+    serial_params: SerialParams,
+    docker_params: DockerParams,
     search_space: Path,
     retrain_epochs: int = 4,
 ):
-    explorer.choose_target_hw(deploy_cfg)
+    explorer.choose_target_hw("pico", docker_params, serial_params)
     explorer.generate_search_space(search_space)
 
     transf = transforms.Compose(
@@ -144,12 +144,24 @@ def find_generate_measure_for_pico(
 
 
 if __name__ == "__main__":
-    deploy_cfg = DeploymentConfig(
-        config_path=Path("configs/pico/deployment_config.yaml")
-    )
+    serial_params = SerialParams(
+        device_path=Path("<path/to/pico_usb_device>")
+    )  # <-- Set the device path and rest only if necessary.
+    docker_params = DockerParams(
+        library_path=Path("./code/pico_crosscompiler"),
+        image_name="picobase",
+        build_context=DOCKER_CONTEXT_DIR,
+        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+    )  # <-- Configure this only if necessary.
 
     knowledge_repo = setup_knowledge_repository_pico()
     explorer = Explorer(knowledge_repo)
     search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
     retrain_epochs = 3
-    find_generate_measure_for_pico(explorer, deploy_cfg, search_space, retrain_epochs)
+    find_generate_measure_for_pico(
+        explorer,
+        docker_params=docker_params,
+        serial_params=serial_params,
+        search_space=search_space,
+        retrain_epochs=retrain_epochs,
+    )

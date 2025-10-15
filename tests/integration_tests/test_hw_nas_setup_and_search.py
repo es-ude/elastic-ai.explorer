@@ -2,19 +2,21 @@ import os
 from pathlib import Path
 import shutil
 import torch
-from elasticai.explorer.config import DeploymentConfig
+
 from elasticai.explorer.hw_nas.hw_nas import (
-    HWNASParameters,
     HardwareConstraints,
     SearchAlgorithm,
 )
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import DockerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.device_communication import (
+    RPiHost,
+    SSHParams,
+)
 from torchvision import transforms
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -44,10 +46,6 @@ class TestHWNasSetupAndSearch:
             ROOT_DIR / "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.deploy_cfg = DeploymentConfig(
-            ROOT_DIR
-            / Path("tests/integration_tests/test_configs/deployment_config.yaml")
-        )
 
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         transf = transforms.Compose(
@@ -106,7 +104,11 @@ class TestHWNasSetupAndSearch:
         assert len(top_k_models) == 0
 
     def test_generate_for_hw_platform(self):
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
+        self.RPI5explorer.choose_target_hw(
+            "rpi5",
+            docker_params=DockerParams(),
+            communication_params=SSHParams("", ""),
+        )
         model = SampleMLP(28 * 28)
 
         self.RPI5explorer.generate_for_hw_platform(

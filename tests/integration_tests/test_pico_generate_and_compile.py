@@ -1,11 +1,14 @@
 import os
 from pathlib import Path
 
-from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.compiler import DockerParams, PicoCompiler
+from elasticai.explorer.platforms.deployment.device_communication import (
+    PicoHost,
+    RPiHost,
+    SerialParams,
+)
 from elasticai.explorer.platforms.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     PicoHWManager,
@@ -17,10 +20,18 @@ from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
 from tests.integration_tests.samples import sample_MLP
+from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 
 
 class TestPicoGenerateAndCompile:
     def setup_method(self):
+        self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
+        self.docker_params = DockerParams(
+            library_path=Path("./code/pico_crosscompiler"),
+            image_name="picobase",
+            build_context=DOCKER_CONTEXT_DIR,
+            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+        )  # <-- Configure this only if necessary.
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -28,22 +39,19 @@ class TestPicoGenerateAndCompile:
                 "Pico mit RP2040",
                 PicoGenerator,
                 PicoHWManager,
-                RPiHost,
+                PicoHost,
                 PicoCompiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_repository)
-        self.RPI5explorer.experiment_dir = ROOT_DIR / Path(
+        self.pico_explorer = Explorer(knowledge_repository)
+        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
             "tests/integration_tests/test_experiment"
         )
         self.model_name = "model"
 
-        self.deploy_cfg = DeploymentConfig(
-            config_path=ROOT_DIR
-            / Path("tests/integration_tests/test_configs/deployment_config_pico.yaml")
+        self.pico_explorer.choose_target_hw(
+            "pico", self.docker_params, self.serial_params
         )
-
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
@@ -64,18 +72,17 @@ class TestPicoGenerateAndCompile:
         )
 
     def test_generate_for_hw_platform(self):
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         model = sample_MLP.SampleMLP(28 * 28)
 
-        self.RPI5explorer.generate_for_hw_platform(
+        self.pico_explorer.generate_for_hw_platform(
             model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
         )
         assert (
-            os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".tflite"))
+            os.path.exists(self.pico_explorer.model_dir / (self.model_name + ".tflite"))
             == True
         )
         assert (
-            os.path.exists(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))
+            os.path.exists(self.pico_explorer.model_dir / (self.model_name + ".cpp"))
             == True
         )
 
@@ -86,7 +93,7 @@ class TestPicoGenerateAndCompile:
             DOCKER_CONTEXT_DIR / "bin" / expected_name_of_executable
         )
 
-        compiler = PicoCompiler(deploy_cfg=self.deploy_cfg)
+        compiler = PicoCompiler(docker_params=self.docker_params)
         if not compiler.is_setup():
             compiler.setup()
         compiler.compile_code(Path("code/pico_crosscompiler/measure_accuracy"))
@@ -96,32 +103,30 @@ class TestPicoGenerateAndCompile:
             )
 
     def test_tflite_to_resolver(self):
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         model = sample_MLP.SampleMLP(28 * 28)
-
-        self.RPI5explorer.generate_for_hw_platform(
+        self.pico_explorer.generate_for_hw_platform(
             model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
         )
-        sample_model_path = self.RPI5explorer.model_dir / (self.model_name + ".tflite")
+        sample_model_path = self.pico_explorer.model_dir / (self.model_name + ".tflite")
         tflite_to_resolver.generate_resolver_h(
-            sample_model_path, self.RPI5explorer.experiment_dir / "resolver_ops.h"
+            sample_model_path, self.pico_explorer.experiment_dir / "resolver_ops.h"
         )
 
         assert (
-            os.path.exists(self.RPI5explorer.experiment_dir / "resolver_ops.h") == True
+            os.path.exists(self.pico_explorer.experiment_dir / "resolver_ops.h") == True
         )
 
     def teardown_method(self):
 
         try:
             os.remove(
-                self.RPI5explorer.model_dir / (self.model_name + ".tflite"),
+                self.pico_explorer.model_dir / (self.model_name + ".tflite"),
             )
         except:
             pass
 
         try:
-            os.remove(self.RPI5explorer.model_dir / (self.model_name + ".cpp"))
+            os.remove(self.pico_explorer.model_dir / (self.model_name + ".cpp"))
         except:
             pass
 
@@ -130,6 +135,6 @@ class TestPicoGenerateAndCompile:
         except:
             pass
         try:
-            os.remove(self.RPI5explorer.experiment_dir / "resolver_ops.h")
+            os.remove(self.pico_explorer.experiment_dir / "resolver_ops.h")
         except:
             pass

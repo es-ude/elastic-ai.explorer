@@ -1,5 +1,4 @@
 import shutil
-from elasticai.explorer.config import DeploymentConfig
 from functools import partial
 import optuna
 import torch
@@ -59,11 +58,7 @@ class TestFrozenTrialToModel:
         self.RPI5explorer.experiment_dir = Path(
             ROOT_DIR / "tests/integration_tests/test_experiment"
         )
-        self.deploy_cfg = DeploymentConfig(
-            Path(
-                ROOT_DIR / "tests/integration_tests/test_configs/deployment_config.yaml"
-            )
-        )
+        
         self.search_space_cfg = yaml_to_dict(
             Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )

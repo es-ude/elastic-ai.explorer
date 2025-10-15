@@ -4,11 +4,15 @@ from pathlib import Path
 from typing import Optional, Any, Type
 from torch import nn
 
-from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.hw_nas import hw_nas
 
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
+from elasticai.explorer.platforms.deployment.compiler import DockerParams
+from elasticai.explorer.platforms.deployment.device_communication import (
+    SSHParams,
+    SerialParams,
+)
 from elasticai.explorer.platforms.deployment.hw_manager import (
     HWManager,
     Metric,
@@ -92,8 +96,8 @@ class Explorer:
         dataset_spec: data.DatasetSpecification,
         trainer_class: Type[Trainer],
         search_algorithm: hw_nas.SearchAlgorithm = hw_nas.SearchAlgorithm.RANDOM_SEARCH,
-        hardware_constraints: hw_nas.HardwareConstraints =  hw_nas.HardwareConstraints(),
-        hw_nas_parameters: hw_nas.HWNASParameters =  hw_nas.HWNASParameters(),
+        hardware_constraints: hw_nas.HardwareConstraints = hw_nas.HardwareConstraints(),
+        hw_nas_parameters: hw_nas.HWNASParameters = hw_nas.HWNASParameters(),
     ) -> list[Any]:
 
         self.logger.info(
@@ -125,21 +129,25 @@ class Explorer:
 
         return top_models
 
-    def choose_target_hw(self, deploy_cfg: DeploymentConfig):
+    def choose_target_hw(
+        self,
+        target_platform_name: str,
+        docker_params: DockerParams,
+        communication_params: SSHParams | SerialParams,
+    ):
         self.target_hw_platform = self.knowledge_repository.fetch_hw_info(
-            deploy_cfg.target_platform_name
+            target_platform_name
         )
         self.generator = self.target_hw_platform.model_generator()
         self.hw_manager = self.target_hw_platform.platform_manager(
-            self.target_hw_platform.communication_protocol(deploy_cfg),
-            self.target_hw_platform.compiler(deploy_cfg),
+            self.target_hw_platform.communication_protocol(communication_params),
+            self.target_hw_platform.compiler(docker_params),
         )
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
-            deploy_cfg.target_platform_name,
+            target_platform_name,
             self.target_hw_platform,
         )
-        deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
         self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification

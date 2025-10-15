@@ -1,4 +1,3 @@
-from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -34,12 +33,6 @@ class TestPicoHWNasSetupAndSearch:
         )
         self.explorer = Explorer(knowledge_repository)
         self.explorer.experiment_dir = Path("tests/integration_tests/test_experiment")
-
-        self.deploy_cfg = DeploymentConfig(
-            config_path=Path(
-                "tests/integration_tests/test_configs/deployment_config.yaml"
-            )
-        )
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]

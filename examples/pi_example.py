@@ -6,7 +6,6 @@ import torch
 from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -14,8 +13,11 @@ from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
 )
-from elasticai.explorer.platforms.deployment.compiler import RPICompiler
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.compiler import DockerParams, RPICompiler
+from elasticai.explorer.platforms.deployment.device_communication import (
+    RPiHost,
+    SSHParams,
+)
 from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.training.trainer import MLPTrainer
@@ -67,11 +69,12 @@ def setup_mnist(path_to_test_data: Path):
 
 def find_generate_measure_for_pi(
     explorer: Explorer,
-    deploy_cfg: DeploymentConfig,
+    ssh_params: SSHParams,
+    docker_params: DockerParams,
     search_space_path: Path,
     retrain_epochs: int = 4,
 ):
-    explorer.choose_target_hw(deploy_cfg)
+    explorer.choose_target_hw("rpi5", docker_params, ssh_params)
     explorer.generate_search_space(search_space_path)
 
     path_to_test_data = ROOT_DIR / Path("data/mnist")
@@ -133,9 +136,12 @@ def find_generate_measure_for_pi(
     logger.info("Models:\n %s", df)
 
 
-def search_models(explorer: Explorer, search_space):
-    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
-    explorer.choose_target_hw(deploy_cfg)
+def search_models(
+    explorer: Explorer, ssh_params: SSHParams, docker_params: DockerParams, search_space
+):
+    explorer.choose_target_hw(
+        "rpi5", communication_params=ssh_params, docker_params=docker_params
+    )
     explorer.generate_search_space(search_space)
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
@@ -160,7 +166,10 @@ def search_models(explorer: Explorer, search_space):
 
 
 if __name__ == "__main__":
-    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
+    ssh_params = SSHParams(
+        hostname="<hostname>", username="<username>"
+    )  # <-- Set the credentials of your RPi
+    docker_params = DockerParams()  # <-- configure this only if necessary
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
@@ -168,7 +177,8 @@ if __name__ == "__main__":
 
     find_generate_measure_for_pi(
         explorer=explorer,
-        deploy_cfg=deploy_cfg,
+        ssh_params=ssh_params,
+        docker_params=docker_params,
         search_space_path=search_space,
-        retrain_epochs=3,
+        retrain_epochs=3,   
     )

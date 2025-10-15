@@ -1,8 +1,7 @@
 import math
-from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler
+from elasticai.explorer.platforms.deployment.compiler import DockerParams, PicoCompiler
 from elasticai.explorer.platforms.deployment.hw_manager import (
     Metric,
     PicoHWManager,
@@ -10,6 +9,7 @@ from elasticai.explorer.platforms.deployment.hw_manager import (
 from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
+    SerialParams,
 )
 from pathlib import Path
 
@@ -18,13 +18,18 @@ from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from torchvision import transforms
 
+from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
+
 
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
-        self.deploy_cfg = DeploymentConfig(
-            config_path=ROOT_DIR
-            / Path("tests/system_tests/test_configs/deployment_config_pico.yaml")
-        )
+        serial_params = SerialParams(PICO_DEVICE_PATH)
+        docker_params = DockerParams(
+            library_path=Path("./code/pico_crosscompiler"),
+            image_name="picobase",
+            build_context=DOCKER_CONTEXT_DIR,
+            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+        )  # <-- Configure this only if necessary.
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -41,7 +46,7 @@ class TestPicoDeploymentAndMeasurement:
             "tests/system_tests/test_experiment"
         )
         self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
-        self.pico_explorer.choose_target_hw(self.deploy_cfg)
+        self.pico_explorer.choose_target_hw("pico", docker_params, serial_params)
         self.model_name = "ts_model_0.tflite"
 
         metric_to_source = {

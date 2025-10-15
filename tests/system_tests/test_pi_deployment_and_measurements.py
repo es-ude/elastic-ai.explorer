@@ -1,15 +1,17 @@
 import shutil
-from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import DockerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     RPiHWManager,
     Metric,
 )
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.device_communication import (
+    RPiHost,
+    SSHParams,
+)
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 from pathlib import Path
@@ -17,14 +19,16 @@ from pathlib import Path
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
+from tests.system_tests.system_test_settings import RPI_HOSTNAME, RPI_USERNAME
 
 
 class TestDeploymentAndMeasurement:
     def setup_class(self):
-        self.deploy_cfg = DeploymentConfig(
-            config_path=ROOT_DIR
-            / Path("tests/system_tests/test_configs/deployment_config_pi.yaml")
-        )
+
+        ssh_params = SSHParams(
+            hostname=RPI_HOSTNAME, username=RPI_USERNAME
+        )  # <-- Set the credentials of your RPi
+        docker_params = DockerParams()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -41,7 +45,9 @@ class TestDeploymentAndMeasurement:
             "tests/system_tests/test_experiment"
         )
         self.RPI5explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
+        self.RPI5explorer.choose_target_hw(
+            "rpi5", communication_params=ssh_params, docker_params=docker_params
+        )
         self.model_name = "ts_model_0.pt"
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
@@ -91,6 +97,3 @@ class TestDeploymentAndMeasurement:
             )
             == int
         )
-
-    def teardown_class(self):
-        shutil.rmtree(self.RPI5explorer.experiment_dir)
