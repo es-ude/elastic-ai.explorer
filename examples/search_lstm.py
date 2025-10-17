@@ -90,7 +90,7 @@ def validate(model, test_loader):
     with torch.no_grad():
         for seqs, target in test_loader:
             output = model(seqs)
-            print(output)
+
             for i, out in enumerate(output):
                 preds.append(output[i].item())
                 targets.append(target[i].item())
@@ -169,6 +169,7 @@ def run_lstm_search():
         trainer=trainer,
     )
     model = top_models[0]
+    print(model)
     trainer = SupervisedTrainer(
         "cpu",
         dataset_spec=data_spec,
@@ -221,10 +222,10 @@ def trythedata():
 # für jede layer eins, anzahl kann von blöcken gemanaged werden
 
 if __name__ == "__main__":
-    # dataset = SineDataset(root="", seq_length=50)
+
     # d = DataLoader(dataset, 32)
     run_lstm_search()
-    # trythedata()
+# trythedata()
 # run_training()
 # seq_length = 50
 # batch_size = 32
