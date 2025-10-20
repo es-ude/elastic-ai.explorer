@@ -4,7 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 import subprocess
-from typing import Any, Literal, Optional
+from typing import Any, Dict, Optional
 import numpy
 
 from elasticai.creator.torch2ir.torch2ir import get_default_converter
@@ -207,22 +207,25 @@ class CreatorModelGenerator(ModelGenerator):
 
     def generate(
         self,
-        model: nn.Module,
+        model: nn.Module | Dict,
         path: Path,
         input_sample: torch.Tensor,
         quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
     ):
 
-        self._validate_model(model, quantization_scheme)
-        model = model
-        default_converter = get_default_converter()
-        ir = default_converter.convert(model)
-        for impl in ir:
-            print("implementation: ", impl)
-        ir2Vhdl = Ir2Vhdl()
-        vhdl_code = ir2Vhdl(ir)  # type:ignore
-        for code in vhdl_code:
-            print("VHDL code: ", code)
+        
+        # self._validate_model(model, quantization_scheme)
+        # model = model
+        # default_converter = get_default_converter()
+        # ir = default_converter.convert(model)
+        # for impl in ir:
+        #     print("implementation: ", impl)
+        # ir2Vhdl = Ir2Vhdl()
+        # vhdl_code = ir2Vhdl(ir)  # type:ignore
+        # for code in vhdl_code:
+        #     print("VHDL code: ", code)
+
+        pass
 
     def get_supported_layers(self) -> Optional[set[type]]:
         return {
@@ -234,3 +237,6 @@ class CreatorModelGenerator(ModelGenerator):
             nn.Flatten,
             nn.Sigmoid,
         }
+
+    def _build_creator_model_from_parametrisation(self, params: Dict):
+
