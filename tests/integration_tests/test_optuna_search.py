@@ -7,9 +7,10 @@ from optuna.trial import TrialState
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.estimators import AccuracyEstimator
 from elasticai.explorer.hw_nas.hw_nas import (
     HWNASParameters,
-    HardwareConstraints,
     SearchAlgorithm,
     objective_wrapper,
 )
@@ -36,13 +37,26 @@ class TestFrozenTrialToModel:
 
     def setup_class(self):
         self.hw_nas_params = HWNASParameters(
-            flops_weight=2,
-            n_estimation_epochs=1,
-            max_search_trials=4,
-            device="cpu",
+            max_search_trials=3,
             top_n_models=3,
         )
-        self.hw_constraints = HardwareConstraints()
+
+        self.dataset_spec = DatasetSpecification(
+            dataset_type=MNISTWrapper,
+            dataset_location=Path(ROOT_DIR / "data/mnist"),
+            deployable_dataset_path=Path(ROOT_DIR / "data/mnist"),
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            ),
+        )
+        self.device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        accuracy_estimator = AccuracyEstimator(
+            MLPTrainer, self.dataset_spec, 2, device=self.device
+        )
+        self.constraint_registry = ConstraintRegistry()
+        self.constraint_registry.register_soft_constraint(
+            estimator=accuracy_estimator, is_reward=True
+        )
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -58,19 +72,11 @@ class TestFrozenTrialToModel:
         self.RPI5explorer.experiment_dir = Path(
             ROOT_DIR / "tests/integration_tests/test_experiment"
         )
-        
+
         self.search_space_cfg = yaml_to_dict(
             Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
         self.search_space = SearchSpace(self.search_space_cfg)
-        self.dataset_spec = DatasetSpecification(
-            dataset_type=MNISTWrapper,
-            dataset_location=Path(ROOT_DIR / "data/mnist"),
-            deployable_dataset_path=Path(ROOT_DIR / "data/mnist"),
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-            ),
-        )
 
     def test_frozentrial_to_model(self):
         study = optuna.create_study(
@@ -81,12 +87,7 @@ class TestFrozenTrialToModel:
             partial(
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
-                device=self.hw_nas_params.device,
-                dataset_spec=self.dataset_spec,
-                trainer_class=MLPTrainer,
-                n_estimation_epochs=self.hw_nas_params.n_estimation_epochs,
-                flops_weight=self.hw_nas_params.flops_weight,
-                constraints=self.hw_constraints,
+                constraint_registry=self.constraint_registry,
             ),
             n_trials=self.hw_nas_params.max_search_trials,
             show_progress_bar=True,
@@ -98,25 +99,23 @@ class TestFrozenTrialToModel:
 
         for trial in test_results:
             model = self.search_space.create_model_sample(trial)
-            input = torch.randn(1, 1, 28, 28).to(self.hw_nas_params.device)
+            input = torch.randn(1, 1, 28, 28).to(self.device)
             model.eval()
-            model.to(self.hw_nas_params.device)
+            model.to(self.device)
             result = model(input)
             assert len(result[0]) == 10
 
     def test_hw_nas_search(self):
         top_models, model_parameters, metrics = hw_nas.search(
             self.search_space_cfg,
-            dataset_spec=self.dataset_spec,
-            trainer_class=MLPTrainer,
             search_algorithm=SearchAlgorithm.RANDOM_SEARCH,
+            constraint_registry=self.constraint_registry,
             hw_nas_parameters=self.hw_nas_params,
-            hardware_constraints=self.hw_constraints,
         )
         assert len(top_models) == self.hw_nas_params.top_n_models
         assert len(model_parameters) == self.hw_nas_params.top_n_models
         assert len(metrics) == self.hw_nas_params.top_n_models
-        assert type(metrics[0]["val_accuracy"]) is float
+        assert type(metrics[0]["accuracy_estimate"]) is float
 
     def teardown_class(self):
         shutil.rmtree(self.RPI5explorer.experiment_dir, ignore_errors=True)

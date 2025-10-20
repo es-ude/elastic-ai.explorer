@@ -1,38 +1,24 @@
 from dataclasses import dataclass
 import logging
-import math
-from typing import Any, Callable, Type
+from typing import Any, Callable
 from functools import partial
 from enum import Enum
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
-import torch
-from torch.optim.adam import Adam
 
+from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
-from elasticai.explorer.training import data
-from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
-from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
-
-
-@dataclass
-class HardwareConstraints:
-    max_flops: int | None = None
-    max_params: int | None = None
 
 
 @dataclass
 class HWNASParameters:
     max_search_trials: int = 2
     top_n_models: int = 2
-    n_estimation_epochs: int = 2
-    flops_weight: float = 2.0
     count_only_completed_trials: bool = False
-    device: str = "auto"
 
 
 class SearchAlgorithm(Enum):
@@ -44,72 +30,56 @@ class SearchAlgorithm(Enum):
 def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
-    dataset_spec: data.DatasetSpecification,
-    trainer_class: type[Trainer],
-    device: str,
-    n_estimation_epochs: int,
-    flops_weight: float,
-    constraints: HardwareConstraints,
+    constraint_registry: ConstraintRegistry,
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
 
         search_space = SearchSpace(search_space_cfg)
         model = search_space.create_model_sample(trial)
-        optimizer = Adam(model.parameters(), lr=1e-3)
-        trainer = trainer_class(device, optimizer, dataset_spec)
 
-        cost_estimator = CostEstimator()
-        sample, _ = next(iter(trainer.test_loader))
-        flops = cost_estimator.estimate_flops(model, sample)
-        params = cost_estimator.compute_num_params(model)
+        soft_score = 0.0
+        for estimator in constraint_registry:
 
-        if constraints.max_flops and flops > constraints.max_flops:
-            logger.info(
-                f"Trial {trial.number} pruned because flops {flops} > max_flops {constraints.max_flops}"
-            )
-            raise optuna.TrialPruned()
-        if constraints.max_params and params > constraints.max_params:
-            logger.info(
-                f"Trial {trial.number} pruned because params {params} > max_params {constraints.max_params}"
-            )
-            raise optuna.TrialPruned()
+            estimate = estimator.estimate(model)
+            trial.set_user_attr(estimator.metric_id, estimate)
+            hard_constraints = constraint_registry.get_hard_constraints(estimator)
+            for hc in hard_constraints:
+                if not hc.comparison_operator(estimate, hc.constraint_value):
+                    logger.info(
+                        f"Trial {trial.number} pruned, because {estimator.metric_id} trial meets constraint: {hc.comparison_operator}({estimate}, {hc.constraint_value})"
+                    )
+                    raise optuna.TrialPruned()
 
-        default = 0
-        val_loss = float("inf")
-        val_accuracy = 0
-        flops_log10 = math.log10(flops)
+            soft_constraints = constraint_registry.get_soft_constraints(estimator)
+            for sc in soft_constraints:
+                raw_value = sc.penalty_fn(
+                    sc.estimate_transform(estimate), sc.constraint_value
+                )
 
-        for epoch in range(n_estimation_epochs):
-            trainer.train_epoch(model, epoch)
-            val_accuracy, val_loss = trainer.validate(model)
-            if val_accuracy:
-                default = val_accuracy - (flops_log10 * flops_weight)
-            else:
-                val_accuracy = -1
-                default = -val_loss - (flops_log10 * flops_weight)
-            trial.report(default, epoch)
-        trial.set_user_attr("val_accuracy", val_accuracy)
-        trial.set_user_attr("flops_log10", flops_log10)
-        trial.set_user_attr("val_loss", val_loss)
-        return default
+                # a reward is handled as a negative penalty
+                penalty_amount = -raw_value if sc.is_reward else raw_value
+                soft_score -= penalty_amount * sc.weight
+
+                if penalty_amount:
+                    logger.info(
+                        f"Trial {trial.number} get a soft penalty of {penalty_amount}, because the {estimator.metric_id} is {estimate}"
+                    )
+
+        return soft_score
 
     return objective(trial)
 
 
 def search(
     search_space_cfg: dict,
-    dataset_spec: data.DatasetSpecification,
-    trainer_class: Type[Trainer],
     search_algorithm: SearchAlgorithm,
-    hardware_constraints: HardwareConstraints,
+    constraint_registry: ConstraintRegistry,
     hw_nas_parameters: HWNASParameters,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
-    if hw_nas_parameters.device == "auto":
-        hw_nas_parameters.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     search_space = SearchSpace(search_space_cfg)
 
@@ -149,12 +119,7 @@ def search(
         partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
-            device=hw_nas_parameters.device,
-            dataset_spec=dataset_spec,
-            trainer_class=trainer_class,
-            n_estimation_epochs=hw_nas_parameters.n_estimation_epochs,
-            flops_weight=hw_nas_parameters.flops_weight,
-            constraints=hardware_constraints,
+            constraint_registry=constraint_registry,
         ),
         n_trials=n_trials,
         callbacks=callbacks,
@@ -178,17 +143,18 @@ def search(
     top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
+    metric_names = [
+        estimator.metric_id for estimator in constraint_registry.get_estimators()
+    ]
 
     for frozen_trial in top_k_frozen_trials:
         top_k_models.append(search_space.create_model_sample(frozen_trial))
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
-                "default": eval(frozen_trial),
-                "val_accuracy": frozen_trial.user_attrs["val_accuracy"],
-                "val_loss": frozen_trial.user_attrs["val_loss"],
-                "flops log10": frozen_trial.user_attrs["flops_log10"],
+                "soft_score": eval(frozen_trial),
             }
         )
-
+        for metric_name in metric_names:
+            top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
     return top_k_models, top_k_params, top_k_metrics

@@ -3,8 +3,14 @@ from pathlib import Path
 import shutil
 import torch
 
+import operator
+from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.estimators import (
+    AccuracyEstimator,
+    FLOPsEstimator,
+    ParamEstimator,
+)
 from elasticai.explorer.hw_nas.hw_nas import (
-    HardwareConstraints,
     SearchAlgorithm,
 )
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -57,6 +63,14 @@ class TestHWNasSetupAndSearch:
             deployable_dataset_path=path_to_dataset,
             transform=transf,
         )
+        self.device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        accuracy_estimator = AccuracyEstimator(
+            MLPTrainer, self.dataset_spec, 3, device=self.device
+        )
+        self.constraint_registry = ConstraintRegistry()
+        self.constraint_registry.register_soft_constraint(
+            estimator=accuracy_estimator, is_reward=True
+        )
 
     def test_random_search(self):
 
@@ -64,9 +78,8 @@ class TestHWNasSetupAndSearch:
 
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            dataset_spec=self.dataset_spec,
+            constraint_registry=self.constraint_registry,
             search_algorithm=SearchAlgorithm.RANDOM_SEARCH,
-            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 2
 
@@ -75,9 +88,8 @@ class TestHWNasSetupAndSearch:
 
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            dataset_spec=self.dataset_spec,
+            constraint_registry=self.constraint_registry,
             search_algorithm=SearchAlgorithm.GRID_SEARCH,
-            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 2
 
@@ -85,9 +97,8 @@ class TestHWNasSetupAndSearch:
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            dataset_spec=self.dataset_spec,
+            constraint_registry=self.constraint_registry,
             search_algorithm=SearchAlgorithm.EVOlUTIONARY_SEARCH,
-            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 2
 
@@ -95,11 +106,17 @@ class TestHWNasSetupAndSearch:
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         self.RPI5explorer.generate_search_space(search_space)
 
+        data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=self.device)
+        self.constraint_registry.register_hard_constraint(
+            estimator=FLOPsEstimator(data_sample), operator=operator.lt, value=0
+        )
+        self.constraint_registry.register_hard_constraint(
+            estimator=ParamEstimator(), operator=operator.lt, value=0
+        )
+
         top_k_models = self.RPI5explorer.search(
-            dataset_spec=self.dataset_spec,
-            hardware_constraints=HardwareConstraints(1000, 100),
+            constraint_registry=self.constraint_registry,
             search_algorithm=SearchAlgorithm.EVOlUTIONARY_SEARCH,
-            trainer_class=MLPTrainer,
         )
         assert len(top_k_models) == 0
 

@@ -1,11 +1,13 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any, Type
+from typing import Optional, Any
 from torch import nn
 
-from elasticai.explorer.hw_nas import hw_nas
 
+from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchAlgorithm
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.compiler import DockerParams
@@ -18,7 +20,6 @@ from elasticai.explorer.platforms.deployment.hw_manager import (
     Metric,
 )
 from elasticai.explorer.platforms.generator.generator import Generator
-from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
 from settings import MAIN_EXPERIMENT_DIR
@@ -93,26 +94,22 @@ class Explorer:
 
     def search(
         self,
-        dataset_spec: data.DatasetSpecification,
-        trainer_class: Type[Trainer],
-        search_algorithm: hw_nas.SearchAlgorithm = hw_nas.SearchAlgorithm.RANDOM_SEARCH,
-        hardware_constraints: hw_nas.HardwareConstraints = hw_nas.HardwareConstraints(),
-        hw_nas_parameters: hw_nas.HWNASParameters = hw_nas.HWNASParameters(),
+        search_algorithm: SearchAlgorithm = SearchAlgorithm.RANDOM_SEARCH,
+        constraint_registry: ConstraintRegistry = ConstraintRegistry(),
+        hw_nas_parameters: HWNASParameters = HWNASParameters(),
     ) -> list[Any]:
 
         self.logger.info(
-            "Start Hardware NAS with %d number of trials for top %d models ",
+            "Start Hardware NAS with %d number of trials searching for top %d models. ",
             hw_nas_parameters.max_search_trials,
             hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
                 search_space_cfg=self.search_space_cfg,
-                dataset_spec=dataset_spec,
-                trainer_class=trainer_class,
                 search_algorithm=search_algorithm,
                 hw_nas_parameters=hw_nas_parameters,
-                hardware_constraints=hardware_constraints,
+                constraint_registry=constraint_registry,
             )
         else:
             self.logger.error(

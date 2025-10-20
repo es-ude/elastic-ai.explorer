@@ -1,13 +1,16 @@
 import json
 import logging
 import logging.config
+from math import log10
 from pathlib import Path
 
 import torch
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
 
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
+from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.estimators import AccuracyEstimator, FLOPsEstimator
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchAlgorithm
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
@@ -33,6 +36,7 @@ from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
+device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
 
 def setup_knowledge_repository_pico() -> KnowledgeRepository:
@@ -51,12 +55,29 @@ def setup_knowledge_repository_pico() -> KnowledgeRepository:
     return knowledge_repository
 
 
+def setup_constraints(dataset_spec) -> ConstraintRegistry:
+    constr_reg = ConstraintRegistry()
+
+    accuracy_estimator = AccuracyEstimator(MLPTrainer, dataset_spec, 3, device=device)
+
+    data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=device)
+
+    constr_reg.register_soft_constraint(estimator=accuracy_estimator, is_reward=True)
+
+    constr_reg.register_soft_constraint(
+        estimator=FLOPsEstimator(data_sample), estimate_transform=log10, weight=2.0
+    )
+    return constr_reg
+
+
 def find_generate_measure_for_pico(
     explorer: Explorer,
     serial_params: SerialParams,
     docker_params: DockerParams,
     search_space: Path,
     retrain_epochs: int = 4,
+    max_search_trials: int = 2,
+    top_n_models: int = 2,
 ):
     explorer.choose_target_hw("pico", docker_params, serial_params)
     explorer.generate_search_space(search_space)
@@ -74,10 +95,14 @@ def find_generate_measure_for_pico(
         transform=transf,
     )
 
+    constr_reg = setup_constraints(dataset_spec=dataset_spec)
+
     top_models = explorer.search(
-        trainer_class=MLPTrainer,
-        dataset_spec=dataset_spec,
-        hw_nas_parameters=HWNASParameters(max_search_trials=1, top_n_models=1),
+        hw_nas_parameters=HWNASParameters(
+            max_search_trials=max_search_trials, top_n_models=top_n_models
+        ),
+        constraint_registry=constr_reg,
+        search_algorithm=SearchAlgorithm.EVOlUTIONARY_SEARCH,
     )
 
     latency_measurements = []
@@ -145,7 +170,7 @@ def find_generate_measure_for_pico(
 
 if __name__ == "__main__":
     serial_params = SerialParams(
-        device_path=Path("<path/to/pico_usb_device>")
+        device_path=Path("/media/<username>/RPI-RP2")
     )  # <-- Set the device path and rest only if necessary.
     docker_params = DockerParams(
         library_path=Path("./code/pico_crosscompiler"),
@@ -164,4 +189,6 @@ if __name__ == "__main__":
         serial_params=serial_params,
         search_space=search_space,
         retrain_epochs=retrain_epochs,
+        max_search_trials=4,
+        top_n_models=2,
     )

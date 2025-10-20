@@ -1,11 +1,14 @@
 import json
 import logging.config
+from math import log10
 from pathlib import Path
-
 import torch
 from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
+from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.estimators import AccuracyEstimator, FLOPsEstimator
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
@@ -24,8 +27,8 @@ from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
-
 logger = logging.getLogger("explorer.main")
+device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
 
 def setup_knowledge_repository_pi() -> KnowledgeRepository:
@@ -67,20 +70,42 @@ def setup_mnist(path_to_test_data: Path):
     return dataset_spec
 
 
+def setup_constraints(dataset_spec) -> ConstraintRegistry:
+    constr_reg = ConstraintRegistry()
+
+    accuracy_estimator = AccuracyEstimator(MLPTrainer, dataset_spec, 3, device=device)
+
+    data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=device)
+
+    constr_reg.register_soft_constraint(estimator=accuracy_estimator, is_reward=True)
+
+    constr_reg.register_soft_constraint(
+        estimator=FLOPsEstimator(data_sample), estimate_transform=log10, weight=2.0
+    )
+    return constr_reg
+
+
 def find_generate_measure_for_pi(
     explorer: Explorer,
     ssh_params: SSHParams,
     docker_params: DockerParams,
     search_space_path: Path,
     retrain_epochs: int = 4,
+    max_search_trials: int = 4,
+    top_n_models: int = 2,
 ):
     explorer.choose_target_hw("rpi5", docker_params, ssh_params)
     explorer.generate_search_space(search_space_path)
 
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
-
-    top_models = explorer.search(dataset_spec, MLPTrainer)
+    constr_reg = setup_constraints(dataset_spec=dataset_spec)
+    top_models = explorer.search(
+        constraint_registry=constr_reg,
+        hw_nas_parameters=HWNASParameters(
+            max_search_trials=max_search_trials, top_n_models=top_n_models
+        ),
+    )
     metric_to_source = {
         Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
         Metric.LATENCY: Path("code/measure_latency.cpp"),
@@ -90,10 +115,9 @@ def find_generate_measure_for_pi(
     accuracy_measurements = []
     accuracy_after_retrain = []
 
-    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         mlp_trainer = MLPTrainer(
-            device=retrain_device,
+            device=device,
             optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
         )
@@ -146,7 +170,7 @@ def search_models(
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
-    top_models = explorer.search(dataset_spec, MLPTrainer)
+    top_models = explorer.search()
 
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
@@ -168,7 +192,7 @@ def search_models(
 if __name__ == "__main__":
     ssh_params = SSHParams(
         hostname="<hostname>", username="<username>"
-    )  # <-- Set the credentials of your RPi
+    )  # <-- Setup for your RPi
     docker_params = DockerParams()  # <-- configure this only if necessary
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
@@ -180,5 +204,7 @@ if __name__ == "__main__":
         ssh_params=ssh_params,
         docker_params=docker_params,
         search_space_path=search_space,
-        retrain_epochs=3,   
+        retrain_epochs=3,
+        max_search_trials=4,
+        top_n_models=2,
     )
