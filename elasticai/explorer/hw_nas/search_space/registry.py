@@ -8,7 +8,7 @@ from elasticai.explorer.hw_nas.search_space.layer_adapter import (
 
 ADAPTER_REGISTRY = {
     #  ("conv2d", "lstm"): Conv2dToLSTMAdapter,
-    #  ("conv2d", "linear"): Conv2dToLinearAdapter,
+    ("conv2d", "linear"): Conv2dToLinearAdapter,
     ("lstm", "linear"): LSTMToLinearAdapter,
 }
 

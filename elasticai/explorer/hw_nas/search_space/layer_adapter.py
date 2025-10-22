@@ -31,8 +31,7 @@ class LSTMToLinearAdapter(nn.Module):
     """(B, T, H) → (B, H)"""
 
     def forward(self, x):
-        out, c = x
-        return out[:, -1, :]
+        return x[:, -1, :]
 
     @staticmethod
     def infer_output_shape(input_shape):

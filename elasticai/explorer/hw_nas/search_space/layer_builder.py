@@ -120,6 +120,11 @@ class Conv2dBuilder(LayerBuilder):
 @register_layer("lstm")
 class LSTMBuilder(LayerBuilder):
     def build(self, num_layers, is_last_block):
+        return_sequence = parse_search_param(
+            self.trial,
+            f"return_sequence_b_{self.block_id}",
+            self.search_params["return_sequence"],
+        )
         for i in range(num_layers):
             hidden_size = parse_search_param(
                 self.trial,
@@ -137,8 +142,9 @@ class LSTMBuilder(LayerBuilder):
                 self.search_params["bidirectional"],
             )
 
+            nn.LSTM(hidden_size, num_lstm_layers, bidirectional=bidirectional)
             self.layers.append(
-                nn.LSTM(
+                SimpleLSTM(
                     self.input_shape[-1],
                     hidden_size,
                     num_layers=num_lstm_layers,
@@ -146,10 +152,18 @@ class LSTMBuilder(LayerBuilder):
                     batch_first=True,
                 )
             )
-
-            self.input_shape = (
+            # 32,50,1 , batch, sequence, d*hiddensize
+            # input shape (seq length, feature size)
+            self.input_shape = [
                 self.input_shape[0],
                 hidden_size * 2 if bidirectional else hidden_size,
-            )
+            ]
 
         return self.get_layers()
+
+
+# sequenzlänge von dataset-> sollte auch suchparam sein? ja aber erstmal nicht
+# output : final cell state for each element in sequence -> braucht man den? kann weg
+# h: final hidden state for each element in sequence -> braucht man nur den letzten?, Suchparameter?
+# KLassifikator der mehrere hiddenstates braucht
+# tcn

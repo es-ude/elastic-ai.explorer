@@ -4,7 +4,7 @@ output: 1
 blocks:
   - block: "1" #namefield muss noch rein
     op_candidates: [ "lstm" ]
-    depth: [ 1]
+    depth: [ 2]
     activation: [ "sigmoid" , "relu"]
     linear:
       #überall range oder choices
@@ -16,7 +16,8 @@ blocks:
     lstm:
       hidden_size: [ 10, 20, 50 ]
       num_lstm_layers: [ 1]
-      bidirectional: [ True, False ]
+      bidirectional: [ False ]
+      return_sequence: [True]
   - block:  "2" #namefield muss noch rein
     op_candidates: ["linear"]
     depth: [1]
