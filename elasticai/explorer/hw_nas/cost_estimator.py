@@ -6,7 +6,6 @@ from fvcore.nn import FlopCountAnalysis
 from fvcore.nn.jit_handles import get_shape
 
 
-
 def get_values(vals: List[Any]) -> Optional[List[Any]]:
     return [v.toIValue() for v in vals]
 
@@ -32,7 +31,6 @@ def lstm_flop_jit(inputs: List[Any], outputs: List[Any]) -> Number:
         * (all_gate_flops + hadamard + activations)
     )
     return flops
-
 
 
 class FlopsEstimator:

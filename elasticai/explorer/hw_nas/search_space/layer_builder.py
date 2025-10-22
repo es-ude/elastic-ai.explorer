@@ -3,6 +3,7 @@ import math
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
+from elasticai.explorer.hw_nas.search_space.layer_adapter import LSTMNoSequenceAdapter
 
 from elasticai.explorer.hw_nas.search_space.registry import (
     activation_mapping,
@@ -158,6 +159,11 @@ class LSTMBuilder(LayerBuilder):
                 self.input_shape[0],
                 hidden_size * 2 if bidirectional else hidden_size,
             ]
+
+        if return_sequence == False:
+            no_sequence_layer = LSTMNoSequenceAdapter()
+            self.input_shape = no_sequence_layer.infer_output_shape(self.input_shape)
+            self.layers.append(no_sequence_layer)
 
         return self.get_layers()
 

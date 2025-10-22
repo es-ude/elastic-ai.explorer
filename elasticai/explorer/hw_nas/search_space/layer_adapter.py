@@ -27,7 +27,7 @@ class Conv2dToLinearAdapter(nn.Module):
         return c * h * w  # Flattened vector
 
 
-class LSTMToLinearAdapter(nn.Module):
+class LSTMNoSequenceAdapter(nn.Module):
     """(B, T, H) → (B, H)"""
 
     def forward(self, x):
@@ -38,3 +38,8 @@ class LSTMToLinearAdapter(nn.Module):
         # input_shape = (T, H)
         _, h = input_shape
         return h
+
+
+#
+# class LSTMToLinearAdapter(nn.Module):
+#     def forward(self, x):

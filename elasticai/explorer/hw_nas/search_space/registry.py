@@ -3,13 +3,13 @@ from torch import nn
 from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     Conv2dToLSTMAdapter,
     Conv2dToLinearAdapter,
-    LSTMToLinearAdapter,
+    #   LSTMToLinearAdapter,
 )
 
 ADAPTER_REGISTRY = {
     #  ("conv2d", "lstm"): Conv2dToLSTMAdapter,
     ("conv2d", "linear"): Conv2dToLinearAdapter,
-    ("lstm", "linear"): LSTMToLinearAdapter,
+    #   ("lstm", "linear"): LSTMToLinearAdapter,
 }
 
 activation_mapping = {

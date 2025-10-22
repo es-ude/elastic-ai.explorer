@@ -3,5 +3,5 @@ HWNASConfig:
   max_search_trials: 1
   top_n_models: 1
   n_estimation_epochs: 3
-  flops_weight: 2
+  flops_weight: 0.5
 

@@ -17,14 +17,14 @@ blocks:
       hidden_size: [ 10, 20, 50 ]
       num_lstm_layers: [ 1]
       bidirectional: [ False ]
-      return_sequence: [True]
+      return_sequence: [True, False]
   - block:  "2" #namefield muss noch rein
     op_candidates: ["linear"]
-    depth: [1]
-    activation: [ "sigmoid"]
+    depth: [2]
+    activation: [ "identity"]
     linear:
       #überall range oder choices
-      width: [16, 32, 5, 4]
+      width: [16, 32]
     conv2D:
       kernel_size: [1, 2]
       stride: [1, 2]
@@ -33,12 +33,6 @@ blocks:
       hidden_size: [10, 20, 50]
       num_lstm_layers: [1]
       bidirectional: [True, False]
-  - block: "3"
-    op_candidates: ["linear"]
-    activation: ["identity","sigmoid"]
-    depth: [1, 2, 3]
-    linear:
-      width: [ 10, 20, 30]
 #  - block: "3"
 #    op_candidates: ["linear"]
 #    depth: 3
