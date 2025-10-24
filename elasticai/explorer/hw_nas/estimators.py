@@ -13,7 +13,7 @@ handlers = {"aten::sigmoid": None}
 
 class Estimator:
     def __init__(self) -> None:
-        self.metric_id: str = "estimate"
+        self.metric_name: str = "estimate"
         self.logger: Logger = logging.getLogger("explorer.Estimator")
 
     @abstractmethod
@@ -23,7 +23,7 @@ class Estimator:
 class FLOPsEstimator(Estimator):
     def __init__(self, data_sample: torch.Tensor):
         super().__init__()
-        self.metric_id = "flops_estimate"
+        self.metric_name = "flops_estimate"
         self.logger: Logger = logging.getLogger("explorer.FlopsEstimator")
         self.data_sample = data_sample
 
@@ -37,7 +37,7 @@ class FLOPsEstimator(Estimator):
 class ParamEstimator(Estimator):
     def __init__(self):
         super().__init__()
-        self.metric_id = "parameter_count_estimate"
+        self.metric_name = "parameter_count_estimate"
         self.logger: Logger = logging.getLogger("explorer.ParamEstimator")
 
     def estimate(self, model_sample: torch.nn.Module) -> int:
@@ -54,7 +54,7 @@ class AccuracyEstimator(Estimator):
     ) -> None:
         super().__init__()
         self.logger: Logger = logging.getLogger("explorer.AccuracyEstimator")
-        self.metric_id = "accuracy_estimate"
+        self.metric_name = "accuracy_estimate"
         self.trainer_type = trainer_type
         self.n_estimation_epochs = n_estimation_epochs
         self.device = device
@@ -72,7 +72,7 @@ class AccuracyEstimator(Estimator):
             )
             raise TypeError("Trainer Type does not support accuracy estimation.")
         else:
-            self.logger.info(f"Estimated Accuracy is: {val_accuracy}")
+            self.logger.info(f"Estimated Accuracy is: {val_accuracy:.2f}")
         return val_accuracy
 
 
@@ -86,7 +86,7 @@ class LossEstimator(Estimator):
     ) -> None:
         super().__init__()
         self.logger: Logger = logging.getLogger("explorer.LossEstimator")
-        self.metric_id = "loss_estimate"
+        self.metric_name = "loss_estimate"
         self.trainer_type = trainer_type
         self.n_estimation_epochs = n_estimation_epochs
         self.device = device

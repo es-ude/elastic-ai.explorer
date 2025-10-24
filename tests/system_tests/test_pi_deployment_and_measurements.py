@@ -1,7 +1,7 @@
 import shutil
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import DockerParams, RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     RPiHWManager,
@@ -28,7 +28,7 @@ class TestDeploymentAndMeasurement:
         ssh_params = SSHParams(
             hostname=RPI_HOSTNAME, username=RPI_USERNAME
         )  # <-- Set the credentials of your RPi
-        docker_params = DockerParams()
+        compiler_params = CompilerParams()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -46,7 +46,7 @@ class TestDeploymentAndMeasurement:
         )
         self.RPI5explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.RPI5explorer.choose_target_hw(
-            "rpi5", communication_params=ssh_params, docker_params=docker_params
+            "rpi5", communication_params=ssh_params, compiler_params=compiler_params
         )
         self.model_name = "ts_model_0.pt"
         transf = transforms.Compose(

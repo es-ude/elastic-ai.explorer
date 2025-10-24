@@ -6,7 +6,7 @@ import torch
 from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
-from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteriaRegistry
 from elasticai.explorer.hw_nas.estimators import AccuracyEstimator, FLOPsEstimator
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -16,7 +16,7 @@ from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
 )
-from elasticai.explorer.platforms.deployment.compiler import DockerParams, RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.device_communication import (
     RPiHost,
     SSHParams,
@@ -70,38 +70,37 @@ def setup_mnist(path_to_test_data: Path):
     return dataset_spec
 
 
-def setup_constraints(dataset_spec) -> ConstraintRegistry:
-    constr_reg = ConstraintRegistry()
+def setup_constraints(dataset_spec) -> OptimizationCriteriaRegistry:
+    criteria_reg = OptimizationCriteriaRegistry()
 
     accuracy_estimator = AccuracyEstimator(MLPTrainer, dataset_spec, 3, device=device)
 
     data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=device)
 
-    constr_reg.register_soft_constraint(estimator=accuracy_estimator, is_reward=True)
-
-    constr_reg.register_soft_constraint(
-        estimator=FLOPsEstimator(data_sample), estimate_transform=log10, weight=2.0
+    criteria_reg.register_objective(estimator=accuracy_estimator)
+    criteria_reg.register_objective(
+        estimator=FLOPsEstimator(data_sample), transform=log10, weight=-2.0
     )
-    return constr_reg
+    return criteria_reg
 
 
 def find_generate_measure_for_pi(
     explorer: Explorer,
     ssh_params: SSHParams,
-    docker_params: DockerParams,
+    compiler_params: CompilerParams,
     search_space_path: Path,
     retrain_epochs: int = 4,
     max_search_trials: int = 4,
     top_n_models: int = 2,
 ):
-    explorer.choose_target_hw("rpi5", docker_params, ssh_params)
+    explorer.choose_target_hw("rpi5", compiler_params, ssh_params)
     explorer.generate_search_space(search_space_path)
 
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
-    constr_reg = setup_constraints(dataset_spec=dataset_spec)
+    criteria_reg = setup_constraints(dataset_spec=dataset_spec)
     top_models = explorer.search(
-        constraint_registry=constr_reg,
+        optimization_criteria_registry=criteria_reg,
         hw_nas_parameters=HWNASParameters(
             max_search_trials=max_search_trials, top_n_models=top_n_models
         ),
@@ -161,10 +160,13 @@ def find_generate_measure_for_pi(
 
 
 def search_models(
-    explorer: Explorer, ssh_params: SSHParams, docker_params: DockerParams, search_space
+    explorer: Explorer,
+    ssh_params: SSHParams,
+    compiler_params: CompilerParams,
+    search_space,
 ):
     explorer.choose_target_hw(
-        "rpi5", communication_params=ssh_params, docker_params=docker_params
+        "rpi5", communication_params=ssh_params, compiler_params=compiler_params
     )
     explorer.generate_search_space(search_space)
     path_to_test_data = ROOT_DIR / Path("data/mnist")
@@ -193,7 +195,7 @@ if __name__ == "__main__":
     ssh_params = SSHParams(
         hostname="<hostname>", username="<username>"
     )  # <-- Setup for your RPi
-    docker_params = DockerParams()  # <-- configure this only if necessary
+    compiler_params = CompilerParams()  # <-- configure this only if necessary
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
@@ -202,7 +204,7 @@ if __name__ == "__main__":
     find_generate_measure_for_pi(
         explorer=explorer,
         ssh_params=ssh_params,
-        docker_params=docker_params,
+        compiler_params=compiler_params,
         search_space_path=search_space,
         retrain_epochs=3,
         max_search_trials=4,

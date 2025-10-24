@@ -9,7 +9,7 @@ from settings import ROOT_DIR
 
 
 @dataclass
-class DockerParams:
+class CompilerParams:
     image_name: str = "cross"
     library_path: Path = Path("./code/libtorch")
     path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.picross"
@@ -18,7 +18,7 @@ class DockerParams:
 
 class Compiler(ABC):
     @abstractmethod
-    def __init__(self, docker_params: DockerParams):
+    def __init__(self, compiler_params: CompilerParams):
         pass
 
     @abstractmethod
@@ -35,12 +35,12 @@ class Compiler(ABC):
 
 
 class RPICompiler(Compiler):
-    def __init__(self, docker_params: DockerParams):
+    def __init__(self, compiler_params: CompilerParams):
         self.logger = logging.getLogger("RPICompiler")
-        self.image_name: str = docker_params.image_name  # "cross"
-        self.path_to_dockerfile: Path = Path(docker_params.path_to_dockerfile)
-        self.context_path: Path = Path(docker_params.build_context)
-        self.libtorch_path: Path = Path(docker_params.library_path)
+        self.image_name: str = compiler_params.image_name  # "cross"
+        self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
+        self.context_path: Path = Path(compiler_params.build_context)
+        self.libtorch_path: Path = Path(compiler_params.library_path)
         if not self.is_setup():
             self.setup()
 
@@ -76,13 +76,13 @@ class RPICompiler(Compiler):
 
 class PicoCompiler(Compiler):
 
-    def __init__(self, docker_params: DockerParams):
+    def __init__(self, compiler_params: CompilerParams):
         self.logger = logging.getLogger("PicoCompiler")
-        self.context_path: Path = Path(docker_params.build_context)
-        self.image_name: str = docker_params.image_name
-        self.path_to_dockerfile: Path = Path(docker_params.path_to_dockerfile)
-        self.context_path: Path = Path(docker_params.build_context)
-        self.cross_compiler_path: Path = Path(docker_params.library_path)
+        self.context_path: Path = Path(compiler_params.build_context)
+        self.image_name: str = compiler_params.image_name
+        self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
+        self.context_path: Path = Path(compiler_params.build_context)
+        self.cross_compiler_path: Path = Path(compiler_params.library_path)
         if not self.is_setup():
             self.setup()
 

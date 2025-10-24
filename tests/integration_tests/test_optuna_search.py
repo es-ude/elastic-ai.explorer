@@ -7,11 +7,11 @@ from optuna.trial import TrialState
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas import hw_nas
-from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteriaRegistry
 from elasticai.explorer.hw_nas.estimators import AccuracyEstimator
 from elasticai.explorer.hw_nas.hw_nas import (
     HWNASParameters,
-    SearchAlgorithm,
+    SearchStrategy,
     objective_wrapper,
 )
 from elasticai.explorer.hw_nas.search_space.construct_search_space import (
@@ -53,9 +53,9 @@ class TestFrozenTrialToModel:
         accuracy_estimator = AccuracyEstimator(
             MLPTrainer, self.dataset_spec, 2, device=self.device
         )
-        self.constraint_registry = ConstraintRegistry()
-        self.constraint_registry.register_soft_constraint(
-            estimator=accuracy_estimator, is_reward=True
+        self.optimization_criteria_registry = OptimizationCriteriaRegistry()
+        self.optimization_criteria_registry.register_objective(
+            estimator=accuracy_estimator
         )
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
@@ -87,7 +87,7 @@ class TestFrozenTrialToModel:
             partial(
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
-                constraint_registry=self.constraint_registry,
+                optimization_criteria_registry=self.optimization_criteria_registry,
             ),
             n_trials=self.hw_nas_params.max_search_trials,
             show_progress_bar=True,
@@ -108,8 +108,8 @@ class TestFrozenTrialToModel:
     def test_hw_nas_search(self):
         top_models, model_parameters, metrics = hw_nas.search(
             self.search_space_cfg,
-            search_algorithm=SearchAlgorithm.RANDOM_SEARCH,
-            constraint_registry=self.constraint_registry,
+            search_strategy=SearchStrategy.RANDOM_SEARCH,
+            optimization_criteria_registry=self.optimization_criteria_registry,
             hw_nas_parameters=self.hw_nas_params,
         )
         assert len(top_models) == self.hw_nas_params.top_n_models

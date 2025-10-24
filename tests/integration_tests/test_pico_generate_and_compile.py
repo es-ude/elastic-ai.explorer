@@ -3,7 +3,10 @@ from pathlib import Path
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import DockerParams, PicoCompiler
+from elasticai.explorer.platforms.deployment.compiler import (
+    CompilerParams,
+    PicoCompiler,
+)
 from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
     RPiHost,
@@ -26,7 +29,7 @@ from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 class TestPicoGenerateAndCompile:
     def setup_method(self):
         self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
-        self.docker_params = DockerParams(
+        self.compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
@@ -50,7 +53,7 @@ class TestPicoGenerateAndCompile:
         self.model_name = "model"
 
         self.pico_explorer.choose_target_hw(
-            "pico", self.docker_params, self.serial_params
+            "pico", self.compiler_params, self.serial_params
         )
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
@@ -93,7 +96,7 @@ class TestPicoGenerateAndCompile:
             DOCKER_CONTEXT_DIR / "bin" / expected_name_of_executable
         )
 
-        compiler = PicoCompiler(docker_params=self.docker_params)
+        compiler = PicoCompiler(compiler_params=self.compiler_params)
         if not compiler.is_setup():
             compiler.setup()
         compiler.compile_code(Path("code/pico_crosscompiler/measure_accuracy"))

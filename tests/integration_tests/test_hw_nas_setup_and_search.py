@@ -4,19 +4,19 @@ import shutil
 import torch
 
 import operator
-from elasticai.explorer.hw_nas.constraints import ConstraintRegistry
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteriaRegistry
 from elasticai.explorer.hw_nas.estimators import (
     AccuracyEstimator,
     FLOPsEstimator,
     ParamEstimator,
 )
 from elasticai.explorer.hw_nas.hw_nas import (
-    SearchAlgorithm,
+    SearchStrategy,
 )
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import DockerParams, RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.platforms.deployment.device_communication import (
@@ -67,9 +67,9 @@ class TestHWNasSetupAndSearch:
         accuracy_estimator = AccuracyEstimator(
             MLPTrainer, self.dataset_spec, 3, device=self.device
         )
-        self.constraint_registry = ConstraintRegistry()
-        self.constraint_registry.register_soft_constraint(
-            estimator=accuracy_estimator, is_reward=True
+        self.optimization_criteria_registry = OptimizationCriteriaRegistry()
+        self.optimization_criteria_registry.register_objective(
+            estimator=accuracy_estimator
         )
 
     def test_random_search(self):
@@ -78,8 +78,8 @@ class TestHWNasSetupAndSearch:
 
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            constraint_registry=self.constraint_registry,
-            search_algorithm=SearchAlgorithm.RANDOM_SEARCH,
+            optimization_criteria_registry=self.optimization_criteria_registry,
+            search_strategy=SearchStrategy.RANDOM_SEARCH,
         )
         assert len(top_k_models) == 2
 
@@ -88,8 +88,8 @@ class TestHWNasSetupAndSearch:
 
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            constraint_registry=self.constraint_registry,
-            search_algorithm=SearchAlgorithm.GRID_SEARCH,
+            optimization_criteria_registry=self.optimization_criteria_registry,
+            search_strategy=SearchStrategy.GRID_SEARCH,
         )
         assert len(top_k_models) == 2
 
@@ -97,8 +97,8 @@ class TestHWNasSetupAndSearch:
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         self.RPI5explorer.generate_search_space(search_space)
         top_k_models = self.RPI5explorer.search(
-            constraint_registry=self.constraint_registry,
-            search_algorithm=SearchAlgorithm.EVOlUTIONARY_SEARCH,
+            optimization_criteria_registry=self.optimization_criteria_registry,
+            search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
         )
         assert len(top_k_models) == 2
 
@@ -106,24 +106,26 @@ class TestHWNasSetupAndSearch:
         search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         self.RPI5explorer.generate_search_space(search_space)
 
-        data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=self.device)
-        self.constraint_registry.register_hard_constraint(
+        data_sample = torch.randn(
+            (1, 1, 28, 28), dtype=torch.float32, device=self.device
+        )
+        self.optimization_criteria_registry.register_hard_constraint(
             estimator=FLOPsEstimator(data_sample), operator=operator.lt, value=0
         )
-        self.constraint_registry.register_hard_constraint(
+        self.optimization_criteria_registry.register_hard_constraint(
             estimator=ParamEstimator(), operator=operator.lt, value=0
         )
 
         top_k_models = self.RPI5explorer.search(
-            constraint_registry=self.constraint_registry,
-            search_algorithm=SearchAlgorithm.EVOlUTIONARY_SEARCH,
+            optimization_criteria_registry=self.optimization_criteria_registry,
+            search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
         )
         assert len(top_k_models) == 0
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(
             "rpi5",
-            docker_params=DockerParams(),
+            compiler_params=CompilerParams(),
             communication_params=SSHParams("", ""),
         )
         model = SampleMLP(28 * 28)

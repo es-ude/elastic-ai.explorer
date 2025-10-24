@@ -1,7 +1,10 @@
 import math
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import DockerParams, PicoCompiler
+from elasticai.explorer.platforms.deployment.compiler import (
+    CompilerParams,
+    PicoCompiler,
+)
 from elasticai.explorer.platforms.deployment.hw_manager import (
     Metric,
     PicoHWManager,
@@ -24,7 +27,7 @@ from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
         serial_params = SerialParams(PICO_DEVICE_PATH)
-        docker_params = DockerParams(
+        compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
@@ -46,7 +49,7 @@ class TestPicoDeploymentAndMeasurement:
             "tests/system_tests/test_experiment"
         )
         self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
-        self.pico_explorer.choose_target_hw("pico", docker_params, serial_params)
+        self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.model_name = "ts_model_0.tflite"
 
         metric_to_source = {
