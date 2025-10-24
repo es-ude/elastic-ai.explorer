@@ -10,9 +10,9 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     PicoHWManager,
 )
-from elasticai.explorer.generator.model_generator import tflite_to_resolver
-from elasticai.explorer.generator.model_generator.model_generator import (
-    TFliteModelGenerator,
+from elasticai.explorer.generator.model_compiler import tflite_to_resolver
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TFliteModelCompiler,
 )
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -28,7 +28,7 @@ class TestPicoGenerateAndCompile:
             Generator(
                 "pico",
                 "Pico mit RP2040",
-                TFliteModelGenerator,
+                TFliteModelCompiler,
                 PicoHWManager,
                 RPiHost,
                 PicoCompiler,

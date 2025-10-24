@@ -17,8 +17,8 @@ from elasticai.explorer.knowledge_repository import (
 from elasticai.explorer.generator.deployment.compiler import RPICompiler
 from elasticai.explorer.generator.deployment.device_communication import RPiHost
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager, Metric
-from elasticai.explorer.generator.model_generator.model_generator import (
-    TorchscriptModelGenerator,
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TorchscriptModelCompiler,
 )
 from elasticai.explorer.training.trainer import MLPTrainer
 from settings import ROOT_DIR
@@ -34,7 +34,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            TorchscriptModelGenerator,
+            TorchscriptModelCompiler,
             RPiHWManager,
             RPiHost,
             RPICompiler,
@@ -45,7 +45,7 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            TorchscriptModelGenerator,
+            TorchscriptModelCompiler,
             RPiHWManager,
             RPiHost,
             RPICompiler,

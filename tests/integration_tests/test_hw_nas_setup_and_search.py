@@ -8,8 +8,8 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
-from elasticai.explorer.generator.model_generator.model_generator import (
-    TorchscriptModelGenerator,
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TorchscriptModelCompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import RPiHost
 from torchvision import transforms
@@ -30,7 +30,7 @@ class TestHWNasSetupAndSearch:
             Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                TorchscriptModelGenerator,
+                TorchscriptModelCompiler,
                 RPiHWManager,
                 RPiHost,
                 RPICompiler,

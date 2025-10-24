@@ -550,7 +550,9 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "ai-edge-torch" },
+    { name = "cocotb" },
     { name = "elasticai-creator" },
+    { name = "elasticai-runtime-env5" },
     { name = "fabric" },
     { name = "fvcore" },
     { name = "iesude-data" },
@@ -558,7 +560,6 @@ dependencies = [
     { name = "optuna" },
     { name = "pandas" },
     { name = "plotly" },
-    { name = "pyserial" },
     { name = "python-on-whales" },
     { name = "scipy" },
     { name = "tensorflow" },
@@ -581,7 +582,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ai-edge-torch", specifier = ">=0.5.0" },
+    { name = "cocotb", specifier = ">=2.0.0" },
     { name = "elasticai-creator", specifier = ">=0.66.0" },
+    { name = "elasticai-runtime-env5", git = "https://github.com/es-ude/elastic-ai.runtime.enV5.git?rev=a9bc18749b1c1666828453a47c9c37f6f0aa2d61" },
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "fvcore", specifier = ">=0.1.5.post20221221" },
     { name = "iesude-data", git = "https://github.com/es-ude/data.git" },
@@ -590,7 +593,6 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pandas", specifier = ">=2.3.1" },
     { name = "plotly", specifier = ">=6.0.1" },
-    { name = "pyserial", specifier = ">=3.5" },
     { name = "python-on-whales", specifier = ">=0.75.1" },
     { name = "scipy", specifier = ">=1.16.1" },
     { name = "tensorflow", specifier = "==2.20.0" },
@@ -625,6 +627,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b1/f4/8753943627e0062622e27958a59346b65eab186e877fcab5ecc83f2364a0/elasticai_creator-0.66.0.tar.gz", hash = "sha256:e776eb21d293e6269351654909a88f7f72250b78abe2d534fed368e2360da0ec", size = 497597, upload-time = "2025-09-24T07:27:41.666Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/eb/1cf576901a7d60023841b5a197bbc9d321325b4ddad0218d746893cfee35/elasticai_creator-0.66.0-py3-none-any.whl", hash = "sha256:da3204799ba08924985bea5aff7e43a7a2858d84228e0b84fcd6761d1cf6cbd6", size = 306695, upload-time = "2025-09-24T07:27:39.963Z" },
+]
+
+[[package]]
+name = "elasticai-runtime-env5"
+version = "0.1.0"
+source = { git = "https://github.com/es-ude/elastic-ai.runtime.enV5.git?rev=a9bc18749b1c1666828453a47c9c37f6f0aa2d61#a9bc18749b1c1666828453a47c9c37f6f0aa2d61" }
+dependencies = [
+    { name = "pyserial" },
 ]
 
 [[package]]
@@ -2092,11 +2102,11 @@ wheels = [
 
 [[package]]
 name = "pyserial"
-version = "3.5"
+version = "3.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1e/7d/ae3f0a63f41e4d2f6cb66a5b57197850f919f59e558159a4dd3a818f5082/pyserial-3.5.tar.gz", hash = "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb", size = 159125, upload-time = "2020-11-23T03:59:15.045Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/74/11b04703ec416717b247d789103277269d567db575d2fd88f25d9767fe3d/pyserial-3.4.tar.gz", hash = "sha256:6e2d401fdee0eab996cf734e67773a0143b932772ca8b42451440cfed942c627", size = 151657, upload-time = "2017-07-23T21:10:04.368Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0", size = 90585, upload-time = "2020-11-23T03:59:13.41Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/e4/2a744dd9e3be04a0c0907414e2a01a7c88bb3915cbe3c8cc06e209f59c30/pyserial-3.4-py2.py3-none-any.whl", hash = "sha256:e0770fadba80c31013896c7e6ef703f72e7834965954a78e71a3049488d4d7d8", size = 193717, upload-time = "2017-07-23T21:10:01.982Z" },
 ]
 
 [[package]]

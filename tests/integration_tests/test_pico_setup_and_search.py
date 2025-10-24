@@ -3,8 +3,8 @@ from elasticai.explorer.explorer import Explorer
 
 from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import PicoCompiler
-from elasticai.explorer.generator.model_generator.model_generator import (
-    TFliteModelGenerator,
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TFliteModelCompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import PicoHost
 from elasticai.explorer.generator.deployment.hw_manager import PicoHWManager
@@ -28,7 +28,7 @@ class TestPicoHWNasSetupAndSearch:
             Generator(
                 "pico",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                TFliteModelGenerator,
+                TFliteModelCompiler,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,

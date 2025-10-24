@@ -12,7 +12,7 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     HWManager,
     Metric,
 )
-from elasticai.explorer.generator.model_generator.model_generator import ModelGenerator
+from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
 from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
@@ -39,7 +39,7 @@ class Explorer:
         self.default_model: Optional[nn.Module] = None
         self.target_hw_platform: Optional[Generator] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
-        self.generator: Optional[ModelGenerator] = None
+        self.generator: Optional[ModelCompiler] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
 

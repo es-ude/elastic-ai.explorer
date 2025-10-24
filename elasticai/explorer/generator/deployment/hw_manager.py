@@ -13,7 +13,7 @@ from elasticai.explorer.generator.deployment.device_communication import (
     PicoHost,
     RPiHost,
 )
-from elasticai.explorer.generator.model_generator import tflite_to_resolver
+from elasticai.explorer.generator.model_compiler import tflite_to_resolver
 from elasticai.explorer.training.data import DatasetSpecification
 from settings import DOCKER_CONTEXT_DIR
 

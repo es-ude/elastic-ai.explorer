@@ -7,8 +7,8 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
     PicoHWManager,
 )
-from elasticai.explorer.generator.model_generator.model_generator import (
-    TFliteModelGenerator,
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TFliteModelCompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
     PicoHost,
@@ -36,7 +36,7 @@ class TestPicoDeploymentAndMeasurement:
             Generator(
                 "pico",
                 "Pico with RP2040 MCU and 2MB control memory",
-                TFliteModelGenerator,
+                TFliteModelCompiler,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,

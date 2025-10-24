@@ -21,8 +21,8 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     PicoHWManager,
     Metric,
 )
-from elasticai.explorer.generator.model_generator.model_generator import (
-    TFliteModelGenerator,
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TFliteModelCompiler,
 )
 
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -41,7 +41,7 @@ def setup_knowledge_repository_pico() -> KnowledgeRepository:
         Generator(
             "pico",
             "Pico with RP2040 MCU and 2MB control memory",
-            TFliteModelGenerator,
+            TFliteModelCompiler,
             PicoHWManager,
             PicoHost,
             PicoCompiler,

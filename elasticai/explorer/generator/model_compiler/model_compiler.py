@@ -10,6 +10,7 @@ import numpy
 from elasticai.creator.torch2ir.torch2ir import get_default_converter
 from elasticai.creator.ir2vhdl.ir2vhdl import Ir2Vhdl
 
+
 import torch
 from torch import nn
 from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
@@ -26,7 +27,7 @@ class QuantizationSchemes(str, Enum):
     INT8_UNIFORM = "int8_uniform"
 
 
-class ModelGenerator(ABC):
+class ModelCompiler(ABC):
     @abstractmethod
     def generate(
         self,
@@ -67,7 +68,7 @@ class ModelGenerator(ABC):
                 )
 
 
-class TorchscriptModelGenerator(ModelGenerator):
+class TorchscriptModelCompiler(ModelCompiler):
     def __init__(self):
         self.logger = logging.getLogger(
             "explorer.generator.generator.generator.PIGenerator"
@@ -101,7 +102,7 @@ class TorchscriptModelGenerator(ModelGenerator):
         return ts_model
 
 
-class TFliteModelGenerator(ModelGenerator):
+class TFliteModelCompiler(ModelCompiler):
     def __init__(self):
         self.logger = logging.getLogger(
             "explorer.generator.generator.generator.RP2040GeneratorFullPrecision"
@@ -199,7 +200,7 @@ class TFliteModelGenerator(ModelGenerator):
         self._model_to_cpp(path.with_suffix(".tflite"))
 
 
-class CreatorModelGenerator(ModelGenerator):
+class CreatorModelCompiler(ModelCompiler):
     def __init__(self) -> None:
         self.logger = logging.getLogger(
             "explorer.generator.model_compiler.model_compiler.CreatorModelCompiler"
@@ -240,3 +241,4 @@ class CreatorModelGenerator(ModelGenerator):
 
     def _build_creator_model_from_parametrisation(self, params: Dict):
 
+        pass

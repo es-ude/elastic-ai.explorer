@@ -8,8 +8,8 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     RPiHWManager,
     Metric,
 )
-from elasticai.explorer.generator.model_generator.model_generator import (
-    TorchscriptModelGenerator,
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TorchscriptModelCompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import RPiHost
 from torchvision.datasets import MNIST
@@ -36,7 +36,7 @@ class TestDeploymentAndMeasurement:
             Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                TorchscriptModelGenerator,
+                TorchscriptModelCompiler,
                 RPiHWManager,
                 RPiHost,
                 RPICompiler,

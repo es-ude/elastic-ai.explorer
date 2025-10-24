@@ -29,7 +29,6 @@ metrics/
 docker/code/libtorch*
 
 
-tests/data
 #bin 
 docker/bin
 
@@ -46,8 +45,12 @@ configs/
 experiments/
 
 #system-tests
+tests/data
 tests/system_tests/test_experiment/
 tests/system_tests/samples/data/
+tests/system_tests/samples/designs
+tests/system_tests/samples/results
+tests/system_tests/samples/vivado_run_results
 #integration-tests
 tests/integration_tests/test_experiment/
 tests/integration_tests/samples/features.csv
