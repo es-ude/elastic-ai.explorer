@@ -3,7 +3,8 @@ from pathlib import Path
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import PicoCompiler
 from elasticai.explorer.generator.deployment.device_communication import RPiHost
 from elasticai.explorer.generator.deployment.hw_manager import (

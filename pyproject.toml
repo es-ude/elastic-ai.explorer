@@ -24,8 +24,7 @@ dependencies = [
     "iesude-data",
     "tflite>=2.18.0",
     "elasticai-runtime-env5",
-    "cocotb>=2.0.0",
-    "elasticai-creator>=0.66.0",
+    "elasticai-creator==0.66.0",
 ]
 
 # Same as Black.

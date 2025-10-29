@@ -1,9 +1,5 @@
 import math
 from torch import nn
-from elasticai.explorer.generator.model_builder.model_builder import (
-    ModelBuilder,
-    PytorchModelBuilder,
-)
 from elasticai.explorer.hw_nas.search_space.utils import calculate_conv_output_shape
 
 activation_mapping = {"relu": nn.ReLU(), "sigmoid": nn.Sigmoid()}
@@ -13,14 +9,12 @@ class SearchSpace:
     def __init__(
         self,
         search_space_cfg: dict,
-        model_builder: ModelBuilder = PytorchModelBuilder(),
     ):
         self.search_space_cfg = search_space_cfg
         self.input_shape = search_space_cfg["input"]
         self.output_shape = search_space_cfg["output"]
         self.blocks: list[dict] = search_space_cfg["blocks"]
         self.layers = []
-        self.model_builder = model_builder
 
     def createLinear(self, trial, block, num_layers, search_params):
         block_id = block["block"]
@@ -90,7 +84,7 @@ class SearchSpace:
             case "conv2d":
                 self.createConv2d(trial, block, num_layers, block["conv2D"])
 
-    def create_model_sample(self, trial):
+    def create_native_torch_model_sample(self, trial) -> nn.Module:
         """
         Akzeptiert entweder:
          - einen Optuna Trial (interactive -> trial.suggest_... wird verwendet)
@@ -103,10 +97,6 @@ class SearchSpace:
         elif hasattr(trial, "params"):
             # Optuna FrozenTrial hat .params
             params = getattr(trial, "params")
-
-        if params is not None:
-            # delegiere an den ModelBuilder
-            return self.model_builder.build_from_params(params, self.search_space_cfg)
 
         # Sonst interaktiver Trial: altes Verhalten beibehalten
         self.input_shape = self.search_space_cfg["input"]

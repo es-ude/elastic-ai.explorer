@@ -9,9 +9,9 @@ from torchvision.transforms import transforms
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.explorer import Explorer
 
+from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
-    Generator,
 )
 from elasticai.explorer.generator.deployment.compiler import PicoCompiler
 from elasticai.explorer.generator.deployment.device_communication import (

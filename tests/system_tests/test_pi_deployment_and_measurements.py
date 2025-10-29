@@ -1,7 +1,8 @@
 import shutil
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,

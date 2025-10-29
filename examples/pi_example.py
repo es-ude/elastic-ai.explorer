@@ -7,12 +7,12 @@ from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
+from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
-    Generator,
 )
 from elasticai.explorer.generator.deployment.compiler import RPICompiler
 from elasticai.explorer.generator.deployment.device_communication import RPiHost

@@ -1,14 +1,10 @@
-from enum import Enum
 import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 import subprocess
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import numpy
-
-from elasticai.creator.torch2ir.torch2ir import get_default_converter
-from elasticai.creator.ir2vhdl.ir2vhdl import Ir2Vhdl
 
 
 import torch
@@ -21,10 +17,7 @@ from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_con
 from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
 from ai_edge_torch.quantize.quant_config import QuantConfig
 
-
-class QuantizationSchemes(str, Enum):
-    FULL_PRECISION_FLOAT32 = "full_precision_float32"
-    INT8_UNIFORM = "int8_uniform"
+from elasticai.explorer.generator.model_builder.model_builder import QuantizationSchemes
 
 
 class ModelCompiler(ABC):
@@ -37,35 +30,6 @@ class ModelCompiler(ABC):
         quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
     ) -> Any:
         pass
-
-    def get_supported_layers(self) -> Optional[set[type]]:
-        """Override if necessary. "None" means no constraints."""
-        return None
-
-    def get_supported_quantization_schemes(self) -> Optional[set[QuantizationSchemes]]:
-        """Override if necessary. "None" means no constraints."""
-        return None
-
-    def _validate_model(
-        self, model: nn.Module, quantization_scheme: QuantizationSchemes
-    ):
-        """Override if necessary"""
-        supported_layers = self.get_supported_layers()
-        supported_quantization_schemes = self.get_supported_quantization_schemes()
-        if supported_layers is not None:
-            for layer in model.modules():
-                if layer is model:
-                    continue
-                if type(layer) not in supported_layers:
-                    raise NotImplementedError(
-                        f"Layer {type(layer).__name__} wird von {self.__class__.__name__} nicht unterstützt"
-                    )
-
-        if supported_quantization_schemes is not None:
-            if quantization_scheme not in supported_quantization_schemes:
-                raise NotImplementedError(
-                    f"Layer {quantization_scheme} wird von {self.__class__.__name__} nicht unterstützt"
-                )
 
 
 class TorchscriptModelCompiler(ModelCompiler):
@@ -213,32 +177,5 @@ class CreatorModelCompiler(ModelCompiler):
         input_sample: torch.Tensor,
         quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
     ):
-
-        
-        # self._validate_model(model, quantization_scheme)
-        # model = model
-        # default_converter = get_default_converter()
-        # ir = default_converter.convert(model)
-        # for impl in ir:
-        #     print("implementation: ", impl)
-        # ir2Vhdl = Ir2Vhdl()
-        # vhdl_code = ir2Vhdl(ir)  # type:ignore
-        # for code in vhdl_code:
-        #     print("VHDL code: ", code)
-
-        pass
-
-    def get_supported_layers(self) -> Optional[set[type]]:
-        return {
-            nn.Linear,
-            nn.Conv1d,
-            nn.ReLU,
-            nn.MaxPool1d,
-            nn.BatchNorm1d,
-            nn.Flatten,
-            nn.Sigmoid,
-        }
-
-    def _build_creator_model_from_parametrisation(self, params: Dict):
 
         pass

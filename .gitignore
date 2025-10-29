@@ -38,6 +38,11 @@ docker/test_data
 #models
 models/
 docker/code/pico_crosscompiler/*/model.cpp
+
+#designs 
+examples/designs
+examples/results
+vivado_run_results*
 #individual configs
 configs/
 

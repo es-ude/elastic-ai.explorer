@@ -1,4 +1,3 @@
-from gc import callbacks
 import logging
 import math
 from typing import Any, Callable, Type
@@ -8,12 +7,21 @@ from enum import Enum
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
+
 from torch.optim.adam import Adam
 
+from elasticai.explorer.generator.model_builder.model_builder import (
+    ModelBuilder,
+    TorchModelBuilder,
+)
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig
-from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
+from elasticai.explorer.hw_nas.estimator import (
+    Estimator,
+    FLOPsEstimator,
+    ParamEstimator,
+)
 from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
@@ -30,6 +38,7 @@ def objective_wrapper(
     search_space_cfg: dict[str, Any],
     dataset_spec: data.DatasetSpecification,
     trainer_class: type[Trainer],
+    model_builder: ModelBuilder,
     device: str,
     n_estimation_epochs: int,
     flops_weight: float,
@@ -39,14 +48,18 @@ def objective_wrapper(
     def objective(trial: optuna.Trial) -> float:
 
         search_space = SearchSpace(search_space_cfg)
-        model = search_space.create_model_sample(trial)
+        model = model_builder.build_from_trial(trial, search_space)
+
         optimizer = Adam(model.parameters(), lr=1e-3)
         trainer = trainer_class(device, optimizer, dataset_spec)
 
-        cost_estimator = CostEstimator()
         sample, _ = next(iter(trainer.test_loader))
-        flops = cost_estimator.estimate_flops(model, sample)
-        params = cost_estimator.compute_num_params(model)
+        flops = save_estimate(
+            FLOPsEstimator(sample), model_builder, trial, search_space, model
+        )
+        params = save_estimate(
+            ParamEstimator(), model_builder, trial, search_space, model
+        )
         max_flops = constraints.get("max_flops")
         max_params = constraints.get("max_params")
         if max_flops and flops > max_flops:
@@ -84,6 +97,7 @@ def objective_wrapper(
 
 def search(
     search_space_cfg: dict,
+    model_builder: ModelBuilder,
     hwnas_cfg: HWNASConfig,
     dataset_spec: data.DatasetSpecification,
     trainer_class: Type[Trainer],
@@ -112,7 +126,11 @@ def search(
 
     if hwnas_cfg.count_only_completed_trials:
         n_trials = None
-        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))]
+        callbacks = [
+            MaxTrialsCallback(
+                hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,)
+            )
+        ]
     else:
         n_trials = hwnas_cfg.max_search_trials
         callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)]
@@ -127,6 +145,7 @@ def search(
             n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
             flops_weight=hwnas_cfg.flops_weight,
             constraints=hwnas_cfg.hw_constraints,
+            model_builder=model_builder,
         ),
         n_trials=n_trials,
         callbacks=callbacks,
@@ -152,7 +171,9 @@ def search(
     top_k_metrics: list[dict] = []
 
     for frozen_trial in top_k_frozen_trials:
-        top_k_models.append(search_space.create_model_sample(frozen_trial))
+        top_k_models.append(
+            (model_builder.build_from_trial(frozen_trial, search_space))
+        )
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
@@ -164,3 +185,26 @@ def search(
         )
 
     return top_k_models, top_k_params, top_k_metrics
+
+
+# TODO rework this for OptimizationCriteriaRegistry
+def save_estimate(
+    estimator: Estimator,
+    model_builder: ModelBuilder,
+    trial: Any,
+    search_space: SearchSpace,
+    model: Any,
+) -> float | int:
+    try:
+        estimate = estimator.estimate(model)
+    except Exception as e:
+        if isinstance(model_builder, TorchModelBuilder):
+            logger.error(f"Estimation failed for estimator {estimator} with {e}")
+            raise e
+        logger.warning(
+            f"Estimation failed for Estimator {estimator.__class__} and ModelBuilder {model_builder.__class__} with {e}. Fallback to TorchModelBuilder."
+        )
+        torch_model = TorchModelBuilder().build_from_trial(trial, search_space)
+        estimate = estimator.estimate(torch_model)
+
+    return estimate

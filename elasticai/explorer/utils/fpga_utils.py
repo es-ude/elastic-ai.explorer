@@ -1,5 +1,5 @@
+from typing import Literal
 from fabric import Connection
-import click
 from enum import StrEnum, auto, Enum
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -19,7 +19,8 @@ _SRCS_FILE_BASE_NAME = "synth_srcs"
 _SRCS_FILE_NAME = f"{_SRCS_FILE_BASE_NAME}.tar.gz"
 _TCL_SCRIPT_NAME = "autobuild.tcl"
 
-_tcl_script_content_tpl = Template("""
+_tcl_script_content_tpl = Template(
+    """
 # run.tcl V3 - exits on any error
 
 # Function to handle errors and exit Vivado
@@ -52,7 +53,8 @@ if {[catch {
 
 # Exit cleanly if everything succeeds
 exit
-""")
+"""
+)
 
 
 def _create_srcs_archive(tmp_dir: Path, src_dir: Path) -> Path:
@@ -74,8 +76,7 @@ def _write_tcl_script(
     part_number: str,
     remote_working_dir: str,
     num_jobs: int,
-    srcs_dir: str,
-) -> Path:
+):
     (tmp_dir / _TCL_SCRIPT_NAME).write_text(
         _tcl_script_content_tpl.safe_substitute(
             remote_working_dir=remote_working_dir,
@@ -125,48 +126,55 @@ class ConnectionWrapper:
         return getattr(self._wrapped, name)
 
 
-@click.command()
-@click.argument(
-    "src_dir",
-    type=click.Path(
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-        readable=True,
-        writable=True,
-        path_type=Path,
-    ),
-)
-@click.option(
-    "--host",
-    envvar=["SYNTH_SERVER", "SYNTH_HOST"],
-    required=True,
-    help="The host we will reach via ssh to run vivado, needs to provide ssh service and Vivado",
-)
-@click.option("--ssh-user", envvar=["SYNTH_SSH_USER"], required=True)
-@click.option("--ssh-port", envvar=["SYNTH_SSH_PORT"], default=22, type=click.INT)
-@click.option(
-    "--target",
-    envvar=["SYNTH_TARGET"],
-    required=True,
-    help="The target will determine the part number for vivado",
-    type=click.Choice(TargetPlatforms),
-)
-@click.option(
-    "--remote-working-dir",
-    envvar=["SYNTH_REMOTE_WORKING_DIR"],
-    required=True,
-    help="Commands will be run from this directory on the remote host. The directory will be cleaned before each run, so you can still access any artifacts after each run. CAUTION: has not been tried with relative paths!",
-)
-@click.option(
-    "--vivado-path",
-    envvar=["SYNTH_VIVADO_PATH"],
-    default="/tools/Xilinx/Vivado/2023.1/bin/vivado",
-    help="The path to the vivado executable on the remote host",
-)
-@click.option("--quiet", is_flag=True)
-def main(
-    src_dir, host, ssh_user, ssh_port, target, remote_working_dir, vivado_path, quiet
+# @click.command()
+# @click.argument(
+#     "src_dir",
+#     type=click.Path(
+#         exists=True,
+#         file_okay=False,
+#         dir_okay=True,
+#         readable=True,
+#         writable=True,
+#         path_type=Path,
+#     ),
+# )
+# @click.option(
+#     "--host",
+#     envvar=["SYNTH_SERVER", "SYNTH_HOST"],
+#     required=True,
+#     help="The host we will reach via ssh to run vivado, needs to provide ssh service and Vivado",
+# )
+# @click.option("--ssh-user", envvar=["SYNTH_SSH_USER"], required=True)
+# @click.option("--ssh-port", envvar=["SYNTH_SSH_PORT"], default=22, type=click.INT)
+# @click.option(
+#     "--target",
+#     envvar=["SYNTH_TARGET"],
+#     required=True,
+#     help="The target will determine the part number for vivado",
+#     type=click.Choice(TargetPlatforms),
+# )
+# @click.option(
+#     "--remote-working-dir",
+#     envvar=["SYNTH_REMOTE_WORKING_DIR"],
+#     required=True,
+#     help="Commands will be run from this directory on the remote host. The directory will be cleaned before each run, so you can still access any artifacts after each run. CAUTION: has not been tried with relative paths!",
+# )
+# @click.option(
+#     "--vivado-path",
+#     envvar=["SYNTH_VIVADO_PATH"],
+#     default="/tools/Xilinx/Vivado/2023.1/bin/vivado",
+#     help="The path to the vivado executable on the remote host",
+# )
+# @click.option("--quiet", is_flag=True)
+def run_vhdl_synthesis(
+    src_dir: Path,
+    host: str,
+    ssh_user: str,
+    remote_working_dir: str,
+    vivado_path: str = "/tools/Xilinx/Vivado/2023.1/bin/vivado",
+    ssh_port: int = 22,
+    target=TargetPlatforms.env5,
+    quiet: bool = False,
 ):
     """Generate FPGA bitstreams remotely.
 
@@ -204,7 +212,6 @@ def main(
             part_number=_fpga_model_for_platform[target],
             remote_working_dir=remote_working_dir,
             num_jobs=12,
-            srcs_dir=_SRCS_FILE_BASE_NAME,
         )
         print("archiving srcs")
         srcs_archive = _create_srcs_archive(tmp_dir, src_dir)
@@ -251,7 +258,3 @@ def main(
         local=str(src_dir.parent.absolute() / "vivado_run_results.tar.gz"),
         remote=f"{remote_working_dir}/results.tar.gz",
     )
-
-
-if __name__ == "__main__":
-    main()

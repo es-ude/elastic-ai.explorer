@@ -3,9 +3,10 @@ from pathlib import Path
 import shutil
 import torch
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
+from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.generator.model_compiler.model_compiler import (

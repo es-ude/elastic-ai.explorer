@@ -8,13 +8,14 @@ from torchvision import transforms
 from optuna.trial import TrialState
 
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.hw_nas import objective_wrapper
 from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     SearchSpace,
 )
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.knowledge_repository import Generator, KnowledgeRepository
+from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     TorchscriptModelCompiler,
@@ -121,7 +122,7 @@ class TestFrozenTrialToModel:
         assert len(test_results) == hwnas_cfg.max_search_trials
 
         for trial in test_results:
-            model = self.search_space.create_model_sample(trial)
+            model = self.search_space.create_native_torch_model_sample(trial)
             input = torch.randn(1, 1, 28, 28).to(hwnas_cfg.host_processor)
             model.eval()
             model.to(hwnas_cfg.host_processor)
