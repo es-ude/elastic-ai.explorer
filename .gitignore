@@ -15,6 +15,9 @@ docker/data
 /docker/code/pico_crosscompiler/app_full_precision
 /docker/code/pico_crosscompiler/third_party
 examples/data
+mnist_images.h
+mnist_labels.h
+
 #experiments logs
 experiments/
 experiment_data.csv
@@ -38,7 +41,7 @@ docker/test_data
 
 #models
 models/
-
+docker/code/pico_crosscompiler/*/model.cpp
 #individual configs
 configs/
 
@@ -211,3 +214,4 @@ cython_debug/
 
 #Vscode
 .vscode/
+.cspell/

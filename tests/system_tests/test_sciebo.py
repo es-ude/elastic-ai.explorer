@@ -14,7 +14,7 @@ class TestSciebo:
     def test_sciebo_download(self):
 
         get_file_from_sciebo(
-            path_to_save=self.save_dir + "/sciebo",
+            path_to_save= self.save_dir + "/sciebo",
             file_path_in_sciebo="mnist.zip",
             file_type=Zip,
         )
@@ -29,4 +29,4 @@ class TestSciebo:
         assert os.path.isfile(self.save_dir + "/test_data.csv")
 
     def teardown_class(self):
-        shutil.rmtree(self.save_dir)
+        shutil.rmtree(self.save_dir, ignore_errors=True)

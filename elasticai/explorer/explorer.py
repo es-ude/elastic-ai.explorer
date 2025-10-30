@@ -8,7 +8,10 @@ from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.manager import HWManager, Metric
+from elasticai.explorer.platforms.deployment.hw_manager import (
+    HWManager,
+    Metric,
+)
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.training.trainer import Trainer, TrainerFactory
 from elasticai.explorer.training import data
@@ -67,7 +70,7 @@ class Explorer:
 
     @experiment_name.setter
     def experiment_name(self, value: str):  # type: ignore
-        """Setting experiment name updates the experiment pathes aswell."""
+        """Setting experiment name updates the experiment paths as well."""
         self._experiment_name: str = value
         self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
         self._update_experiment_paths()
@@ -78,9 +81,6 @@ class Explorer:
         self._experiment_dir: Path = value
         self._experiment_name: str = self._experiment_dir.stem
         self._update_experiment_paths()
-
-    def set_default_model(self, model: nn.Module):
-        self.default_model = model
 
     def generate_search_space(self, path_to_searchspace: Path):
         self.search_space_cfg = yaml_to_dict(path_to_searchspace)
@@ -135,26 +135,31 @@ class Explorer:
         )
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
-    def hw_setup_on_target(self, path_to_testdata: Optional[Path]):
+    def hw_setup_on_target(
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
+    ):
         """
         Args:
-            path_to_testdata: Path to zipped testdata relative to docker context. Testdata has to be in docker context.
+            path_to_testdata: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
+            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context. this doesn't explain anything
+              E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
+              :param data_spec: this is missing
+
         """
         self.logger.info("Setup Hardware target for experiments.")
-        if self.hw_manager:
-            self.hw_manager.install_code_on_target(
-                "measure_latency", "measure_latency.cpp"
-            )
-            if path_to_testdata:
-                self.hw_manager.install_dataset_on_target(path_to_testdata)
-            self.hw_manager.install_code_on_target(
-                "measure_accuracy", "measure_accuracy.cpp"
-            )
-        else:
+
+        if not self.hw_manager:
             self.logger.error(
-                "HwManager is not initialized! First run choose_target_hw(deploy_cfg), before hw_setup_on_target()"
+                "HwManager is not initialized! First run choose_target_hw(deploy_cfg) before hw_setup_on_target()."
             )
             exit(-1)
+
+       
+        self.hw_manager.install_dataset_on_target(data_spec)
+
+        for metric, source in metric_to_source.items():
+            self.logger.info(f"Installing program for {metric.name}: {source}")
+            self.hw_manager.install_code_on_target(source, metric)
 
     def run_measurement(self, metric: Metric, model_name: str) -> dict:
         model_path = self._model_dir / model_name
@@ -169,10 +174,18 @@ class Explorer:
             exit(-1)
         return measurement
 
-    def generate_for_hw_platform(self, model: nn.Module, model_name: str) -> Any:
+    def generate_for_hw_platform(
+        self, model: nn.Module, model_name: str, dataset_spec: data.DatasetSpecification
+    ) -> Any:
         model_path = self._model_dir / model_name
+
+        dataset = dataset_spec.dataset_type(
+            dataset_spec.dataset_location,
+            transform=dataset_spec.transform,
+        )
+        sample_input, _ = next(iter(dataset))
         if self.generator:
-            return self.generator.generate(model, model_path)
+            return self.generator.generate(model, model_path, sample_input)
         else:
             self.logger.error(
                 "Generator is not initialized! First run choose_target_hw(deploy_cfg), before generate_for_hw_platform()"

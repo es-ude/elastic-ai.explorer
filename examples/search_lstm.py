@@ -8,10 +8,10 @@ from torch import nn
 
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
-from elasticai.explorer.hw_nas.search_space import architecture_components
-from elasticai.explorer.hw_nas.search_space.architecture_components import LinearOne
+
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.generator.generator import RPiGenerator
+
 from elasticai.explorer.training.data import DatasetSpecification, BaseDataset
 from elasticai.explorer.training.trainer import SupervisedTrainer
 from settings import ROOT_DIR
@@ -87,7 +87,7 @@ def run_lstm_search():
         dataset_location=Path(""),
         transform=None,
         target_transform=None,
-        train_test_val_ratio=[0.7, 0.1, 0.2],
+        train_val_test_ratio=[0.7, 0.1, 0.2],
         shuffle=False,
         split_seed=42,
     )
@@ -116,8 +116,11 @@ def run_lstm_search():
     trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
     trainer.train(model, epochs=50, early_stopping=True)
     validate(model, trainer.test_loader)
-    generator = PIGenerator()
-    generator.generate(model, ROOT_DIR / "experiments/lstm_model")
+    generator = RPiGenerator()
+    generator.generate(
+        model,
+        ROOT_DIR / "experiments/lstm_model",
+    )
 
 
 if __name__ == "__main__":

@@ -1,16 +1,26 @@
 # HWNASConfig that defines the HW-Nas Behavior.
 # If parameters are not specified inside the config, they are set to default values.
 HWNASConfig:
-  #Processor type (cpu, cuda:n) of the host, the experiment should run on.
+  # Processor type (cpu, cuda:n) of the host that the experiment should run on.
   host_processor: "auto" 
 
   # The search trials the HW-NAS should do at max.
   max_search_trials: 4
 
+  # Whether to count only completed trials towards the max_search_trials OR to count all trials (including failed ones).
+  count_only_completed_trials: false
 
   # The number of top models returned by HW-NAS.
   top_n_models: 2
 
+  # The search algorithm to use for the HW-NAS.
+  # Options: "random", "grid", "evolution"
+  search_algorithm: "random"
+
+  # The hardware constraints for the search.
+  # Currently, only "max_flops" and "max_params" are supported.
+  # Max. capabilities of Raspberry Pi platforms: RPi4 ~ 4.4 GFLOPS, RPi5 ~ 10 GFLOPS.
+  hw_constraints: {"max_flops": 10e9, "max_params": 1e6}
   # The number of training epochs for accuracy estimation.
   n_estimation_epochs: 2
 

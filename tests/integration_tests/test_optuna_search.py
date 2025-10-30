@@ -1,3 +1,4 @@
+import shutil
 import pytest
 from torch import optim
 
@@ -17,9 +18,9 @@ from elasticai.explorer.hw_nas.search_space.construct_search_space import (
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager
+from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import SupervisedTrainer
 from settings import ROOT_DIR
@@ -35,9 +36,12 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
         {
             "flops_weight": 2,
             "n_estimation_epochs": 1,
-            "max_search_trials": 8,
+            "max_search_trials": 6,
             "host_processor": "cpu",
             "top_n_models": 4,
+            "hw_constraints": {},
+            "search_algorithm": "evolution",
+            "count_only_completed_trials": False,
         },
         {
             "flops_weight": 2,
@@ -45,9 +49,12 @@ OUTPUT_PATH = ROOT_DIR / "tests/outputs"
             "max_search_trials": 2,
             "host_processor": "cpu",
             "top_n_models": 1,
+            "hw_constraints": {},
+            "search_algorithm": "evolution",
+            "count_only_completed_trials": True,
         },
     ],
-    ids=["8_trials_4_top_models", "2_trials_1_top_model"],
+    ids=["6_trials_4_top_models", "2_trials_1_top_model"],
 )
 def hwnas_cfg(request):
     return SimpleNamespace(**request.param)
@@ -62,8 +69,8 @@ class TestFrozenTrialToModel:
             HWPlatform(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                PIGenerator,
-                PIHWManager,
+                RPiGenerator,
+                RPiHWManager,
                 Host,
                 Compiler,
             )
@@ -82,9 +89,10 @@ class TestFrozenTrialToModel:
         )
         self.search_space = SearchSpace(self.search_space_cfg)
         self.dataset_spec = DatasetSpecification(
-            MNISTWrapper,
-            Path(ROOT_DIR / "data/mnist"),
-            transforms.Compose(
+            dataset_type=MNISTWrapper,
+            dataset_location=Path(ROOT_DIR / "data/mnist"),
+            deployable_dataset_path=Path(ROOT_DIR / "data/mnist"),
+            transform=transforms.Compose(
                 [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
             ),
         )
@@ -130,3 +138,6 @@ class TestFrozenTrialToModel:
         assert len(model_parameters) == hwnas_cfg.top_n_models
         assert len(metrics) == hwnas_cfg.top_n_models
         assert type(metrics[0]["val_accuracy"]) is float
+
+    def teardown_class(self):
+        shutil.rmtree(self.RPI5explorer.experiment_dir, ignore_errors=True)

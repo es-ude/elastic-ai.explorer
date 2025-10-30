@@ -1,63 +1,27 @@
-# Dockerfile.cross
-FROM debian:bookworm
+ARG BASE_IMAGE=cross
+FROM ${BASE_IMAGE}:latest AS builder
 
-#arm-linux-gnueabihf-g++
-#gcc-aarch64-linux-gnu
-ENV GNU_HOST=aarch64-linux-gnu
-ENV C_COMPILER_ARM_LINUX=$GNU_HOST-gcc
-ENV CXX_COMPILER_ARM_LINUX=$GNU_HOST-g++
+ARG HOST_LIBTORCH_PATH="./code/libtorch"
+ARG PROGRAM_CODE
+ARG NAME_OF_EXECUTABLE
 
-ENV CROSS_INSTALL_PREFIX=/usr/$GNU_HOST
-ENV CROSS_TOOLCHAIN=/arm.toolchain.cmake
-ENV LIB_ARCH=arm64
+COPY ./$PROGRAM_CODE /code/
+COPY ./code/CMakeLists.txt /code/
+ADD  $HOST_LIBTORCH_PATH /code/libtorch
 
-# https://cmake.org/cmake/help/v3.16/manual/cmake-toolchains.7.html#cross-compiling-for-linux
-# https://cmake.org/cmake/help/v2.8.11/cmake.html#variable%3aCMAKE_PREFIX_PATH
-RUN echo "set(CMAKE_SYSTEM_NAME Linux)" >> $CROSS_TOOLCHAIN && \
-  echo "set(CMAKE_SYSTEM_PROCESSOR aarch64)" >> $CROSS_TOOLCHAIN && \
-  echo "set(CMAKE_C_COMPILER /usr/bin/$C_COMPILER_ARM_LINUX)" >> $CROSS_TOOLCHAIN && \
-  echo "set(CMAKE_CXX_COMPILER /usr/bin/$CXX_COMPILER_ARM_LINUX)" >> $CROSS_TOOLCHAIN && \
-  echo "set(CMAKE_PREFIX_PATH $CROSS_INSTALL_PREFIX)" >> $CROSS_TOOLCHAIN &&\
-  echo "set(CMAKE)" >> $CROSS_TOOLCHAIN
+ENV BIN_DIR=/tmp/bin
+ENV BUILD_DIR=/code/build
 
-
-#g++-arm-linux-gnueabihf
-RUN apt-get update && \
-  apt-get install  --no-install-recommends -y autoconf \
-    automake \
-    build-essential \
-    ca-certificates \
-    curl \
-    # C/C++ cross compilers
-    gcc-$GNU_HOST \
-    g++-$GNU_HOST \
-    git \
-    gnupg \
-    libssl-dev \
-    openssh-client \
-    pkg-config \
-    software-properties-common \
-    wget && \
-  rm -rf /var/lib/apt/lists/*
+RUN mkdir -p $BIN_DIR && mkdir -p $BUILD_DIR && \
+    cd $BUILD_DIR && \
+    cmake -DCMAKE_PREFIX_PATH=/code/libtorch \
+    -DPROGRAM_CODE=$PROGRAM_CODE \
+    -DNAME_OF_EXECUTABLE=$NAME_OF_EXECUTABLE \
+    -DCMAKE_TOOLCHAIN_FILE=$CROSS_TOOLCHAIN \
+    .. && \
+    cmake --build . --config Release  && \
+    cp ./$NAME_OF_EXECUTABLE $BIN_DIR/
 
 
-RUN dpkg --add-architecture $LIB_ARCH  
-RUN apt-get update && \
-  apt-get install  --no-install-recommends -y libnuma-dev:$LIB_ARCH\ 
-  libopenblas-dev:$LIB_ARCH \
-    libopenmpi-dev:$LIB_ARCH
-
-
-ENV CMAKE_VERSION=3.31.1
-
-RUN export CMAKE_DIR=cmake-$CMAKE_VERSION && \
-  export CMAKE_ARCH=$CMAKE_DIR.tar.gz && \
-  wget --progress=bar:force:noscroll https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/$CMAKE_ARCH && \
-  tar -xzf $CMAKE_ARCH && \
-  cd $CMAKE_DIR && \
-  ./bootstrap --parallel=`nproc` && \
-  make -j `nproc` && \
-  make install && \
-  rm -rf ../$CMAKE_ARCH \
-    ../$CMAKE_DIR
-
+FROM scratch
+COPY --from=builder /tmp/bin /

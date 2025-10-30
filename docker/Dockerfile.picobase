@@ -1,0 +1,36 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PICO_SDK_PATH=/code/pico_crosscompiler/third_party/pico-sdk
+ENV TFLITE_PATH=/code/pico_crosscompiler/third_party/pico-tflmicro
+ENV BIN_DIR=/tmp/bin
+
+
+ARG CROSS_COMPILER_PATH
+
+RUN apt-get update && apt-get install -y \
+    git \
+    cmake \
+    gcc-arm-none-eabi \
+    build-essential \
+    python3 \
+    python3-pip \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ${CROSS_COMPILER_PATH} /code/pico_crosscompiler
+
+RUN mkdir -p $PICO_SDK_PATH
+RUN mkdir -p $TFLITE_PATH
+
+RUN git clone -b master https://github.com/raspberrypi/pico-sdk.git $PICO_SDK_PATH && \
+    cd $PICO_SDK_PATH && git submodule update --init
+
+RUN git clone -b main https://github.com/raspberrypi/pico-tflmicro.git $TFLITE_PATH && \
+    cd $TFLITE_PATH && git submodule update --init
+
+RUN mkdir -p /code/build && mkdir -p $BIN_DIR
+WORKDIR /code/build
+RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ../pico_crosscompiler
+RUN make -j$(nproc)

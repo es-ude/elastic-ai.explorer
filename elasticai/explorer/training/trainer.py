@@ -32,9 +32,9 @@ class Trainer(ABC):
             target_transform=dataset_spec.target_transform,
         )
 
-        train_subset, test_subset, val_subset = random_split(
+        train_subset, val_subset, test_subset = random_split(
             dataset,
-            dataset_spec.train_test_val_ratio,
+            dataset_spec.train_val_test_ratio,
             generator=torch.Generator().manual_seed(dataset_spec.split_seed),
         )
 

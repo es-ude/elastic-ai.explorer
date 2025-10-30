@@ -1,6 +1,5 @@
+import json
 import logging.config
-import shutil
-from functools import partial
 from pathlib import Path
 
 import torch
@@ -16,10 +15,10 @@ from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
     HWPlatform,
 )
-from elasticai.explorer.platforms.deployment.compiler import Compiler
-from elasticai.explorer.platforms.deployment.device_communication import Host
-from elasticai.explorer.platforms.deployment.manager import PIHWManager, Metric
-from elasticai.explorer.platforms.generator.generator import PIGenerator
+from elasticai.explorer.platforms.deployment.compiler import RPICompiler
+from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager, Metric
+from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.training.trainer import (
     SupervisedTrainer,
     accuracy_fn,
@@ -37,10 +36,10 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         HWPlatform(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            PIGenerator,
-            PIHWManager,
-            Host,
-            Compiler,
+            RPiGenerator,
+            RPiHWManager,
+            RPiHost,
+            RPICompiler,
         )
     )
 
@@ -48,10 +47,10 @@ def setup_knowledge_repository_pi() -> KnowledgeRepository:
         HWPlatform(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            PIGenerator,
-            PIHWManager,
-            Host,
-            Compiler,
+            RPiGenerator,
+            RPiHWManager,
+            RPiHost,
+            RPICompiler,
         )
     )
     return knowledge_repository
@@ -61,10 +60,12 @@ def setup_mnist(path_to_test_data: Path):
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    shutil.make_archive(
-        str(path_to_test_data), "zip", ROOT_DIR / f"{str(path_to_test_data)}/MNIST/raw"
+    dataset_spec = DatasetSpecification(
+        dataset_type=MNISTWrapper,
+        dataset_location=path_to_test_data,
+        deployable_dataset_path=path_to_test_data,
+        transform=transf,
     )
-    dataset_spec = DatasetSpecification(MNISTWrapper, path_to_test_data, transf)
     return dataset_spec
 
 
@@ -73,11 +74,12 @@ def find_generate_measure_for_pi(
     deploy_cfg: DeploymentConfig,
     hwnas_cfg: HWNASConfig,
     search_space_path: Path,
+    retrain_epochs: int = 4,
 ):
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space_path)
 
-    path_to_test_data = Path(ROOT_DIR / "data/mnist")
+    path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
     trainer = SupervisedTrainer(
@@ -88,9 +90,14 @@ def find_generate_measure_for_pi(
         extra_metrics={"accuracy": accuracy_fn},
     )
     top_models = explorer.search(hwnas_cfg, trainer)
-    explorer.hw_setup_on_target(Path(str(path_to_test_data) + ".zip"))
+    metric_to_source = {
+        Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
+        Metric.LATENCY: Path("code/measure_latency.cpp"),
+    }
+    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
     latency_measurements = []
     accuracy_measurements = []
+    accuracy_after_retrain = []
 
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
@@ -102,22 +109,35 @@ def find_generate_measure_for_pi(
             extra_metrics={"accuracy": accuracy_fn},
         )
         mlp_trainer.configure_optimizer(optimizer=Adam(model.parameters(), lr=1e-3))
-        mlp_trainer.train(model, epochs=6)
-        mlp_trainer.test(model)
+        mlp_trainer.train(model, epochs=retrain_epochs)
+        test_metrics, _ = mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".pt"
-        explorer.generate_for_hw_platform(model, model_name)
+        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
         latency = explorer.run_measurement(Metric.LATENCY, model_name)
         latency_measurements.append(latency)
         accuracy_measurements.append(
             explorer.run_measurement(Metric.ACCURACY, model_name)
         )
+        accuracy_after_retrain_dict = json.loads(
+            '{"Accuracy after retrain": { "value":'
+            + (str(test_metrics["accuracy"]))
+            + ' , "unit": "percent"}}'
+        )
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    accuracies = [accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements]
+    accuracies_on_device = [
+        accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements
+    ]
+    accuracies_after_retrain = [
+        accuracy["Accuracy after retrain"]["value"]
+        for accuracy in accuracy_after_retrain
+    ]
+
     df = build_search_space_measurements_file(
         latencies,
-        accuracies,
+        accuracies_on_device,
+        accuracies_after_retrain,
         explorer.metric_dir / "metrics.json",
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",
@@ -130,9 +150,11 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
-    path_to_test_data = Path("data/mnist")
+    path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
     top_models = explorer.search(hwnas_cfg, dataset_spec, SupervisedTrainer)
+
+    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
 
     for i, model in enumerate(top_models):
         print(f"found model {i}:  {model}")
@@ -148,7 +170,7 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
         print("=================================================")
         model_name = "ts_model_" + str(i) + ".pt"
 
-        explorer.generate_for_hw_platform(model, model_name)
+        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
 
 if __name__ == "__main__":
@@ -168,4 +190,5 @@ if __name__ == "__main__":
         deploy_cfg=deploy_cfg,
         hwnas_cfg=hwnas_cfg,
         search_space_path=search_space,
+        retrain_epochs=3,
     )

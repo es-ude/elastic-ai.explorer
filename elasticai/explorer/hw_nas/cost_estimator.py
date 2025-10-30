@@ -2,7 +2,7 @@ from numbers import Number
 from typing import List, Any, Optional
 
 import torch
-from fvcore.nn import FlopCountAnalysis
+from fvcore.nn import FlopCountAnalysis, parameter_count
 from fvcore.nn.jit_handles import get_shape
 
 
@@ -33,9 +33,12 @@ def lstm_flop_jit(inputs: List[Any], outputs: List[Any]) -> Number:
     return flops
 
 
-class FlopsEstimator:
+class CostEstimator:
     def estimate_flops(self, model: torch.nn.Module, data_sample) -> int:
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
         flops = FlopCountAnalysis(model, data_sample).set_op_handle(**handlers)
 
         return flops.total()
+
+    def compute_num_params(self, model_sample: torch.nn.Module) -> float:
+        return parameter_count(model_sample)[""]
