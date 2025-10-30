@@ -1,13 +1,10 @@
 from pathlib import Path
-from typing import Union, Optional, Callable
+from typing import Optional, Callable
 
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import Lambda, Compose
-from torchvision.transforms import v2
 
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
@@ -53,35 +50,6 @@ class SineDataset(BaseDataset):
         ).unsqueeze(-1)
 
 
-class LSTMRegressor(nn.Module):
-    def __init__(self, input_size=1, hidden_size=50, num_layers=1):
-        super().__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, 1)
-
-    def forward(self, x):
-        # x: [batch, seq_len, input_size]
-        out, _ = self.lstm(x)
-        # take last output only
-        out = out[:, -1, :]  # [batch, hidden_size]
-        out = self.fc(out)  # [batch, 1]
-        return out.squeeze(-1)  # [batch]
-
-
-class SimpleLSTM(nn.Module):
-    def __init__(self, input_size=1, hidden_size=50, num_layers=1):
-        super(SimpleLSTM, self).__init__()
-        self.lstm = nn.LSTM(
-            input_size, hidden_size, num_layers, bidirectional=True, batch_first=True
-        )
-        self.linear = nn.Linear(hidden_size * 2, 1)
-
-    def forward(self, x):
-        lstm_out, _ = self.lstm(x)
-        last_output = lstm_out[:, -1, :]
-        return self.linear(last_output).squeeze(-1)
-
-
 def validate(model, test_loader):
     model.eval()
     preds = []
@@ -110,48 +78,15 @@ def validate(model, test_loader):
     plt.show()
 
 
-def run_training():
-    seq_length = 50
-    batch_size = 32
-    # SineDataset(root="", seq_length=seq_length)
-    data_spec = DatasetSpecification(
-        dataset_type=SineDataset,
-        dataset_location=Path(""),
-        transform=None,
-        target_transform=None,  # v2.Compose([v2.Lambda(lambda y: y.unsqueeze(1))]),
-        train_test_val_ratio=[0.7, 0.1, 0.2],
-        shuffle=False,
-        split_seed=42,
-    )
-    trainer = SupervisedTrainer(
-        "cpu",
-        dataset_spec=data_spec,
-        batch_size=batch_size,
-        loss_fn=nn.MSELoss(),
-        extra_metrics={},
-    )
-    model = SimpleLSTM(input_size=1, hidden_size=50)
-    trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
-    trainer.train(model, epochs=50, early_stopping=True)
-    metrics, loss = trainer.test(model)
-    print(metrics)
-    print(loss)
-    print("----------------")
-
-    validate(model, trainer.test_loader)
-
-
 def run_lstm_search():
-    search_space = Path(
-        ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml"
-    )
+    search_space = Path(ROOT_DIR / "examples/lstm_search_space.yaml")
 
     batch_size = 32
     data_spec = DatasetSpecification(
         dataset_type=SineDataset,
         dataset_location=Path(""),
         transform=None,
-        target_transform=None,  # v2.Compose([v2.Lambda(lambda y: y.unsqueeze(1))]),
+        target_transform=None,
         train_test_val_ratio=[0.7, 0.1, 0.2],
         shuffle=False,
         split_seed=42,
@@ -185,68 +120,5 @@ def run_lstm_search():
     generator.generate(model, ROOT_DIR / "experiments/lstm_model")
 
 
-def trythedata():
-    batch_size = 32
-    data_spec = DatasetSpecification(
-        dataset_type=SineDataset,
-        dataset_location=Path(""),
-        transform=None,
-        target_transform=None,  # v2.Compose([v2.Lambda(lambda y: y.unsqueeze(1))]),
-        train_test_val_ratio=[0.7, 0.1, 0.2],
-        shuffle=False,
-        split_seed=42,
-    )
-    trainer = SupervisedTrainer(
-        "cpu",
-        dataset_spec=data_spec,
-        batch_size=batch_size,
-        loss_fn=nn.MSELoss(),
-        extra_metrics={},
-    )
-
-    model = nn.Sequential(
-        architecture_components.SimpleLSTM(
-            input_size=1,
-            hidden_size=20,
-            num_layers=1,
-            bidirectional=False,
-            batch_first=True,
-        ),
-        LinearOne(20, 1),
-    )
-    trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
-    trainer.train(model, epochs=1, early_stopping=True)
-
-
-# Objekte: SearchspaceComponents
-# implementieren interface : kriegt predecessor-> hat infos über: output dimensionalität
-# wie input formatiert sein muss, -> eventuelle schritte zum umformatieren
-# evtl fehlermeldungen wenn ein predecessor keinen sinn macht (zb linear vor conv)
-# für jede layer eins, anzahl kann von blöcken gemanaged werden
-
 if __name__ == "__main__":
-
-    # d = DataLoader(dataset, 32)
     run_lstm_search()
-# trythedata()
-# run_training()
-# seq_length = 50
-# batch_size = 32
-# dataset = SineDataset(seq_length=seq_length)
-# train_size = int(0.8 * len(dataset))
-# train_dataset, test_dataset = torch.utils.data.random_split(
-#     dataset, [train_size, len(dataset) - train_size]
-# )
-# train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-# test_loader = DataLoader(test_dataset, batch_size=1)
-# model = SimpleLSTM()
-# train(model, train_loader)
-# validate(model, test_loader)
-# hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-# deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
-# knowledge_repo = setup_knowledge_repository_pi()
-# explorer = Explorer(knowledge_repo)
-#
-# search_space = Path("examples/search_space_example.yaml")
-#
-# search_for_timeseries(explorer, hwnas_cfg, search_space)

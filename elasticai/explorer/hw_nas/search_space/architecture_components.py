@@ -11,14 +11,9 @@ class SimpleLSTM(nn.Module):
             bidirectional=bidirectional,
             batch_first=batch_first,
         )
-        print(self.lstm.parameters())
 
     def forward(self, x):
         lstm_out, _ = self.lstm(x)
-
-        # print("output: ", lstm_out.shape)
-        # print("h: ", h.shape)
-        # print("c: ", c.shape)
         return lstm_out
 
 

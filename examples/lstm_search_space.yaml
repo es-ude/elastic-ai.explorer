@@ -1,25 +1,17 @@
-input: [1, 28, 28]
-#input: [50, 1] output: 1
-output: 10
+input: [50, 1]
+output: 1
 blocks:
-  - block: "1" #namefield muss noch rein
-    op_candidates: [ "conv2d" ]
+  - block: "1"
+    op_candidates: [ "lstm" ]
     depth: [1, 2]
     activation: [ "sigmoid" , "relu"]
-    linear:
-      #überall range oder choices
-      width: [ 4, 5, 16, 32 ]
-    conv2d:
-      kernel_size: [ 10]
-      stride: [ 1, 2 ]
-      out_channels: [ 10, 4 ]
     lstm:
       hidden_size: [ 10, 20, 50 ]
       num_lstm_layers: [ 1]
-      bidirectional: [ False ]
-  - block:  "2" #namefield muss noch rein
+      bidirectional: [ False, True ]
+  - block:  "2"
     op_candidates: [ "lstm"]
-    depth: [1, 2]
+    depth: [1]
     activation: [ "identity"]
     linear:
       #überall range oder choices

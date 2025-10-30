@@ -1,3 +1,4 @@
+import optuna
 import torch.nn as nn
 
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
@@ -48,6 +49,14 @@ class SearchSpace:
         layers, out_shape = builder.build(num_layers, self.is_last_block(block_id))
 
         self.layers.extend(layers)
+        if self.is_last_block(block_id):
+            last_layer_adapter = ADAPTER_REGISTRY.get((operation, "None"))
+            if last_layer_adapter is not None:
+                last_layer_adapter = last_layer_adapter()
+                self.layers.append(last_layer_adapter)
+                self.input_shape = last_layer_adapter.infer_output_shape(
+                    self.input_shape
+                )
         self.input_shape = out_shape
 
         return operation
@@ -59,6 +68,9 @@ class SearchSpace:
 
         prev_operation = None
         for block in self.blocks:
-            prev_operation = self.create_block(trial, block, prev_operation)
+            try:
+                prev_operation = self.create_block(trial, block, prev_operation)
+            except NotImplementedError:
+                raise optuna.TrialPruned()
 
         return nn.Sequential(*self.layers)

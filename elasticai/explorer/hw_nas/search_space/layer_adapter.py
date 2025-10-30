@@ -35,11 +35,31 @@ class LSTMNoSequenceAdapter(nn.Module):
 
     @staticmethod
     def infer_output_shape(input_shape):
-        # input_shape = (T, H)
         _, h = input_shape
         return h
 
 
-#
-# class LSTMToLinearAdapter(nn.Module):
-#     def forward(self, x):
+class LSTMToConv2dAdapter(nn.Module):
+    def __init__(self):
+        raise AdapterNotImplementedError(
+            "LSTM to to Conv2d adapter is not implemented. "
+        )
+
+
+class LinearToConv2dAdapter(nn.Module):
+    def __init__(self):
+        raise AdapterNotImplementedError(
+            "Linear layer to Conv2d adapter is not implemented. "
+        )
+
+
+class LinearToLSTMAdapter(nn.Module):
+    def __init__(self):
+        raise AdapterNotImplementedError(
+            "Linear layer to LSTM adapter is not implemented. "
+        )
+
+
+class AdapterNotImplementedError(NotImplementedError):
+    def __init__(self, msg):
+        super(AdapterNotImplementedError, self).__init__(msg)
