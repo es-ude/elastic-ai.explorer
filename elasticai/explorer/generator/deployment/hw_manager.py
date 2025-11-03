@@ -9,24 +9,33 @@ import shutil
 import tarfile
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
+    ENv5Host,
     Host,
     PicoHost,
     RPiHost,
 )
 from elasticai.explorer.generator.model_compiler import tflite_to_resolver
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FixedPointInt8Scheme,
+    QuantizationScheme,
+)
 from elasticai.explorer.training.data import DatasetSpecification
+from elasticai.explorer.utils.fpga_utils import parse_fxp_tensor_to_bytearray
 from settings import DOCKER_CONTEXT_DIR
+from elasticai.creator.arithmetic import (
+    FxpArithmetic,
+    FxpParams,
+)
 
 
 class Metric(Enum):
     LATENCY = "Latency"
     ACCURACY = "Accuracy"
+    VERIFICATION = "Verification"
 
 
 class HWManager(ABC):
     def __init__(self, target: Host, compiler: Compiler):
-        self.compiler = compiler
-        self.target: Host = target
         self._metric_to_source: dict[Metric, Path] = {}
 
     def _register_metric_to_source(self, metric: Metric, source: Path):
@@ -37,7 +46,11 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
+    def prepare_dataset(
+        self,
+        dataset_spec: DatasetSpecification,
+        quantization_scheme: QuantizationScheme,
+    ):
         pass
 
     @abstractmethod
@@ -52,7 +65,8 @@ class HWManager(ABC):
 class RPiHWManager(HWManager):
 
     def __init__(self, target: RPiHost, compiler: Compiler):
-
+        self.compiler = compiler
+        self.target = target
         self.logger = logging.getLogger(
             "explorer.generator.deployment.manager.RPIHWManager"
         )
@@ -68,7 +82,11 @@ class RPiHWManager(HWManager):
         self._register_metric_to_source(metric, relative_path)
         self.target.put_file(path_to_executable, ".")
 
-    def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
+    def prepare_dataset(
+        self,
+        dataset_spec: DatasetSpecification,
+        quantization_scheme: QuantizationScheme,
+    ):
 
         if dataset_spec.deployable_dataset_path:
             dataset_dir = dataset_spec.deployable_dataset_path
@@ -132,7 +150,8 @@ class CommandBuilder:
 class PicoHWManager(HWManager):
 
     def __init__(self, target: PicoHost, compiler: Compiler):
-
+        self.compiler = compiler
+        self.target = target
         self.logger = logging.getLogger(
             "explorer.generator.deployment.manager.PicoHWManager"
         )
@@ -146,7 +165,11 @@ class PicoHWManager(HWManager):
             relative_path = Path("/" + str(source))
         self._register_metric_to_source(metric, relative_path)
 
-    def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
+    def prepare_dataset(
+        self,
+        dataset_spec: DatasetSpecification,
+        quantization_scheme: QuantizationScheme,
+    ):
         target_dir = DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data"
         if not dataset_spec.deployable_dataset_path:
             raise ValueError(
@@ -189,3 +212,70 @@ class PicoHWManager(HWManager):
 
     def _parse_measurement(self, result: str) -> dict:
         return json.loads(result)
+
+
+class ENv5HWManager(HWManager):
+    def __init__(self, target: ENv5Host, compiler: Compiler):
+        self.compiler = compiler
+        self.target = target
+        self.logger = logging.getLogger(
+            "explorer.generator.deployment.manager.RPIHWManager"
+        )
+        self.logger.info("Initializing PI Hardware Manager...")
+        super().__init__(target, compiler)
+
+    def install_code_on_target(self, source: Path, metric: Metric):
+        self.target.put_file(local_path=source, remote_path=None)
+        self._register_metric_to_source(metric, source)
+
+    def prepare_dataset(
+        self,
+        dataset_spec: DatasetSpecification,
+        quantization_scheme: QuantizationScheme,
+    ):
+
+        if not isinstance(quantization_scheme, FixedPointInt8Scheme):
+            err = TypeError(f"{quantization_scheme} is not supported by ENv5HWManager!")
+            self.logger.error(err)
+            raise err
+
+        self.frac_bits = quantization_scheme.frac_bits
+        self.total_bits = quantization_scheme.total_bits
+        self.dataset_spec = dataset_spec
+        fxp_params = FxpParams(
+            total_bits=quantization_scheme.total_bits,
+            frac_bits=quantization_scheme.frac_bits,
+            signed=True,
+        )
+        fxp_conf = FxpArithmetic(fxp_params)
+        self.dataset = self.dataset_spec.dataset_type(
+            dataset_spec.dataset_location,
+            dataset_spec.transform,
+            target_transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
+        )
+
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
+        self.deploy_model(path_to_model)
+        source = self._metric_to_source.get(metric)
+
+        if not source:
+            self.logger.error(f"No source code registered for Metric: {metric}")
+            exit(-1)
+        path_to_executable = self.compiler.compile_code(source)
+        self.measurements = self.target.put_file(path_to_executable, None)
+        for inputs_rational in self.dataset:
+
+            data_bytearray = parse_fxp_tensor_to_bytearray(
+                inputs_rational, self.total_bits, self.frac_bits
+            )
+            for sample in data_bytearray:
+                # TODO get outputsize
+                self.target.send_data_bytes(
+                    sample=sample, num_bytes_outputs=2
+                )
+
+        
+    def deploy_model(self, path_to_model: Path):
+        # TODO 
+        pass
+        

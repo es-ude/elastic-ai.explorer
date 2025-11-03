@@ -5,13 +5,16 @@ from typing import Optional, Any, Type
 from torch import nn
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
-from elasticai.explorer.generator import model_builder
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import (
     ModelBuilder,
     TorchModelBuilder,
 )
 from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.hw_manager import (
@@ -133,21 +136,23 @@ class Explorer:
         self.generator = self.knowledge_repository.fetch_hw_info(
             deploy_cfg.target_platform_name
         )
-        self.model_builder = self.generator.model_builder()
         self.model_compiler = self.generator.model_compiler()
         self.hw_manager = self.generator.platform_manager(
             self.generator.communication_protocol(deploy_cfg),
             self.generator.compiler(deploy_cfg),
         )
         self.logger.info(
-            "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
+            "Configure chosen Target Hardware Platform. Name: %s, Generator:\n%s",
             deploy_cfg.target_platform_name,
             self.generator,
         )
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
+        self,
+        metric_to_source: dict[Metric, Path],
+        data_spec: data.DatasetSpecification,
+        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
         """
         Args:
@@ -163,7 +168,7 @@ class Explorer:
             )
             exit(-1)
 
-        self.hw_manager.install_dataset_on_target(data_spec)
+        self.hw_manager.prepare_dataset(data_spec, quantization_scheme)
 
         for metric, source in metric_to_source.items():
             self.logger.info(f"Installing program for {metric.name}: {source}")
@@ -183,7 +188,11 @@ class Explorer:
         return measurement
 
     def generate_for_hw_platform(
-        self, model: nn.Module, model_name: str, dataset_spec: data.DatasetSpecification
+        self,
+        model: nn.Module,
+        model_name: str,
+        dataset_spec: data.DatasetSpecification,
+        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ) -> Any:
         model_path = self._model_dir / model_name
 
@@ -193,7 +202,9 @@ class Explorer:
         )
         sample_input, _ = next(iter(dataset))
         if self.model_compiler:
-            return self.model_compiler.generate(model, model_path, sample_input)
+            return self.model_compiler.compile(
+                model, model_path, sample_input, quantization_scheme
+            )
         else:
             self.logger.error(
                 "Generator is not initialized! First run choose_target_hw(deploy_cfg), before generate_for_hw_platform()"

@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 import logging
+import os
 from pathlib import Path
+import tarfile
 
 from python_on_whales import docker
-
+from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
 from elasticai.explorer.config import DeploymentConfig
+from elasticai.explorer.utils import fpga_utils
 
 
 class Compiler(ABC):
@@ -21,12 +24,13 @@ class Compiler(ABC):
         pass
 
     @abstractmethod
-    def compile_code(self, source: Path) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
         pass
 
 
 class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
+        super().__init__(deploy_cfg)
         self.logger = logging.getLogger("RPICompiler")
         self.image_name: str = deploy_cfg.docker.image_name  # "cross"
         self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
@@ -46,7 +50,7 @@ class RPICompiler(Compiler):
         )
         self.logger.debug("Crosscompiler available now.")
 
-    def compile_code(self, source: Path) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
         docker.build(
             self.context_path,
             file=self.context_path / "Dockerfile.picross",
@@ -68,6 +72,7 @@ class RPICompiler(Compiler):
 class PicoCompiler(Compiler):
 
     def __init__(self, deploy_cfg: DeploymentConfig):
+        super().__init__(deploy_cfg)
         self.logger = logging.getLogger("PicoCompiler")
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.image_name: str = deploy_cfg.docker.image_name
@@ -90,7 +95,7 @@ class PicoCompiler(Compiler):
             },
         )
 
-    def compile_code(self, source: Path) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
 
         docker.build(
             context_path=self.context_path,
@@ -105,3 +110,35 @@ class PicoCompiler(Compiler):
             },
         )
         return self.context_path / "bin" / (source.stem + ".uf2")
+
+
+class ENv5Compiler(Compiler):
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        super().__init__(deploy_cfg)
+        self.deploy_cfg = deploy_cfg
+
+    def setup(self) -> None:
+        pass
+
+    def is_setup(self) -> bool:
+        return True
+
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
+
+        # TODO get params from deploy_cfg
+        fpga_utils.run_vhdl_synthesis(
+            src_dir=source,
+            remote_working_dir="/home/vivado/robin-build/",
+            host="65.108.38.237",
+            ssh_user="vivado",
+        )
+
+        tar = tarfile.open(str(output_dir) + "/vivado_run_results.tar.gz")
+        tar.extractall(output_dir)
+        tar.close()
+        try:
+            os.remove(str(output_dir) + "/vivado_run_results.tar.gz")
+        except:
+            pass
+
+        return output_dir

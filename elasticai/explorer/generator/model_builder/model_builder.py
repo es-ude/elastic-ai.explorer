@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
-from enum import Enum
+import logging
+import math
 from typing import Any
 from elasticai.creator import nn as creator_nn
 from elasticai.creator.nn import fixed_point
 import torch
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FixedPointInt8Scheme,
+    QuantizationScheme,
+)
 
-
-class QuantizationSchemes(str, Enum):
-    FULL_PRECISION_FLOAT32 = "full_precision_float32"
-    INT8_UNIFORM = "int8_uniform"
-    FIXED_POINT_INT8 = "fixed_point_int8"
+logger = logging.getLogger("explorer.generator.model_builder")
 
 
 class ModelBuilder(ABC):
@@ -22,12 +23,12 @@ class ModelBuilder(ABC):
         """Override if necessary. "None" means no constraints."""
         return None
 
-    def get_supported_quantization_schemes(self) -> set[QuantizationSchemes] | None:
+    def get_supported_quantization_schemes(self) -> set[QuantizationScheme] | None:
         """Override if necessary. "None" means no constraints."""
         return None
 
     def _validate_model(
-        self, model: torch.nn.Module, quantization_scheme: QuantizationSchemes
+        self, model: torch.nn.Module, quantization_scheme: QuantizationScheme
     ):
         """Override if necessary"""
         supported_layers = self.get_supported_layers()
@@ -59,21 +60,37 @@ class TorchModelBuilder(ModelBuilder):
 class CreatorModelBuilder(ModelBuilder):
     def __init__(self) -> None:
         super().__init__()
+        self.quantization_scheme = FixedPointInt8Scheme()
 
     def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
 
-        layers = []
+        try:
+            if isinstance(searchspace.input_shape, int):
+                flat_input = searchspace.input_shape
+            else:
+                flat_input = math.prod(searchspace.input_shape)  # type:ignore
 
-        # TODO create a fitting creator representation of the trials params
+        except Exception as e:
+            logger.exception(
+                f"The given searchspace.input_shape {searchspace.input_shape} is not formatted correctly!"
+            )
+            raise e
 
+        layers = [
+            fixed_point.Linear(
+                in_features=flat_input,
+                out_features=searchspace.output_shape,
+                total_bits=self.quantization_scheme.total_bits,
+                frac_bits=self.quantization_scheme.frac_bits,
+            )
+        ]
         return creator_nn.Sequential(*layers)
 
     def get_supported_layers(self) -> set[type] | None:
         return {
             fixed_point.Linear,
-            fixed_point.Conv1d,
         }
 
-    def get_supported_quantization_schemes(self) -> set[QuantizationSchemes] | None:
+    def get_supported_quantization_schemes(self) -> set[QuantizationScheme] | None:
 
-        return {QuantizationSchemes.FIXED_POINT_INT8}
+        return {self.quantization_scheme}

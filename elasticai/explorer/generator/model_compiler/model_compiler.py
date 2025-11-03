@@ -2,6 +2,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from random import randint
 import subprocess
 from typing import Any, Dict
 import numpy
@@ -17,17 +18,33 @@ from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_con
 from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
 from ai_edge_torch.quantize.quant_config import QuantConfig
 
-from elasticai.explorer.generator.model_builder.model_builder import QuantizationSchemes
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FixedPointInt8Scheme,
+    FullPrecisionScheme,
+    Int8Uniform,
+    QuantizationScheme,
+)
+import elasticai.creator.nn as creator_nn
+from elasticai.creator.file_generation.on_disk_path import OnDiskPath
+from elasticai.creator.nn import Sequential
+from elasticai.creator.nn.fixed_point import Linear, ReLU
+from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
+from elasticai.runtime.env5.usb import UserRemoteControl, get_env5_port
+
+from elasticai.creator.arithmetic import (
+    FxpArithmetic,
+    FxpParams,
+)
 
 
 class ModelCompiler(ABC):
     @abstractmethod
-    def generate(
+    def compile(
         self,
         model: nn.Module,
-        path: Path,
+        output_path: Path,
         input_sample: torch.Tensor,
-        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
+        quantization_scheme: QuantizationScheme,
     ) -> Any:
         pass
 
@@ -38,30 +55,32 @@ class TorchscriptModelCompiler(ModelCompiler):
             "explorer.generator.generator.generator.PIGenerator"
         )
 
-    def generate(
+    def compile(
         self,
         model: nn.Module,
-        path: Path,
+        output_path: Path,
         input_sample: torch.Tensor,
-        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
+        quantization_scheme: QuantizationScheme,
     ):
-        if quantization_scheme == QuantizationSchemes.INT8_UNIFORM:
-            raise NotImplementedError(
-                "int8-Uniform-Quantization is currently not supported."
+        if not isinstance(quantization_scheme, FullPrecisionScheme):
+            err = NotImplementedError(
+                f"Only Full Precision is currently not supported and not {quantization_scheme}"
             )
+            self.logger.error(err)
+            raise err
         self.logger.info("Generate torchscript model from %s", model)
         model.eval()
 
-        dir_path = os.path.dirname(os.path.realpath(path))
+        dir_path = os.path.dirname(os.path.realpath(output_path))
 
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
         model.to("cpu")
         ts_model = torch.jit.script(model)
-        path = Path(os.path.realpath(path)).with_suffix(".pt")
-        self.logger.info("Save model to %s", path)
-        ts_model.save(path)  # type: ignore
+        output_path = Path(os.path.realpath(output_path)).with_suffix(".pt")
+        self.logger.info("Save model to %s", output_path)
+        ts_model.save(output_path)  # type: ignore
 
         return ts_model
 
@@ -132,12 +151,12 @@ class TFliteModelCompiler(ModelCompiler):
                 f"const unsigned int model_tflite_len = {output_lines[-1].split()[-1]}"
             )
 
-    def generate(
+    def compile(
         self,
         model: nn.Module,
-        path: Path,
+        output_path: Path,
         input_sample: torch.Tensor,
-        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
+        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
         self.logger.info("Generate torchscript model from %s", model)
 
@@ -148,20 +167,26 @@ class TFliteModelCompiler(ModelCompiler):
         torch_output = model(*input_tuple_nchw)
         nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
         sample_tflite_input = input_tuple_nhwc
-        if quantization_scheme == QuantizationSchemes.FULL_PRECISION_FLOAT32:
+        if isinstance(quantization_scheme, FullPrecisionScheme):
             edge_model = ai_edge_torch.convert(
                 nhwc_model, sample_args=sample_tflite_input
             )
-        else:
+        elif isinstance(quantization_scheme, Int8Uniform):
             edge_model, torch_output = self._quantize(model, input_tuple_nchw)
             self.logger.warning(
                 "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
             )
+        else:
+            err = NotImplementedError(
+                f"The quantization scheme -{quantization_scheme}- is not supported by the TFliteModelCompiler."
+            )
+            self.logger.error(err)
+            raise err
 
         edge_output = edge_model(*sample_tflite_input)
         self._validate(torch_output, edge_output)
-        edge_model.export(str(path.with_suffix(".tflite")))
-        self._model_to_cpp(path.with_suffix(".tflite"))
+        edge_model.export(str(output_path.with_suffix(".tflite")))
+        self._model_to_cpp(output_path.with_suffix(".tflite"))
 
 
 class CreatorModelCompiler(ModelCompiler):
@@ -169,13 +194,38 @@ class CreatorModelCompiler(ModelCompiler):
         self.logger = logging.getLogger(
             "explorer.generator.model_compiler.model_compiler.CreatorModelCompiler"
         )
+        self.skeleton_id = [randint(0, 16) for i in range(16)]
 
-    def generate(
+    def compile(
         self,
-        model: nn.Module | Dict,
-        path: Path,
+        model: nn.Module,
+        output_path: Path,
         input_sample: torch.Tensor,
-        quantization_scheme: QuantizationSchemes = QuantizationSchemes.FULL_PRECISION_FLOAT32,
+        quantization_scheme: QuantizationScheme = FixedPointInt8Scheme(),
     ):
+        destination = OnDiskPath(str(output_path))
 
-        pass
+        if not isinstance(model, creator_nn.Sequential):
+            err = TypeError(
+                f"{type(model)} is not supported by the CreatorModelCompiler, best to build models with the CreatorModelBuilder!"
+            )
+            self.logger.error(err)
+            raise err
+
+        my_design = model.create_design("myNetwork")
+
+        my_design.save_to(destination.create_subpath("srcs"))
+
+        firmware = FirmwareENv5(
+            network=my_design,
+            x_num_values=len(input_sample),
+            y_num_values=len(model(input_sample)),
+            id=self.skeleton_id,
+            skeleton_version="v2",
+        )
+        firmware.save_to(destination)
+
+        # TODO where to set the weights?
+        # model[0].weight.data = torch.ones_like(model[0].weight) * 2
+        # model[0].bias.data = torch.ones_like(model[0].bias) * 0.5
+        return nn

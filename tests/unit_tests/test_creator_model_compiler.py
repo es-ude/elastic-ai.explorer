@@ -13,4 +13,4 @@ class TestCreatorModelCompiler:
     def test_compile_module_to_ir(self):
         compiler = CreatorModelCompiler()
         sample = ones([5])
-        compiler.generate(model=self.mlp, input_sample=sample, path=Path(""))
+        compiler.compile(model=self.mlp, input_sample=sample, output_path=Path(""))

@@ -2,15 +2,20 @@ from abc import ABC, abstractmethod
 import logging
 import os
 from pathlib import Path
+from random import randint
 import shutil
 from socket import error as socket_error
 import time
 
+
 from fabric import Connection
+
 import serial
 from paramiko.ssh_exception import AuthenticationException
 
 from elasticai.explorer.config import DeploymentConfig
+
+from elasticai.runtime.env5.usb import UserRemoteControl, get_env5_port
 
 
 class SSHException(Exception):
@@ -19,19 +24,24 @@ class SSHException(Exception):
 
 class Host(ABC):
     @abstractmethod
-    def __init__(self, deploy_cfg: DeploymentConfig):
-        pass
+    def __init__(self, deploy_cfg: DeploymentConfig): ...
 
     @abstractmethod
-    def put_file(self, local_path: Path, remote_path: str | None) -> str:
-        pass
+    def put_file(self, local_path: Path, remote_path: str | None) -> str: ...
 
     @abstractmethod
-    def run_command(self, command: str) -> str:
-        pass
+    def run_command(self, command: str) -> str: ...
 
 
-class RPiHost(Host):
+class SerialHost(Host):
+    @abstractmethod
+    def send_data_bytes(
+        self, sample: bytearray, num_bytes_outputs: int
+    ) -> bytearray: ...
+class SSHHost(Host): ...
+
+
+class RPiHost(SSHHost):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.host_name = deploy_cfg.target_name
         self.user = deploy_cfg.target_user
@@ -79,7 +89,7 @@ class RPiHost(Host):
         )
 
 
-class PicoHost(Host):
+class PicoHost(SerialHost):
     def __init__(self, deploy_cfg: DeploymentConfig):
         self.BAUD_RATE = deploy_cfg.baud_rate
         self.host_name = deploy_cfg.device_path
@@ -157,5 +167,46 @@ class PicoHost(Host):
 
         return last_line
 
-    def run_command(self, command: str) -> str:
+
+class ENv5Host(SerialHost):
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        self.BAUD_RATE = deploy_cfg.baud_rate
+        self.host_name = deploy_cfg.device_path
+        self.logger = logging.getLogger(
+            "explorer.generator.deployment.device_communication.ENv5Host"
+        )
+        self.serial_port = deploy_cfg.serial_port
+        self.timeout_s = 40
+        self.flash_start_address = 0
+
+    def put_file(self, local_path: Path, remote_path: str | None) -> str:
+        skeleton_id = [randint(0, 16) for i in range(16)]
+        skeleton_id_as_bytearray = bytearray()
+        for x in skeleton_id:
+            skeleton_id_as_bytearray.extend(
+                x.to_bytes(length=1, byteorder="little", signed=False)
+            )
+        with serial.Serial(self.host_name, baudrate=self.BAUD_RATE, timeout=1) as ser:
+            urc = UserRemoteControl(device=ser)
+
+            urc.send_and_deploy_model(
+                local_path, self.flash_start_address, skeleton_id_as_bytearray
+            )
+            urc.fpga_leds(True, False, False, False)
+            skeleton_id_on_device = bytearray(urc._enV5RCP.read_skeleton_id())
+
+            if skeleton_id_on_device == skeleton_id_as_bytearray:
+                self.logger.info(
+                    "The byte stream has been written correctly to the ENv5."
+                )
+            else:
+                self.logger.warning(
+                    f"The byte stream hasn't been written correctly to the ENv5. Verification bytes are not equal: {skeleton_id_on_device} != {skeleton_id_as_bytearray}!"
+                )
         return ""
+
+    def send_data_bytes(self, sample: bytearray, num_bytes_outputs: int) -> bytearray:
+        with serial.Serial(self.host_name, baudrate=self.BAUD_RATE, timeout=1) as ser:
+            urc = UserRemoteControl(device=ser)
+            raw_result = urc.inference_with_data(sample, num_bytes_outputs)
+            return raw_result

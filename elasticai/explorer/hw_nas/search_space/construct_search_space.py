@@ -6,10 +6,7 @@ activation_mapping = {"relu": nn.ReLU(), "sigmoid": nn.Sigmoid()}
 
 
 class SearchSpace:
-    def __init__(
-        self,
-        search_space_cfg: dict,
-    ):
+    def __init__(self, search_space_cfg: dict):
         self.search_space_cfg = search_space_cfg
         self.input_shape = search_space_cfg["input"]
         self.output_shape = search_space_cfg["output"]
@@ -85,20 +82,6 @@ class SearchSpace:
                 self.createConv2d(trial, block, num_layers, block["conv2D"])
 
     def create_native_torch_model_sample(self, trial) -> nn.Module:
-        """
-        Akzeptiert entweder:
-         - einen Optuna Trial (interactive -> trial.suggest_... wird verwendet)
-         - oder ein FrozenTrial / params-dict (hat .params oder ist Dict) -> dann wird model_builder.build_from_params verwendet
-        """
-        # Wenn param-dict oder FrozenTrial übergeben wurde, baue mit ModelBuilder
-        params = None
-        if isinstance(trial, dict):
-            params = trial
-        elif hasattr(trial, "params"):
-            # Optuna FrozenTrial hat .params
-            params = getattr(trial, "params")
-
-        # Sonst interaktiver Trial: altes Verhalten beibehalten
         self.input_shape = self.search_space_cfg["input"]
         self.output_shape = self.search_space_cfg["output"]
         self.layers = []
