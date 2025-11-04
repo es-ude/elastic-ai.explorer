@@ -1,3 +1,5 @@
+import logging
+
 import optuna
 import torch.nn as nn
 
@@ -13,10 +15,11 @@ from elasticai.explorer.hw_nas.search_space.registry import (
 class SearchSpace:
     def __init__(self, search_space_cfg: dict):
         self.search_space_cfg = search_space_cfg
-        self.input_shape = search_space_cfg["input"]
+        self.next_input_shape = search_space_cfg["input"]
         self.output_shape = search_space_cfg["output"]
         self.blocks = search_space_cfg["blocks"]
         self.layers = []
+        self.logger = logging.getLogger("explorer.hw_nas.search_space")
 
     def is_last_block(self, block_id):
         return self.blocks[-1]["block"] == block_id
@@ -24,26 +27,29 @@ class SearchSpace:
     def create_block(self, trial, block, prev_operation=None):
         block_id = block["block"]
         num_layers = parse_search_param(
-            trial, f"num_layers_b{block_id}", block["depth"]
+            trial, f"num_layers_b{block_id}", block, "depth", default_value=None
         )
         operation = parse_search_param(
-            trial, f"operation_b{block_id}", block["op_candidates"]
+            trial, f"operation_b{block_id}", block, "op_candidates", default_value=None
         )
 
-        if prev_operation is not None:
-            adapter_cls = ADAPTER_REGISTRY.get((prev_operation, operation))
-            if adapter_cls is not None:
-                print(f"🔄 Inserting adapter: {prev_operation} → {operation}")
-                adapter = adapter_cls()
-                self.layers.append(adapter)
-                self.input_shape = adapter_cls.infer_output_shape(self.input_shape)
+        #    if prev_operation is not None:
+        adapter_cls = ADAPTER_REGISTRY.get((prev_operation, operation))
+        print(adapter_cls)
+        if adapter_cls is not None:
+            self.logger.info(f"Inserting adapter: {prev_operation} -> {operation}")
+            adapter = adapter_cls()
+            self.layers.append(adapter)
+            self.next_input_shape = adapter_cls.infer_output_shape(
+                self.next_input_shape
+            )
         builder_cls = LAYER_REGISTRY[operation]
         builder = builder_cls(
             trial,
             block,
             block.get(operation, {}),
             block_id,
-            self.input_shape,
+            self.next_input_shape,
             self.output_shape,
         )
         layers, out_shape = builder.build(num_layers, self.is_last_block(block_id))
@@ -54,15 +60,15 @@ class SearchSpace:
             if last_layer_adapter is not None:
                 last_layer_adapter = last_layer_adapter()
                 self.layers.append(last_layer_adapter)
-                self.input_shape = last_layer_adapter.infer_output_shape(
-                    self.input_shape
+                self.next_input_shape = last_layer_adapter.infer_output_shape(
+                    self.next_input_shape
                 )
-        self.input_shape = out_shape
+        self.next_input_shape = out_shape
 
         return operation
 
     def create_model_sample(self, trial):
-        self.input_shape = self.search_space_cfg["input"]
+        self.next_input_shape = self.search_space_cfg["input"]
         self.output_shape = self.search_space_cfg["output"]
         self.layers = []
 

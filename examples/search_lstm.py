@@ -117,10 +117,7 @@ def run_lstm_search():
     trainer.train(model, epochs=50, early_stopping=True)
     validate(model, trainer.test_loader)
     generator = RPiGenerator()
-    generator.generate(
-        model,
-        ROOT_DIR / "experiments/lstm_model",
-    )
+    generator.generate(model, ROOT_DIR / "experiments/lstm_model")
 
 
 if __name__ == "__main__":

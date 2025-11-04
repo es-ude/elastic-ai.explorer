@@ -22,6 +22,7 @@ class SearchAlgorithm(Enum):
     GRID_SEARCH = "grid"
     EVOlUTIONARY_SEARCH = "evolution"
 
+
 def apply_constraints(trial, flops, params, constraints):
     max_flops = constraints.get("max_flops")
     max_params = constraints.get("max_params")
@@ -35,6 +36,7 @@ def apply_constraints(trial, flops, params, constraints):
             f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
         )
         raise optuna.TrialPruned()
+
 
 def objective_wrapper(
     trial: optuna.Trial,
@@ -70,9 +72,9 @@ def objective_wrapper(
 
         for epoch in range(n_estimation_epochs):
             trainer.train_epoch(model, epoch)
-            val_metrics, val_loss =trainer.validate(model)
+            val_metrics, val_loss = trainer.validate(model)
             if "accuracy" in val_metrics:
-                default= val_metrics["accuracy"]*100 -(flops_log10 * flops_weight)
+                default = val_metrics["accuracy"] * 100 - (flops_log10 * flops_weight)
                 trial.set_user_attr("val_accuracy", val_metrics["accuracy"] * 100)
             else:
                 default = -val_loss - (flops_log10 * flops_weight)
@@ -82,7 +84,6 @@ def objective_wrapper(
         trial.set_user_attr("flops_log10", flops_log10)
         trial.set_user_attr("val_loss", val_loss)
         return default
-
 
     return objective(trial)
 
@@ -116,7 +117,11 @@ def search(
 
     if hwnas_cfg.count_only_completed_trials:
         n_trials = None
-        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))]
+        callbacks = [
+            MaxTrialsCallback(
+                hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,)
+            )
+        ]
     else:
         n_trials = hwnas_cfg.max_search_trials
         callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)]

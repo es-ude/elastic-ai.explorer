@@ -13,7 +13,7 @@ from elasticai.explorer.platforms.deployment.hw_manager import (
     Metric,
 )
 from elasticai.explorer.platforms.generator.generator import Generator
-from elasticai.explorer.training.trainer import Trainer, TrainerFactory
+from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
 from settings import MAIN_EXPERIMENT_DIR
@@ -136,7 +136,7 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
     ):
         """
         Args:
@@ -154,7 +154,6 @@ class Explorer:
             )
             exit(-1)
 
-       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():

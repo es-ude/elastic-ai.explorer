@@ -256,33 +256,3 @@ class ReconstructionAutoencoderTrainer(Trainer):
 
     def test(self, model: nn.Module) -> Tuple[dict, float]:
         return self.evaluate(model, self.test_loader, "Test")
-
-
-class TrainerFactory:
-    def __init__(
-        self,
-        dataset_spec: DatasetSpecification,
-        type: Type[Trainer],
-        device: str,
-        optimizer: Optimizer,
-        loss_fn: nn.CrossEntropyLoss(),
-        batch_size: int = 64,
-        extra_metrics: dict[str, Callable] = {"accuracy": accuracy_fn},
-    ):
-        self.dataset_spec = dataset_spec
-        self.device = device
-        self.optimizer = optimizer
-        self.loss_fn = loss_fn
-        self.batch_size = batch_size
-        self.extra_metrics = extra_metrics
-        self.type = type
-
-    def create_trainer(self):
-        return self.type(
-            self.device,
-            self.optimizer,
-            self.dataset_spec,
-            self.loss_fn,
-            self.batch_size,
-            self.extra_metrics,
-        )

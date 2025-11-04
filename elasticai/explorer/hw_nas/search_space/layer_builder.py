@@ -1,6 +1,9 @@
 import math
+from abc import abstractmethod, ABC
 
+from pyparsing import ParseSyntaxException
 from torch import nn
+from yaml import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
 
@@ -12,7 +15,18 @@ from elasticai.explorer.hw_nas.search_space.utils import calculate_conv_output_s
 LAYER_REGISTRY = {}
 
 
-def parse_search_param(trial, name, param):
+def parse_search_param(trial, name, params, key, default_value=None):
+    if key in params:
+        param = params[key]
+    else:
+        if default_value is not None:
+            return default_value
+        else:
+            raise YAMLError(
+                "Parameter '{}' is not optional and missing in configuration.".format(
+                    name
+                )
+            )
     if isinstance(param, list):
         return trial.suggest_categorical(name, param)
     elif isinstance(param, dict) and "start" in param and "end" in param:
@@ -33,7 +47,7 @@ def register_layer(name):
     return wrapper
 
 
-class LayerBuilder:
+class LayerBuilder(ABC):
 
     def __init__(
         self, trial, block, search_params, block_id, input_shape, output_shape
@@ -46,6 +60,10 @@ class LayerBuilder:
         self.output_shape = output_shape
         self.layers = []
 
+    @abstractmethod
+    def build(self, num_layers, is_last_block):
+        pass
+
     def add_activation(self, activation_name):
         self.layers.append(activation_mapping[activation_name])
 
@@ -55,21 +73,21 @@ class LayerBuilder:
 
 @register_layer("linear")
 class LinearBuilder(LayerBuilder):
-    def build(self, num_layers, is_last_block):
-        if isinstance(self.input_shape, list):
-            self.layers.append(nn.Flatten())
-            self.input_shape = math.prod(self.input_shape)
 
+    def build(self, num_layers, is_last_block):
         for i in range(num_layers):
             width = parse_search_param(
                 self.trial,
                 f"layer_width_b{self.block_id}_l{i}",
-                self.search_params["width"],
+                self.search_params,
+                "width",
             )
             activation = parse_search_param(
                 self.trial,
                 f"activation_func_b{self.block_id}_l{i}",
-                self.block["activation"],
+                self.block,
+                "activation",
+                "identity",
             )
             if is_last_block and i == num_layers - 1:
                 self.layers.append(nn.Linear(self.input_shape, self.output_shape))
@@ -87,22 +105,30 @@ class Conv2dBuilder(LayerBuilder):
             out_channels = parse_search_param(
                 self.trial,
                 f"out_channels_b{self.block_id}_l{i}",
-                self.search_params["out_channels"],
+                self.search_params,
+                "out_channels",
+                default_value=None,
             )
             kernel_size = parse_search_param(
                 self.trial,
                 f"kernel_size_b{self.block_id}_l{i}",
-                self.search_params["kernel_size"],
+                self.search_params,
+                "kernel_size",
+                default_value=None,
             )
             stride = parse_search_param(
                 self.trial,
                 f"stride_b{self.block_id}_l{i}",
-                self.search_params["stride"],
+                self.search_params,
+                "stride",
+                default_value=1,
             )
             activation = parse_search_param(
                 self.trial,
                 f"activation_func_b{self.block_id}_l{i}",
-                self.block["activation"],
+                self.block,
+                "activation",
+                default_value="identity",
             )
 
             self.layers.append(
@@ -124,19 +150,31 @@ class LSTMBuilder(LayerBuilder):
             hidden_size = parse_search_param(
                 self.trial,
                 f"hidden_size_b{self.block_id}_l{i}",
-                self.search_params["hidden_size"],
+                self.search_params,
+                "hidden_size",
+                default_value=None,
             )
             num_lstm_layers = parse_search_param(
                 self.trial,
                 f"num_lstm_layers_b{self.block_id}_l{i}",
-                self.search_params["num_lstm_layers"],
+                self.search_params,
+                "num_lstm_layers",
+                default_value=None,
             )
             bidirectional = parse_search_param(
                 self.trial,
                 f"bidirectional_b{self.block_id}_l{i}",
-                self.search_params["bidirectional"],
+                self.search_params,
+                "bidirectional",
+                default_value=False,
             )
-
+            dropout = parse_search_param(
+                self.trial,
+                f"dropout_b{self.block_id}_l{i}",
+                self.search_params,
+                key="dropout",
+                default_value=0.0,
+            )
             if is_last_block and i == num_layers - 1:
                 hidden_size = self.output_shape
                 if bidirectional & ((self.output_shape % 2) != 0):
@@ -151,6 +189,7 @@ class LSTMBuilder(LayerBuilder):
                     num_layers=num_lstm_layers,
                     bidirectional=bidirectional,
                     batch_first=True,
+                    dropout=dropout,
                 )
             )
             self.input_shape = [

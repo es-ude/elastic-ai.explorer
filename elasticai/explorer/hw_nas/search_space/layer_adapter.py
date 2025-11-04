@@ -1,3 +1,6 @@
+import math
+
+import torch
 from torch import nn
 
 
@@ -15,6 +18,22 @@ class Conv2dToLSTMAdapter(nn.Module):
         return (h * w, c)  # sequence_length, feature_dim
 
 
+class ToLinearAdapter(nn.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.layer = nn.Flatten()
+
+    def forward(self, x):
+        return self.layer(x)
+
+    @staticmethod
+    def infer_output_shape(input_shape):
+        if isinstance(input_shape, list):
+            return math.prod(input_shape)
+        else:
+            return input_shape
+
+
 class Conv2dToLinearAdapter(nn.Module):
     """(B, C, H, W) → (B, C*H*W)"""
 
@@ -25,6 +44,15 @@ class Conv2dToLinearAdapter(nn.Module):
     def infer_output_shape(input_shape):
         c, h, w = input_shape
         return c * h * w  # Flattened vector
+
+
+class LinearToLstmAdapter(nn.Module):
+    def forward(self, x):
+        return torch.unsqueeze(x, 2)
+
+    @staticmethod
+    def infer_output_shape(input_shape):
+        return [input_shape, 1]
 
 
 class LSTMNoSequenceAdapter(nn.Module):
@@ -50,13 +78,6 @@ class LinearToConv2dAdapter(nn.Module):
     def __init__(self):
         raise AdapterNotImplementedError(
             "Linear layer to Conv2d adapter is not implemented. "
-        )
-
-
-class LinearToLSTMAdapter(nn.Module):
-    def __init__(self):
-        raise AdapterNotImplementedError(
-            "Linear layer to LSTM adapter is not implemented. "
         )
 
 
