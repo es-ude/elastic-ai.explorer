@@ -1,5 +1,6 @@
 import math
 from abc import abstractmethod, ABC
+from typing import Any
 
 from pyparsing import ParseSyntaxException
 from torch import nn
@@ -15,7 +16,9 @@ from elasticai.explorer.hw_nas.search_space.utils import calculate_conv_output_s
 LAYER_REGISTRY = {}
 
 
-def parse_search_param(trial, name, params, key, default_value=None):
+def parse_search_param(
+    trial, name: str, params: dict, key: str, default_value: Any = None
+) -> Any:
     if key in params:
         param = params[key]
     else:
@@ -37,7 +40,7 @@ def parse_search_param(trial, name, params, key, default_value=None):
     raise ValueError(f"Invalid search space parameter '{name}'")
 
 
-def register_layer(name):
+def register_layer(name: str):
     """Decorator to register new layer types."""
 
     def wrapper(cls):
@@ -50,7 +53,13 @@ def register_layer(name):
 class LayerBuilder(ABC):
 
     def __init__(
-        self, trial, block, search_params, block_id, input_shape, output_shape
+        self,
+        trial,
+        block: dict,
+        search_params: dict,
+        block_id,
+        input_shape: list | int,
+        output_shape: list | int,
     ):
         self.trial = trial
         self.block = block
@@ -61,10 +70,10 @@ class LayerBuilder(ABC):
         self.layers = []
 
     @abstractmethod
-    def build(self, num_layers, is_last_block):
+    def build(self, num_layers: int, is_last_block: bool):
         pass
 
-    def add_activation(self, activation_name):
+    def add_activation(self, activation_name: str):
         self.layers.append(activation_mapping[activation_name])
 
     def get_layers(self):
@@ -74,7 +83,7 @@ class LayerBuilder(ABC):
 @register_layer("linear")
 class LinearBuilder(LayerBuilder):
 
-    def build(self, num_layers, is_last_block):
+    def build(self, num_layers: int, is_last_block: bool):
         for i in range(num_layers):
             width = parse_search_param(
                 self.trial,
@@ -100,7 +109,7 @@ class LinearBuilder(LayerBuilder):
 
 @register_layer("conv2d")
 class Conv2dBuilder(LayerBuilder):
-    def build(self, num_layers, is_last_block):
+    def build(self, num_layers: int, is_last_block: bool):
         for i in range(num_layers):
             out_channels = parse_search_param(
                 self.trial,
@@ -145,7 +154,7 @@ class Conv2dBuilder(LayerBuilder):
 
 @register_layer("lstm")
 class LSTMBuilder(LayerBuilder):
-    def build(self, num_layers, is_last_block):
+    def build(self, num_layers: int, is_last_block: bool):
         for i in range(num_layers):
             hidden_size = parse_search_param(
                 self.trial,

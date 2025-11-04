@@ -5,7 +5,13 @@ from torch import nn
 # this class throws the cell states away and only returns the output.
 class SimpleLSTM(nn.Module):
     def __init__(
-        self, input_size, hidden_size, num_layers, bidirectional, batch_first, dropout
+        self,
+        input_size: int,
+        hidden_size: int,
+        num_layers: int,
+        bidirectional: bool,
+        batch_first: bool,
+        dropout: float,
     ):
         super(SimpleLSTM, self).__init__()
         self.lstm = nn.LSTM(

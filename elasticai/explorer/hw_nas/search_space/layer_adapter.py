@@ -12,10 +12,10 @@ class Conv2dToLSTMAdapter(nn.Module):
         return x.view(b, c, -1).permute(0, 2, 1)
 
     @staticmethod
-    def infer_output_shape(input_shape):
+    def infer_output_shape(input_shape: int | list) -> int | list:
         # input_shape = (C, H, W)
         c, h, w = input_shape
-        return (h * w, c)  # sequence_length, feature_dim
+        return [h * w, c]  # sequence_length, feature_dim
 
 
 class ToLinearAdapter(nn.Module):
@@ -27,7 +27,7 @@ class ToLinearAdapter(nn.Module):
         return self.layer(x)
 
     @staticmethod
-    def infer_output_shape(input_shape):
+    def infer_output_shape(input_shape: int | list) -> int | list:
         if isinstance(input_shape, list):
             return math.prod(input_shape)
         else:
@@ -41,7 +41,7 @@ class Conv2dToLinearAdapter(nn.Module):
         return x.view(x.size(0), -1)
 
     @staticmethod
-    def infer_output_shape(input_shape):
+    def infer_output_shape(input_shape: int | list) -> int | list:
         c, h, w = input_shape
         return c * h * w  # Flattened vector
 
@@ -51,7 +51,7 @@ class LinearToLstmAdapter(nn.Module):
         return torch.unsqueeze(x, 2)
 
     @staticmethod
-    def infer_output_shape(input_shape):
+    def infer_output_shape(input_shape: int | list) -> int | list:
         return [input_shape, 1]
 
 
@@ -62,7 +62,7 @@ class LSTMNoSequenceAdapter(nn.Module):
         return x[:, -1, :]
 
     @staticmethod
-    def infer_output_shape(input_shape):
+    def infer_output_shape(input_shape: int | list) -> int | list:
         _, h = input_shape
         return h
 

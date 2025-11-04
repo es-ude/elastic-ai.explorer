@@ -24,7 +24,7 @@ class SearchSpace:
     def is_last_block(self, block_id):
         return self.blocks[-1]["block"] == block_id
 
-    def create_block(self, trial, block, prev_operation=None):
+    def create_block(self, trial, block: dict, prev_operation=None):
         block_id = block["block"]
         num_layers = parse_search_param(
             trial, f"num_layers_b{block_id}", block, "depth", default_value=None
@@ -56,7 +56,7 @@ class SearchSpace:
 
         self.layers.extend(layers)
         if self.is_last_block(block_id):
-            last_layer_adapter = ADAPTER_REGISTRY.get((operation, "None"))
+            last_layer_adapter = ADAPTER_REGISTRY.get((operation, None))
             if last_layer_adapter is not None:
                 last_layer_adapter = last_layer_adapter()
                 self.layers.append(last_layer_adapter)

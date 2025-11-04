@@ -17,7 +17,7 @@ ADAPTER_REGISTRY = {
     ("conv2d", "linear"): Conv2dToLinearAdapter,
     ("lstm", "linear"): LSTMNoSequenceAdapter,
     ("lstm", "conv2d"): LSTMToConv2dAdapter,
-    ("lstm", "None"): LSTMNoSequenceAdapter,
+    ("lstm", None): LSTMNoSequenceAdapter,
     (None, "linear"): ToLinearAdapter,
 }
 
