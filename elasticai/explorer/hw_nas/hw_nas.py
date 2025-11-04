@@ -50,7 +50,10 @@ def objective_wrapper(
     def objective(trial: optuna.Trial) -> float:
 
         search_space = SearchSpace(search_space_cfg)
-        model = search_space.create_model_sample(trial)
+        try:
+            model = search_space.create_model_sample(trial)
+        except NotImplementedError:
+            raise optuna.TrialPruned()
         trainer = trainer_cls.create_instance()
         optimizer = Adam(model.parameters(), lr=0.01)  # type: ignore
         trainer.configure_optimizer(optimizer)

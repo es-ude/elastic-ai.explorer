@@ -1,6 +1,4 @@
 import logging
-
-import optuna
 import torch.nn as nn
 
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
@@ -74,9 +72,7 @@ class SearchSpace:
 
         prev_operation = None
         for block in self.blocks:
-            try:
-                prev_operation = self.create_block(trial, block, prev_operation)
-            except NotImplementedError:
-                raise optuna.TrialPruned()
+
+            prev_operation = self.create_block(trial, block, prev_operation)
 
         return nn.Sequential(*self.layers)
