@@ -7,7 +7,7 @@ import tarfile
 from python_on_whales import docker
 from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
 from elasticai.explorer.config import DeploymentConfig
-from elasticai.explorer.utils import fpga_utils
+from elasticai.explorer.utils import synthesis_utils
 
 
 class Compiler(ABC):
@@ -126,7 +126,7 @@ class ENv5Compiler(Compiler):
     def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
 
         # TODO get params from deploy_cfg
-        fpga_utils.run_vhdl_synthesis(
+        synthesis_utils.run_vhdl_synthesis(
             src_dir=source,
             remote_working_dir="/home/vivado/robin-build/",
             host="65.108.38.237",

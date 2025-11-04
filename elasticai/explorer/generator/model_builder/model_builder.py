@@ -76,15 +76,16 @@ class CreatorModelBuilder(ModelBuilder):
             )
             raise e
 
-        layers = [
+        sequential = creator_nn.Sequential(
             fixed_point.Linear(
                 in_features=flat_input,
                 out_features=searchspace.output_shape,
                 total_bits=self.quantization_scheme.total_bits,
                 frac_bits=self.quantization_scheme.frac_bits,
-            )
-        ]
-        return creator_nn.Sequential(*layers)
+            ),
+            fixed_point.ReLU(total_bits=self.quantization_scheme.total_bits),
+        )
+        return sequential
 
     def get_supported_layers(self) -> set[type] | None:
         return {

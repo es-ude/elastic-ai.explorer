@@ -205,7 +205,7 @@ class MLPTrainer(Trainer):
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             output = model(data)
-            loss = self.loss_fn(output, target)
+            loss = self.loss_fn(output,  target)
             loss.backward()
             self.optimizer.step()
             if batch_idx % 10 == 0:

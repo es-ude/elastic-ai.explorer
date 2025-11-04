@@ -1,7 +1,7 @@
 # The DeploymentConfig gives the necessary information to connect to the target-device and deploy the model(s) on it.
 # If parameters are not specified inside the config, they are set to default values.
 DeploymentConfig:
-  # Select one of the supported hardware platforms: "rpi4", "rpi5" or "pico". Optional. Defaults to "rpi5".
+  # Select one of the supported hardware platforms: "rpi4", "rpi5", "pico" or "env5". Optional. Defaults to "rpi5".
   target_platform_name: <platform_name>
 
   # This is used for RPi4/5. The target device must be reachable via established SSH-key. Optional.
@@ -37,3 +37,14 @@ DeploymentConfig:
 
     # Full path to docker build context
     build_context: "<path-to-project>/docker"
+
+  VivadoBuildServer:
+    # Full path to working directory on build server
+    remote_working_dir: "<path_on_server>"
+
+    # The host name of the server
+    host: "<hostname>"
+
+    # The user name of the ssh host. 
+    ssh_user: "<username>"
+

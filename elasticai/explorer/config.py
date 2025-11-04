@@ -19,6 +19,13 @@ class DockerParameter:
     build_context: Path
 
 
+@dataclass
+class VivadoBuildServer:
+    remote_working_dir: str
+    host: str
+    ssh_user: str
+
+
 class Config:
     def __init__(self, config_path: Path | None = None):
         if config_path:
@@ -75,7 +82,10 @@ class HWNASConfig(Config):
         self.top_n_models: int = self._parse_optional("top_n_models", 2)
         self.n_estimation_epochs: int = self._parse_optional("n_estimation_epochs", 3)
         self.flops_weight: float = self._parse_optional("flops_weight", 2.0)
-        self.count_only_completed_trials: bool = self._parse_optional("count_only_completed_trials", False)
+        self.count_only_completed_trials: bool = self._parse_optional(
+            "count_only_completed_trials", False
+        )
+
 
 class DeploymentConfig(Config):
     """The DeploymentConfig gives the necessary information to connect to the target-device and deploy model(s) on it."""
@@ -111,4 +121,17 @@ class DeploymentConfig(Config):
         )
         self.docker.library_path = Path(
             self._parse_optional("compiled_library_path", "./code/libtorch", "Docker")
+        )
+
+        self.vivado_build_server = VivadoBuildServer
+        self.vivado_build_server.remote_working_dir = self._parse_optional(
+            "remote_working_dir",
+            default="/home/vivado/explorer-build/",
+            category="VivadoBuildServer",
+        )
+        self.vivado_build_server.host = self._parse_optional(
+            "host", "", category="VivadoBuildServer"
+        )
+        self.vivado_build_server.ssh_user = self._parse_optional(
+            "ssh_user", "vivado", category="VivadoBuildServer"
         )

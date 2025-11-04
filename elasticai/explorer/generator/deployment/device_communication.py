@@ -186,7 +186,7 @@ class ENv5Host(SerialHost):
             skeleton_id_as_bytearray.extend(
                 x.to_bytes(length=1, byteorder="little", signed=False)
             )
-        with serial.Serial(self.host_name, baudrate=self.BAUD_RATE, timeout=1) as ser:
+        with serial.Serial(self.serial_port, baudrate=self.BAUD_RATE, timeout=1) as ser:
             urc = UserRemoteControl(device=ser)
 
             urc.send_and_deploy_model(
@@ -210,3 +210,6 @@ class ENv5Host(SerialHost):
             urc = UserRemoteControl(device=ser)
             raw_result = urc.inference_with_data(sample, num_bytes_outputs)
             return raw_result
+
+    def run_command(self, command: str) -> str:
+        return ""

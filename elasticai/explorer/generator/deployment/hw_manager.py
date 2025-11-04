@@ -18,14 +18,19 @@ from elasticai.explorer.generator.model_compiler import tflite_to_resolver
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     QuantizationScheme,
+    parse_bytearray_to_fxp_tensor,
 )
 from elasticai.explorer.training.data import DatasetSpecification
-from elasticai.explorer.utils.fpga_utils import parse_fxp_tensor_to_bytearray
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    parse_fxp_tensor_to_bytearray,
+)
 from settings import DOCKER_CONTEXT_DIR
 from elasticai.creator.arithmetic import (
     FxpArithmetic,
     FxpParams,
 )
+from torch.utils.data import DataLoader, random_split
+from torch import nn
 
 
 class Metric(Enum):
@@ -58,7 +63,9 @@ class HWManager(ABC):
         pass
 
     @abstractmethod
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
+    def measure_metric(
+        self, metric: Metric, path_to_model: Path, model: nn.Module
+    ) -> dict:
         pass
 
 
@@ -99,7 +106,9 @@ class RPiHWManager(HWManager):
         self.target.put_file(archive_name, ".")
         self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
+    def measure_metric(
+        self, metric: Metric, path_to_model: Path, model: nn.Module
+    ) -> dict:
         source = self._metric_to_source.get(metric)
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
@@ -179,7 +188,9 @@ class PicoHWManager(HWManager):
             if file.is_file():
                 shutil.copyfile(file, target_dir / file.name)
 
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
+    def measure_metric(
+        self, metric: Metric, path_to_model: Path, model: nn.Module
+    ) -> dict:
 
         self.deploy_model(path_to_model)
         source = self._metric_to_source.get(metric)
@@ -225,7 +236,7 @@ class ENv5HWManager(HWManager):
         super().__init__(target, compiler)
 
     def install_code_on_target(self, source: Path, metric: Metric):
-        self.target.put_file(local_path=source, remote_path=None)
+
         self._register_metric_to_source(metric, source)
 
     def prepare_dataset(
@@ -239,6 +250,7 @@ class ENv5HWManager(HWManager):
             self.logger.error(err)
             raise err
 
+        self.num_output_bytes = quantization_scheme.num_output_bytes
         self.frac_bits = quantization_scheme.frac_bits
         self.total_bits = quantization_scheme.total_bits
         self.dataset_spec = dataset_spec
@@ -253,29 +265,56 @@ class ENv5HWManager(HWManager):
             dataset_spec.transform,
             target_transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
         )
+        train_subset, test_subset, val_subset = random_split(
+            self.dataset,
+            dataset_spec.test_train_val_ratio,
+        )
+        self.batch_size = 16
+        self.test_loader = DataLoader(
+            test_subset, batch_size=self.batch_size, shuffle=dataset_spec.shuffle
+        )
 
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
+    def measure_metric(
+        self, metric: Metric, path_to_model: Path, model: nn.Module
+    ) -> dict:
         self.deploy_model(path_to_model)
         source = self._metric_to_source.get(metric)
 
         if not source:
             self.logger.error(f"No source code registered for Metric: {metric}")
             exit(-1)
+
         path_to_executable = self.compiler.compile_code(source)
         self.measurements = self.target.put_file(path_to_executable, None)
-        for inputs_rational in self.dataset:
 
+        accuracy = self._run_accuracy_test()
+        return {"Accuracy on device": accuracy}
+
+    def deploy_model(self, path_to_model: Path):
+        self.target.put_file(local_path=path_to_model, remote_path=None)
+
+    def _run_accuracy_test(self) -> float:
+
+        correct = 0
+        total = 0
+        for inputs_rational, target in self.test_loader:
             data_bytearray = parse_fxp_tensor_to_bytearray(
                 inputs_rational, self.total_bits, self.frac_bits
             )
+            batch_results_bytes = []
             for sample in data_bytearray:
-                # TODO get outputsize
-                self.target.send_data_bytes(
-                    sample=sample, num_bytes_outputs=2
+                result_bytes = self.target.send_data_bytes(
+                    sample=sample, num_bytes_outputs=self.num_output_bytes
                 )
+                batch_results_bytes.append(result_bytes)
+            result = parse_bytearray_to_fxp_tensor(
+                batch_results_bytes,
+                self.total_bits,
+                self.frac_bits,
+                (self.batch_size, 1, self.num_output_bytes),
+            )
+            pred = result.argmax(dim=1)
+            correct += pred.eq(target).sum().item()
+            total += target.size(0)
 
-        
-    def deploy_model(self, path_to_model: Path):
-        # TODO 
-        pass
-        
+        return 100.0 * correct / total

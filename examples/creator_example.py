@@ -18,9 +18,13 @@ import serial
 import torch
 import tarfile
 
-from elasticai.explorer.utils import fpga_utils
-from elasticai.explorer.utils.fpga_utils import parse_fxp_tensor_to_bytearray
-from elasticai.explorer.utils.fpga_utils import parse_bytearray_to_fxp_tensor
+from elasticai.explorer.utils import synthesis_utils
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    parse_fxp_tensor_to_bytearray,
+)
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    parse_bytearray_to_fxp_tensor,
+)
 
 
 def build_vhdl_files(
@@ -83,7 +87,7 @@ def synthesis(
         pass
     time.sleep(1)
 
-    fpga_utils.run_vhdl_synthesis(
+    synthesis_utils.run_vhdl_synthesis(
         src_dir=design_dir,
         remote_working_dir="/home/vivado/robin-build/",
         host="65.108.38.237",
@@ -126,7 +130,6 @@ def test_on_device(
             "Correct design on FPGA: ",
             skeleton_id_on_device == skeleton_id_as_bytearray,
         )
-        # urc.deploy_model(flash_start_address, skeleton_id_as_bytearray)
 
         # --- Doing the test
         batch_data = parse_fxp_tensor_to_bytearray(
