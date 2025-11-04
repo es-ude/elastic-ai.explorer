@@ -26,7 +26,7 @@ from elasticai.explorer.platforms.generator.generator import (
 )
 
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import SupervisedTrainer
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
@@ -73,14 +73,18 @@ def find_generate_measure_for_pico(
         deployable_dataset_path=root_dir_cpp_mnist,
         transform=transf,
     )
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    trainer = SupervisedTrainer(
+        device=hwnas_cfg.host_processor, dataset_spec=dataset_spec
+    )
+
+    top_models = explorer.search(hwnas_cfg, dataset_spec, trainer)
 
     latency_measurements = []
     accuracy_measurements_on_device = []
     accuracy_after_retrain = []
     retrain_device = "cpu"
     for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(
+        mlp_trainer = SupervisedTrainer(
             device=retrain_device,
             optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,

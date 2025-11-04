@@ -61,9 +61,9 @@ class TestAutoencoderTrainer:
 
         autoencoder_trainer = ReconstructionAutoencoderTrainer(
             "cpu",
-            optimizer=torch.optim.Adam(self.autoencoder.parameters(), lr=1e-3),  # type: ignore
             dataset_spec=self.dataset_spec,
         )
+        autoencoder_trainer.configure_optimizer(torch.optim.Adam(self.autoencoder.parameters(), lr=1e-3))  # type: ignore
         autoencoder_trainer.train(self.autoencoder, 20)
         assert autoencoder_trainer.validate(self.autoencoder)[1] > 0
         assert autoencoder_trainer.test(self.autoencoder)[1] > 0

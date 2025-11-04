@@ -1,7 +1,6 @@
-from gc import callbacks
 import logging
 import math
-from typing import Any, Callable, Type
+from typing import Any, Callable
 from functools import partial
 from enum import Enum
 
@@ -11,7 +10,6 @@ from optuna.study import MaxTrialsCallback
 from torch.optim.adam import Adam
 
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
-from elasticai.explorer.training import data
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
 from elasticai.explorer.training.trainer import Trainer
@@ -25,12 +23,25 @@ class SearchAlgorithm(Enum):
     EVOlUTIONARY_SEARCH = "evolution"
 
 
+def apply_constraints(trial, flops, params, constraints):
+    max_flops = constraints.get("max_flops")
+    max_params = constraints.get("max_params")
+    if max_flops and flops > max_flops:
+        logger.info(
+            f"Trial {trial.number} pruned because flops {flops} > max_flops {max_flops}"
+        )
+        raise optuna.TrialPruned()
+    if max_params and params > max_params:
+        logger.info(
+            f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
+        )
+        raise optuna.TrialPruned()
+
+
 def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
-    dataset_spec: data.DatasetSpecification,
-    trainer_class: type[Trainer],
-    device: str,
+    trainer_cls: Trainer,
     n_estimation_epochs: int,
     flops_weight: float,
     constraints: dict[str, int] = {},
@@ -39,42 +50,40 @@ def objective_wrapper(
     def objective(trial: optuna.Trial) -> float:
 
         search_space = SearchSpace(search_space_cfg)
-        model = search_space.create_model_sample(trial)
-        optimizer = Adam(model.parameters(), lr=1e-3)
-        trainer = trainer_class(device, optimizer, dataset_spec)
+        try:
+            model = search_space.create_model_sample(trial)
+        except NotImplementedError:
+            raise optuna.TrialPruned()
+        trainer = trainer_cls.create_instance()
+        optimizer = Adam(model.parameters(), lr=0.01)  # type: ignore
+        trainer.configure_optimizer(optimizer)
 
         cost_estimator = CostEstimator()
         sample, _ = next(iter(trainer.test_loader))
         flops = cost_estimator.estimate_flops(model, sample)
         params = cost_estimator.compute_num_params(model)
-        max_flops = constraints.get("max_flops")
-        max_params = constraints.get("max_params")
-        if max_flops and flops > max_flops:
-            logger.info(
-                f"Trial {trial.number} pruned because flops {flops} > max_flops {max_flops}"
-            )
-            raise optuna.TrialPruned()
-        if max_params and params > max_params:
-            logger.info(
-                f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
-            )
-            raise optuna.TrialPruned()
-
+        apply_constraints(trial, flops, params, constraints)
+        metric = {
+            "default": 0,
+            "val_loss": 0,
+            "val_accuracy": -1,
+            "flops log10": math.log10(flops),
+        }
         default = 0
         val_loss = float("inf")
-        val_accuracy = 0
         flops_log10 = math.log10(flops)
 
         for epoch in range(n_estimation_epochs):
             trainer.train_epoch(model, epoch)
-            val_accuracy, val_loss = trainer.validate(model)
-            if val_accuracy:
-                default = val_accuracy - (flops_log10 * flops_weight)
+            val_metrics, val_loss = trainer.validate(model)
+            if "accuracy" in val_metrics:
+                default = val_metrics["accuracy"] * 100 - (flops_log10 * flops_weight)
+                trial.set_user_attr("val_accuracy", val_metrics["accuracy"] * 100)
             else:
-                val_accuracy = -1
                 default = -val_loss - (flops_log10 * flops_weight)
+                trial.set_user_attr("val_accuracy", -1)
             trial.report(default, epoch)
-        trial.set_user_attr("val_accuracy", val_accuracy)
+
         trial.set_user_attr("flops_log10", flops_log10)
         trial.set_user_attr("val_loss", val_loss)
         return default
@@ -85,8 +94,7 @@ def objective_wrapper(
 def search(
     search_space_cfg: dict,
     hwnas_cfg: HWNASConfig,
-    dataset_spec: data.DatasetSpecification,
-    trainer_class: Type[Trainer],
+    trainer: Trainer,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -112,7 +120,11 @@ def search(
 
     if hwnas_cfg.count_only_completed_trials:
         n_trials = None
-        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,))]
+        callbacks = [
+            MaxTrialsCallback(
+                hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,)
+            )
+        ]
     else:
         n_trials = hwnas_cfg.max_search_trials
         callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)]
@@ -121,9 +133,7 @@ def search(
         partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
-            device=hwnas_cfg.host_processor,
-            dataset_spec=dataset_spec,
-            trainer_class=trainer_class,
+            trainer_cls=trainer,
             n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
             flops_weight=hwnas_cfg.flops_weight,
             constraints=hwnas_cfg.hw_constraints,

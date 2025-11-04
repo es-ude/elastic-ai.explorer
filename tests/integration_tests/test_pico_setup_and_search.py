@@ -7,7 +7,7 @@ from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from elasticai.explorer.platforms.deployment.device_communication import PicoHost
 from elasticai.explorer.platforms.deployment.hw_manager import PicoHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import SupervisedTrainer
 from settings import ROOT_DIR
 from torchvision import transforms
 
@@ -57,7 +57,9 @@ class TestPicoHWNasSetupAndSearch:
         self.explorer.generate_search_space(
             ROOT_DIR / Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
-        top_k_models = self.explorer.search(
-            self.hwnas_cfg, self.dataset_spec, MLPTrainer
+        trainer = SupervisedTrainer(
+            device=self.hwnas_cfg.host_processor,
+            dataset_spec=self.dataset_spec,
         )
+        top_k_models = self.explorer.search(self.hwnas_cfg, trainer)
         assert len(top_k_models) == 2

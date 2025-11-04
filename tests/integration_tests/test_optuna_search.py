@@ -1,5 +1,7 @@
 import shutil
 import pytest
+from torch import optim
+
 from elasticai.explorer.config import DeploymentConfig
 from functools import partial
 import optuna
@@ -20,7 +22,7 @@ from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.platforms.deployment.device_communication import Host
 from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import SupervisedTrainer
 from settings import ROOT_DIR
 from pathlib import Path
 from types import SimpleNamespace
@@ -100,13 +102,12 @@ class TestFrozenTrialToModel:
             sampler=optuna.samplers.RandomSampler(),
             direction="maximize",
         )
+        trainer = SupervisedTrainer(hwnas_cfg.host_processor, self.dataset_spec)
         study.optimize(
             partial(
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
-                device=hwnas_cfg.host_processor,
-                dataset_spec=self.dataset_spec,
-                trainer_class=MLPTrainer,
+                trainer_cls=trainer,
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
             ),
@@ -127,11 +128,11 @@ class TestFrozenTrialToModel:
             assert len(result[0]) == 10
 
     def test_hw_nas_search(self, hwnas_cfg):
+        trainer = SupervisedTrainer(hwnas_cfg.host_processor, self.dataset_spec)
         top_models, model_parameters, metrics = hw_nas.search(
             self.search_space_cfg,
             hwnas_cfg=hwnas_cfg,
-            dataset_spec=self.dataset_spec,
-            trainer_class=MLPTrainer,
+            trainer=trainer,
         )
         assert len(top_models) == hwnas_cfg.top_n_models
         assert len(model_parameters) == hwnas_cfg.top_n_models

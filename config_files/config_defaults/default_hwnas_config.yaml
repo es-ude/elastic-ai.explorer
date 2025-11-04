@@ -5,5 +5,5 @@ HWNASConfig:
   hw_constraints: {}
   search_algorithm: "random"
   n_estimation_epochs: 3
-  flops_weight: 2.0
+  flops_weight: 0.5
   count_only_completed_trials: false

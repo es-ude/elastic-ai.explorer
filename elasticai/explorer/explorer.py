@@ -89,8 +89,7 @@ class Explorer:
     def search(
         self,
         hwnas_cfg: HWNASConfig,
-        dataset_spec: data.DatasetSpecification,
-        trainer_type: Type[Trainer],
+        trainer: Trainer,
     ) -> list[Any]:
 
         self.logger.info(
@@ -100,7 +99,9 @@ class Explorer:
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg, hwnas_cfg, dataset_spec, trainer_type
+                self.search_space_cfg,
+                hwnas_cfg,
+                trainer=trainer,
             )
         else:
             self.logger.error(
@@ -135,13 +136,15 @@ class Explorer:
         deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification 
+        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
     ):
         """
         Args:
-            path_to_testdata: Path to testdata. Format depends on the HWManager implementation.
-            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context.
+            path_to_testdata: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
+            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context. this doesn't explain anything
               E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
+              :param data_spec: this is missing
+
         """
         self.logger.info("Setup Hardware target for experiments.")
 
@@ -151,7 +154,6 @@ class Explorer:
             )
             exit(-1)
 
-       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():
