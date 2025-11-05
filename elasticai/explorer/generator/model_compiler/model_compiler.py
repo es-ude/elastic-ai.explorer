@@ -18,6 +18,7 @@ from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_con
 from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
 from ai_edge_torch.quantize.quant_config import QuantConfig
 
+from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     FullPrecisionScheme,
@@ -35,9 +36,10 @@ from elasticai.creator.arithmetic import (
     FxpArithmetic,
     FxpParams,
 )
+from elasticai.creator.nn import fixed_point
 
 
-class ModelCompiler(ABC):
+class ModelCompiler(ABC, Reflective):
     @abstractmethod
     def compile(
         self,
@@ -203,7 +205,7 @@ class CreatorModelCompiler(ModelCompiler):
         input_sample: torch.Tensor,
         quantization_scheme: QuantizationScheme = FixedPointInt8Scheme(),
     ):
-        destination = OnDiskPath(str(output_path))
+        destination = OnDiskPath(str(output_path), parent="")
 
         if not isinstance(model, creator_nn.Sequential):
             err = TypeError(
@@ -224,8 +226,11 @@ class CreatorModelCompiler(ModelCompiler):
             skeleton_version="v2",
         )
         firmware.save_to(destination)
-
-        # TODO where to set the weights?
-        # model[0].weight.data = torch.ones_like(model[0].weight) * 2
-        # model[0].bias.data = torch.ones_like(model[0].bias) * 0.5
         return nn
+
+    def get_supported_layers(self) -> set[type] | None:
+        return {fixed_point.Linear}
+
+    def get_supported_quantization_schemes(self) -> set[QuantizationScheme] | None:
+
+        return {FixedPointInt8Scheme()}

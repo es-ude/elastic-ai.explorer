@@ -175,7 +175,7 @@ def run_vhdl_synthesis(
     ssh_port: int = 22,
     target=TargetPlatforms.env5,
     quiet: bool = False,
-):
+) -> Path:
     """Generate FPGA bitstreams remotely.
 
     The tool uploads files in SRC_DIR via ssh to a host,
@@ -191,7 +191,7 @@ def run_vhdl_synthesis(
     print(f"uploading {src_dir.absolute()}")
     src_dir = src_dir.absolute()
     target_file = src_dir.parent.absolute() / "vivado_run_results.tar.gz"
-    project_name = "AI_Accel"
+    project_name = "Explorer-Synthesis"
     connection = ConnectionWrapper(
         Connection(host=host, user=ssh_user, port=ssh_port),
         Verbosity.ONLY_ERRORS if quiet else Verbosity.ALL,
@@ -200,12 +200,14 @@ def run_vhdl_synthesis(
         print(
             f"skipping {src_dir} because target file {target_file.absolute()} already exists"
         )
-        return
+        return src_dir.parent.absolute() / "results/impl/env5_top_reconfig.bin"
     if "./" in remote_working_dir:
         raise ValueError("illegal remote working directory")
     with TemporaryDirectory(suffix="synth_server") as tmp_dir:
         print(f"preparing files in {tmp_dir}")
         tmp_dir = Path(tmp_dir)
+        
+        # TODO why does this not work
         _write_tcl_script(
             tmp_dir,
             project_name=project_name,
@@ -258,3 +260,4 @@ def run_vhdl_synthesis(
         local=str(src_dir.parent.absolute() / "vivado_run_results.tar.gz"),
         remote=f"{remote_working_dir}/results.tar.gz",
     )
+    return src_dir.parent.absolute() / "results/impl/env5_top_reconfig.bin"

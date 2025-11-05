@@ -1,0 +1,23 @@
+# The DeploymentConfig gives the necessary information to connect to the target-device and deploy the model(s) on it.
+# If parameters are not specified inside the config, they are set to default values.
+DeploymentConfig:
+  # Select one of the supported hardware platforms: "rpi4", "rpi5" or "pico". Optional. Defaults to "rpi5".
+  target_platform_name: "env5"
+
+  Serial:
+    # The port on which serial connection is setup, necessary for Pico. Optional. Defaults to "/dev/ttyACM0".
+    serial_port: "/dev/ttyACM0"
+
+    # The baud rate for the serial connection. Optional. Defaults to 115200.
+    baud_rate: 9600
+
+  VivadoBuildServer:
+    # Full path to working directory on build server
+    remote_working_dir: "/home/vivado/robin-build/"
+
+    # The host name of the server
+    host: "65.108.38.237"
+
+    # The user name of the ssh host. 
+    ssh_user: "vivado"
+

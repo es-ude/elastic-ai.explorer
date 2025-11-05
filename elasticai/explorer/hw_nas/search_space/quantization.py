@@ -67,15 +67,22 @@ def parse_bytearray_to_fxp_tensor(
             item_as_rational = fxp_config.as_rational(item_as_int)
             rationals[i].append(item_as_rational)
     tensor = Tensor(rationals)
-    tensor = tensor.unflatten(1, (dimensions[2], dimensions[1]))
-    tensor = tensor.transpose(1, 2)
+    if len(dimensions) == 3:
+        tensor = tensor.unflatten(1, (dimensions[2], dimensions[1]))
+        tensor = tensor.transpose(1, 2)
+    else:
+        tensor = tensor.unflatten(1, (dimensions[1],))
+
     return tensor
 
 
 def parse_fxp_tensor_to_bytearray(
     tensor: Tensor, total_bits: int, frac_bits: int
 ) -> list[bytearray]:
-    tensor = flatten(tensor.permute([0, 2, 1]), start_dim=1)
+    if len(tensor.shape) == 3:
+        tensor = flatten(tensor.permute([0, 2, 1]), start_dim=1)
+    else:
+        tensor = flatten(tensor, start_dim=1)
     fxp_params = FxpParams(total_bits=total_bits, frac_bits=frac_bits, signed=True)
     fxp_config = FxpArithmetic(fxp_params)
     ints = fxp_config.cut_as_integer(tensor).tolist()

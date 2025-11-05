@@ -1,12 +1,11 @@
 import os
 from pathlib import Path
 from random import randint
-import subprocess
 import time
 from typing import Any
 from elasticai.creator.file_generation.on_disk_path import OnDiskPath
 from elasticai.creator.nn import Sequential
-from elasticai.creator.nn.fixed_point import Linear, ReLU
+from elasticai.creator.nn.fixed_point import Linear
 from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
 from elasticai.runtime.env5.usb import UserRemoteControl, get_env5_port
 

@@ -3,14 +3,20 @@ import logging
 import os
 from pathlib import Path
 import tarfile
+from typing import Type
 
 from python_on_whales import docker
 from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
 from elasticai.explorer.config import DeploymentConfig
+from elasticai.explorer.generator.reflection import Reflective
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FixedPointInt8Scheme,
+    QuantizationScheme,
+)
 from elasticai.explorer.utils import synthesis_utils
 
 
-class Compiler(ABC):
+class Compiler(ABC, Reflective):
     @abstractmethod
     def __init__(self, deploy_cfg: DeploymentConfig):
         pass
@@ -126,11 +132,11 @@ class ENv5Compiler(Compiler):
     def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
 
         # TODO get params from deploy_cfg
-        synthesis_utils.run_vhdl_synthesis(
+        path_to_bin_file = synthesis_utils.run_vhdl_synthesis(
             src_dir=source,
-            remote_working_dir="/home/vivado/robin-build/",
-            host="65.108.38.237",
-            ssh_user="vivado",
+            remote_working_dir=self.deploy_cfg.vivado_build_server.remote_working_dir,
+            host=self.deploy_cfg.vivado_build_server.host,
+            ssh_user=self.deploy_cfg.vivado_build_server.ssh_user,
         )
 
         tar = tarfile.open(str(output_dir) + "/vivado_run_results.tar.gz")
@@ -141,4 +147,9 @@ class ENv5Compiler(Compiler):
         except:
             pass
 
-        return output_dir
+        return path_to_bin_file
+
+    def get_supported_quantization_schemes(
+        self,
+    ) -> tuple[Type[QuantizationScheme]] | None:
+        return (FixedPointInt8Scheme,)

@@ -5,6 +5,7 @@ from typing import Optional, Any, Type
 from torch import nn
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
+from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import (
     ModelBuilder,
@@ -172,15 +173,13 @@ class Explorer:
 
         for metric, source in metric_to_source.items():
             self.logger.info(f"Installing program for {metric.name}: {source}")
-            self.hw_manager.install_code_on_target(source, metric)
+            self.hw_manager.prepare_measurement(source, metric)
 
-    def run_measurement(
-        self, metric: Metric, model: nn.Module, model_name: str
-    ) -> dict:
+    def run_measurement(self, metric: Metric, model_name: str) -> dict:
         model_path = self._model_dir / model_name
         if self.hw_manager:
-            self.hw_manager.deploy_model(model_path)
-            measurement = self.hw_manager.measure_metric(metric, model_path, model)
+            self.hw_manager.prepare_model(model_path)
+            measurement = self.hw_manager.measure_metric(metric, model_path)
             self.logger.info(measurement)
         else:
             self.logger.error(

@@ -186,14 +186,17 @@ class ENv5Host(SerialHost):
             skeleton_id_as_bytearray.extend(
                 x.to_bytes(length=1, byteorder="little", signed=False)
             )
-        with serial.Serial(self.serial_port, baudrate=self.BAUD_RATE, timeout=1) as ser:
-            urc = UserRemoteControl(device=ser)
 
-            urc.send_and_deploy_model(
+        try:
+            # open serial and keep it open on the host instance
+            self._ser = serial.Serial(get_env5_port(), baudrate=self.BAUD_RATE, timeout=1)
+            self._urc = UserRemoteControl(device=self._ser)
+
+            self._urc.send_and_deploy_model(
                 local_path, self.flash_start_address, skeleton_id_as_bytearray
             )
-            urc.fpga_leds(True, False, False, False)
-            skeleton_id_on_device = bytearray(urc._enV5RCP.read_skeleton_id())
+            self._urc.fpga_leds(True, False, False, False)
+            skeleton_id_on_device = bytearray(self._urc._enV5RCP.read_skeleton_id())
 
             if skeleton_id_on_device == skeleton_id_as_bytearray:
                 self.logger.info(
@@ -203,10 +206,24 @@ class ENv5Host(SerialHost):
                 self.logger.warning(
                     f"The byte stream hasn't been written correctly to the ENv5. Verification bytes are not equal: {skeleton_id_on_device} != {skeleton_id_as_bytearray}!"
                 )
+        except Exception:
+            # on any exception, ensure we close partially opened resources
+            try:
+                if self._ser and self._ser.is_open:
+                    self._ser.close()
+            except Exception:
+                pass
+            self._ser = None
+            self._urc = None
+            raise
         return ""
 
     def send_data_bytes(self, sample: bytearray, num_bytes_outputs: int) -> bytearray:
-        with serial.Serial(self.host_name, baudrate=self.BAUD_RATE, timeout=1) as ser:
+        if self._urc:
+            raw_result = self._urc.inference_with_data(sample, num_bytes_outputs)
+            return raw_result
+
+        with serial.Serial(get_env5_port(), baudrate=self.BAUD_RATE, timeout=1) as ser:
             urc = UserRemoteControl(device=ser)
             raw_result = urc.inference_with_data(sample, num_bytes_outputs)
             return raw_result
