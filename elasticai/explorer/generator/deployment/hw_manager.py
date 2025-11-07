@@ -7,12 +7,14 @@ from pathlib import Path
 
 import shutil
 import tarfile
+from typing import Callable, Dict
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
     ENv5Host,
-    Host,
+    SSHHost,
     PicoHost,
     RPiHost,
+    SerialHost,
 )
 from elasticai.explorer.generator.model_compiler import tflite_to_resolver
 from elasticai.explorer.hw_nas.search_space.quantization import (
@@ -30,7 +32,8 @@ from elasticai.creator.arithmetic import (
     FxpParams,
 )
 from torch.utils.data import DataLoader, random_split
-from torch import nn
+
+MetricFunction = Callable[[SSHHost | SerialHost, "HWManager"], Dict[str, Dict]]
 
 
 class Metric(Enum):
@@ -40,37 +43,76 @@ class Metric(Enum):
 
 
 class HWManager(ABC):
-    def __init__(self, target: Host, compiler: Compiler):
-        self._metric_to_source: dict[Metric, Path] = {}
+    def __init__(self, target: SSHHost | SerialHost, compiler: Compiler):
+        self.target = target
+        self.compiler = compiler
+        self._metric_to_source: dict[Metric, Path | MetricFunction] = {}
+        self.logger = logging.getLogger(
+            "explorer.generator.deployment.manager.HWManager"
+        )
+        self.supported_schemes = self.compiler.get_supported_quantization_schemes()
 
-    def _register_metric_to_source(self, metric: Metric, source: Path):
+    def _register_metric_to_source(self, metric: Metric, source: Path | MetricFunction):
         self._metric_to_source.update({metric: source})
 
-    @abstractmethod
-    def prepare_measurement(self, source: Path, metric: Metric):
-        pass
+    def _get_metric_source(self, metric: Metric):
+        return self._metric_to_source[metric]
 
-    @abstractmethod
+    def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
+        self._register_metric_to_source(metric, source)
+
+    def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> dict:
+        source = self._get_metric_source(metric)
+        if not source:
+            raise Exception(f"No source code registered for Metric: {metric}")
+
+        if callable(source):
+            result = source(self.target, self)
+            return result
+
+        if isinstance(source, Path):
+            src_path: Path = source
+            if self.compiler is not None:
+                compiled = self.compiler.compile_code(src_path, src_path.parent)
+            else:
+                compiled = src_path
+            if isinstance(self.target, SSHHost):
+                self.target.put_file(local_path=compiled, remote_path=".")
+                cmd = f"./{Path(compiled).name} {path_to_model.name}"
+                out = self.target.run_command(cmd)
+                return json.loads(out)
+            elif isinstance(self.target, SerialHost): 
+                self.target.put_file(local_path=compiled, remote_path=".")
+                self.target
+           
+
+        err = TypeError(f"Unsupported source for metric {metric}. ")
+        self.logger.error(err)
+        raise err
+
     def prepare_dataset(
         self,
         dataset_spec: DatasetSpecification,
         quantization_scheme: QuantizationScheme,
     ):
-        pass
+
+        if self.supported_schemes and not isinstance(
+            quantization_scheme, self.supported_schemes
+        ):
+            err = TypeError(f"{quantization_scheme} is not supported by ENv5HWManager!")
+            self.logger.error(err)
+            raise err
 
     @abstractmethod
     def prepare_model(self, path_to_model: Path):
         pass
 
     @abstractmethod
-    def measure_metric(
-        self, metric: Metric, path_to_model: Path
-    ) -> dict:
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         pass
 
 
 class RPiHWManager(HWManager):
-
     def __init__(self, target: RPiHost, compiler: Compiler):
         self.compiler = compiler
         self.target = target
@@ -80,7 +122,11 @@ class RPiHWManager(HWManager):
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
-    def prepare_measurement(self, source: Path, metric: Metric):
+    def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
+        if isinstance(source, Callable):
+            super().prepare_measurement(source, metric)
+            return
+
         if source.is_relative_to(DOCKER_CONTEXT_DIR):
             relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
         else:
@@ -94,7 +140,7 @@ class RPiHWManager(HWManager):
         dataset_spec: DatasetSpecification,
         quantization_scheme: QuantizationScheme,
     ):
-
+        super().prepare_dataset(dataset_spec, quantization_scheme)
         if dataset_spec.deployable_dataset_path:
             dataset_dir = dataset_spec.deployable_dataset_path
         else:
@@ -106,26 +152,14 @@ class RPiHWManager(HWManager):
         self.target.put_file(archive_name, ".")
         self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
-    def measure_metric(
-        self, metric: Metric, path_to_model: Path
-    ) -> dict:
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         source = self._metric_to_source.get(metric)
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
         _, tail = os.path.split(path_to_model)
         self.logger.info("Measure {} of model on device.".format(metric))
-        cmd = None
 
-        match metric:
-            case metric.ACCURACY:
-                cmd = self.build_command(source.stem, [tail])
-                print("acc")
-            case metric.LATENCY:
-                cmd = self.build_command(source.stem, [tail])
-                print("lat")
-
-        measurement = self.target.run_command(cmd)
-        measurement = self._parse_measurement(measurement)
+        measurement = self._invoke_metric_source(metric, path_to_model)
 
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
@@ -133,9 +167,6 @@ class RPiHWManager(HWManager):
     def prepare_model(self, path_to_model: Path):
         self.logger.info("Put model %s on target", path_to_model)
         self.target.put_file(path_to_model, ".")
-
-    def _parse_measurement(self, result: str) -> dict:
-        return json.loads(result)
 
     def build_command(self, name_of_executable: str, arguments: list[str]):
         builder = CommandBuilder(name_of_executable)
@@ -167,18 +198,21 @@ class PicoHWManager(HWManager):
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)
 
-    def prepare_measurement(self, source: Path, metric: Metric):
-        if source.is_relative_to(DOCKER_CONTEXT_DIR):
-            relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
-        else:
-            relative_path = Path("/" + str(source))
-        self._register_metric_to_source(metric, relative_path)
+    def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
+
+        if isinstance(source, Path) and source.is_relative_to(DOCKER_CONTEXT_DIR):
+            source = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        elif isinstance(source, Path):
+            source = Path("/" + str(source))
+
+        super().prepare_measurement(source, metric)
 
     def prepare_dataset(
         self,
         dataset_spec: DatasetSpecification,
         quantization_scheme: QuantizationScheme,
     ):
+        super().prepare_dataset(dataset_spec, quantization_scheme)
         target_dir = DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data"
         if not dataset_spec.deployable_dataset_path:
             raise ValueError(
@@ -188,13 +222,14 @@ class PicoHWManager(HWManager):
             if file.is_file():
                 shutil.copyfile(file, target_dir / file.name)
 
-    def measure_metric(
-        self, metric: Metric, path_to_model: Path
-    ) -> dict:
+    def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> Dict:
 
         self.prepare_model(path_to_model)
         source = self._metric_to_source.get(metric)
-        if not source:
+        if callable(source):
+            result = source(self.target, self)
+            return result
+        if not source or not isinstance(source, Path):
             self.logger.error(f"No source code registered for Metric: {metric}")
             exit(-1)
         path_to_resolver = Path(str(DOCKER_CONTEXT_DIR) + f"{source}/resolver_ops.h")
@@ -202,27 +237,24 @@ class PicoHWManager(HWManager):
             path_to_model,
             path_to_resolver,
         )
-
         path_to_executable = self.compiler.compile_code(source)
         self.measurements = self.target.put_file(path_to_executable, None)
         if self.measurements:
-            measurement = self._parse_measurement(self.measurements)
+            measurement = json.loads(self.measurements)
         else:
-            return self._parse_measurement(
-                '{"' + metric.value + '": { "value": -1, "unit": "Error"}}'
-            )
+            return {metric.value: {"value": -1, "unit": "Error"}}
 
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
+
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> Dict:
+        return self._invoke_metric_source(metric, path_to_model)
 
     def prepare_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
             DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/model.cpp",
         )
-
-    def _parse_measurement(self, result: str) -> dict:
-        return json.loads(result)
 
 
 class ENv5HWManager(HWManager):
@@ -235,23 +267,14 @@ class ENv5HWManager(HWManager):
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
-    def prepare_measurement(self, source: Path, metric: Metric):
-
-        self._register_metric_to_source(metric, source)
-
     def prepare_dataset(
         self,
         dataset_spec: DatasetSpecification,
         quantization_scheme: QuantizationScheme,
     ):
 
-        supported_schemes = self.compiler.get_supported_quantization_schemes()
-
-        if supported_schemes and not isinstance(quantization_scheme, supported_schemes):
-            err = TypeError(f"{quantization_scheme} is not supported by ENv5HWManager!")
-            self.logger.error(err)
-            raise err
-        assert type(quantization_scheme) == FixedPointInt8Scheme 
+        super().prepare_dataset(dataset_spec, quantization_scheme)
+        assert type(quantization_scheme) == FixedPointInt8Scheme
         # TODO this should not be here but given by the user
         self.num_output_bytes = quantization_scheme.num_output_bytes
         self.frac_bits = quantization_scheme.frac_bits
@@ -277,47 +300,12 @@ class ENv5HWManager(HWManager):
             test_subset, batch_size=self.batch_size, shuffle=dataset_spec.shuffle
         )
 
-    def measure_metric(
-        self, metric: Metric, path_to_model: Path
-    ) -> dict:
-
-        source = self._metric_to_source.get(metric)
-
-        if not source:
-            self.logger.error(f"No source code registered for Metric: {metric}")
-            exit(-1)
-        path_to_executable = self.compiler.compile_code(source, source.parent)
-        self.target.put_file(local_path=path_to_executable, remote_path=None)
-
-        accuracy = self._run_accuracy_test()
-        return {"Accuracy": {"value" : accuracy}}
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> Dict:
+        metric_dict = self._invoke_metric_source(metric, path_to_model)
+        return metric_dict
 
     def prepare_model(self, path_to_model: Path):
-        pass
-
-    def _run_accuracy_test(self) -> float:
-        # TODO this should come as a metric script from outside?
-        correct = 0
-        total = 0
-        for inputs_rational, target in self.test_loader:
-            data_bytearray = parse_fxp_tensor_to_bytearray(
-                inputs_rational, self.total_bits, self.frac_bits
-            )
-            batch_results_bytes = []
-            for sample in data_bytearray:
-                result_bytes = self.target.send_data_bytes(
-                    sample=sample, num_bytes_outputs=self.num_output_bytes
-                )
-                batch_results_bytes.append(result_bytes)
-
-            result = parse_bytearray_to_fxp_tensor(
-                batch_results_bytes,
-                self.total_bits,
-                self.frac_bits,
-                (self.batch_size, self.num_output_bytes),
-            )
-            pred = result.argmax(dim=1)
-            correct += pred.eq(target).sum().item()
-            total += target.size(0)
-            
-        return 100.0 * correct / total
+        path_to_executable = self.compiler.compile_code(
+            path_to_model, path_to_model.parent
+        )
+        self.target.put_file(local_path=path_to_executable, remote_path=None)

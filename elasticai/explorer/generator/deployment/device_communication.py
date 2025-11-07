@@ -29,16 +29,15 @@ class Host(ABC):
     @abstractmethod
     def put_file(self, local_path: Path, remote_path: str | None) -> str: ...
 
-    @abstractmethod
-    def run_command(self, command: str) -> str: ...
-
 
 class SerialHost(Host):
     @abstractmethod
     def send_data_bytes(
         self, sample: bytearray, num_bytes_outputs: int
     ) -> bytearray: ...
-class SSHHost(Host): ...
+class SSHHost(Host):
+    @abstractmethod
+    def run_command(self, command: str) -> str: ...
 
 
 class RPiHost(SSHHost):
@@ -189,7 +188,9 @@ class ENv5Host(SerialHost):
 
         try:
             # open serial and keep it open on the host instance
-            self._ser = serial.Serial(get_env5_port(), baudrate=self.BAUD_RATE, timeout=1)
+            self._ser = serial.Serial(
+                get_env5_port(), baudrate=self.BAUD_RATE, timeout=1
+            )
             self._urc = UserRemoteControl(device=self._ser)
 
             self._urc.send_and_deploy_model(

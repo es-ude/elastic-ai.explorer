@@ -1,5 +1,5 @@
 from elasticai.explorer.generator.deployment.compiler import Compiler
-from elasticai.explorer.generator.deployment.device_communication import Host
+from elasticai.explorer.generator.deployment.device_communication import SSHHost
 from elasticai.explorer.generator.deployment.hw_manager import HWManager
 from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
 
@@ -14,6 +14,5 @@ class Generator:
     info: str
     model_compiler: Type[ModelCompiler]
     platform_manager: Type[HWManager]
-    communication_protocol: Type[Host]
+    communication_protocol: Type[SSHHost]
     compiler: Type[Compiler]
-    

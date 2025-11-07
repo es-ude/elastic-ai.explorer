@@ -20,7 +20,7 @@ from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     TorchscriptModelCompiler,
 )
-from elasticai.explorer.generator.deployment.device_communication import Host
+from elasticai.explorer.generator.deployment.device_communication import SSHHost
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import MLPTrainer
@@ -72,7 +72,7 @@ class TestFrozenTrialToModel:
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
                 TorchscriptModelCompiler,
                 RPiHWManager,
-                Host,
+                SSHHost,
                 Compiler,
             )
         )

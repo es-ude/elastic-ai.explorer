@@ -21,6 +21,7 @@ from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.hw_manager import (
     HWManager,
     Metric,
+    MetricFunction,
 )
 from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
 from elasticai.explorer.training.trainer import Trainer
@@ -151,23 +152,25 @@ class Explorer:
 
     def hw_setup_on_target(
         self,
-        metric_to_source: dict[Metric, Path],
+        metric_to_source: dict[Metric, Path | MetricFunction],
         data_spec: data.DatasetSpecification,
         quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
         """
         Args:
             path_to_testdata: Path to testdata. Format depends on the HWManager implementation.
-            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context.
-              E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
+            metric_to_source: Dictionary mapping Metric to Path to source code inside the docker context.
+              E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")} or a MetricFunction(Host, Manager).
         """
         self.logger.info("Setup Hardware target for experiments.")
 
         if not self.hw_manager:
-            self.logger.error(
+
+            err = TypeError(
                 "HwManager is not initialized! First run choose_target_hw(deploy_cfg) before hw_setup_on_target()."
             )
-            exit(-1)
+            self.logger.error(err)
+            raise err
 
         self.hw_manager.prepare_dataset(data_spec, quantization_scheme)
 
