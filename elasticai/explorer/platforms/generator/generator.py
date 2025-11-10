@@ -39,7 +39,7 @@ class RPiGenerator(Generator):
         self,
         model: nn.Module,
         path: Path,
-        input_sample: torch.Tensor = None,
+        input_sample: torch.Tensor | None = None,
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         if quantization == "int8":
