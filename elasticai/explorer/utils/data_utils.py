@@ -28,7 +28,6 @@ def read_csv(csv_path) -> pd.DataFrame:
 
 
 def setup_mnist_for_cpp(root_dir_mnist: Path, root_dir_cpp_mnist: Path, transf: Any):
-
     mnist_test = datasets.MNIST(
         root=root_dir_mnist, train=False, download=True, transform=transf
     )

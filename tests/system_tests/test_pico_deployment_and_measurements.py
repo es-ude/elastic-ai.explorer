@@ -1,4 +1,6 @@
 import math
+
+import pytest
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import (
@@ -79,7 +81,7 @@ class TestPicoDeploymentAndMeasurement:
             transform=transf,
         )
         self.pico_explorer.hw_setup_on_target(metric_to_source, self.dataset_spec)
-
+    @pytest.mark.hardware
     def test_pico_accuracy_measurement(self):
         assert math.isclose(
             self.pico_explorer.run_measurement(
@@ -88,7 +90,7 @@ class TestPicoDeploymentAndMeasurement:
             78.516,
             abs_tol=0.01,
         )
-
+    @pytest.mark.hardware
     def test_pico_latency_measurement(self):
         assert (
             type(

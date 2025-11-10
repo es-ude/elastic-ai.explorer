@@ -1,14 +1,13 @@
 input: [1, 28, 28]
-#input: [50, 1] output: 1
 output: 10
 blocks:
   - block: "1" #namefield muss noch rein
-    op_candidates: [ "linear" ]
+    op_candidates: [ "conv2d" ]
     depth: [1, 2]
     activation: [ "sigmoid" , "relu"]
     linear:
       #überall range oder choices
-      width: [ 4, 5, 16 ]
+      width: [ 4, 5, 16, 32 ]
     conv2d:
       kernel_size: [ 10]
       stride: [ 1, 2 ]
@@ -23,10 +22,10 @@ blocks:
     activation: [ "identity"]
     linear:
       #überall range oder choices
-      width: [16]
+      width: [16, 32]
     conv2d:
-      kernel_size: [1]
-      stride: [1]
+      kernel_size: [1, 2]
+      stride: [1, 2]
       out_channels: [10, 4]
     lstm:
       hidden_size: [1]
@@ -37,7 +36,7 @@ blocks:
     activation: ["relu", "tanh"]
     depth: 3
     linear:
-      width: [10]
+      width: [30, 60]
     conv2d:
       kernel_size: [ 1, 2 ]
       stride: [ 1, 2 ]

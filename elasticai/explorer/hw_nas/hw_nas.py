@@ -25,8 +25,7 @@ class HWNASParameters:
 
 class SearchStrategy(Enum):
     RANDOM_SEARCH = "random"
-    GRID_SEARCH = "grid"
-    EVOLUTIONARY_SEARCH = "evolution"
+    EVOlUTIONARY_SEARCH = "evolution"
 
 
 def objective_wrapper(
@@ -101,10 +100,7 @@ def search(
     match search_strategy:
         case SearchStrategy.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
-        case SearchStrategy.GRID_SEARCH:
-            grid = search_space.to_grid()
-            sampler = optuna.samplers.GridSampler(search_space=grid)
-        case SearchStrategy.EVOLUTIONARY_SEARCH:
+        case SearchStrategy.EVOlUTIONARY_SEARCH:
             sampler = optuna.samplers.NSGAIISampler(
                 population_size=20,
                 mutation_prob=0.1,

@@ -39,7 +39,7 @@ class RPiGenerator(Generator):
         self,
         model: nn.Module,
         path: Path,
-        input_sample: torch.Tensor,
+        input_sample: torch.Tensor = None,
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         if quantization == "int8":
@@ -135,7 +135,6 @@ class PicoGenerator(Generator):
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         self.logger.info("Generate torchscript model from %s", model)
-
         input_sample_nchw = input_sample.unsqueeze(1)
         input_tuple_nchw = (input_sample_nchw,)
         input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 3, 1),)

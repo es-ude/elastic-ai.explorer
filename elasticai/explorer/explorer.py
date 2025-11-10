@@ -171,9 +171,11 @@ class Explorer:
     ):
         """
         Args:
-            path_to_testdata: Path to testdata. Format depends on the HWManager implementation.
-            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context.
+            path_to_testdata: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
+            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context. this doesn't explain anything
               E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
+              :param data_spec: this is missing
+
         """
         self.logger.info("Setup Hardware target for experiments.")
 
@@ -183,6 +185,7 @@ class Explorer:
             )
             exit(-1)
 
+       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():

@@ -1,4 +1,6 @@
 import shutil
+
+import pytest
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
@@ -77,6 +79,7 @@ class TestDeploymentAndMeasurement:
             ),
         )
 
+    @pytest.mark.hardware
     def test_pi_accuracy_measurement(self):
         assert (
             type(
@@ -87,6 +90,7 @@ class TestDeploymentAndMeasurement:
             == float
         )
 
+    @pytest.mark.hardware
     def test_pi_latency_measurement(self):
         assert (
             type(
