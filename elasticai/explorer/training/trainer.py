@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Tuple, Callable
+from typing import Any, Dict, Tuple, Callable
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
@@ -16,7 +16,7 @@ class Trainer(ABC):
         dataset_spec: DatasetSpecification,
         loss_fn: Any = nn.CrossEntropyLoss(),
         batch_size: int = 64,
-        extra_metrics: dict = {},
+        extra_metrics: Dict = {},
     ):
         self.logger = logging.getLogger("explorer.Trainer")
         self.device = device

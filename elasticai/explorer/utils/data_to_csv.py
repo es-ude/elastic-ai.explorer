@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 import pandas as pd
 
 from elasticai.explorer.utils import data_utils
@@ -8,9 +9,7 @@ from settings import MAIN_EXPERIMENT_DIR
 
 
 def build_search_space_measurements_file(
-    latencies: list[int],
-    accuracies_after_retrain: list[int],
-    accuracies_on_device: list[int],
+    metric_to_measurements:Dict,
     metrics_path: Path,
     model_parameter_path: Path,
     csv_path: Path,
@@ -22,9 +21,10 @@ def build_search_space_measurements_file(
     dataframe2 = pd.DataFrame.from_dict(sample_list)
 
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
-    data_merged["latency in us"] = latencies
-    data_merged["accuracy after retrain in %"] = accuracies_after_retrain
-    data_merged["accuracy on device in %"] = accuracies_on_device
+
+    for metric, measurements in metric_to_measurements.items():
+
+        data_merged[metric] = measurements
 
     data_merged.to_csv(csv_path)
 
