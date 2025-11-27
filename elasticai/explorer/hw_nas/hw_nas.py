@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import logging
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 from functools import partial
 from enum import Enum
 
@@ -9,7 +9,7 @@ from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 
 from elasticai.explorer.hw_nas.optimization_criteria import (
-    OptimizationCriteriaRegistry,
+    OptimizationCriteria,
 )
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 
@@ -25,57 +25,57 @@ class HWNASParameters:
 
 class SearchStrategy(Enum):
     RANDOM_SEARCH = "random"
-    EVOlUTIONARY_SEARCH = "evolution"
+    EVOLUTIONARY_SEARCH = "evolution"
 
 
 def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
-    optimization_criteria_registry: OptimizationCriteriaRegistry,
+    optimization_criteria: OptimizationCriteria,
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
 
         search_space = SearchSpace(search_space_cfg)
-        model = search_space.create_model_sample(trial)
+        try:
+            model = search_space.create_model_sample(trial)
+        except NotImplementedError:
+            raise optuna.TrialPruned()
         score = 0.0
-        for estimator in optimization_criteria_registry:
-
-            estimate = estimator.estimate(model)
-            trial.set_user_attr(estimator.metric_name, estimate)
-            hard_constraints = optimization_criteria_registry.get_hard_constraints(
-                estimator
-            )
+        for estimator in optimization_criteria:
+            estimates = estimator.estimate(model)
+            final_estimate = estimates[-1]
+            trial.set_user_attr(estimator.metric_name, estimates)
+            hard_constraints = optimization_criteria.get_hard_constraints(estimator)
             for hc in hard_constraints:
-                if not hc.comparator(estimate, hc.constraint_value):
+                if not hc.comparator(final_estimate, hc.constraint_value):
                     logger.info(
-                        f"Trial {trial.number} pruned, because {estimator.metric_name} trial does not meet constraint: {hc.comparator}({estimate:.2f}, {hc.constraint_value})."
+                        f"Trial {trial.number} pruned, because {estimator.metric_name} trial does not meet constraint: {hc.comparator}({final_estimate:.2f}, {hc.constraint_value})."
                     )
                     raise optuna.TrialPruned()
 
-            soft_constraints = optimization_criteria_registry.get_soft_constraints(
-                estimator
-            )
+            soft_constraints = optimization_criteria.get_soft_constraints(estimator)
             for sc in soft_constraints:
-                if not sc.comparator(estimate, sc.constraint_value):
+                if not sc.comparator(final_estimate, sc.constraint_value):
                     penalty_value = sc.penalty_weight * sc.penalty_fn(
-                        sc.penalty_estimate_transform(estimate), sc.constraint_value
+                        sc.penalty_estimate_transform(final_estimate),
+                        sc.constraint_value,
                     )
                     score -= penalty_value
                     logger.info(
-                        f"Trial {trial.number} gets a soft penalty of {penalty_value:.2f}, because {estimator.metric_name} trial does not meet constraint: {sc.comparator}({estimate:.2f}, {sc.constraint_value})."
+                        f"Trial {trial.number} gets a soft penalty of {penalty_value:.2f}, because {estimator.metric_name} trial does not meet constraint: {sc.comparator}({final_estimate:.2f}, {sc.constraint_value})."
                     )
 
-            objectives = optimization_criteria_registry.get_objectives(estimator)
+            objectives = optimization_criteria.get_objectives(estimator)
             for o in objectives:
                 if o.transform:
-                    objective_value = o.weight * o.transform(estimate)
+                    objective_value = o.weight * o.transform(final_estimate)
                 else:
-                    objective_value = o.weight * estimate
+                    objective_value = o.weight * final_estimate
 
                 score += objective_value
                 logger.info(
-                    f"Trial {trial.number} added a objective value of {objective_value:.2f}, because the {estimator.metric_name} is {estimate:.2f}."
+                    f"Trial {trial.number} added a objective value of {objective_value:.2f}, because the {estimator.metric_name} is {final_estimate:.2f}."
                 )
 
         logger.info(f"Trial {trial.number} has an final score of {score:.2f}")
@@ -86,9 +86,9 @@ def objective_wrapper(
 
 
 def search(
-    search_space_cfg: Dict,
+    search_space_cfg: dict,
     search_strategy: SearchStrategy,
-    optimization_criteria_registry: OptimizationCriteriaRegistry,
+    optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
@@ -100,7 +100,7 @@ def search(
     match search_strategy:
         case SearchStrategy.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
-        case SearchStrategy.EVOlUTIONARY_SEARCH:
+        case SearchStrategy.EVOLUTIONARY_SEARCH:
             sampler = optuna.samplers.NSGAIISampler(
                 population_size=20,
                 mutation_prob=0.1,
@@ -130,7 +130,7 @@ def search(
         partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
-            optimization_criteria_registry=optimization_criteria_registry,
+            optimization_criteria=optimization_criteria,
         ),
         n_trials=n_trials,
         callbacks=callbacks,
@@ -155,8 +155,7 @@ def search(
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
     metric_names = [
-        estimator.metric_name
-        for estimator in optimization_criteria_registry.get_estimators()
+        estimator.metric_name for estimator in optimization_criteria.get_estimators()
     ]
 
     for frozen_trial in top_k_frozen_trials:

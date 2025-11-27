@@ -5,7 +5,7 @@ import shutil
 import torch
 
 import operator
-from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteriaRegistry
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.estimators import (
     AccuracyEstimator,
     FLOPsEstimator,
@@ -73,7 +73,7 @@ class TestHWNasSetupAndSearch:
         )
 
         accuracy_estimator = AccuracyEstimator(trainer, 1)
-        self.optimization_criteria_registry = OptimizationCriteriaRegistry()
+        self.optimization_criteria_registry = OptimizationCriteria()
         self.optimization_criteria_registry.register_objective(
             estimator=accuracy_estimator
         )
@@ -86,7 +86,7 @@ class TestHWNasSetupAndSearch:
         ("search_strategy", "with_hardconstraints", "expected"),
         [
             (SearchStrategy.RANDOM_SEARCH, False, 2),
-            (SearchStrategy.EVOlUTIONARY_SEARCH, False, 2),
+            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 2),
             (SearchStrategy.RANDOM_SEARCH, True, 0),
         ],
     )

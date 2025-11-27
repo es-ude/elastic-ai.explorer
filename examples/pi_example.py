@@ -43,8 +43,8 @@ def search_generate_measure_for_pi(
     criteria_reg = setup_example_optimization_criteria(dataset_spec, device)
 
     top_models = explorer.search(
-        search_strategy=SearchStrategy.EVOlUTIONARY_SEARCH,
-        optimization_criteria_registry=criteria_reg,
+        search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
+        optimization_criteria=criteria_reg,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
     )
     metric_to_source = {
