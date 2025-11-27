@@ -42,7 +42,7 @@ class FullPrecisionScheme(QuantizationScheme):
 
 
 @dataclass(frozen=True)
-class Int8Uniform:
+class Int8Uniform(QuantizationScheme):
     dtype: str = "int8"
 
     def name(self) -> str:
