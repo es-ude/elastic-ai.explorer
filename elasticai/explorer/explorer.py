@@ -6,7 +6,7 @@ from torch import nn
 
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.optimization_criteria import (
-    OptimizationCriteriaRegistry,
+    OptimizationCriteria,
 )
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
@@ -47,7 +47,6 @@ class Explorer:
               This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
         """
         self.logger = logging.getLogger("explorer")
-        self.default_model: Optional[nn.Module] = None
         self.target_hw_platform: Optional[HWPlatform] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
         self.generator: Optional[Generator] = None
@@ -100,7 +99,7 @@ class Explorer:
     def search(
         self,
         search_strategy: SearchStrategy = SearchStrategy.RANDOM_SEARCH,
-        optimization_criteria_registry: OptimizationCriteriaRegistry = OptimizationCriteriaRegistry(),
+        optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
     ) -> list[Any]:
@@ -115,7 +114,7 @@ class Explorer:
                 search_space_cfg=self.search_space_cfg,
                 search_strategy=search_strategy,
                 hw_nas_parameters=hw_nas_parameters,
-                optimization_criteria_registry=optimization_criteria_registry,
+                optimization_criteria=optimization_criteria,
             )
         else:
             self.logger.error(
@@ -139,7 +138,7 @@ class Explorer:
                 "hw_nas_params.toml",
             )
             data_utils.save_to_toml(
-                opt_crit_registry_to_toml(optimization_criteria_registry),
+                opt_crit_registry_to_toml(optimization_criteria),
                 self._experiment_dir,
                 "optimization_criteria.toml",
             )
@@ -185,7 +184,6 @@ class Explorer:
             )
             exit(-1)
 
-       
         self.hw_manager.install_dataset_on_target(data_spec)
 
         for metric, source in metric_to_source.items():

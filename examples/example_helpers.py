@@ -4,8 +4,11 @@ import torch
 from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.estimators import AccuracyEstimator, FLOPsEstimator
-from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteriaRegistry
+from elasticai.explorer.hw_nas.estimators import (
+    TrainMetricsEstimator,
+    FLOPsEstimator,
+)
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
@@ -63,27 +66,24 @@ def setup_knowledge_repository() -> KnowledgeRepository:
     return knowledge_repository
 
 
-def setup_example_optimization_criteria(
-    dataset_spec, device
-) -> OptimizationCriteriaRegistry:
-    criteria_reg = OptimizationCriteriaRegistry()
+def setup_example_optimization_criteria(dataset_spec, device) -> OptimizationCriteria:
+    criteria = OptimizationCriteria()
     data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=device)
     flops_estimator = FLOPsEstimator(data_sample)
-    accuracy_estimator = AccuracyEstimator(
+    accuracy_estimator = TrainMetricsEstimator(
         SupervisedTrainer(
             device,
             dataset_spec,
             batch_size=64,
         ),
-        3,
+        metric_name="accuracy",
+        n_estimation_epochs=3,
     )
-    criteria_reg.register_objective(estimator=accuracy_estimator)
+    criteria.register_objective(estimator=accuracy_estimator)
 
-    criteria_reg.register_objective(
-        estimator=flops_estimator, transform=log10, weight=-2.0
-    )
+    criteria.register_objective(estimator=flops_estimator, transform=log10, weight=-2.0)
 
-    return criteria_reg
+    return criteria
 
 
 def setup_mnist(path_to_test_data: Path):

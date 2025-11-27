@@ -9,7 +9,6 @@ from elasticai.explorer.platforms.deployment.compiler import (
 )
 from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
-    RPiHost,
     SerialParams,
 )
 from elasticai.explorer.platforms.deployment.hw_manager import (

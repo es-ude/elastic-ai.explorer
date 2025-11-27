@@ -1,14 +1,12 @@
 from dataclasses import asdict, is_dataclass
-from typing import Dict
-
-from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteriaRegistry
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 
 
 def dataclass_instance_to_toml(
     instance: object,
     name: str | None = None,
     indent: int = 0,
-    additional_info: Dict = {},
+    additional_info: dict = {},
 ) -> str:
 
     if not is_dataclass(instance):
@@ -27,7 +25,7 @@ def dataclass_instance_to_toml(
     return "\n".join(lines)
 
 
-def opt_crit_registry_to_toml(reg: OptimizationCriteriaRegistry) -> str:
+def opt_crit_registry_to_toml(reg: OptimizationCriteria) -> str:
     chunks: list[str] = []
 
     for est in reg.get_estimators():

@@ -51,14 +51,14 @@ def search_generate_measure_for_pico(
         deployable_dataset_path=root_dir_cpp_mnist,
         transform=transf,
     )
-    criteria_reg = setup_example_optimization_criteria(dataset_spec, device)
+    criteria = setup_example_optimization_criteria(dataset_spec, device)
 
     top_models = explorer.search(
-        search_strategy=SearchStrategy.EVOlUTIONARY_SEARCH,
+        search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
         hw_nas_parameters=HWNASParameters(
             max_search_trials=max_search_trials, top_n_models=top_n_models
         ),
-        optimization_criteria_registry=criteria_reg,
+        optimization_criteria=criteria,
     )
 
     metric_to_source = {

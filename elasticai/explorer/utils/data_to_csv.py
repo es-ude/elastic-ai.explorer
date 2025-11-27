@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict
 import pandas as pd
 
 from elasticai.explorer.utils import data_utils
@@ -9,7 +8,7 @@ from settings import MAIN_EXPERIMENT_DIR
 
 
 def build_search_space_measurements_file(
-    metric_to_measurements:Dict,
+    metric_to_measurements:dict,
     metrics_path: Path,
     model_parameter_path: Path,
     csv_path: Path,

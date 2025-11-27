@@ -8,8 +8,8 @@ from torch import nn
 
 from elasticai.explorer.hw_nas import hw_nas
 
-from elasticai.explorer.hw_nas.estimators import LossEstimator
-from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteriaRegistry
+from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
 
@@ -103,15 +103,15 @@ def run_lstm_search():
         extra_metrics={},
     )
 
-    criteria_reg = OptimizationCriteriaRegistry()
+    criteria_reg = OptimizationCriteria()
 
-    accuracy_estimator = LossEstimator(trainer, 3)
+    accuracy_estimator = TrainMetricsEstimator(trainer, n_estimation_epochs=3)
     criteria_reg.register_objective(estimator=accuracy_estimator)
 
     search_space_cfg = yaml_to_dict(search_space)
     top_models, _, _ = hw_nas.search(
         search_space_cfg,
-        hw_nas.SearchStrategy.EVOlUTIONARY_SEARCH,
+        hw_nas.SearchStrategy.EVOLUTIONARY_SEARCH,
         criteria_reg,
         hw_nas_parameters=hw_nas.HWNASParameters(max_search_trials, top_n_models),
     )

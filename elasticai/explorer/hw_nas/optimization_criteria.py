@@ -2,7 +2,7 @@ import logging
 
 from elasticai.explorer.hw_nas.estimators import Estimator
 from dataclasses import dataclass
-from typing import Callable, Dict, List
+from typing import Callable
 
 logger = logging.getLogger("explorer.constraints")
 Comparator = Callable[[float, float], bool]
@@ -30,39 +30,39 @@ class _SoftConstraint:
     penalty_weight: float = 1.0
 
 
-class OptimizationCriteriaRegistry:
+class OptimizationCriteria:
     def __init__(self):
-        self._optimization_criteria: Dict[
-            Estimator, List[_Objective | _HardConstraint | _SoftConstraint]
+        self._optimization_criteria: dict[
+            Estimator, list[_Objective | _HardConstraint | _SoftConstraint]
         ] = {}
 
-    def get_hard_constraints(self, estimator: Estimator) -> List[_HardConstraint]:
+    def get_hard_constraints(self, estimator: Estimator) -> list[_HardConstraint]:
         return [
             (c)
             for c in self._optimization_criteria[estimator]
             if isinstance(c, _HardConstraint)
         ]
 
-    def get_soft_constraints(self, estimator: Estimator) -> List[_SoftConstraint]:
+    def get_soft_constraints(self, estimator: Estimator) -> list[_SoftConstraint]:
         return [
             (c)
             for c in self._optimization_criteria[estimator]
             if isinstance(c, _SoftConstraint)
         ]
 
-    def get_objectives(self, estimator: Estimator) -> List[_Objective]:
+    def get_objectives(self, estimator: Estimator) -> list[_Objective]:
         return [
             (c)
             for c in self._optimization_criteria[estimator]
             if isinstance(c, _Objective)
         ]
 
-    def get_estimators(self) -> List[Estimator]:
+    def get_estimators(self) -> list[Estimator]:
         return list(self._optimization_criteria.keys())
 
     def get_criteria(
         self, estimator: Estimator
-    ) -> List[_Objective | _HardConstraint | _SoftConstraint]:
+    ) -> list[_Objective | _HardConstraint | _SoftConstraint]:
         return self._optimization_criteria[estimator]
 
     def register_objective(
