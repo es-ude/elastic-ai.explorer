@@ -90,6 +90,7 @@ class PicoCompiler(Compiler):
         return bool(docker.images(self.image_name))
 
     def setup(self) -> None:
+        
         docker.build(
             context_path=self.context_path,
             tags=self.image_name,

@@ -29,9 +29,9 @@ std::unique_ptr<TfLiteInterpreter> interpreter = nullptr;
 std::unique_ptr<TfLiteInterpreter> getInterpreter()
 {
     std::unique_ptr<tflite::MicroMutableOpResolver<11>> resolver(new tflite::MicroMutableOpResolver<11>());
-
+    #if __has_include("resolver_ops.h")
     #include "resolver_ops.h"
-
+    #endif
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
 
