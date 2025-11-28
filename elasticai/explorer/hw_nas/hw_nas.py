@@ -14,6 +14,7 @@ from elasticai.explorer.hw_nas.optimization_criteria import (
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 
 logger = logging.getLogger("explorer.nas")
+intermediate_metrics_template = "{metric_name}_intermediates"
 
 
 @dataclass
@@ -43,9 +44,12 @@ def objective_wrapper(
             raise optuna.TrialPruned()
         score = 0.0
         for estimator in optimization_criteria:
-            estimates = estimator.estimate(model)
-            final_estimate = estimates[-1]
-            trial.set_user_attr(estimator.metric_name, estimates)
+            final_estimate, estimates = estimator.estimate(model)
+            trial.set_user_attr(estimator.metric_name, final_estimate)
+            trial.set_user_attr(
+                intermediate_metrics_template.format(metric_name=estimator.metric_name),
+                estimates,
+            )
             hard_constraints = optimization_criteria.get_hard_constraints(estimator)
             for hc in hard_constraints:
                 if not hc.comparator(final_estimate, hc.constraint_value):
@@ -167,5 +171,11 @@ def search(
             }
         )
         for metric_name in metric_names:
+            intermediates_key = intermediate_metrics_template.format(
+                metric_name=metric_name
+            )
             top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
+            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
+                intermediates_key
+            ]
     return top_k_models, top_k_params, top_k_metrics

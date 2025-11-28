@@ -1,5 +1,4 @@
 from dataclasses import asdict, is_dataclass
-
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 
 

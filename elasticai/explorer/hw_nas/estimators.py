@@ -44,7 +44,12 @@ class Estimator:
         self.logger: Logger = logging.getLogger(logger_name)
 
     @abstractmethod
-    def estimate(self, model_sample) -> list[float] | list[int]: ...
+    def estimate(self, model_sample) -> tuple[float | int, list[float | int]]:
+        """
+        Returns:
+            tuple[float|int, list[float|int]]: The final estimate and the list intermediate values.
+        """
+        pass
 
 
 class FLOPsEstimator(Estimator):
@@ -54,12 +59,15 @@ class FLOPsEstimator(Estimator):
         )
         self.data_sample = data_sample
 
-    def estimate(self, model_sample: torch.nn.Module) -> list[float]:
+    def estimate(
+        self, model_sample: torch.nn.Module
+    ) -> tuple[float | int, list[float | int]]:
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
         flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(
             **handlers
         )
-        return [flops.total()]
+
+        return flops.total(), []
 
 
 class ParamEstimator(Estimator):
@@ -70,8 +78,11 @@ class ParamEstimator(Estimator):
         )
         self.logger: Logger = logging.getLogger()
 
-    def estimate(self, model_sample: torch.nn.Module) -> list[int]:
-        return [parameter_count(model_sample)[""]]
+    def estimate(
+        self, model_sample: torch.nn.Module
+    ) -> tuple[float | int, list[float | int]]:
+        param_count = parameter_count(model_sample)[""]
+        return param_count, []
 
 
 class PartialTrainingEstimator(Estimator):
@@ -88,7 +99,9 @@ class PartialTrainingEstimator(Estimator):
         self.trainer = trainer
         self.n_estimation_epochs = n_estimation_epochs
 
-    def estimate(self, model_sample: torch.nn.Module) -> list[float | int]:
+    def estimate(
+        self, model_sample: torch.nn.Module
+    ) -> tuple[float | int, list[float | int]]:
         optimizer = Adam(model_sample.parameters(), lr=1e-3)
         self.trainer.configure_optimizer(optimizer)
 
@@ -114,8 +127,5 @@ class PartialTrainingEstimator(Estimator):
 
             estimate_values.append(estimate_value)
 
-        
-        self.logger.info(
-            f"Estimated {self.metric_name} is: {estimate_values[-1]:.2f}"
-        )
-        return estimate_values
+        self.logger.info(f"Estimated {self.metric_name} is: {estimate_values[-1]:.2f}")
+        return estimate_values[-1], estimate_values[:-1]

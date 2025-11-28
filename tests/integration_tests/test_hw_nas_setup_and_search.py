@@ -7,9 +7,9 @@ import torch
 import operator
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.estimators import (
-    AccuracyEstimator,
     FLOPsEstimator,
     ParamEstimator,
+    PartialTrainingEstimator,
 )
 from elasticai.explorer.hw_nas.hw_nas import (
     HWNASParameters,
@@ -72,9 +72,11 @@ class TestHWNasSetupAndSearch:
             batch_size=64,
         )
 
-        accuracy_estimator = AccuracyEstimator(trainer, 1)
-        self.optimization_criteria_registry = OptimizationCriteria()
-        self.optimization_criteria_registry.register_objective(
+        accuracy_estimator = PartialTrainingEstimator(
+            trainer, metric_name="accuracy", n_estimation_epochs=1
+        )
+        self.optimization_criteria = OptimizationCriteria()
+        self.optimization_criteria.register_objective(
             estimator=accuracy_estimator
         )
 
@@ -95,14 +97,14 @@ class TestHWNasSetupAndSearch:
             data_sample = torch.randn(
                 (1, 1, 28, 28), dtype=torch.float32, device=self.device
             )
-            self.optimization_criteria_registry.register_hard_constraint(
+            self.optimization_criteria.register_hard_constraint(
                 estimator=FLOPsEstimator(data_sample), operator=operator.lt, value=0
             )
-            self.optimization_criteria_registry.register_hard_constraint(
+            self.optimization_criteria.register_hard_constraint(
                 estimator=ParamEstimator(), operator=operator.lt, value=0
             )
         top_k_models = self.RPI5explorer.search(
-            optimization_criteria_registry=self.optimization_criteria_registry,
+            optimization_criteria=self.optimization_criteria,
             search_strategy=search_strategy,
             hw_nas_parameters=HWNASParameters(2, 2),
         )
