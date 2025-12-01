@@ -9,14 +9,9 @@ __pycache__/
 # dataset folder
 /data/
 docker/bin
-docker/data
 /docker/code/libtorch
 .DS_Store
-/docker/code/pico_crosscompiler/app_full_precision
-/docker/code/pico_crosscompiler/third_party
-examples/data
-mnist_images.h
-mnist_labels.h
+
 
 #experiments logs
 experiments/

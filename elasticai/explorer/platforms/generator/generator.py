@@ -152,7 +152,7 @@ class PicoGenerator(Generator):
             self.logger.warning(
                 "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
             )
-
+            
         edge_output = edge_model(*sample_tflite_input)
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))

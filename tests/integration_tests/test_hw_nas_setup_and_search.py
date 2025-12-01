@@ -53,10 +53,8 @@ class TestHWNasSetupAndSearch:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         self.dataset_spec = DatasetSpecification(
-            dataset_type=MNISTWrapper,
-            dataset_location=path_to_dataset,
+            dataset=MNISTWrapper(path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_dataset,
-            transform=transf,
         )
 
     @pytest.mark.parametrize(
@@ -83,7 +81,7 @@ class TestHWNasSetupAndSearch:
         model = SampleMLP(28 * 28)
 
         self.RPI5explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name
+            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
         )
         assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (

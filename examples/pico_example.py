@@ -68,16 +68,14 @@ def find_generate_measure_for_pico(
     root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
     setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
     dataset_spec = DatasetSpecification(
-        dataset_type=MNISTWrapper,
-        dataset_location=path_to_dataset,
+        dataset=MNISTWrapper(root=path_to_dataset, transform=transf),
         deployable_dataset_path=root_dir_cpp_mnist,
-        transform=transf,
     )
     trainer = SupervisedTrainer(
         device=hwnas_cfg.host_processor, dataset_spec=dataset_spec
     )
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, trainer)
+    top_models = explorer.search(hwnas_cfg, trainer)
 
     latency_measurements = []
     accuracy_measurements_on_device = []
@@ -86,9 +84,10 @@ def find_generate_measure_for_pico(
     for i, model in enumerate(top_models):
         mlp_trainer = SupervisedTrainer(
             device=retrain_device,
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
+            
             dataset_spec=dataset_spec,
         )
+        mlp_trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=1e-3))
         mlp_trainer.train(model, epochs=retrain_epochs)
         accuracy_after_retrain_value, _ = mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".tflite"
@@ -113,11 +112,7 @@ def find_generate_measure_for_pico(
             )
             print(f"An error occurred when measuring accuracy on Pico: {e}")
 
-        accuracy_after_retrain_dict = json.loads(
-            '{"Accuracy after retrain": { "value":'
-            + str(accuracy_after_retrain_value)
-            + ' , "unit": "percent"}}'
-        )
+        accuracy_after_retrain_dict = {"Accuracy after retrain":{"value": str(accuracy_after_retrain_value),"unit": "percent" }}
         latency_measurements.append(latency)
         accuracy_measurements_on_device.append(accuracy_on_device)
         accuracy_after_retrain.append(accuracy_after_retrain_dict)
