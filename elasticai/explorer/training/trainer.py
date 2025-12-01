@@ -23,7 +23,7 @@ class Trainer(ABC):
         self.loss_fn = loss_fn
         train_subset, test_subset, val_subset = random_split(
             dataset_spec.dataset,
-            dataset_spec.test_train_val_ratio,
+            dataset_spec.train_val_train_ratio,
             generator=torch.Generator().manual_seed(dataset_spec.split_seed),
         )
 

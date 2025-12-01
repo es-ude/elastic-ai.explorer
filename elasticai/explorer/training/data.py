@@ -28,9 +28,9 @@ class DatasetSpecification:
 
     # deployable_dataset_path is the path to the data that can be deployed to the target device for testing.
     # If dataset deployment is not necessary, leave it unspecified. Specifics have to be implemented in corresponding Generator.
-    deployable_dataset_path: Path | None = None  
+    deployable_dataset_path: Path | None = None
 
-    test_train_val_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
+    train_val_train_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
     shuffle: bool = False
     split_seed: int = 42
 
