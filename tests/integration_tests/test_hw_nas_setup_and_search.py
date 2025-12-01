@@ -81,7 +81,7 @@ class TestHWNasSetupAndSearch:
         model = SampleMLP(28 * 28)
 
         self.RPI5explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name
+            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
         )
         assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (

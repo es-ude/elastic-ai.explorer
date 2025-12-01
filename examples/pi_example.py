@@ -150,19 +150,25 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
     explorer.generate_search_space(search_space)
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
-    top_models = explorer.search(hwnas_cfg, dataset_spec, SupervisedTrainer)
+    top_models = explorer.search(
+        hwnas_cfg,
+        SupervisedTrainer(
+            device=retrain_device,
+            dataset_spec=dataset_spec,
+            extra_metrics={"accuracy": accuracy_fn},
+        ),
+    )
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
 
     for i, model in enumerate(top_models):
         print(f"found model {i}:  {model}")
 
         mlp_trainer = SupervisedTrainer(
             device=retrain_device,
-            optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
             extra_metrics={"accuracy": accuracy_fn},
         )
+        mlp_trainer.configure_optimizer(optimizer=Adam(model.parameters(), lr=1e-3))
         mlp_trainer.train(model, epochs=3)
         mlp_trainer.test(model)
         print("=================================================")

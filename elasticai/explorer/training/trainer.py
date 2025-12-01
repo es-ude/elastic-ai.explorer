@@ -21,7 +21,11 @@ class Trainer(ABC):
         self.logger = logging.getLogger("explorer.Trainer")
         self.device = device
         self.loss_fn = loss_fn
-        train_subset, test_subset, val_subset = random_split(
+        self.dataset_spec = dataset_spec
+        self.batch_size = batch_size
+        self.extra_metrics = extra_metrics
+        
+        train_subset, val_subset, test_subset = random_split(
             dataset_spec.dataset,
             dataset_spec.train_val_train_ratio,
             generator=torch.Generator().manual_seed(dataset_spec.split_seed),
