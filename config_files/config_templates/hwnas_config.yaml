@@ -16,7 +16,7 @@ HWNASConfig:
   # The search algorithm to use for the HW-NAS.
   # Options: "random", "grid", "evolution"
   search_algorithm: "random"
-  
+
   # The hardware constraints for the search.
   # Currently, only "max_flops" and "max_params" are supported.
   # Max. capabilities of Raspberry Pi platforms: RPi4 ~ 4.4 GFLOPS, RPi5 ~ 10 GFLOPS.

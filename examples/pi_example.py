@@ -3,6 +3,7 @@ import logging.config
 from pathlib import Path
 
 import torch
+from torch import optim, nn
 from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
@@ -18,10 +19,13 @@ from elasticai.explorer.platforms.deployment.compiler import RPICompiler
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager, Metric
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import (
+    SupervisedTrainer,
+    accuracy_fn,
+)
 from settings import ROOT_DIR
 
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 
@@ -76,7 +80,14 @@ def find_generate_measure_for_pi(
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
 
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    trainer = SupervisedTrainer(
+        hwnas_cfg.host_processor,
+        dataset_spec=dataset_spec,
+        loss_fn=nn.CrossEntropyLoss(),
+        batch_size=65,
+        extra_metrics={"accuracy": accuracy_fn},
+    )
+    top_models = explorer.search(hwnas_cfg, trainer)
     metric_to_source = {
         Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
         Metric.LATENCY: Path("code/measure_latency.cpp"),
@@ -88,13 +99,16 @@ def find_generate_measure_for_pi(
 
     retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(
+        mlp_trainer = SupervisedTrainer(
             device=retrain_device,
-            optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
+            loss_fn=nn.CrossEntropyLoss(),
+            batch_size=64,
+            extra_metrics={"accuracy": accuracy_fn},
         )
+        mlp_trainer.configure_optimizer(optimizer=Adam(model.parameters(), lr=1e-3))
         mlp_trainer.train(model, epochs=retrain_epochs)
-        accuracy_after_retrain_value, _ = mlp_trainer.test(model)
+        test_metrics, _ = mlp_trainer.test(model)
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
@@ -103,14 +117,11 @@ def find_generate_measure_for_pi(
         accuracy_measurements.append(
             explorer.run_measurement(Metric.ACCURACY, model_name)
         )
-
         accuracy_after_retrain_dict = json.loads(
             '{"Accuracy after retrain": { "value":'
-            + (str(accuracy_after_retrain_value))
+            + (str(test_metrics["accuracy"]))
             + ' , "unit": "percent"}}'
         )
-
-        accuracy_after_retrain.append(accuracy_after_retrain_dict)
 
     latencies = [latency["Latency"]["value"] for latency in latency_measurements]
     accuracies_on_device = [
@@ -133,22 +144,24 @@ def find_generate_measure_for_pi(
 
 
 def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
+    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
     explorer.choose_target_hw(deploy_cfg)
     explorer.generate_search_space(search_space)
     path_to_test_data = ROOT_DIR / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
+    top_models = explorer.search(hwnas_cfg, dataset_spec, SupervisedTrainer)
 
     top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
 
-    retrain_device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     for i, model in enumerate(top_models):
         print(f"found model {i}:  {model}")
 
-        mlp_trainer = MLPTrainer(
+        mlp_trainer = SupervisedTrainer(
             device=retrain_device,
             optimizer=Adam(model.parameters(), lr=1e-3),
             dataset_spec=dataset_spec,
+            extra_metrics={"accuracy": accuracy_fn},
         )
         mlp_trainer.train(model, epochs=3)
         mlp_trainer.test(model)
@@ -159,12 +172,16 @@ def search_models(explorer: Explorer, hwnas_cfg: HWNASConfig, search_space):
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/hwnas_config.yaml"))
-    deploy_cfg = DeploymentConfig(config_path=Path("configs/deployment_config.yaml"))
+    hwnas_cfg = HWNASConfig(config_path=Path(ROOT_DIR / "configs/hwnas_config.yaml"))
+    deploy_cfg = DeploymentConfig(
+        config_path=ROOT_DIR / Path("configs/deployment_config.yaml")
+    )
     knowledge_repo = setup_knowledge_repository_pi()
     explorer = Explorer(knowledge_repo)
 
-    search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    search_space = Path(
+        ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml"
+    )
 
     find_generate_measure_for_pi(
         explorer=explorer,

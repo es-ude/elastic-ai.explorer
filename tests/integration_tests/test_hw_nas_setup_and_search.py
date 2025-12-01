@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import pytest
 import shutil
 import torch
 from elasticai.explorer.config import HWNASConfig, DeploymentConfig
@@ -11,7 +12,7 @@ from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.platforms.deployment.device_communication import RPiHost
 from torchvision import transforms
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import SupervisedTrainer
 from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 
@@ -56,79 +57,31 @@ class TestHWNasSetupAndSearch:
             deployable_dataset_path=path_to_dataset,
         )
 
-    def test_search(self):
+    @pytest.mark.parametrize(
+        ("hwnas_cfg", "expected"),
+        [
+            ("tests/integration_tests/test_configs/hwnas_config.yaml", 2),
+            ("tests/integration_tests/test_configs/grid_hwnas_config.yaml", 2),
+            ("tests/integration_tests/test_configs/evolution_hwnas_config.yaml", 2),
+            ("tests/integration_tests/test_configs/constraint_hwnas_config.yaml", 0),
+        ],
+    )
+    def test_search(self, hwnas_cfg, expected):
+
+        hwnas_cfg = HWNASConfig(config_path=ROOT_DIR / Path(hwnas_cfg))
         self.RPI5explorer.generate_search_space(
             Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
         )
-        top_k_models = self.RPI5explorer.search(
-            self.hwnas_cfg, self.dataset_spec, MLPTrainer
-        )
-
-    def test_random_search(self):
-
-        search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
-
-        self.RPI5explorer.generate_search_space(search_space)
-        top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
-        )
-        assert len(top_k_models) == 2
-
-    def test_grid_search(self):
-        search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
-
-        self.RPI5explorer.generate_search_space(search_space)
-        top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/grid_hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
-        )
-        assert len(top_k_models) == 2
-
-    def test_evolution_search(self):
-        search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
-        self.RPI5explorer.generate_search_space(search_space)
-        top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/evolution_hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
-        )
-        assert len(top_k_models) == 2
-
-    def test_constraint_search(self):
-        search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
-        self.RPI5explorer.generate_search_space(search_space)
-        top_k_models = self.RPI5explorer.search(
-            HWNASConfig(
-                config_path=Path(
-                    "tests/integration_tests/test_configs/constraint_hwnas_config.yaml"
-                )
-            ),
-            self.dataset_spec,
-            MLPTrainer,
-        )
-        assert len(top_k_models) == 0
+        trainer = SupervisedTrainer(hwnas_cfg.host_processor, self.dataset_spec)
+        top_k_models = self.RPI5explorer.search(hwnas_cfg, trainer)
+        assert len(top_k_models) == expected
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(self.deploy_cfg)
         model = SampleMLP(28 * 28)
 
         self.RPI5explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
+            model=model, model_name=self.model_name
         )
         assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (

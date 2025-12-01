@@ -12,6 +12,7 @@ docker/bin
 /docker/code/libtorch
 .DS_Store
 
+
 #experiments logs
 experiments/
 experiment_data.csv

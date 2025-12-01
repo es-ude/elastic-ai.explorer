@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from typing import Callable, Optional, Union
 import pandas as pd
+from torch import optim
+
 from elasticai.explorer.training.data import (
     DatasetSpecification,
     MultivariateTimeseriesDataset,
@@ -9,7 +11,8 @@ from elasticai.explorer.training.data import (
 import torch
 
 from elasticai.explorer.training.download import DownloadableSciebo
-from elasticai.explorer.training.trainer import MLPTrainer
+from elasticai.explorer.training.trainer import SupervisedTrainer
+
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
 
@@ -55,20 +58,20 @@ class TestData:
         dataset_spec = DatasetSpecification(
             dataset=TimeSeriesDatasetExample(root=self.sample_dir / "test_dataset.csv"),
             deployable_dataset_path=self.sample_dir / "test_dataset.csv",
-            test_train_val_ratio=[0.6, 0.2, 0.2],
+            train_val_train_ratio=[0.6, 0.2, 0.2],
         )
         model = SampleMLP(2)
 
-        mlp_trainer = MLPTrainer(
+        mlp_trainer = SupervisedTrainer(
             device="cpu",
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),  # type: ignore
             dataset_spec=dataset_spec,
             batch_size=2,
         )
+        mlp_trainer.configure_optimizer(optim.Adam(model.parameters(), lr=1e-3)),
         mlp_trainer.train(model, epochs=2)
-        accuracy, loss = mlp_trainer.validate(model)
-        assert accuracy is not None
-        assert accuracy >= 0
+
+        metrics, loss = mlp_trainer.validate(model)
+        assert metrics["accuracy"] >= 0
         assert loss >= 0
 
     def teardown_method(self):
