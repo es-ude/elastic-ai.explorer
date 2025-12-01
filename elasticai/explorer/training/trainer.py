@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Tuple, Callable
+from typing import Any, Callable
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
@@ -101,12 +101,12 @@ class Trainer(ABC):
             self.logger.info("Loaded best model from early stopping.")
 
     @abstractmethod
-    def validate(self, model: nn.Module) -> Tuple[dict, float]:
+    def validate(self, model: nn.Module) -> tuple[dict, float]:
 
         pass
 
     @abstractmethod
-    def test(self, model: nn.Module) -> Tuple[dict, float]:
+    def test(self, model: nn.Module) -> tuple[dict, float]:
 
         pass
 
@@ -250,8 +250,8 @@ class ReconstructionAutoencoderTrainer(Trainer):
         self.logger.info("{} Loss: {:.6f}".format(description, total_loss))
         return {}, total_loss
 
-    def validate(self, model: nn.Module) -> Tuple[dict, float]:
+    def validate(self, model: nn.Module) -> tuple[dict, float]:
         return self.evaluate(model, self.val_loader, "Validation")
 
-    def test(self, model: nn.Module) -> Tuple[dict, float]:
+    def test(self, model: nn.Module) -> tuple[dict, float]:
         return self.evaluate(model, self.test_loader, "Test")

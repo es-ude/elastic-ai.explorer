@@ -1,21 +1,32 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any, Type
+from typing import Optional, Any
 from torch import nn
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.optimization_criteria import (
+    OptimizationCriteria,
+)
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
+from elasticai.explorer.platforms.deployment.compiler import CompilerParams
+from elasticai.explorer.platforms.deployment.device_communication import (
+    SSHParams,
+    SerialParams,
+)
 from elasticai.explorer.platforms.deployment.hw_manager import (
     HWManager,
     Metric,
 )
 from elasticai.explorer.platforms.generator.generator import Generator
-from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
+from elasticai.explorer.utils.logging_utils import (
+    dataclass_instance_to_toml,
+    opt_crit_registry_to_toml,
+)
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -36,7 +47,6 @@ class Explorer:
               This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
         """
         self.logger = logging.getLogger("explorer")
-        self.default_model: Optional[nn.Module] = None
         self.target_hw_platform: Optional[HWPlatform] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
         self.generator: Optional[Generator] = None
@@ -88,52 +98,72 @@ class Explorer:
 
     def search(
         self,
-        hwnas_cfg: HWNASConfig,
-        trainer: Trainer,
+        search_strategy: SearchStrategy = SearchStrategy.RANDOM_SEARCH,
+        optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
+        hw_nas_parameters: HWNASParameters = HWNASParameters(),
+        dump_configuration: bool = True,
     ) -> list[Any]:
 
         self.logger.info(
-            "Start Hardware NAS with %d number of trials for top %d models ",
-            hwnas_cfg.max_search_trials,
-            hwnas_cfg.top_n_models,
+            "Start Hardware NAS with %d number of trials searching for top %d models. ",
+            hw_nas_parameters.max_search_trials,
+            hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg,
-                hwnas_cfg,
-                trainer=trainer,
+                search_space_cfg=self.search_space_cfg,
+                search_strategy=search_strategy,
+                hw_nas_parameters=hw_nas_parameters,
+                optimization_criteria=optimization_criteria,
             )
         else:
             self.logger.error(
                 "Generate a searchspace before starting the HW-NAS with Explorer.search()!"
             )
             exit(-1)
-
         data_utils.save_list_to_json(
             model_parameters, path_to_dir=self._model_dir, filename="models.json"
         )
         data_utils.save_list_to_json(
             metrics, path_to_dir=self._metric_dir, filename="metrics.json"
         )
-        hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
+
+        if dump_configuration:
+            data_utils.save_to_toml(
+                dataclass_instance_to_toml(
+                    hw_nas_parameters,
+                    additional_info={"search_strategy": search_strategy.value},
+                ),
+                self._experiment_dir,
+                "hw_nas_params.toml",
+            )
+            data_utils.save_to_toml(
+                opt_crit_registry_to_toml(optimization_criteria),
+                self._experiment_dir,
+                "optimization_criteria.toml",
+            )
 
         return top_models
 
-    def choose_target_hw(self, deploy_cfg: DeploymentConfig):
+    def choose_target_hw(
+        self,
+        target_platform_name: str,
+        compiler_params: CompilerParams,
+        communication_params: SSHParams | SerialParams,
+    ):
         self.target_hw_platform = self.knowledge_repository.fetch_hw_info(
-            deploy_cfg.target_platform_name
+            target_platform_name
         )
         self.generator = self.target_hw_platform.model_generator()
         self.hw_manager = self.target_hw_platform.platform_manager(
-            self.target_hw_platform.communication_protocol(deploy_cfg),
-            self.target_hw_platform.compiler(deploy_cfg),
+            self.target_hw_platform.communication_protocol(communication_params),
+            self.target_hw_platform.compiler(compiler_params),
         )
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
-            deploy_cfg.target_platform_name,
+            target_platform_name,
             self.target_hw_platform,
         )
-        deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
         self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification

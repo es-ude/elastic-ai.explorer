@@ -1,7 +1,6 @@
 import logging
 import os
 from pathlib import Path
-from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -39,14 +38,14 @@ class Metrics:
     def _structure(self):
 
         number_of_models = len(self.sample_list)
-        self.structured_est_metrics: List[List[List[float]]] = np.reshape(
+        self.structured_est_metrics: list[list[list[float]]] = np.reshape(
             np.arange(0, 3 * 2 * number_of_models, 1, dtype=float),
             [3, 2, number_of_models],
         )  # type: ignore
-        self.structured_samples: List[str] = []
-        self.structured_est_flops: List[float] = []
-        self.structured_est_accuracies: List[float] = []
-        self.structured_est_combined: List[float] = []
+        self.structured_samples: list[str] = []
+        self.structured_est_flops: list[float] = []
+        self.structured_est_accuracies: list[float] = []
+        self.structured_est_combined: list[float] = []
 
         # first dimension accuracy, Latency, Combined
         # second dimension estimation, measured
@@ -76,8 +75,8 @@ class Metrics:
 class BarPlotVisualizer:
 
     def __init__(self, metrics: Metrics, plot_dir: Path):
-        self.data: List[List[List[float]]] = metrics.structured_est_metrics
-        self.labels: List[str] = metrics.structured_samples
+        self.data: list[list[list[float]]] = metrics.structured_est_metrics
+        self.labels: list[str] = metrics.structured_samples
         self.metrics: Metrics = metrics
         self.plot_dir: Path = plot_dir
 
