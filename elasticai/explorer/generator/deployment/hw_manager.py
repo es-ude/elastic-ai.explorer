@@ -8,9 +8,12 @@ from pathlib import Path
 import shutil
 import tarfile
 from typing import Callable, Dict
+
+from sympy import Q
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
     ENv5Host,
+    Host,
     SSHHost,
     PicoHost,
     RPiHost,
@@ -18,14 +21,10 @@ from elasticai.explorer.generator.deployment.device_communication import (
 )
 from elasticai.explorer.generator.model_compiler import tflite_to_resolver
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FixedPointInt8Scheme,
     QuantizationScheme,
-    parse_bytearray_to_fxp_tensor,
 )
 from elasticai.explorer.training.data import DatasetSpecification
-from elasticai.explorer.hw_nas.search_space.quantization import (
-    parse_fxp_tensor_to_bytearray,
-)
+
 from settings import DOCKER_CONTEXT_DIR
 from elasticai.creator.arithmetic import (
     FxpArithmetic,
@@ -33,7 +32,7 @@ from elasticai.creator.arithmetic import (
 )
 from torch.utils.data import DataLoader, random_split
 
-MetricFunction = Callable[[SSHHost | SerialHost, "HWManager"], Dict[str, Dict]]
+MetricFunction = Callable[[Host, "HWManager"], dict[str, dict]]
 
 
 class Metric(Enum):
@@ -43,9 +42,12 @@ class Metric(Enum):
 
 
 class HWManager(ABC):
-    def __init__(self, target: SSHHost | SerialHost, compiler: Compiler):
+    def __init__(self, target: Host, compiler: Compiler):
         self.target = target
         self.compiler = compiler
+        self.dataset_spec: None | DatasetSpecification = None
+        self.quantization_scheme: None | QuantizationScheme = None
+        self.test_loader: None | DataLoader = None
         self._metric_to_source: dict[Metric, Path | MetricFunction] = {}
         self.logger = logging.getLogger(
             "explorer.generator.deployment.manager.HWManager"
@@ -72,6 +74,7 @@ class HWManager(ABC):
 
         if isinstance(source, Path):
             src_path: Path = source
+            out: None | str = None
             if self.compiler is not None:
                 compiled = self.compiler.compile_code(src_path, src_path.parent)
             else:
@@ -80,11 +83,15 @@ class HWManager(ABC):
                 self.target.put_file(local_path=compiled, remote_path=".")
                 cmd = f"./{Path(compiled).name} {path_to_model.name}"
                 out = self.target.run_command(cmd)
+            elif isinstance(self.target, SerialHost):
+                path_to_executable = self.compiler.compile_code(source)
+                self.target.flash(local_path=path_to_executable)
+                out = self.target.receive()
+
+            if out:
                 return json.loads(out)
-            elif isinstance(self.target, SerialHost): 
-                self.target.put_file(local_path=compiled, remote_path=".")
-                self.target
-           
+            else:
+                return {metric.value: {"value": -1, "unit": "Error"}}
 
         err = TypeError(f"Unsupported source for metric {metric}. ")
         self.logger.error(err)
@@ -95,7 +102,8 @@ class HWManager(ABC):
         dataset_spec: DatasetSpecification,
         quantization_scheme: QuantizationScheme,
     ):
-
+        self.dataset_spec = dataset_spec
+        self.quantization_scheme = quantization_scheme
         if self.supported_schemes and not isinstance(
             quantization_scheme, self.supported_schemes
         ):
@@ -152,6 +160,10 @@ class RPiHWManager(HWManager):
         self.target.put_file(archive_name, ".")
         self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
+    def prepare_model(self, path_to_model: Path):
+        self.logger.info("Put model %s on target", path_to_model)
+        self.target.put_file(path_to_model, ".")
+
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         source = self._metric_to_source.get(metric)
         if not source:
@@ -163,10 +175,6 @@ class RPiHWManager(HWManager):
 
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement
-
-    def prepare_model(self, path_to_model: Path):
-        self.logger.info("Put model %s on target", path_to_model)
-        self.target.put_file(path_to_model, ".")
 
     def build_command(self, name_of_executable: str, arguments: list[str]):
         builder = CommandBuilder(name_of_executable)
@@ -223,29 +231,16 @@ class PicoHWManager(HWManager):
                 shutil.copyfile(file, target_dir / file.name)
 
     def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> Dict:
-
-        self.prepare_model(path_to_model)
         source = self._metric_to_source.get(metric)
-        if callable(source):
-            result = source(self.target, self)
-            return result
-        if not source or not isinstance(source, Path):
-            self.logger.error(f"No source code registered for Metric: {metric}")
-            exit(-1)
+        if not source:
+            raise Exception(f"No source code registered for Metric: {metric}")
+
         path_to_resolver = Path(str(DOCKER_CONTEXT_DIR) + f"{source}/resolver_ops.h")
         tflite_to_resolver.generate_resolver_h(
             path_to_model,
             path_to_resolver,
         )
-        path_to_executable = self.compiler.compile_code(source)
-        self.measurements = self.target.put_file(path_to_executable, None)
-        if self.measurements:
-            measurement = json.loads(self.measurements)
-        else:
-            return {metric.value: {"value": -1, "unit": "Error"}}
-
-        self.logger.debug("Measurement on device: %s ", measurement)
-        return measurement
+        return super()._invoke_metric_source(metric, path_to_model)
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> Dict:
         return self._invoke_metric_source(metric, path_to_model)
@@ -274,9 +269,6 @@ class ENv5HWManager(HWManager):
     ):
 
         super().prepare_dataset(dataset_spec, quantization_scheme)
-        assert type(quantization_scheme) == FixedPointInt8Scheme
-        # TODO this should not be here but given by the user
-        self.num_output_bytes = quantization_scheme.num_output_bytes
         self.frac_bits = quantization_scheme.frac_bits
         self.total_bits = quantization_scheme.total_bits
         self.dataset_spec = dataset_spec
@@ -308,4 +300,4 @@ class ENv5HWManager(HWManager):
         path_to_executable = self.compiler.compile_code(
             path_to_model, path_to_model.parent
         )
-        self.target.put_file(local_path=path_to_executable, remote_path=None)
+        self.target.flash(local_path=path_to_executable)

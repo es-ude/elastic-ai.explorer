@@ -7,6 +7,11 @@ from torch import Tensor, flatten
 
 
 class QuantizationScheme(ABC):
+    dtype: str
+    num_output_bytes: int
+    total_bits: int
+    frac_bits: int
+    signed: bool
 
     @abstractmethod
     def name(self) -> str: ...
@@ -20,7 +25,7 @@ class QuantizationScheme(ABC):
 
 @dataclass(frozen=True)
 class FixedPointInt8Scheme(QuantizationScheme):
-    num_output_bytes: int = 4
+    dtype: str = "int8"
     total_bits: int = 8
     frac_bits: int = 2
     signed: bool = True
@@ -33,6 +38,9 @@ class FixedPointInt8Scheme(QuantizationScheme):
 @dataclass(frozen=True)
 class FullPrecisionScheme(QuantizationScheme):
     dtype: str = "float32"
+    total_bits: int = 32
+    frac_bits: int = 23
+    signed: bool = True
 
     def name(self) -> str:
         return self.dtype
@@ -44,6 +52,9 @@ class FullPrecisionScheme(QuantizationScheme):
 @dataclass(frozen=True)
 class Int8Uniform(QuantizationScheme):
     dtype: str = "int8"
+    total_bits: int = 8
+    frac_bits: int = 4
+    signed: bool = True
 
     def name(self) -> str:
         return self.dtype

@@ -9,6 +9,7 @@ from optuna.trial import TrialState
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator.model_builder.model_builder import TorchModelBuilder
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.hw_nas import objective_wrapper
 from elasticai.explorer.hw_nas.search_space.construct_search_space import (
@@ -107,9 +108,10 @@ class TestFrozenTrialToModel:
             partial(
                 objective_wrapper,
                 search_space_cfg=self.search_space_cfg,
-                device=hwnas_cfg.host_processor,
                 dataset_spec=self.dataset_spec,
+                device=hwnas_cfg.host_processor,
                 trainer_class=MLPTrainer,
+                model_builder=TorchModelBuilder(),
                 n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
                 flops_weight=hwnas_cfg.flops_weight,
             ),
@@ -132,6 +134,7 @@ class TestFrozenTrialToModel:
     def test_hw_nas_search(self, hwnas_cfg):
         top_models, model_parameters, metrics = hw_nas.search(
             self.search_space_cfg,
+            model_builder=TorchModelBuilder(),
             hwnas_cfg=hwnas_cfg,
             dataset_spec=self.dataset_spec,
             trainer_class=MLPTrainer,

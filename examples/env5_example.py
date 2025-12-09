@@ -10,6 +10,8 @@ from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
+    parse_bytearray_to_fxp_tensor,
+    parse_fxp_tensor_to_bytearray,
 )
 
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
@@ -18,21 +20,68 @@ from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
 )
 from elasticai.explorer.generator.deployment.compiler import ENv5Compiler
-from elasticai.explorer.generator.deployment.device_communication import ENv5Host
-from elasticai.explorer.generator.deployment.hw_manager import ENv5HWManager, Metric
+from elasticai.explorer.generator.deployment.device_communication import (
+    ENv5Host,
+    Host,
+    SSHHost,
+    SerialHost,
+)
+from elasticai.explorer.generator.deployment.hw_manager import (
+    ENv5HWManager,
+    HWManager,
+    Metric,
+)
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     CreatorModelCompiler,
 )
 
 from elasticai.explorer.training.trainer import MLPTrainer
-from tests.system_tests.test_env5_measurements import create_example_dataset_spec
+from tests.system_tests.test_env5_deplyment_and_measurements import create_example_dataset_spec
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 
 
+BATCH_SIZE = 64
 
+
+def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
+    correct = 0
+    total = 0
+    num_bytes_outputs = 4
+    if not hw_manager.test_loader:
+        raise TypeError("Testloader not defined.")
+    if not hw_manager.quantization_scheme:
+        raise TypeError("Quantization Scheme is not defined")
+    if not isinstance(host, SerialHost):
+        raise TypeError("Need Serialhost for this test.")
+
+    for inputs_rational, target in hw_manager.test_loader:
+        data_bytearray = parse_fxp_tensor_to_bytearray(
+            inputs_rational,
+            hw_manager.quantization_scheme.total_bits,
+            hw_manager.quantization_scheme.frac_bits,
+        )
+        batch_results_bytes = []
+        for sample in data_bytearray:
+            result_bytes = host.receive(
+                sample=sample,
+                num_bytes_outputs=num_bytes_outputs,
+            )
+            batch_results_bytes.append(result_bytes)
+
+        result = parse_bytearray_to_fxp_tensor(
+            batch_results_bytes,
+            hw_manager.quantization_scheme.total_bits,
+            hw_manager.quantization_scheme.frac_bits,
+            (BATCH_SIZE, num_bytes_outputs),
+        )
+        pred = result.argmax(dim=1)
+        correct += pred.eq(target).sum().item()
+        total += target.size(0)
+
+    return {Metric.ACCURACY.value: {"value": 100.0 * correct / total, "unit": "%"}}
 
 
 def setup_knowledge_repository_env5() -> KnowledgeRepository:
@@ -80,12 +129,10 @@ def find_generate_measure_for_env5(
         model_name = "creator_model_" + str(i)
         explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
-        metric_to_source = {Metric.ACCURACY: explorer.model_dir / model_name}
+        metric_to_source = {Metric.ACCURACY: _run_accuracy_test}
         explorer.hw_setup_on_target(metric_to_source, dataset_spec, quantization_scheme)
 
-        accuracy_on_device = explorer.run_measurement(
-            Metric.ACCURACY, model_name
-        )
+        accuracy_on_device = explorer.run_measurement(Metric.ACCURACY, model_name)
 
         accuracy_after_retrain_dict = json.loads(
             '{"Accuracy after retrain": { "value":'

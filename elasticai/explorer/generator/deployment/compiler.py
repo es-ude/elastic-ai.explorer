@@ -131,7 +131,6 @@ class ENv5Compiler(Compiler):
 
     def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
 
-        # TODO get params from deploy_cfg
         path_to_bin_file = synthesis_utils.run_vhdl_synthesis(
             src_dir=source,
             remote_working_dir=self.deploy_cfg.vivado_build_server.remote_working_dir,

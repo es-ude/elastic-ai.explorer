@@ -126,46 +126,6 @@ class ConnectionWrapper:
         return getattr(self._wrapped, name)
 
 
-# @click.command()
-# @click.argument(
-#     "src_dir",
-#     type=click.Path(
-#         exists=True,
-#         file_okay=False,
-#         dir_okay=True,
-#         readable=True,
-#         writable=True,
-#         path_type=Path,
-#     ),
-# )
-# @click.option(
-#     "--host",
-#     envvar=["SYNTH_SERVER", "SYNTH_HOST"],
-#     required=True,
-#     help="The host we will reach via ssh to run vivado, needs to provide ssh service and Vivado",
-# )
-# @click.option("--ssh-user", envvar=["SYNTH_SSH_USER"], required=True)
-# @click.option("--ssh-port", envvar=["SYNTH_SSH_PORT"], default=22, type=click.INT)
-# @click.option(
-#     "--target",
-#     envvar=["SYNTH_TARGET"],
-#     required=True,
-#     help="The target will determine the part number for vivado",
-#     type=click.Choice(TargetPlatforms),
-# )
-# @click.option(
-#     "--remote-working-dir",
-#     envvar=["SYNTH_REMOTE_WORKING_DIR"],
-#     required=True,
-#     help="Commands will be run from this directory on the remote host. The directory will be cleaned before each run, so you can still access any artifacts after each run. CAUTION: has not been tried with relative paths!",
-# )
-# @click.option(
-#     "--vivado-path",
-#     envvar=["SYNTH_VIVADO_PATH"],
-#     default="/tools/Xilinx/Vivado/2023.1/bin/vivado",
-#     help="The path to the vivado executable on the remote host",
-# )
-# @click.option("--quiet", is_flag=True)
 def run_vhdl_synthesis(
     src_dir: Path,
     host: str,

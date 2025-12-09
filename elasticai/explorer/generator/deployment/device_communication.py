@@ -6,6 +6,7 @@ from random import randint
 import shutil
 from socket import error as socket_error
 import time
+from typing import Any
 
 
 from fabric import Connection
@@ -27,29 +28,57 @@ class Host(ABC):
     def __init__(self, deploy_cfg: DeploymentConfig): ...
 
     @abstractmethod
-    def put_file(self, local_path: Path, remote_path: str | None) -> str: ...
+    def _get_connection(self) -> Any: ...
 
 
-class SerialHost(Host):
-    @abstractmethod
-    def send_data_bytes(
-        self, sample: bytearray, num_bytes_outputs: int
-    ) -> bytearray: ...
 class SSHHost(Host):
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        self.host_name = deploy_cfg.target_name
+        self.logger = logging.getLogger(
+            "explorer.generator.deployment.device_communication.SSHHost"
+        )
+        self.user = deploy_cfg.target_user
+
+    def _get_connection(self):
+        return Connection(host=self.host_name, user=self.user)
+
+    @abstractmethod
+    def put_file(self, local_path: Path, remote_path: str | None) -> str: ...
     @abstractmethod
     def run_command(self, command: str) -> str: ...
 
 
-class RPiHost(SSHHost):
-    def __init__(self, deploy_cfg: DeploymentConfig):
-        self.host_name = deploy_cfg.target_name
-        self.user = deploy_cfg.target_user
-        self.logger = logging.getLogger(
-            "explorer.generator.deployment.device_communication.Host"
-        )
+class SerialHost(Host):
 
-    def _get_connection(self):
-        return Connection(host=self.host_name, user=self.user)
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        self.BAUD_RATE = deploy_cfg.baud_rate
+        self.host_name = deploy_cfg.device_path
+        self.logger = logging.getLogger(
+            "explorer.generator.deployment.device_communication.SerialHost"
+        )
+        self.serial_port = deploy_cfg.serial_port
+        self.timeout_s = 40
+
+    def _get_connection(self) -> Any:
+        return serial.Serial(self.serial_port, self.BAUD_RATE, timeout=1)
+
+    @abstractmethod
+    def flash(self, local_path: Path): ...
+    @abstractmethod
+    def receive(self, **kwargs) -> Any: ...
+    @abstractmethod
+    def send_data_bytes(
+        self, sample: bytearray, num_bytes_outputs: int
+    ) -> bytearray: ...
+
+
+class RPiHost(SSHHost):
+
+    def __init__(self, deploy_cfg: DeploymentConfig):
+        super().__init__(deploy_cfg)
+        self.logger = logging.getLogger(
+            "explorer.generator.deployment.device_communication.RPiHost"
+        )
 
     def run_command(self, command: str) -> str:
         try:
@@ -90,32 +119,12 @@ class RPiHost(SSHHost):
 
 class PicoHost(SerialHost):
     def __init__(self, deploy_cfg: DeploymentConfig):
-        self.BAUD_RATE = deploy_cfg.baud_rate
-        self.host_name = deploy_cfg.device_path
+        super().__init__(deploy_cfg=deploy_cfg)
         self.logger = logging.getLogger(
             "explorer.generator.deployment.device_communication.PicoHost"
         )
-        self.serial_port = deploy_cfg.serial_port
-        self.timeout_s = 40
 
-    def _get_measurement(self) -> str:
-        self._wait_for_pico(self.serial_port)
-        line = ""
-        try:
-            with serial.Serial(self.serial_port, self.BAUD_RATE, timeout=1) as ser:
-                line = self._read_serial_once(ser)
-        except serial.SerialException as e:
-            self.logger.error("Error with serial communication!")
-            raise e
-        except PermissionError as e:
-            self.logger.error(
-                "Permission Error with serial communication! Probably you need to add the user to dialout and tty group."
-            )
-            raise e
-
-        return line
-
-    def put_file(self, local_path: Path, remote_path: str | None) -> str:
+    def flash(self, local_path: Path):
         time_passed = 0
         sleep_interval = 0.5
         self.logger.info("Wait for pico to deploy...")
@@ -131,7 +140,27 @@ class PicoHost(SerialHost):
             local_path,
             Path(self.host_name) / Path(local_path).name,
         )
-        return self._get_measurement()
+
+    def send_data_bytes(self, sample: bytearray, num_bytes_outputs: int) -> bytearray:
+        with self._get_connection() as ser:
+            return bytearray(ser.read_until().strip())
+
+    def receive(self, **kwargs) -> str:
+        self._wait_for_pico(self.serial_port)
+        line = ""
+        try:
+            with self._get_connection() as ser:
+                line = self._read_serial_once(ser)
+        except serial.SerialException as e:
+            self.logger.error("Error with serial communication!")
+            raise e
+        except PermissionError as e:
+            self.logger.error(
+                "Permission Error with serial communication! Probably you need to add the user to dialout and tty group."
+            )
+            raise e
+
+        return line
 
     def _wait_for_pico(self, port):
         self.logger.info("Wait for pico answer on Port " + port + "...")
@@ -169,16 +198,21 @@ class PicoHost(SerialHost):
 
 class ENv5Host(SerialHost):
     def __init__(self, deploy_cfg: DeploymentConfig):
-        self.BAUD_RATE = deploy_cfg.baud_rate
-        self.host_name = deploy_cfg.device_path
+        super().__init__(deploy_cfg=deploy_cfg)
         self.logger = logging.getLogger(
             "explorer.generator.deployment.device_communication.ENv5Host"
         )
-        self.serial_port = deploy_cfg.serial_port
-        self.timeout_s = 40
         self.flash_start_address = 0
+        self._ser = None
 
-    def put_file(self, local_path: Path, remote_path: str | None) -> str:
+    def _get_connection(self) -> Any:
+        if not self._ser:
+            self._ser = serial.Serial(
+                get_env5_port(), baudrate=self.BAUD_RATE, timeout=1
+            )
+        return self._ser
+
+    def flash(self, local_path: Path):
         skeleton_id = [randint(0, 16) for i in range(16)]
         skeleton_id_as_bytearray = bytearray()
         for x in skeleton_id:
@@ -186,48 +220,34 @@ class ENv5Host(SerialHost):
                 x.to_bytes(length=1, byteorder="little", signed=False)
             )
 
-        try:
-            # open serial and keep it open on the host instance
-            self._ser = serial.Serial(
-                get_env5_port(), baudrate=self.BAUD_RATE, timeout=1
-            )
-            self._urc = UserRemoteControl(device=self._ser)
+        ser = self._get_connection()
+        self._urc = UserRemoteControl(device=ser)
+        self._urc.send_and_deploy_model(
+            local_path, self.flash_start_address, skeleton_id_as_bytearray
+        )
+        self._urc.fpga_leds(True, False, False, False)
+        skeleton_id_on_device = bytearray(self._urc._enV5RCP.read_skeleton_id())
 
-            self._urc.send_and_deploy_model(
-                local_path, self.flash_start_address, skeleton_id_as_bytearray
+        if skeleton_id_on_device == skeleton_id_as_bytearray:
+            self.logger.info("The byte stream has been written correctly to the ENv5.")
+        else:
+            self.logger.warning(
+                f"The byte stream hasn't been written correctly to the ENv5. Verification bytes are not equal: {skeleton_id_on_device} != {skeleton_id_as_bytearray}!"
             )
-            self._urc.fpga_leds(True, False, False, False)
-            skeleton_id_on_device = bytearray(self._urc._enV5RCP.read_skeleton_id())
-
-            if skeleton_id_on_device == skeleton_id_as_bytearray:
-                self.logger.info(
-                    "The byte stream has been written correctly to the ENv5."
-                )
-            else:
-                self.logger.warning(
-                    f"The byte stream hasn't been written correctly to the ENv5. Verification bytes are not equal: {skeleton_id_on_device} != {skeleton_id_as_bytearray}!"
-                )
-        except Exception:
-            # on any exception, ensure we close partially opened resources
-            try:
-                if self._ser and self._ser.is_open:
-                    self._ser.close()
-            except Exception:
-                pass
-            self._ser = None
-            self._urc = None
-            raise
-        return ""
 
     def send_data_bytes(self, sample: bytearray, num_bytes_outputs: int) -> bytearray:
         if self._urc:
             raw_result = self._urc.inference_with_data(sample, num_bytes_outputs)
             return raw_result
 
-        with serial.Serial(get_env5_port(), baudrate=self.BAUD_RATE, timeout=1) as ser:
+        with self._get_connection() as ser:
             urc = UserRemoteControl(device=ser)
             raw_result = urc.inference_with_data(sample, num_bytes_outputs)
             return raw_result
 
-    def run_command(self, command: str) -> str:
-        return ""
+    def receive(self, **kwargs) -> Any:
+        if self._urc:
+            raw_result = self._urc.read_data_from_flash(
+                kwargs.get("flash_start_address", 0), kwargs.get("num_bytes", 0)
+            )
+            return raw_result

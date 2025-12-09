@@ -1,7 +1,7 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any, Type
+from typing import Mapping, Optional, Any, Type
 from torch import nn
 
 from elasticai.explorer.config import DeploymentConfig, HWNASConfig
@@ -152,7 +152,7 @@ class Explorer:
 
     def hw_setup_on_target(
         self,
-        metric_to_source: dict[Metric, Path | MetricFunction],
+        metric_to_source: Mapping[Metric, Path | MetricFunction],
         data_spec: data.DatasetSpecification,
         quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):

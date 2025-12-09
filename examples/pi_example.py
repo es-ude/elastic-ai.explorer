@@ -102,10 +102,10 @@ def find_generate_measure_for_pi(
         model_name = "ts_model_" + str(i) + ".pt"
         explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
-        latency = explorer.run_measurement(Metric.LATENCY, model, model_name)
+        latency = explorer.run_measurement(Metric.LATENCY, model_name)
         latency_measurements.append(latency)
         accuracy_measurements.append(
-            explorer.run_measurement(Metric.ACCURACY, model, model_name)
+            explorer.run_measurement(Metric.ACCURACY, model_name)
         )
 
         accuracy_after_retrain_dict = json.loads(
