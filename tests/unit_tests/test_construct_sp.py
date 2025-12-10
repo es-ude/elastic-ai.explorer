@@ -6,11 +6,13 @@ from optuna.trial import FixedTrial
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.construct_search_space import (
-    calculate_conv_output_shape,
     SearchSpace,
     parse_search_param,
 )
-from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
+from elasticai.explorer.hw_nas.search_space.utils import (
+    yaml_to_dict,
+    calculate_conv_output_shape,
+)
 from settings import ROOT_DIR
 
 yaml_mock = """input: 784
@@ -40,7 +42,7 @@ blocks:
     linear:
         activation: [ "relu", "sigmoid"]
         width: [16, 32, 5, 4]
-    conv2D:
+    conv2d:
       kernel_size: [1, 2]
       stride: [1, 2]
       out_channels: [ 10, 4]"""
@@ -58,7 +60,7 @@ blocks:
               activation: [ "relu", "sigmoid"]
               linear:
                 width: [16, 32, 5, 4]
-              conv2D:
+              conv2d:
                 kernel_size: [1, 2]
                 stride: [1, 2]
                 out_channels:
@@ -70,7 +72,7 @@ blocks:
               activation: [ "relu", "sigmoid"]
               linear:
                 width: [16, 32]
-              conv2D:
+              conv2d:
                 kernel_size: [1, 2]
                 stride: [1, 2]
                 out_channels: [ 10, 4] """

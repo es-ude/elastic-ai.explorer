@@ -1,4 +1,3 @@
-import json
 import logging
 import logging.config
 from pathlib import Path
@@ -6,9 +5,8 @@ from pathlib import Path
 import torch
 from torchvision.transforms import transforms
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.explorer import Explorer
-
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
@@ -24,41 +22,33 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     TFliteModelCompiler,
 )
-
+from elasticai.explorer.generator.deployment.hw_manager import Metric
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.training.trainer import MLPTrainer
-from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+
+from examples.example_helpers import (
+    measure_on_device,
+    setup_knowledge_repository,
+    setup_example_optimization_criteria,
+)
+
+from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
+device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
 
-def setup_knowledge_repository_pico() -> KnowledgeRepository:
-    knowledge_repository = KnowledgeRepository()
-    knowledge_repository.register_hw_platform(
-        Generator(
-            "pico",
-            "Pico with RP2040 MCU and 2MB control memory",
-            TFliteModelCompiler,
-            PicoHWManager,
-            PicoHost,
-            PicoCompiler,
-        )
-    )
-
-    return knowledge_repository
-
-
-def find_generate_measure_for_pico(
+def search_generate_measure_for_pico(
     explorer: Explorer,
-    deploy_cfg: DeploymentConfig,
-    hwnas_cfg: HWNASConfig,
+    serial_params: SerialParams,
+    compiler_params: CompilerParams,
     search_space: Path,
     retrain_epochs: int = 4,
+    max_search_trials: int = 2,
+    top_n_models: int = 2,
 ):
-    explorer.choose_target_hw(deploy_cfg)
+    explorer.choose_target_hw("pico", compiler_params, serial_params)
     explorer.generate_search_space(search_space)
 
     transf = transforms.Compose(
@@ -67,81 +57,66 @@ def find_generate_measure_for_pico(
     path_to_dataset = ROOT_DIR / Path("data/mnist")
     root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
     setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
+
     dataset_spec = DatasetSpecification(
         dataset_type=MNISTWrapper,
         dataset_location=path_to_dataset,
         deployable_dataset_path=root_dir_cpp_mnist,
         transform=transf,
     )
-    top_models = explorer.search(hwnas_cfg, dataset_spec, MLPTrainer)
+    criteria = setup_example_optimization_criteria(dataset_spec, device)
 
-    latency_measurements = []
-    accuracy_measurements_on_device = []
-    accuracy_after_retrain = []
-    retrain_device = "cpu"
-    for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(
-            device=retrain_device,
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
-            dataset_spec=dataset_spec,
-        )
-        mlp_trainer.train(model, epochs=retrain_epochs)
-        accuracy_after_retrain_value, _ = mlp_trainer.test(model)
-        model_name = "ts_model_" + str(i) + ".tflite"
-        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
+    top_models = explorer.search(
+        search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
+        hw_nas_parameters=HWNASParameters(
+            max_search_trials=max_search_trials, top_n_models=top_n_models
+        ),
+        optimization_criteria=criteria,
+    )
 
-        metric_to_source = {
-            Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
-            Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
-        }
-        explorer.hw_setup_on_target(metric_to_source, dataset_spec)
+    metric_to_source = {
+        Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
+        Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
+    }
+    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
-       
-        latency = explorer.run_measurement(Metric.LATENCY, model_name)
-       
-        
-        accuracy_on_device = explorer.run_measurement(Metric.ACCURACY, model_name)
-        
-
-        accuracy_after_retrain_dict = json.loads(
-            '{"Accuracy after retrain": { "value":'
-            + str(accuracy_after_retrain_value)
-            + ' , "unit": "percent"}}'
-        )
-        latency_measurements.append(latency)
-        accuracy_measurements_on_device.append(accuracy_on_device)
-        accuracy_after_retrain.append(accuracy_after_retrain_dict)
-
-    latencies = [latency["Latency"]["value"] for latency in latency_measurements]
-    accuracies_on_device = [
-        accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements_on_device
-    ]
-    accuracy_after_retrain = [
-        accuracy["Accuracy after retrain"]["value"]
-        for accuracy in accuracy_after_retrain
-    ]
-
-    df = build_search_space_measurements_file(
-        latencies,
-        accuracy_after_retrain,
-        accuracies_on_device,
-        explorer.metric_dir / "metrics.json",
-        explorer.model_dir / "models.json",
-        explorer.experiment_dir / "experiment_data.csv",
+    df = measure_on_device(
+        explorer,
+        top_models,
+        metric_to_source,
+        retrain_epochs,
+        "cpu",
+        dataset_spec,
+        model_suffix=".tflite",
     )
     logger.info("Models:\n %s", df)
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/pico/hwnas_config.yaml"))
-    deploy_cfg = DeploymentConfig(
-        config_path=Path("configs/pico/deployment_config.yaml")
-    )
-
-    knowledge_repo = setup_knowledge_repository_pico()
-    explorer = Explorer(knowledge_repo)
-    search_space = Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    ### Hyperparameters
+    max_search_trials = 6
+    top_n_models = 2
     retrain_epochs = 3
-    find_generate_measure_for_pico(
-        explorer, deploy_cfg, hwnas_cfg, search_space, retrain_epochs
+
+    serial_params = SerialParams(
+        device_path=Path("/media/<username>/RPI-RP2")
+    )  # <-- Set the device path and rest only if necessary.
+    compiler_params = CompilerParams(
+        library_path=Path("./code/pico_crosscompiler"),
+        image_name="picobase",
+        build_context=DOCKER_CONTEXT_DIR,
+        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+    )  # <-- Configure this only if necessary.
+
+    knowledge_repo = setup_knowledge_repository()
+    explorer = Explorer(knowledge_repo)
+    search_space = Path("examples/search_space_examples/pico_search_space.yaml")
+    search_generate_measure_for_pico(
+        explorer,
+        compiler_params=compiler_params,
+        serial_params=serial_params,
+        search_space=search_space,
+        retrain_epochs=retrain_epochs,
+        max_search_trials=max_search_trials,
+        top_n_models=top_n_models,
     )

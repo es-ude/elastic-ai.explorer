@@ -1,8 +1,8 @@
 from scipy.stats import kendalltau
-from typing import Any, List
+from typing import Any
 
 
-def compute_kendall(list_x: List[Any], list_y: List[Any]) -> Any:
+def compute_kendall(list_x: list[Any], list_y: list[Any]) -> Any:
     """Computes Kendall Correlation Coefficient between list_x and list_y.
 
     Args:

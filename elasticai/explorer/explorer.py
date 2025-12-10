@@ -1,10 +1,9 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Mapping, Optional, Any, Type
+from typing import Optional, Any
 from torch import nn
 
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import (
@@ -16,6 +15,10 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     FullPrecisionScheme,
     QuantizationScheme,
 )
+from elasticai.explorer.hw_nas.optimization_criteria import (
+    OptimizationCriteria,
+)
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.hw_manager import (
@@ -24,9 +27,12 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     MetricFunction,
 )
 from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
-from elasticai.explorer.training.trainer import Trainer
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
+from elasticai.explorer.utils.logging_utils import (
+    dataclass_instance_to_toml,
+    opt_crit_registry_to_toml,
+)
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -46,9 +52,8 @@ class Explorer:
             experiment_name (str, optional): The name of the current experiment. Defaults to timestamp at instantiation.
               This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
         """
-        self.logger = logging.getLogger("explorer.Explorer")
-        self.default_model: Optional[nn.Module] = None
-        self.generator: Optional[Generator] = None
+        self.logger = logging.getLogger("explorer")
+        self.target_hw_platform: Optional[Generator] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository
         self.model_compiler: Optional[ModelCompiler] = None
         self.hw_manager: Optional[HWManager] = None
@@ -100,55 +105,72 @@ class Explorer:
 
     def search(
         self,
-        hwnas_cfg: HWNASConfig,
-        dataset_spec: data.DatasetSpecification,
-        trainer_type: Type[Trainer],
+        search_strategy: SearchStrategy = SearchStrategy.RANDOM_SEARCH,
+        optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
+        hw_nas_parameters: HWNASParameters = HWNASParameters(),
+        dump_configuration: bool = True,
         model_builder: ModelBuilder = TorchModelBuilder(),
     ) -> list[Any]:
         self.logger.info(
-            "Start Hardware NAS with %d number of trials for top %d models ",
-            hwnas_cfg.max_search_trials,
-            hwnas_cfg.top_n_models,
+            "Start Hardware NAS with %d number of trials searching for top %d models. ",
+            hw_nas_parameters.max_search_trials,
+            hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
-                self.search_space_cfg,
-                model_builder,
-                hwnas_cfg,
-                dataset_spec,
-                trainer_type,
+                search_space_cfg=self.search_space_cfg,
+                search_strategy=search_strategy,
+                hw_nas_parameters=hw_nas_parameters,
+                optimization_criteria=optimization_criteria,
             )
         else:
             self.logger.error(
                 "Generate a searchspace before starting the HW-NAS with Explorer.search()!"
             )
             exit(-1)
-
         data_utils.save_list_to_json(
             model_parameters, path_to_dir=self._model_dir, filename="models.json"
         )
         data_utils.save_list_to_json(
             metrics, path_to_dir=self._metric_dir, filename="metrics.json"
         )
-        hwnas_cfg.dump_as_yaml(self._experiment_dir / "hwnas_config.yaml")
+
+        if dump_configuration:
+            data_utils.save_to_toml(
+                dataclass_instance_to_toml(
+                    hw_nas_parameters,
+                    additional_info={"search_strategy": search_strategy.value},
+                ),
+                self._experiment_dir,
+                "hw_nas_params.toml",
+            )
+            data_utils.save_to_toml(
+                opt_crit_registry_to_toml(optimization_criteria),
+                self._experiment_dir,
+                "optimization_criteria.toml",
+            )
 
         return top_models
 
-    def choose_target_hw(self, deploy_cfg: DeploymentConfig):
+    def choose_target_hw(
+        self,
+        target_platform_name: str,
+        compiler_params: CompilerParams,
+        communication_params: SSHParams | SerialParams,
+    ):
         self.generator = self.knowledge_repository.fetch_hw_info(
-            deploy_cfg.target_platform_name
+            target_platform_name
         )
         self.model_compiler = self.generator.model_compiler()
         self.hw_manager = self.generator.platform_manager(
-            self.generator.communication_protocol(deploy_cfg),
-            self.generator.compiler(deploy_cfg),
+            self.generator.communication_protocol(communication_params),
+            self.generator.compiler(compiler_params),
         )
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, Generator:\n%s",
-            deploy_cfg.target_platform_name,
+            target_platform_name,
             self.generator,
         )
-        deploy_cfg.dump_as_yaml(self._experiment_dir / "deployment_config.yaml")
 
     def hw_setup_on_target(
         self,
@@ -158,9 +180,11 @@ class Explorer:
     ):
         """
         Args:
-            path_to_testdata: Path to testdata. Format depends on the HWManager implementation.
-            metric_to_source: Dictionary mapping Metric to Path to source code inside the docker context.
-              E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")} or a MetricFunction(Host, Manager).
+            data_spec: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
+            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context. this doesn't explain anything
+              E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
+            quantization_scheme: The quantization scheme used. 
+
         """
         self.logger.info("Setup Hardware target for experiments.")
 
