@@ -11,9 +11,10 @@ from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
 )
-from elasticai.explorer.generator.deployment.compiler import PicoCompiler
+from elasticai.explorer.generator.deployment.compiler import DockerParams, PicoCompiler
 from elasticai.explorer.generator.deployment.device_communication import (
     PicoHost,
+    SerialParams,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
     PicoHWManager,
@@ -42,7 +43,7 @@ device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 def search_generate_measure_for_pico(
     explorer: Explorer,
     serial_params: SerialParams,
-    compiler_params: CompilerParams,
+    compiler_params: DockerParams,
     search_space: Path,
     retrain_epochs: int = 4,
     max_search_trials: int = 2,
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     serial_params = SerialParams(
         device_path=Path("/media/<username>/RPI-RP2")
     )  # <-- Set the device path and rest only if necessary.
-    compiler_params = CompilerParams(
+    compiler_params = DockerParams(
         library_path=Path("./code/pico_crosscompiler"),
         image_name="picobase",
         build_context=DOCKER_CONTEXT_DIR,

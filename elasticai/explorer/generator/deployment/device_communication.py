@@ -86,8 +86,8 @@ class SerialHost(Host):
 
 class RPiHost(SSHHost):
 
-    def __init__(self, deploy_cfg: DeploymentConfig):
-        super().__init__(deploy_cfg)
+    def __init__(self, params: SSHParams):
+        super().__init__(params=params)
         self.logger = logging.getLogger(
             "explorer.generator.deployment.device_communication.RPiHost"
         )
@@ -209,8 +209,8 @@ class PicoHost(SerialHost):
 
 
 class ENv5Host(SerialHost):
-    def __init__(self, deploy_cfg: DeploymentConfig):
-        super().__init__(deploy_cfg=deploy_cfg)
+    def __init__(self, params: SerialParams):
+        super().__init__(params=params)
         self.logger = logging.getLogger(
             "explorer.generator.deployment.device_communication.ENv5Host"
         )

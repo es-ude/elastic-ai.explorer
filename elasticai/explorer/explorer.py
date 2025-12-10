@@ -1,10 +1,14 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any
+from typing import Mapping, Optional, Any
 from torch import nn
 
-from elasticai.explorer.generator.deployment.compiler import Compiler
+from elasticai.explorer.generator.deployment.compiler import VivadoParams, DockerParams
+from elasticai.explorer.generator.deployment.device_communication import (
+    SSHParams,
+    SerialParams,
+)
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import (
     ModelBuilder,
@@ -122,6 +126,7 @@ class Explorer:
                 search_strategy=search_strategy,
                 hw_nas_parameters=hw_nas_parameters,
                 optimization_criteria=optimization_criteria,
+                model_builder=model_builder,
             )
         else:
             self.logger.error(
@@ -155,12 +160,10 @@ class Explorer:
     def choose_target_hw(
         self,
         target_platform_name: str,
-        compiler_params: CompilerParams,
+        compiler_params: VivadoParams | DockerParams,
         communication_params: SSHParams | SerialParams,
     ):
-        self.generator = self.knowledge_repository.fetch_hw_info(
-            target_platform_name
-        )
+        self.generator = self.knowledge_repository.fetch_hw_info(target_platform_name)
         self.model_compiler = self.generator.model_compiler()
         self.hw_manager = self.generator.platform_manager(
             self.generator.communication_protocol(communication_params),
@@ -183,7 +186,7 @@ class Explorer:
             data_spec: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
             metric_to_source: Dictionary mapping Metric to source code Path inside the docker context. this doesn't explain anything
               E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
-            quantization_scheme: The quantization scheme used. 
+            quantization_scheme: The quantization scheme used.
 
         """
         self.logger.info("Setup Hardware target for experiments.")

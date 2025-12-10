@@ -7,6 +7,7 @@ from elasticai.creator.nn import fixed_point
 import torch
 from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.hw_nas.search_space.layer_builder import LinearBuilder
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     QuantizationScheme,
@@ -51,8 +52,8 @@ class CreatorModelBuilder(ModelBuilder):
                 f"The given searchspace.input_shape {searchspace.input_shape} is not formatted correctly!"
             )
             raise e
-
-        searchspace.createLinear(
+        # TODO Add these to the layer builder
+        LinearBuilder.get_layers(
             trial, searchspace.blocks[0], 1, searchspace.blocks[0]["linear"]
         )
         sequential = creator_nn.Sequential(

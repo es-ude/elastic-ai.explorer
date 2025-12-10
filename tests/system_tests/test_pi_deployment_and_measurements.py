@@ -1,10 +1,8 @@
-import shutil
-
 import pytest
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
-from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
+from elasticai.explorer.generator.deployment.compiler import DockerParams, RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     RPiHWManager,
@@ -33,7 +31,7 @@ class TestDeploymentAndMeasurement:
         ssh_params = SSHParams(
             hostname=RPI_HOSTNAME, username=RPI_USERNAME
         )  # <-- Set the credentials of your RPi
-        compiler_params = CompilerParams()
+        compiler_params = DockerParams()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             Generator(

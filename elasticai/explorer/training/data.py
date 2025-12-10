@@ -2,7 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
-from typing import Any, Callable,Optional, Type, Union
+from typing import Any, Callable, Optional, Type, Union
 import numpy as np
 import pandas as pd
 from torchvision.datasets import MNIST
@@ -129,8 +129,8 @@ class DatasetSpecification:
     deployable_dataset_path: Path | None = (
         None  # This should be the path to the data that is deployed to the target device.
     )
-    transform: Compose | None = None
-    target_transform: Compose | None = None
+    transform: Compose | Callable | None = None
+    target_transform: Compose | Callable | None = None
     train_val_test_ratio: list[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
     shuffle: bool = False
     split_seed: int = 42

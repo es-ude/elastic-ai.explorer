@@ -1,27 +1,41 @@
 from pathlib import Path
-from typing import List
+from typing import Any, List
 import torch
 from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.generator.deployment.compiler import (
+    ENv5Compiler,
+    PicoCompiler,
+    RPICompiler,
+)
+from elasticai.explorer.generator.deployment.device_communication import (
+    ENv5Host,
+    PicoHost,
+    RPiHost,
+)
+from elasticai.explorer.generator.deployment.hw_manager import (
+    ENv5HWManager,
+    Metric,
+    MetricFunction,
+    PicoHWManager,
+    RPiHWManager,
+)
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    CreatorModelCompiler,
+    TFliteModelCompiler,
+    TorchscriptModelCompiler,
+)
 from elasticai.explorer.hw_nas.estimators import (
     TrainMetricsEstimator,
     FLOPsEstimator,
 )
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
-from elasticai.explorer.platforms.deployment.device_communication import (
-    PicoHost,
-    RPiHost,
-)
-from elasticai.explorer.platforms.deployment.hw_manager import (
-    Metric,
-    PicoHWManager,
-    RPiHWManager,
-)
-from elasticai.explorer.platforms.generator.generator import PicoGenerator, RPiGenerator
+from elasticai.explorer.knowledge_repository import KnowledgeRepository
+
+
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
 from torch import optim
@@ -32,20 +46,20 @@ from elasticai.explorer.utils.data_to_csv import build_search_space_measurements
 def setup_knowledge_repository() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
-        HWPlatform(
+        Generator(
             "pico",
             "Pico with RP2040 MCU and 2MB control memory",
-            PicoGenerator,
+            TFliteModelCompiler,
             PicoHWManager,
             PicoHost,
             PicoCompiler,
         )
     )
     knowledge_repository.register_hw_platform(
-        HWPlatform(
+        Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            RPiGenerator,
+            TorchscriptModelCompiler,
             RPiHWManager,
             RPiHost,
             RPICompiler,
@@ -53,13 +67,23 @@ def setup_knowledge_repository() -> KnowledgeRepository:
     )
 
     knowledge_repository.register_hw_platform(
-        HWPlatform(
+        Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            RPiGenerator,
+            TorchscriptModelCompiler,
             RPiHWManager,
             RPiHost,
             RPICompiler,
+        )
+    )
+    knowledge_repository.register_hw_platform(
+        Generator(
+            "env5_s50",
+            "Env5 with RP2040 and xc7s50ftgb196-2 FPGA",
+            CreatorModelCompiler,
+            ENv5HWManager,
+            ENv5Host,
+            ENv5Compiler,
         )
     )
 
@@ -102,7 +126,7 @@ def setup_mnist(path_to_test_data: Path):
 def measure_on_device(
     explorer: Explorer,
     top_models: List,
-    metric_to_source: dict[Metric, Path],
+    metric_to_source: Any,
     retrain_epochs: int,
     device: str,
     dataset_spec: DatasetSpecification,

@@ -1,30 +1,28 @@
-import json
+
 import logging.config
 from pathlib import Path
-
 import torch
 
-
-from elasticai.explorer.config import DeploymentConfig, HWNASConfig
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     parse_bytearray_to_fxp_tensor,
     parse_fxp_tensor_to_bytearray,
 )
 
-from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import (
     KnowledgeRepository,
 )
-from elasticai.explorer.generator.deployment.compiler import ENv5Compiler
+from elasticai.explorer.generator.deployment.compiler import ENv5Compiler, VivadoParams
 from elasticai.explorer.generator.deployment.device_communication import (
     ENv5Host,
     Host,
     SSHHost,
     SerialHost,
+    SerialParams,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
     ENv5HWManager,
@@ -34,15 +32,75 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     CreatorModelCompiler,
 )
-
-from elasticai.explorer.training.trainer import MLPTrainer
-from tests.system_tests.test_env5_deplyment_and_measurements import (
-    create_example_dataset_spec,
+from examples.example_helpers import (
+    measure_on_device,
+    setup_example_optimization_criteria,
+    setup_knowledge_repository,
 )
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
+
+
+from pathlib import Path
+from typing import Any, Callable
+
+import torch
+from elasticai.explorer.training.data import BaseDataset, DatasetSpecification
+from elasticai.creator.arithmetic import (
+    FxpArithmetic,
+    FxpParams,
+)
+
+device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+BATCH_SIZE = 64
+INPUT_DIM = 6
+
+
+class DatasetExample(BaseDataset):
+
+    def __init__(
+        self,
+        root: str | Path,
+        transform: Callable[..., Any] | None = None,
+        target_transform: Callable[..., Any] | None = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(root, transform, target_transform, *args, **kwargs)
+
+        self.test_data = torch.randn(BATCH_SIZE * 10, INPUT_DIM) * 5
+        self.targets = torch.empty(BATCH_SIZE * 10, dtype=torch.long).random_(4)
+
+    def __getitem__(self, idx) -> Any:
+        data, target = self.test_data[idx], self.targets[idx]
+        if self.transform is not None:
+            data = self.transform(self.test_data[idx])
+
+        if self.target_transform is not None:
+            target = self.target_transform(self.targets[idx])
+        return data, target
+
+    def __len__(self) -> int:
+        return len(self.test_data)
+
+
+def create_example_dataset_spec(quantization_scheme):
+
+    fxp_params = FxpParams(
+        total_bits=quantization_scheme.total_bits,
+        frac_bits=quantization_scheme.frac_bits,
+        signed=quantization_scheme.signed,
+    )
+    fxp_conf = FxpArithmetic(fxp_params)
+    return DatasetSpecification(
+        dataset_type=DatasetExample,
+        dataset_location=Path(""),
+        deployable_dataset_path=None,
+        transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
+        target_transform=None,
+    )
 
 
 def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
@@ -87,7 +145,7 @@ def setup_knowledge_repository_env5() -> KnowledgeRepository:
     knowledge_repository = KnowledgeRepository()
     knowledge_repository.register_hw_platform(
         Generator(
-            "env5",
+            "env5_s50",
             "Env5 with RP2040 and xc7s50ftgb196-2 FPGA",
             CreatorModelCompiler,
             ENv5HWManager,
@@ -98,77 +156,109 @@ def setup_knowledge_repository_env5() -> KnowledgeRepository:
     return knowledge_repository
 
 
-def find_generate_measure_for_env5(
+def search_generate_measure_for_env5(
     explorer: Explorer,
-    deploy_cfg: DeploymentConfig,
-    hwnas_cfg: HWNASConfig,
-    search_space: Path,
+    rpi_type: str,
+    serial_params: SerialParams,
+    compiler_params: VivadoParams,
+    search_space_path: Path,
     retrain_epochs: int = 4,
+    max_search_trials: int = 4,
+    top_n_models: int = 2,
 ):
-    explorer.choose_target_hw(deploy_cfg)
-    explorer.generate_search_space(search_space)
 
     quantization_scheme = FixedPointInt8Scheme()
+    explorer.choose_target_hw(rpi_type, compiler_params, serial_params)
+    explorer.generate_search_space(search_space_path)
     dataset_spec = create_example_dataset_spec(quantization_scheme)
+    optimization_criteria = setup_example_optimization_criteria(dataset_spec, device)
     top_models = explorer.search(
-        hwnas_cfg, dataset_spec, MLPTrainer, CreatorModelBuilder()
+        search_strategy=SearchStrategy.RANDOM_SEARCH,
+        optimization_criteria=optimization_criteria,
+        hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
+        model_builder=CreatorModelBuilder(),
     )
 
-    accuracy_measurements_on_device = []
-    accuracy_after_retrain = []
-    retrain_device = "cpu"
-    for i, model in enumerate(top_models):
-        mlp_trainer = MLPTrainer(
-            device=retrain_device,
-            optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
-            dataset_spec=dataset_spec,
-        )
-        mlp_trainer.train(model, epochs=retrain_epochs)
-        accuracy_after_retrain_value, _ = mlp_trainer.test(model)
-        model_name = "creator_model_" + str(i)
-        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
-
-        metric_to_source = {Metric.ACCURACY: _run_accuracy_test}
-        explorer.hw_setup_on_target(metric_to_source, dataset_spec, quantization_scheme)
-
-        accuracy_on_device = explorer.run_measurement(Metric.ACCURACY, model_name)
-
-        accuracy_after_retrain_dict = json.loads(
-            '{"Accuracy after retrain": { "value":'
-            + str(accuracy_after_retrain_value)
-            + ' , "unit": "percent"}}'
-        )
-        accuracy_measurements_on_device.append(accuracy_on_device)
-        accuracy_after_retrain.append(accuracy_after_retrain_dict)
-    accuracies_on_device = [
-        accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements_on_device
-    ]
-    accuracy_after_retrain = [
-        accuracy["Accuracy after retrain"]["value"]
-        for accuracy in accuracy_after_retrain
-    ]
-
-    df = build_search_space_measurements_file(
-        [i for i in range(0, len(accuracies_on_device), 1)],
-        accuracy_after_retrain,
-        accuracies_on_device,
-        explorer.metric_dir / "metrics.json",
-        explorer.model_dir / "models.json",
-        explorer.experiment_dir / "experiment_data.csv",
+    metric_to_source = {Metric.ACCURACY: _run_accuracy_test}
+    df = measure_on_device(
+        explorer=explorer,
+        top_models=top_models,
+        metric_to_source=metric_to_source,
+        retrain_epochs=retrain_epochs,
+        device=device,
+        dataset_spec=dataset_spec,
+        model_suffix="",
     )
+
+    # accuracy_measurements_on_device = []
+    # accuracy_after_retrain = []
+    # retrain_device = "cpu"
+    # for i, model in enumerate(top_models):
+    #     mlp_trainer = MLPTrainer(
+    #         device=retrain_device,
+    #         optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
+    #         dataset_spec=dataset_spec,
+    #     )
+    #     mlp_trainer.train(model, epochs=retrain_epochs)
+    #     accuracy_after_retrain_value, _ = mlp_trainer.test(model)
+    #     model_name = "creator_model_" + str(i)
+    #     explorer.generate_for_hw_platform(model, model_name, dataset_spec)
+
+    #     explorer.hw_setup_on_target(metric_to_source, dataset_spec, quantization_scheme)
+
+    #     accuracy_on_device = explorer.run_measurement(Metric.ACCURACY, model_name)
+
+    #     accuracy_after_retrain_dict = json.loads(
+    #         '{"Accuracy after retrain": { "value":'
+    #         + str(accuracy_after_retrain_value)
+    #         + ' , "unit": "percent"}}'
+    #     )
+    #     accuracy_measurements_on_device.append(accuracy_on_device)
+    #     accuracy_after_retrain.append(accuracy_after_retrain_dict)
+    # accuracies_on_device = [
+    #     accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements_on_device
+    # ]
+    # accuracy_after_retrain = [
+    #     accuracy["Accuracy after retrain"]["value"]
+    #     for accuracy in accuracy_after_retrain
+    # ]
+
+    # df = build_search_space_measurements_file(
+    #     [i for i in range(0, len(accuracies_on_device), 1)],
+    #     accuracy_after_retrain,
+    #     accuracies_on_device,
+    #     explorer.metric_dir / "metrics.json",
+    #     explorer.model_dir / "models.json",
+    #     explorer.experiment_dir / "experiment_data.csv",
+    # )
     logger.info("Models:\n %s", df)
 
 
 if __name__ == "__main__":
-    hwnas_cfg = HWNASConfig(config_path=Path("configs/env5/hwnas_config.yaml"))
-    deploy_cfg = DeploymentConfig(
-        config_path=Path("configs/env5/deployment_config.yaml")
+    max_search_trials = 6
+    top_n_models = 2
+    retrain_epochs = 3
+    rpi_type = "env5_s50"
+
+    compiler_params = VivadoParams(
+        "/home/vivado/robin-build/", "65.108.38.237", "vivado"
     )
 
-    knowledge_repo = setup_knowledge_repository_env5()
+    serial_params = SerialParams(
+        device_path=Path(""), serial_port="/dev/ttyACM0", baud_rate=9600
+    )
+
+    knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
     search_space = Path("configs/env5/search_space.yaml")
     retrain_epochs = 3
-    find_generate_measure_for_env5(
-        explorer, deploy_cfg, hwnas_cfg, search_space, retrain_epochs
+    search_generate_measure_for_env5(
+        explorer,
+        rpi_type,
+        serial_params,
+        compiler_params,
+        search_space,
+        retrain_epochs,
+        max_search_trials,
+        top_n_models,
     )

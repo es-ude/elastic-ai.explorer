@@ -5,7 +5,7 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import (
-    CompilerParams,
+    DockerParams,
     PicoCompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
@@ -31,7 +31,7 @@ from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 class TestPicoGenerateAndCompile:
     def setup_method(self):
         self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
-        self.compiler_params = CompilerParams(
+        self.compiler_params = DockerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,

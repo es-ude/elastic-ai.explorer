@@ -280,7 +280,7 @@ class ENv5HWManager(HWManager):
         )
         train_subset, test_subset, val_subset = random_split(
             self.dataset,
-            dataset_spec.test_train_val_ratio,
+            dataset_spec.train_val_test_ratio,
         )
         self.batch_size = 64
         self.test_loader = DataLoader(

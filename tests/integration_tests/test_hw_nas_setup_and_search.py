@@ -19,7 +19,7 @@ from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
-from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
+from elasticai.explorer.generator.deployment.compiler import DockerParams, RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     TorchscriptModelCompiler,
@@ -114,7 +114,7 @@ class TestHWNasSetupAndSearch:
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(
             "rpi5",
-            compiler_params=CompilerParams(),
+            compiler_params=DockerParams(),
             communication_params=SSHParams("", ""),
         )
         model = SampleMLP(28 * 28)

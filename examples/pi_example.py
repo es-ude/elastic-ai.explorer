@@ -3,19 +3,12 @@ from pathlib import Path
 import torch
 
 
+from elasticai.explorer.generator.deployment.compiler import DockerParams
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import (
-    KnowledgeRepository,
-)
-from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer.generator.deployment.device_communication import SSHParams
-from elasticai.explorer.generator.deployment.compiler import RPICompiler
-from elasticai.explorer.generator.deployment.device_communication import RPiHost
-from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager, Metric
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TorchscriptModelCompiler,
-)
+from elasticai.explorer.generator.deployment.hw_manager import Metric
+
 from examples.example_helpers import (
     measure_on_device,
     setup_knowledge_repository,
@@ -34,7 +27,7 @@ def search_generate_measure_for_pi(
     explorer: Explorer,
     rpi_type: str,
     ssh_params: SSHParams,
-    compiler_params: CompilerParams,
+    compiler_params: DockerParams,
     search_space_path: Path,
     retrain_epochs: int = 4,
     max_search_trials: int = 4,
@@ -75,7 +68,7 @@ if __name__ == "__main__":
     ssh_params = SSHParams(
         hostname="<hostname>", username="<username>"
     )  # <-- connection details for your RPi
-    compiler_params = CompilerParams()  # <-- configure this only if necessary
+    compiler_params = DockerParams()  # <-- configure this only if necessary
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
 

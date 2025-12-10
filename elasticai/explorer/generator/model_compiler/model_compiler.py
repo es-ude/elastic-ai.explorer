@@ -5,6 +5,7 @@ from pathlib import Path
 from random import randint
 import subprocess
 from typing import Any
+import ai_edge_torch
 import numpy
 
 

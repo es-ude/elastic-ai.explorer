@@ -2,10 +2,10 @@
 from pathlib import Path
 
 # Set the device path to your PICO in bootsel-mode, for Linux probably just fill in your username.
-PICO_DEVICE_PATH = Path("/media/<username>/RPI-RP2")
+PICO_DEVICE_PATH = Path("/media/robin/RPI-RP2")
 
 # Set the ssh params of your RPi.
-RPI_HOSTNAME = "<hostname>"
-RPI_USERNAME = "<username>"
+RPI_USERNAME = "robin"
+RPI_HOSTNAME = "transfair"
 
 # add configurations for new devices here

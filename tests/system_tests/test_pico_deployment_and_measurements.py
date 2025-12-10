@@ -5,7 +5,7 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import (
-    CompilerParams,
+    DockerParams,
     PicoCompiler,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
@@ -32,7 +32,7 @@ from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
         serial_params = SerialParams(PICO_DEVICE_PATH)
-        compiler_params = CompilerParams(
+        compiler_params = DockerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
@@ -84,6 +84,7 @@ class TestPicoDeploymentAndMeasurement:
             transform=transf,
         )
         self.pico_explorer.hw_setup_on_target(metric_to_source, self.dataset_spec)
+
     @pytest.mark.hardware
     def test_pico_accuracy_measurement(self):
         assert math.isclose(
@@ -93,6 +94,7 @@ class TestPicoDeploymentAndMeasurement:
             78.516,
             abs_tol=0.01,
         )
+
     @pytest.mark.hardware
     def test_pico_latency_measurement(self):
         assert (
