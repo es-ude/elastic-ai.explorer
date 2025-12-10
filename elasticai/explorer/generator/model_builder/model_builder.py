@@ -12,8 +12,6 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )
 
-logger = logging.getLogger("explorer.generator.model_builder")
-
 
 class ModelBuilder(ABC, Reflective):
     @abstractmethod
@@ -24,6 +22,9 @@ class ModelBuilder(ABC, Reflective):
 class TorchModelBuilder(ModelBuilder):
     def __init__(self) -> None:
         super().__init__()
+        self.logger = logging.getLogger(
+            "explorer.generator.model_builder.TorchModelBuilder"
+        )
 
     def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
         return searchspace.create_native_torch_model_sample(trial)
@@ -33,6 +34,9 @@ class CreatorModelBuilder(ModelBuilder):
     def __init__(self) -> None:
         super().__init__()
         self.quantization_scheme = FixedPointInt8Scheme()
+        self.logger = logging.getLogger(
+            "explorer.generator.model_builder.CreatorModelBuilder"
+        )
 
     def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
 
@@ -43,7 +47,7 @@ class CreatorModelBuilder(ModelBuilder):
                 flat_input = math.prod(searchspace.input_shape)  # type:ignore
 
         except Exception as e:
-            logger.exception(
+            self.logger.exception(
                 f"The given searchspace.input_shape {searchspace.input_shape} is not formatted correctly!"
             )
             raise e
@@ -62,11 +66,11 @@ class CreatorModelBuilder(ModelBuilder):
         )
         return sequential
 
-    def get_supported_layers(self) -> set[type] | None:
-        return {
-            fixed_point.Linear,
-        }
+    def get_supported_layers(self) -> tuple[type] | None:
+        return (fixed_point.Linear,)
 
-    def get_supported_quantization_schemes(self) -> set[QuantizationScheme] | None:
+    def get_supported_quantization_schemes(
+        self,
+    ) -> tuple[type[QuantizationScheme]] | None:
 
-        return {self.quantization_scheme}
+        return (type(self.quantization_scheme),)

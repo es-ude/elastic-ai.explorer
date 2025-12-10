@@ -1,4 +1,3 @@
-from typing import Literal
 from fabric import Connection
 from enum import StrEnum, auto, Enum
 from pathlib import Path
@@ -10,10 +9,14 @@ import os
 
 
 class TargetPlatforms(StrEnum):
-    env5 = auto()
+    env5_s50 = auto()
+    env5_s15 = auto()
 
 
-_fpga_model_for_platform = {TargetPlatforms.env5: "xc7s50ftgb196-2"}
+_fpga_model_for_platform = {
+    TargetPlatforms.env5_s50: "xc7s50ftgb196-2",
+    TargetPlatforms.env5_s15: "xc7s15ftgb196-2",
+}
 
 _SRCS_FILE_BASE_NAME = "synth_srcs"
 _SRCS_FILE_NAME = f"{_SRCS_FILE_BASE_NAME}.tar.gz"
@@ -133,7 +136,7 @@ def run_vhdl_synthesis(
     remote_working_dir: str,
     vivado_path: str = "/tools/Xilinx/Vivado/2023.1/bin/vivado",
     ssh_port: int = 22,
-    target=TargetPlatforms.env5,
+    target=TargetPlatforms.env5_s50,
     quiet: bool = False,
 ) -> Path:
     """Generate FPGA bitstreams remotely.
@@ -166,8 +169,7 @@ def run_vhdl_synthesis(
     with TemporaryDirectory(suffix="synth_server") as tmp_dir:
         print(f"preparing files in {tmp_dir}")
         tmp_dir = Path(tmp_dir)
-        
-        # TODO why does this not work
+
         _write_tcl_script(
             tmp_dir,
             project_name=project_name,

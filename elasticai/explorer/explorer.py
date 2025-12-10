@@ -46,7 +46,7 @@ class Explorer:
             experiment_name (str, optional): The name of the current experiment. Defaults to timestamp at instantiation.
               This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
         """
-        self.logger = logging.getLogger("explorer")
+        self.logger = logging.getLogger("explorer.Explorer")
         self.default_model: Optional[nn.Module] = None
         self.generator: Optional[Generator] = None
         self.knowledge_repository: KnowledgeRepository = knowledge_repository

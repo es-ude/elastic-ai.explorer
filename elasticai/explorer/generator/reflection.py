@@ -1,4 +1,3 @@
-from typing import Type
 import torch
 
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
@@ -9,7 +8,7 @@ class Reflective:
         """Override if necessary. "None" means no constraints."""
         return None
 
-    def get_supported_quantization_schemes(self) -> tuple[Type[QuantizationScheme]] | None:
+    def get_supported_quantization_schemes(self) -> tuple[type[QuantizationScheme]] | None:
         """Override if necessary. "None" means no constraints."""
         return None
 

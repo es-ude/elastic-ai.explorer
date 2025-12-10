@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from random import randint
 import subprocess
-from typing import Any, Dict
+from typing import Any
 import numpy
 
 
@@ -27,15 +27,9 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 )
 import elasticai.creator.nn as creator_nn
 from elasticai.creator.file_generation.on_disk_path import OnDiskPath
-from elasticai.creator.nn import Sequential
-from elasticai.creator.nn.fixed_point import Linear, ReLU
 from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
-from elasticai.runtime.env5.usb import UserRemoteControl, get_env5_port
 
-from elasticai.creator.arithmetic import (
-    FxpArithmetic,
-    FxpParams,
-)
+
 from elasticai.creator.nn import fixed_point
 
 
@@ -54,7 +48,7 @@ class ModelCompiler(ABC, Reflective):
 class TorchscriptModelCompiler(ModelCompiler):
     def __init__(self):
         self.logger = logging.getLogger(
-            "explorer.generator.generator.generator.PIGenerator"
+            "explorer.generator.model_compiler.model_compiler.TorchscriptModelCompiler"
         )
 
     def compile(
@@ -90,7 +84,7 @@ class TorchscriptModelCompiler(ModelCompiler):
 class TFliteModelCompiler(ModelCompiler):
     def __init__(self):
         self.logger = logging.getLogger(
-            "explorer.generator.generator.generator.RP2040GeneratorFullPrecision"
+            "explorer.generator.model_compiler.model_compiler.TFliteModelCompiler"
         )
 
     def _validate(self, torch_output, edge_output):
@@ -228,9 +222,10 @@ class CreatorModelCompiler(ModelCompiler):
         firmware.save_to(destination)
         return nn
 
-    def get_supported_layers(self) -> set[type] | None:
-        return {fixed_point.Linear}
+    def get_supported_layers(self) -> tuple[type] | None:
+        return (fixed_point.Linear,)
 
-    def get_supported_quantization_schemes(self) -> set[QuantizationScheme] | None:
-
-        return {FixedPointInt8Scheme()}
+    def get_supported_quantization_schemes(
+        self,
+    ) -> tuple[type[QuantizationScheme]] | None:
+        return (FixedPointInt8Scheme,)

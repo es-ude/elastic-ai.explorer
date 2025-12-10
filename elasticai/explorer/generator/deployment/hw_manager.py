@@ -9,7 +9,6 @@ import shutil
 import tarfile
 from typing import Callable, Dict
 
-from sympy import Q
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
     ENv5Host,
@@ -50,7 +49,7 @@ class HWManager(ABC):
         self.test_loader: None | DataLoader = None
         self._metric_to_source: dict[Metric, Path | MetricFunction] = {}
         self.logger = logging.getLogger(
-            "explorer.generator.deployment.manager.HWManager"
+            "explorer.generator.deployment.hw_manager.HWManager"
         )
         self.supported_schemes = self.compiler.get_supported_quantization_schemes()
 
@@ -115,9 +114,8 @@ class HWManager(ABC):
     def prepare_model(self, path_to_model: Path):
         pass
 
-    @abstractmethod
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
-        pass
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> Dict:
+        return self._invoke_metric_source(metric, path_to_model)
 
 
 class RPiHWManager(HWManager):
@@ -125,7 +123,7 @@ class RPiHWManager(HWManager):
         self.compiler = compiler
         self.target = target
         self.logger = logging.getLogger(
-            "explorer.generator.deployment.manager.RPIHWManager"
+            "explorer.generator.deployment.hw_manager.RPiHWManager"
         )
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
@@ -201,7 +199,7 @@ class PicoHWManager(HWManager):
         self.compiler = compiler
         self.target = target
         self.logger = logging.getLogger(
-            "explorer.generator.deployment.manager.PicoHWManager"
+            "explorer.generator.deployment.hw_manager.PicoHWManager"
         )
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)
@@ -242,9 +240,6 @@ class PicoHWManager(HWManager):
         )
         return super()._invoke_metric_source(metric, path_to_model)
 
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> Dict:
-        return self._invoke_metric_source(metric, path_to_model)
-
     def prepare_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
@@ -257,7 +252,7 @@ class ENv5HWManager(HWManager):
         self.compiler = compiler
         self.target = target
         self.logger = logging.getLogger(
-            "explorer.generator.deployment.manager.RPIHWManager"
+            "explorer.generator.deployment.hw_manager.ENv5HWManager"
         )
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
@@ -291,10 +286,6 @@ class ENv5HWManager(HWManager):
         self.test_loader = DataLoader(
             test_subset, batch_size=self.batch_size, shuffle=dataset_spec.shuffle
         )
-
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> Dict:
-        metric_dict = self._invoke_metric_source(metric, path_to_model)
-        return metric_dict
 
     def prepare_model(self, path_to_model: Path):
         path_to_executable = self.compiler.compile_code(

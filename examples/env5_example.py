@@ -36,14 +36,13 @@ from elasticai.explorer.generator.model_compiler.model_compiler import (
 )
 
 from elasticai.explorer.training.trainer import MLPTrainer
-from tests.system_tests.test_env5_deplyment_and_measurements import create_example_dataset_spec
+from tests.system_tests.test_env5_deplyment_and_measurements import (
+    create_example_dataset_spec,
+)
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
-
-
-BATCH_SIZE = 64
 
 
 def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
@@ -75,7 +74,7 @@ def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
             batch_results_bytes,
             hw_manager.quantization_scheme.total_bits,
             hw_manager.quantization_scheme.frac_bits,
-            (BATCH_SIZE, num_bytes_outputs),
+            (64, num_bytes_outputs),
         )
         pred = result.argmax(dim=1)
         correct += pred.eq(target).sum().item()

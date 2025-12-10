@@ -39,7 +39,7 @@ class SSHHost(Host):
         )
         self.user = deploy_cfg.target_user
 
-    def _get_connection(self):
+    def _get_connection(self) -> Connection:
         return Connection(host=self.host_name, user=self.user)
 
     @abstractmethod
@@ -59,7 +59,7 @@ class SerialHost(Host):
         self.serial_port = deploy_cfg.serial_port
         self.timeout_s = 40
 
-    def _get_connection(self) -> Any:
+    def _get_connection(self) -> serial.Serial:
         return serial.Serial(self.serial_port, self.BAUD_RATE, timeout=1)
 
     @abstractmethod
@@ -205,7 +205,7 @@ class ENv5Host(SerialHost):
         self.flash_start_address = 0
         self._ser = None
 
-    def _get_connection(self) -> Any:
+    def _get_connection(self) -> serial.Serial:
         if not self._ser:
             self._ser = serial.Serial(
                 get_env5_port(), baudrate=self.BAUD_RATE, timeout=1

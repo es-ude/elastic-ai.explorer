@@ -3,10 +3,8 @@ import logging
 import os
 from pathlib import Path
 import tarfile
-from typing import Type
 
 from python_on_whales import docker
-from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
 from elasticai.explorer.config import DeploymentConfig
 from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.quantization import (
@@ -37,7 +35,7 @@ class Compiler(ABC, Reflective):
 class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         super().__init__(deploy_cfg)
-        self.logger = logging.getLogger("RPICompiler")
+        self.logger = logging.getLogger("explorer.generator.compiler.RPICompiler")
         self.image_name: str = deploy_cfg.docker.image_name  # "cross"
         self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
@@ -79,7 +77,7 @@ class PicoCompiler(Compiler):
 
     def __init__(self, deploy_cfg: DeploymentConfig):
         super().__init__(deploy_cfg)
-        self.logger = logging.getLogger("PicoCompiler")
+        self.logger = logging.getLogger("explorer.generator.compiler.PicoCompiler")
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.image_name: str = deploy_cfg.docker.image_name
         self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
@@ -122,6 +120,7 @@ class ENv5Compiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         super().__init__(deploy_cfg)
         self.deploy_cfg = deploy_cfg
+        self.logger = logging.getLogger("explorer.generator.compiler.ENv5Compiler")
 
     def setup(self) -> None:
         pass
@@ -131,11 +130,23 @@ class ENv5Compiler(Compiler):
 
     def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
 
+        if self.deploy_cfg.target_platform_name == "env5_s50":
+            target = synthesis_utils.TargetPlatforms.env5_s50
+        elif self.deploy_cfg.target_platform_name == "env5_s15":
+            target = synthesis_utils.TargetPlatforms.env5_s15
+        else:
+            err = ValueError(
+                f"The platform {self.deploy_cfg.target_platform_name} is not supported by {self}"
+            )
+            self.logger.error(err)
+            raise err
+
         path_to_bin_file = synthesis_utils.run_vhdl_synthesis(
             src_dir=source,
             remote_working_dir=self.deploy_cfg.vivado_build_server.remote_working_dir,
             host=self.deploy_cfg.vivado_build_server.host,
             ssh_user=self.deploy_cfg.vivado_build_server.ssh_user,
+            target=target,
         )
 
         tar = tarfile.open(str(output_dir) + "/vivado_run_results.tar.gz")
@@ -150,5 +161,5 @@ class ENv5Compiler(Compiler):
 
     def get_supported_quantization_schemes(
         self,
-    ) -> tuple[Type[QuantizationScheme]] | None:
+    ) -> tuple[type[QuantizationScheme]] | None:
         return (FixedPointInt8Scheme,)
