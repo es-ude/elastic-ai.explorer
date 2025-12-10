@@ -15,9 +15,10 @@ from elasticai.explorer.utils import synthesis_utils
 
 
 class Compiler(ABC, Reflective):
-    @abstractmethod
     def __init__(self, deploy_cfg: DeploymentConfig):
-        pass
+        self.deploy_cfg = deploy_cfg
+        logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
+        self.logger = logging.getLogger(logger_name)
 
     @abstractmethod
     def is_setup(self) -> bool:
@@ -35,7 +36,6 @@ class Compiler(ABC, Reflective):
 class RPICompiler(Compiler):
     def __init__(self, deploy_cfg: DeploymentConfig):
         super().__init__(deploy_cfg)
-        self.logger = logging.getLogger("explorer.generator.compiler.RPICompiler")
         self.image_name: str = deploy_cfg.docker.image_name  # "cross"
         self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
@@ -77,7 +77,6 @@ class PicoCompiler(Compiler):
 
     def __init__(self, deploy_cfg: DeploymentConfig):
         super().__init__(deploy_cfg)
-        self.logger = logging.getLogger("explorer.generator.compiler.PicoCompiler")
         self.context_path: Path = Path(deploy_cfg.docker.build_context)
         self.image_name: str = deploy_cfg.docker.image_name
         self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
@@ -117,11 +116,6 @@ class PicoCompiler(Compiler):
 
 
 class ENv5Compiler(Compiler):
-    def __init__(self, deploy_cfg: DeploymentConfig):
-        super().__init__(deploy_cfg)
-        self.deploy_cfg = deploy_cfg
-        self.logger = logging.getLogger("explorer.generator.compiler.ENv5Compiler")
-
     def setup(self) -> None:
         pass
 
