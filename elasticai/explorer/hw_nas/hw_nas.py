@@ -37,7 +37,7 @@ def objective_wrapper(
     optimization_criteria: OptimizationCriteria,
     model_builder: ModelBuilder,
 ) -> float:
-
+    
     def objective(trial: optuna.Trial) -> float:
         search_space = SearchSpace(search_space_cfg)
         try:

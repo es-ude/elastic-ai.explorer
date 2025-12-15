@@ -66,7 +66,7 @@ class SearchSpace:
         return operation
 
     def create_native_torch_model_sample(self, trial) -> nn.Module:
-        self.input_shape = self.search_space_cfg["input"]
+        self.next_input_shape = self.search_space_cfg["input"]
         self.output_shape = self.search_space_cfg["output"]
         self.layers = []
 

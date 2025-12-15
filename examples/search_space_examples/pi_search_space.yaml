@@ -37,7 +37,4 @@ blocks:
     depth: 3
     linear:
       width: [30, 60]
-    conv2d:
-      kernel_size: [ 1, 2 ]
-      stride: [ 1, 2 ]
-      out_channels: [ 10, 4 ]
+  

@@ -136,7 +136,7 @@ class Conv2dBuilder(LayerBuilder):
                 "activation",
                 default_value="identity",
             )
-
+            
             self.layers.append(
                 nn.Conv2d(self.input_shape[0], out_channels, kernel_size, stride)
             )
