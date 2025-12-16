@@ -6,12 +6,15 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 
+from elasticai.explorer.generator.model_builder.model_builder import DefaultModelBuilder
 from elasticai.explorer.hw_nas import hw_nas
 
 from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.platforms.generator.generator import RPiGenerator
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TorchscriptModelCompiler,
+)
 
 from elasticai.explorer.training.data import DatasetSpecification, BaseDataset
 from elasticai.explorer.training.trainer import SupervisedTrainer
@@ -114,6 +117,7 @@ def run_lstm_search():
         hw_nas.SearchStrategy.EVOLUTIONARY_SEARCH,
         criteria_reg,
         hw_nas_parameters=hw_nas.HWNASParameters(max_search_trials, top_n_models),
+        model_builder=DefaultModelBuilder(),
     )
     model = top_models[0]
     print(model)
@@ -127,8 +131,9 @@ def run_lstm_search():
     trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
     trainer.train(model, epochs=50, early_stopping=True)
     validate(model, trainer.test_loader)
-    generator = RPiGenerator()
-    generator.generate(model, ROOT_DIR / "experiments/lstm_model")
+    generator = TorchscriptModelCompiler()
+    data_sample = torch.randn((1, 1, 50), dtype=torch.float32, device=device)
+    generator.compile(model, ROOT_DIR / "experiments/lstm_model", data_sample)
 
 
 if __name__ == "__main__":

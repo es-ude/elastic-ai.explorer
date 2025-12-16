@@ -262,7 +262,7 @@ class ENv5HWManager(HWManager):
         dataset_spec: DatasetSpecification,
         quantization_scheme: QuantizationScheme,
     ):
-
+        # this part will be improved by feat151
         super().prepare_dataset(dataset_spec, quantization_scheme)
         self.frac_bits = quantization_scheme.frac_bits
         self.total_bits = quantization_scheme.total_bits

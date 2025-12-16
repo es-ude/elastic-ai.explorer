@@ -56,32 +56,40 @@ BATCH_SIZE = 64
 INPUT_DIM = 6
 
 
-class DatasetExample(BaseDataset):
-
+class SumDataset(BaseDataset):
     def __init__(
         self,
-        root: str | Path,
+        root,
         transform: Callable[..., Any] | None = None,
         target_transform: Callable[..., Any] | None = None,
+        thresholds=[-1.5, 0.0, 1.5],
+        noise_std=0.0,
         *args,
         **kwargs,
-    ) -> None:
+    ):
         super().__init__(root, transform, target_transform, *args, **kwargs)
+        self.data = torch.randn(BATCH_SIZE * 10, INPUT_DIM)
+        summed = self.data.sum(dim=1)
+        if noise_std > 0:
+            summed = summed + noise_std * torch.randn_like(summed)
 
-        self.test_data = torch.randn(BATCH_SIZE * 10, INPUT_DIM) * 5
-        self.targets = torch.empty(BATCH_SIZE * 10, dtype=torch.long).random_(4)
+        self.targets = torch.empty(BATCH_SIZE * 10, dtype=torch.long)
+        self.targets[summed <= thresholds[0]] = 0
+        self.targets[(summed > thresholds[0]) & (summed <= thresholds[1])] = 1
+        self.targets[(summed > thresholds[1]) & (summed <= thresholds[2])] = 2
+        self.targets[summed > thresholds[2]] = 3
 
     def __getitem__(self, idx) -> Any:
-        data, target = self.test_data[idx], self.targets[idx]
+        data, target = self.data[idx], self.targets[idx]
         if self.transform is not None:
-            data = self.transform(self.test_data[idx])
+            data = self.transform(self.data[idx])
 
         if self.target_transform is not None:
             target = self.target_transform(self.targets[idx])
         return data, target
 
     def __len__(self) -> int:
-        return len(self.test_data)
+        return len(self.data)
 
 
 def create_example_dataset_spec(quantization_scheme):
@@ -93,7 +101,7 @@ def create_example_dataset_spec(quantization_scheme):
     )
     fxp_conf = FxpArithmetic(fxp_params)
     return DatasetSpecification(
-        dataset_type=DatasetExample,
+        dataset_type=SumDataset,
         dataset_location=Path(""),
         deployable_dataset_path=None,
         transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
@@ -175,56 +183,14 @@ def search_generate_measure_for_env5(
         model_suffix="",
         quantization_scheme=quantization_scheme,
     )
-
-    # accuracy_measurements_on_device = []
-    # accuracy_after_retrain = []
-    # retrain_device = "cpu"
-    # for i, model in enumerate(top_models):
-    #     mlp_trainer = MLPTrainer(
-    #         device=retrain_device,
-    #         optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
-    #         dataset_spec=dataset_spec,
-    #     )
-    #     mlp_trainer.train(model, epochs=retrain_epochs)
-    #     accuracy_after_retrain_value, _ = mlp_trainer.test(model)
-    #     model_name = "creator_model_" + str(i)
-    #     explorer.generate_for_hw_platform(model, model_name, dataset_spec)
-
-    #     explorer.hw_setup_on_target(metric_to_source, dataset_spec, quantization_scheme)
-
-    #     accuracy_on_device = explorer.run_measurement(Metric.ACCURACY, model_name)
-
-    #     accuracy_after_retrain_dict = json.loads(
-    #         '{"Accuracy after retrain": { "value":'
-    #         + str(accuracy_after_retrain_value)
-    #         + ' , "unit": "percent"}}'
-    #     )
-    #     accuracy_measurements_on_device.append(accuracy_on_device)
-    #     accuracy_after_retrain.append(accuracy_after_retrain_dict)
-    # accuracies_on_device = [
-    #     accuracy["Accuracy"]["value"] for accuracy in accuracy_measurements_on_device
-    # ]
-    # accuracy_after_retrain = [
-    #     accuracy["Accuracy after retrain"]["value"]
-    #     for accuracy in accuracy_after_retrain
-    # ]
-
-    # df = build_search_space_measurements_file(
-    #     [i for i in range(0, len(accuracies_on_device), 1)],
-    #     accuracy_after_retrain,
-    #     accuracies_on_device,
-    #     explorer.metric_dir / "metrics.json",
-    #     explorer.model_dir / "models.json",
-    #     explorer.experiment_dir / "experiment_data.csv",
-    # )
     logger.info("Models:\n %s", df)
 
 
 if __name__ == "__main__":
     max_search_trials = 2
-    top_n_models = 2
-    retrain_epochs = 1
-    hw_platform = "env5_s50"
+    top_n_models = 1
+    retrain_epochs = 5
+    hw_platform = "env5_s15"
 
     # TODO obscure this
     compiler_params = VivadoParams(
@@ -237,7 +203,7 @@ if __name__ == "__main__":
 
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
-    search_space = Path("configs/env5/search_space.yaml")
+    search_space = Path("examples/search_space_examples/env5_search_space.yaml")
     retrain_epochs = 3
     search_generate_measure_for_env5(
         explorer,

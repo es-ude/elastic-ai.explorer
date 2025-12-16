@@ -1,10 +1,9 @@
 import logging
-import torch.nn as nn
-
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LAYER_REGISTRY,
     parse_search_param,
 )
+from elasticai.explorer.hw_nas.search_space.quantization_builder import QUANT_REGISTRY
 from elasticai.explorer.hw_nas.search_space.registry import (
     ADAPTER_REGISTRY,
 )
@@ -30,6 +29,13 @@ class SearchSpace:
         operation = parse_search_param(
             trial, f"operation_b{block_id}", block, "op_candidates", default_value=None
         )
+        quantization = parse_search_param(
+            trial,
+            f"quant_b{block_id}",
+            block,
+            "quant_candidates",
+            default_value=None,
+        )
 
         #    if prev_operation is not None:
         adapter_cls = ADAPTER_REGISTRY.get((prev_operation, operation))
@@ -42,6 +48,14 @@ class SearchSpace:
                 self.next_input_shape
             )
         builder_cls = LAYER_REGISTRY[operation]
+        quantization_builder_cls = QUANT_REGISTRY[quantization]
+        quantization_scheme = quantization_builder_cls(
+            trial,
+            block,
+            block.get(quantization, {}),
+            block_id,
+        ).build()
+
         builder = builder_cls(
             trial,
             block,
@@ -49,6 +63,7 @@ class SearchSpace:
             block_id,
             self.next_input_shape,
             self.output_shape,
+            quantization_scheme,
         )
         layers, out_shape = builder.build(num_layers, self.is_last_block(block_id))
 
@@ -65,7 +80,7 @@ class SearchSpace:
 
         return operation
 
-    def create_native_torch_model_sample(self, trial) -> nn.Module:
+    def create_model_layers(self, trial) -> list:
         self.next_input_shape = self.search_space_cfg["input"]
         self.output_shape = self.search_space_cfg["output"]
         self.layers = []
@@ -75,4 +90,4 @@ class SearchSpace:
 
             prev_operation = self.create_block(trial, block, prev_operation)
 
-        return nn.Sequential(*self.layers)
+        return self.layers

@@ -67,10 +67,11 @@ class LayerBuilder(ABC):
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.quantization_scheme = quantization_scheme
+        self.base_type = None
         self.layers = []
 
     @abstractmethod
-    def build(self, num_layers: int, is_last_block: bool):
+    def build(self, num_layers: int, is_last_block: bool) -> Any:
         pass
 
     def add_activation(self, activation_name: str):

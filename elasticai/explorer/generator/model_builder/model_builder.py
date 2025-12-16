@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import logging
 import math
+
+from torch import nn
 from typing import Any
 from elasticai.creator import nn as creator_nn
 from elasticai.creator.nn import fixed_point
@@ -9,12 +11,15 @@ from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LayerBuilder,
+    parse_search_param,
+    register_layer,
 )
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     QuantizationScheme,
 )
 from elasticai.explorer.hw_nas.search_space.registry import (
+    ADAPTER_REGISTRY,
     activation_mapping,
 )
 
@@ -25,7 +30,7 @@ class ModelBuilder(ABC, Reflective):
         pass
 
 
-class TorchModelBuilder(ModelBuilder):
+class DefaultModelBuilder(ModelBuilder):
     def __init__(self) -> None:
         super().__init__()
         self.logger = logging.getLogger(
@@ -33,11 +38,11 @@ class TorchModelBuilder(ModelBuilder):
         )
 
     def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
-        return searchspace.create_native_torch_model_sample(trial)
+        return nn.Sequential(*searchspace.create_model_layers(trial))
 
 
-class CreatorLinear(LayerBuilder):
-    def build(self, num_layers: int, is_last_block: bool):
+class CreatorLinearBuilder(LayerBuilder):
+    def build(self, num_layers: int, is_last_block: bool) -> Any:
         for i in range(num_layers):
             if isinstance(self.input_shape, int):
                 self.input_shape = self.input_shape
@@ -47,16 +52,40 @@ class CreatorLinear(LayerBuilder):
                 self.output_shape = self.output_shape
             else:
                 self.output_shape = math.prod(self.output_shape)
-
-            self.layers.append(
-                fixed_point.Linear(
-                    in_features=self.input_shape,
-                    out_features=self.output_shape,
-                    total_bits=self.quantization_scheme.total_bits,
-                    frac_bits=self.quantization_scheme.frac_bits,
-                )
+            width = parse_search_param(
+                self.trial,
+                f"layer_width_b{self.block_id}_l{i}",
+                self.search_params,
+                "width",
             )
-            # self.add_activation(fixed_point.ReLU(total_bits=self.quantization_scheme.total_bits))
+            activation = parse_search_param(
+                self.trial,
+                f"activation_func_b{self.block_id}_l{i}",
+                self.block,
+                "activation",
+                "identity",
+            )
+
+            if is_last_block and i == num_layers - 1:
+                self.layers.append(
+                    fixed_point.Linear(
+                        self.input_shape,
+                        self.output_shape,
+                        total_bits=self.quantization_scheme.total_bits,
+                        frac_bits=self.quantization_scheme.frac_bits,
+                    )
+                )
+            else:
+                self.layers.append(
+                    fixed_point.Linear(
+                        self.input_shape,
+                        width,
+                        total_bits=self.quantization_scheme.total_bits,
+                        frac_bits=self.quantization_scheme.frac_bits,
+                    )
+                )
+                self.input_shape = width
+            self.add_activation(activation)
 
         return self.get_layers()
 
@@ -68,36 +97,16 @@ class CreatorModelBuilder(ModelBuilder):
         self.logger = logging.getLogger(
             "explorer.generator.model_builder.CreatorModelBuilder"
         )
-        activation_mapping["Relu"] = fixed_point.ReLU(
+
+        # TODO streamline this process via Reflection api
+        activation_mapping["relu"] = fixed_point.ReLU(
             total_bits=self.quantization_scheme.total_bits
         )
-
-        # overwrite the Registry for the correct types
+        register_layer("linear")(CreatorLinearBuilder)
+        ADAPTER_REGISTRY[(None, "linear")] = None
 
     def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
-
-        try:
-            if isinstance(searchspace.next_input_shape, int):
-                flat_input = searchspace.next_input_shape
-            else:
-                flat_input = math.prod(searchspace.next_input_shape)  # type:ignore
-
-        except Exception as e:
-            self.logger.exception(
-                f"The given searchspace.input_shape {searchspace.next_input_shape} is not formatted correctly!"
-            )
-            raise e
-        # TODO Add these to the layer builder
-        sequential = creator_nn.Sequential(
-            fixed_point.Linear(
-                in_features=flat_input,
-                out_features=searchspace.output_shape,
-                total_bits=self.quantization_scheme.total_bits,
-                frac_bits=self.quantization_scheme.frac_bits,
-            ),
-            fixed_point.ReLU(total_bits=self.quantization_scheme.total_bits),
-        )
-        return sequential
+        return creator_nn.Sequential(*searchspace.create_model_layers(trial=trial))
 
     def get_supported_layers(self) -> tuple[type] | None:
         return (fixed_point.Linear,)

@@ -1,0 +1,15 @@
+input: [1, 6]
+output: 4
+blocks:
+  - block:  "1" 
+    op_candidates: ["linear"]
+    quant_candidates: ["fixed_point_int8"]
+    activation: ["relu"]
+    depth: [1, 2]
+    linear:
+      activation: [ "relu"]
+      width: [4]
+    fixed_point_int8:
+      total_bits: [8]
+      frac_bits: [2]
+      signed: [1]

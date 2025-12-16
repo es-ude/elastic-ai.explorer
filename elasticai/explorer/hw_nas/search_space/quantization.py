@@ -23,6 +23,7 @@ class QuantizationScheme(ABC):
         return f"<{self.__class__.__name__}:{self.name()}>"
 
 
+
 @dataclass(frozen=True)
 class FixedPointInt8Scheme(QuantizationScheme):
     dtype: str = "int8"

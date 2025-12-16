@@ -57,7 +57,7 @@ class TorchscriptModelCompiler(ModelCompiler):
         model: nn.Module,
         output_path: Path,
         input_sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme,
+        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
         if not isinstance(quantization_scheme, FullPrecisionScheme):
             err = NotImplementedError(

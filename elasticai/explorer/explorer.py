@@ -12,7 +12,7 @@ from elasticai.explorer.generator.deployment.device_communication import (
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import (
     ModelBuilder,
-    TorchModelBuilder,
+    DefaultModelBuilder,
 )
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.search_space.quantization import (
@@ -113,7 +113,7 @@ class Explorer:
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
-        model_builder: ModelBuilder = TorchModelBuilder(),
+        model_builder: ModelBuilder = DefaultModelBuilder(),
     ) -> list[Any]:
         self.logger.info(
             "Start Hardware NAS with %d number of trials searching for top %d models. ",

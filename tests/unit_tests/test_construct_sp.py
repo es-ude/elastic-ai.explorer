@@ -113,7 +113,7 @@ blocks:
             "activation_func_b1_l0": "relu",
             "activation_func_b1_l1": "relu",
         }
-        result = search_space.create_native_torch_model_sample(FixedTrial(sample))
+        result = search_space.create_model_layers(FixedTrial(sample))
         assert result(x).shape == torch.Size([5, 10])
 
     @pytest.mark.parametrize(
@@ -160,9 +160,7 @@ blocks:
     ):
         search_space = SearchSpace(search_space_dict_mult_blocks)
         x = torch.randn(5, 1, 28, 28)
-        sample_model = search_space.create_native_torch_model_sample(
-            FixedTrial({**b1, **b2})
-        )
+        sample_model = search_space.create_model_layers(FixedTrial({**b1, **b2}))
         assert sample_model(x).shape == torch.Size([5, 10])
 
     @pytest.mark.parametrize(
@@ -185,4 +183,4 @@ def objective(trial):
         ROOT_DIR / Path("elasticai/explorer/hw_nas/search_space/search_space.yaml")
     )
     search_space = SearchSpace(search_space)
-    return search_space.create_native_torch_model_sample(trial)
+    return search_space.create_model_layers(trial)
