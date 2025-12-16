@@ -1,4 +1,3 @@
-
 import logging.config
 from pathlib import Path
 import torch
@@ -20,7 +19,6 @@ from elasticai.explorer.generator.deployment.compiler import ENv5Compiler, Vivad
 from elasticai.explorer.generator.deployment.device_communication import (
     ENv5Host,
     Host,
-    SSHHost,
     SerialHost,
     SerialParams,
 )
@@ -122,7 +120,7 @@ def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
         )
         batch_results_bytes = []
         for sample in data_bytearray:
-            result_bytes = host.receive(
+            result_bytes = host.send_data_bytes(
                 sample=sample,
                 num_bytes_outputs=num_bytes_outputs,
             )
@@ -132,28 +130,13 @@ def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
             batch_results_bytes,
             hw_manager.quantization_scheme.total_bits,
             hw_manager.quantization_scheme.frac_bits,
-            (64, num_bytes_outputs),
+            (BATCH_SIZE, num_bytes_outputs),
         )
         pred = result.argmax(dim=1)
         correct += pred.eq(target).sum().item()
         total += target.size(0)
 
     return {Metric.ACCURACY.value: {"value": 100.0 * correct / total, "unit": "%"}}
-
-
-def setup_knowledge_repository_env5() -> KnowledgeRepository:
-    knowledge_repository = KnowledgeRepository()
-    knowledge_repository.register_hw_platform(
-        Generator(
-            "env5_s50",
-            "Env5 with RP2040 and xc7s50ftgb196-2 FPGA",
-            CreatorModelCompiler,
-            ENv5HWManager,
-            ENv5Host,
-            ENv5Compiler,
-        )
-    )
-    return knowledge_repository
 
 
 def search_generate_measure_for_env5(
@@ -171,7 +154,9 @@ def search_generate_measure_for_env5(
     explorer.choose_target_hw(rpi_type, compiler_params, serial_params)
     explorer.generate_search_space(search_space_path)
     dataset_spec = create_example_dataset_spec(quantization_scheme)
-    optimization_criteria = setup_example_optimization_criteria(dataset_spec, device)
+    optimization_criteria = setup_example_optimization_criteria(
+        dataset_spec, device, (1, 1, INPUT_DIM)
+    )
     top_models = explorer.search(
         search_strategy=SearchStrategy.RANDOM_SEARCH,
         optimization_criteria=optimization_criteria,
@@ -185,9 +170,10 @@ def search_generate_measure_for_env5(
         top_models=top_models,
         metric_to_source=metric_to_source,
         retrain_epochs=retrain_epochs,
-        device=device,
+        device="cpu",
         dataset_spec=dataset_spec,
         model_suffix="",
+        quantization_scheme=quantization_scheme,
     )
 
     # accuracy_measurements_on_device = []
@@ -235,13 +221,14 @@ def search_generate_measure_for_env5(
 
 
 if __name__ == "__main__":
-    max_search_trials = 6
+    max_search_trials = 2
     top_n_models = 2
-    retrain_epochs = 3
-    rpi_type = "env5_s50"
+    retrain_epochs = 1
+    hw_platform = "env5_s50"
 
+    # TODO obscure this
     compiler_params = VivadoParams(
-        "/home/vivado/robin-build/", "65.108.38.237", "vivado"
+        "/home/vivado/robin-build/", "65.108.38.237", "vivado", hw_platform
     )
 
     serial_params = SerialParams(
@@ -254,7 +241,7 @@ if __name__ == "__main__":
     retrain_epochs = 3
     search_generate_measure_for_env5(
         explorer,
-        rpi_type,
+        hw_platform,
         serial_params,
         compiler_params,
         search_space,

@@ -57,7 +57,7 @@ class HWManager(ABC):
         self._metric_to_source.update({metric: source})
 
     def _get_metric_source(self, metric: Metric):
-        return self._metric_to_source[metric]
+        return self._metric_to_source.get(metric)
 
     def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
         self._register_metric_to_source(metric, source)

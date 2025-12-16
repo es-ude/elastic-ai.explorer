@@ -49,7 +49,6 @@ def search_generate_measure_for_pi(
         Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
         Metric.LATENCY: Path("code/measure_latency.cpp"),
     }
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
     df = measure_on_device(
         explorer, top_models, metric_to_source, retrain_epochs, device, dataset_spec

@@ -7,22 +7,10 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
-from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.knowledge_repository import (
-    KnowledgeRepository,
-)
-from elasticai.explorer.generator.deployment.compiler import DockerParams, PicoCompiler
-from elasticai.explorer.generator.deployment.device_communication import (
-    PicoHost,
-    SerialParams,
-)
-from elasticai.explorer.generator.deployment.hw_manager import (
-    PicoHWManager,
-    Metric,
-)
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TFliteModelCompiler,
-)
+
+from elasticai.explorer.generator.deployment.compiler import DockerParams
+from elasticai.explorer.generator.deployment.device_communication import SerialParams
+
 from elasticai.explorer.generator.deployment.hw_manager import Metric
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
@@ -79,7 +67,6 @@ def search_generate_measure_for_pico(
         Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
         Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
     }
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
     df = measure_on_device(
         explorer,
@@ -95,12 +82,12 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 6
+    max_search_trials = 2
     top_n_models = 2
-    retrain_epochs = 3
+    retrain_epochs = 1
 
     serial_params = SerialParams(
-        device_path=Path("/media/<username>/RPI-RP2")
+        device_path=Path("/media/robin/RPI-RP2")
     )  # <-- Set the device path and rest only if necessary.
     compiler_params = DockerParams(
         library_path=Path("./code/pico_crosscompiler"),

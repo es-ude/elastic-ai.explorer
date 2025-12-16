@@ -5,6 +5,7 @@ from yaml import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
 
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.hw_nas.search_space.registry import (
     activation_mapping,
 )
@@ -57,6 +58,7 @@ class LayerBuilder(ABC):
         block_id,
         input_shape: list | int,
         output_shape: list | int,
+        quantization_scheme: QuantizationScheme,
     ):
         self.trial = trial
         self.block = block
@@ -64,6 +66,7 @@ class LayerBuilder(ABC):
         self.block_id = block_id
         self.input_shape = input_shape
         self.output_shape = output_shape
+        self.quantization_scheme = quantization_scheme
         self.layers = []
 
     @abstractmethod
@@ -136,7 +139,7 @@ class Conv2dBuilder(LayerBuilder):
                 "activation",
                 default_value="identity",
             )
-            
+
             self.layers.append(
                 nn.Conv2d(self.input_shape[0], out_channels, kernel_size, stride)
             )

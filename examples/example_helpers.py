@@ -33,6 +33,10 @@ from elasticai.explorer.hw_nas.estimators import (
 )
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 
 
@@ -86,19 +90,32 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             ENv5Compiler,
         )
     )
+    knowledge_repository.register_hw_platform(
+        Generator(
+            "env5_s15",
+            "Env5 with RP2040 and xc7s15ftgb196-2 FPGA",
+            CreatorModelCompiler,
+            ENv5HWManager,
+            ENv5Host,
+            ENv5Compiler,
+        )
+    )
 
     return knowledge_repository
 
 
-def setup_example_optimization_criteria(dataset_spec, device) -> OptimizationCriteria:
+def setup_example_optimization_criteria(
+    dataset_spec, device, sample_shape=(1, 1, 28, 28)
+) -> OptimizationCriteria:
     criteria = OptimizationCriteria()
-    data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=device)
+    data_sample = torch.randn(sample_shape, dtype=torch.float32, device=device)
     flops_estimator = FLOPsEstimator(data_sample)
     accuracy_estimator = TrainMetricsEstimator(
         SupervisedTrainer(
             device,
             dataset_spec,
             batch_size=64,
+            extra_metrics={"accuracy": accuracy_fn},
         ),
         metric_name="accuracy",
         n_estimation_epochs=3,
@@ -131,8 +148,10 @@ def measure_on_device(
     device: str,
     dataset_spec: DatasetSpecification,
     model_suffix: str = ".pt",
+    quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
 ):
 
+    explorer.hw_setup_on_target(metric_to_source, dataset_spec, quantization_scheme)
     metrics_to_measurements = {"accuracy after retrain in %": []}
     for metric, _ in metric_to_source.items():
         metrics_to_measurements.update({metric.value + " on device": []})
