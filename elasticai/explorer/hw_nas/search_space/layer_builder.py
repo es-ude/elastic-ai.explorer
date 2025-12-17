@@ -5,13 +5,13 @@ from yaml import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
 
+from elasticai.explorer.hw_nas.search_space.builder import ComponentBuilder
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.hw_nas.search_space.registry import (
-    activation_mapping,
+    ACTIVATION_REGISTRY,
+    LAYER_REGISTRY,
 )
 from elasticai.explorer.hw_nas.search_space.utils import calculate_conv_output_shape
-
-LAYER_REGISTRY = {}
 
 
 def parse_search_param(
@@ -48,8 +48,7 @@ def register_layer(name: str):
     return wrapper
 
 
-class LayerBuilder(ABC):
-
+class LayerBuilder(ComponentBuilder, ABC):
     def __init__(
         self,
         trial,
@@ -60,14 +59,10 @@ class LayerBuilder(ABC):
         output_shape: list | int,
         quantization_scheme: QuantizationScheme,
     ):
-        self.trial = trial
-        self.block = block
-        self.search_params = search_params
-        self.block_id = block_id
+        super().__init__(trial, block, search_params, block_id)
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.quantization_scheme = quantization_scheme
-        self.base_type = None
         self.layers = []
 
     @abstractmethod
@@ -75,7 +70,7 @@ class LayerBuilder(ABC):
         pass
 
     def add_activation(self, activation_name: str):
-        self.layers.append(activation_mapping[activation_name])
+        self.layers.append(ACTIVATION_REGISTRY[activation_name])
 
     def get_layers(self):
         return self.layers, self.input_shape
@@ -83,6 +78,7 @@ class LayerBuilder(ABC):
 
 @register_layer("linear")
 class LinearBuilder(LayerBuilder):
+    base_type = nn.Linear
 
     def build(self, num_layers: int, is_last_block: bool):
         for i in range(num_layers):
@@ -110,6 +106,8 @@ class LinearBuilder(LayerBuilder):
 
 @register_layer("conv2d")
 class Conv2dBuilder(LayerBuilder):
+    base_type = nn.Conv2d
+
     def build(self, num_layers: int, is_last_block: bool):
         for i in range(num_layers):
             out_channels = parse_search_param(
@@ -155,6 +153,8 @@ class Conv2dBuilder(LayerBuilder):
 
 @register_layer("lstm")
 class LSTMBuilder(LayerBuilder):
+    base_type = SimpleLSTM
+
     def build(self, num_layers: int, is_last_block: bool):
         for i in range(num_layers):
             hidden_size = parse_search_param(

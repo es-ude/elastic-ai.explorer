@@ -10,7 +10,11 @@ from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     LinearToLstmAdapter,
 )
 
-ADAPTER_REGISTRY = {
+ADAPTER_REGISTRY = {}
+ACTIVATION_REGISTRY = {}
+LAYER_REGISTRY = {}
+
+DEFAULT_ADAPTER = {
     ("conv2d", "lstm"): Conv2dToLSTMAdapter,
     ("linear", "conv2d"): LinearToConv2dAdapter,
     ("linear", "lstm"): LinearToLstmAdapter,
@@ -20,8 +24,7 @@ ADAPTER_REGISTRY = {
     ("lstm", None): LSTMNoSequenceAdapter,
     (None, "linear"): ToLinearAdapter,
 }
-
-activation_mapping = {
+DEFAULT_ACTIVATION = {
     "relu": nn.ReLU(),
     "sigmoid": nn.Sigmoid(),
     "identity": nn.Identity(),

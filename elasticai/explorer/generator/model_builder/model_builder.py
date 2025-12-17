@@ -12,15 +12,19 @@ from elasticai.explorer.hw_nas.search_space.construct_search_space import Search
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LayerBuilder,
     parse_search_param,
-    register_layer,
 )
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
+    FullPrecisionScheme,
     QuantizationScheme,
 )
+
 from elasticai.explorer.hw_nas.search_space.registry import (
+    ACTIVATION_REGISTRY,
     ADAPTER_REGISTRY,
-    activation_mapping,
+    DEFAULT_ACTIVATION,
+    DEFAULT_ADAPTER,
+    LAYER_REGISTRY,
 )
 
 
@@ -29,6 +33,16 @@ class ModelBuilder(ABC, Reflective):
     def build_from_trial(self, trial, searchspace: SearchSpace) -> Any:
         pass
 
+    def setup_registries(self, replace=False):
+        if replace:
+            ACTIVATION_REGISTRY.clear()
+            ADAPTER_REGISTRY.clear()
+            LAYER_REGISTRY.clear()
+
+        ACTIVATION_REGISTRY.update(self.get_activation_mappings())
+        ADAPTER_REGISTRY.update(self.get_adapter_mappings())
+        LAYER_REGISTRY.update(self.get_layer_mappings())
+
 
 class DefaultModelBuilder(ModelBuilder):
     def __init__(self) -> None:
@@ -36,12 +50,24 @@ class DefaultModelBuilder(ModelBuilder):
         self.logger = logging.getLogger(
             "explorer.generator.model_builder.TorchModelBuilder"
         )
+        self.setup_registries()
+
+    def get_activation_mappings(self) -> dict[str, nn.Module]:
+        return DEFAULT_ACTIVATION
+
+    def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], type | None]:
+        return DEFAULT_ADAPTER
+
+    def get_supported_quantization_schemes(self) -> list[type[QuantizationScheme]]:
+        return [FullPrecisionScheme]
 
     def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
         return nn.Sequential(*searchspace.create_model_layers(trial))
 
 
 class CreatorLinearBuilder(LayerBuilder):
+    base_type = fixed_point.Linear
+
     def build(self, num_layers: int, is_last_block: bool) -> Any:
         for i in range(num_layers):
             if isinstance(self.input_shape, int):
@@ -97,25 +123,25 @@ class CreatorModelBuilder(ModelBuilder):
         self.logger = logging.getLogger(
             "explorer.generator.model_builder.CreatorModelBuilder"
         )
+        self.setup_registries(True)
 
-        # TODO streamline this process via Reflection api
-        activation_mapping["relu"] = fixed_point.ReLU(
-            total_bits=self.quantization_scheme.total_bits
-        )
-        register_layer("linear")(CreatorLinearBuilder)
-        ADAPTER_REGISTRY[(None, "linear")] = None
+    def get_layer_mappings(self) -> dict[str, type[LayerBuilder]]:
+        return {"linear": CreatorLinearBuilder}
+
+    def get_activation_mappings(self) -> dict[str, nn.Module]:
+        return {
+            "relu": fixed_point.ReLU(total_bits=self.quantization_scheme.total_bits)
+        }
+
+    def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
+        return {(None, "linear"): None}
 
     def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
-        return creator_nn.Sequential(*searchspace.create_model_layers(trial=trial))
-
-    def get_supported_layers(self) -> tuple[type] | None:
-        return (fixed_point.Linear,)
-
-    def get_supported_activations(self) -> tuple[type] | None:
-        return (fixed_point.ReLU,)
+        model = creator_nn.Sequential(*searchspace.create_model_layers(trial=trial))
+        self._validate_model(model, self.quantization_scheme)
+        return model
 
     def get_supported_quantization_schemes(
         self,
-    ) -> tuple[type[QuantizationScheme]] | None:
-
-        return (type(self.quantization_scheme),)
+    ) -> list[type[QuantizationScheme]]:
+        return [type(self.quantization_scheme)]

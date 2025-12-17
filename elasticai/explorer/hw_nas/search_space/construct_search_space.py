@@ -1,11 +1,11 @@
 import logging
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
-    LAYER_REGISTRY,
     parse_search_param,
 )
 from elasticai.explorer.hw_nas.search_space.quantization_builder import QUANT_REGISTRY
 from elasticai.explorer.hw_nas.search_space.registry import (
     ADAPTER_REGISTRY,
+    LAYER_REGISTRY,
 )
 
 
@@ -34,7 +34,7 @@ class SearchSpace:
             f"quant_b{block_id}",
             block,
             "quant_candidates",
-            default_value=None,
+            default_value="full_precision",
         )
 
         #    if prev_operation is not None:

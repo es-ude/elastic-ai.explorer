@@ -1,5 +1,10 @@
+from elasticai.explorer.hw_nas.search_space.builder import ComponentBuilder
 from elasticai.explorer.hw_nas.search_space.layer_builder import parse_search_param
-from elasticai.explorer.hw_nas.search_space.quantization import FixedPointInt8Scheme
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FixedPointInt8Scheme,
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
 
 QUANT_REGISTRY = {}
 
@@ -14,17 +19,21 @@ def register_quantization_scheme(name: str):
     return wrapper
 
 
-@register_quantization_scheme("fixed_point_int8")
-class FixedPointInt8Builder:
+class QuantizationBuilder:
     def __init__(self, trial, block: dict, search_params: dict, block_id) -> None:
         self.trial = trial
         self.block = block
         self.search_params = search_params
         self.block_id = block_id
 
+
+@register_quantization_scheme("fixed_point_int8")
+class FixedPointInt8Builder(ComponentBuilder):
+    base_type = FixedPointInt8Scheme
+
     def build(
         self,
-    ):
+    ) -> QuantizationScheme:
         total_bits = parse_search_param(
             self.trial,
             f"total_bits_b{self.block_id}",
@@ -50,3 +59,11 @@ class FixedPointInt8Builder:
         return FixedPointInt8Scheme(
             total_bits=total_bits, frac_bits=frac_bits, signed=signed
         )
+
+
+@register_quantization_scheme("full_precision")
+class FullPrecisionBuilder(ComponentBuilder):
+    base_type = FullPrecisionScheme
+
+    def build(self):
+        return FullPrecisionScheme()

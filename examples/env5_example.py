@@ -1,8 +1,15 @@
 import logging.config
 from pathlib import Path
 import torch
+from typing import Any, Callable
 
-from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.training.data import BaseDataset, DatasetSpecification
+from elasticai.creator.arithmetic import (
+    FxpArithmetic,
+    FxpParams,
+)
+
+
 from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.quantization import (
@@ -12,24 +19,17 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 )
 
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import (
-    KnowledgeRepository,
-)
-from elasticai.explorer.generator.deployment.compiler import ENv5Compiler, VivadoParams
+from elasticai.explorer.generator.deployment.compiler import VivadoParams
 from elasticai.explorer.generator.deployment.device_communication import (
-    ENv5Host,
     Host,
     SerialHost,
     SerialParams,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
-    ENv5HWManager,
     HWManager,
     Metric,
 )
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    CreatorModelCompiler,
-)
+
 from examples.example_helpers import (
     measure_on_device,
     setup_example_optimization_criteria,
@@ -41,15 +41,6 @@ logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
-from pathlib import Path
-from typing import Any, Callable
-
-import torch
-from elasticai.explorer.training.data import BaseDataset, DatasetSpecification
-from elasticai.creator.arithmetic import (
-    FxpArithmetic,
-    FxpParams,
-)
 
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 BATCH_SIZE = 64

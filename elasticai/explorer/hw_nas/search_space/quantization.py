@@ -16,13 +16,6 @@ class QuantizationScheme(ABC):
     @abstractmethod
     def name(self) -> str: ...
 
-    def is_compatible_with_layer(self, layer_type: Type) -> bool:
-        return True
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}:{self.name()}>"
-
-
 
 @dataclass(frozen=True)
 class FixedPointInt8Scheme(QuantizationScheme):
