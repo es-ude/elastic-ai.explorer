@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import torch
 from torch import nn
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
@@ -6,17 +7,23 @@ from elasticai.explorer.hw_nas.search_space.layer_builder import (
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 
 
-class Reflective:
-    def get_layer_mappings(self) -> dict[str, type[LayerBuilder]]:
-        """Override to return layer name to builder mappings."""
-        return {}
-
+class Reflective(ABC):
+    @abstractmethod
     def get_activation_mappings(self) -> dict[str, nn.Module]:
-        """Override to return activation name to module mappings."""
-        return {}
+        pass
 
+    @abstractmethod
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
-        """Override to return adapter key to adapter class mappings."""
+        pass
+
+    @abstractmethod
+    def get_supported_quantization_schemes(
+        self,
+    ) -> list[type[QuantizationScheme]]:
+        pass
+
+    def get_layer_mappings(self) -> dict[str, type[LayerBuilder]]:
+        """Override if necessary. Empty dict means all base layer builders are allowed."""
         return {}
 
     def get_supported_layers(self) -> list[type]:
@@ -31,12 +38,6 @@ class Reflective:
         for name, activation in self.get_activation_mappings().items():
             supported_activations.append(type(activation))
         return supported_activations
-
-    def get_supported_quantization_schemes(
-        self,
-    ) -> list[type[QuantizationScheme]]:
-        """Override if necessary."""
-        return []
 
     def _validate_model(
         self, model: torch.nn.Module, quantization_scheme: QuantizationScheme

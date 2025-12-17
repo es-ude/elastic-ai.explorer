@@ -28,7 +28,7 @@ from elasticai.explorer.hw_nas.search_space.registry import (
 )
 
 
-class ModelBuilder(ABC, Reflective):
+class ModelBuilder(Reflective, ABC):
     @abstractmethod
     def build_from_trial(self, trial, searchspace: SearchSpace) -> Any:
         pass
