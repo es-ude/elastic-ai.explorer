@@ -4,8 +4,6 @@ from torch import nn
 from yaml import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
-
-from elasticai.explorer.hw_nas.search_space.builder import ComponentBuilder
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.hw_nas.search_space.registry import (
     ACTIVATION_REGISTRY,
@@ -48,7 +46,9 @@ def register_layer(name: str):
     return wrapper
 
 
-class LayerBuilder(ComponentBuilder, ABC):
+class LayerBuilder(ABC):
+    base_type: type | None = None
+
     def __init__(
         self,
         trial,
@@ -59,7 +59,14 @@ class LayerBuilder(ComponentBuilder, ABC):
         output_shape: list | int,
         quantization_scheme: QuantizationScheme,
     ):
-        super().__init__(trial, block, search_params, block_id)
+        if self.base_type is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} must define base_type"
+            )
+        self.trial = trial
+        self.block = block
+        self.search_params = search_params
+        self.block_id = block_id
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.quantization_scheme = quantization_scheme

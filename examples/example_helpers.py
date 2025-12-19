@@ -16,8 +16,6 @@ from elasticai.explorer.generator.deployment.device_communication import (
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
     ENv5HWManager,
-    Metric,
-    MetricFunction,
     PicoHWManager,
     RPiHWManager,
 )

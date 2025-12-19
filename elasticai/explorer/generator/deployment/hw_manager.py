@@ -51,7 +51,6 @@ class HWManager(ABC):
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.HWManager"
         )
-        self.supported_schemes = self.compiler.get_supported_quantization_schemes()
 
     def _register_metric_to_source(self, metric: Metric, source: Path | MetricFunction):
         self._metric_to_source.update({metric: source})
@@ -103,12 +102,6 @@ class HWManager(ABC):
     ):
         self.dataset_spec = dataset_spec
         self.quantization_scheme = quantization_scheme
-        if self.supported_schemes and not isinstance(
-            quantization_scheme, self.supported_schemes
-        ):
-            err = TypeError(f"{quantization_scheme} is not supported by ENv5HWManager!")
-            self.logger.error(err)
-            raise err
 
     @abstractmethod
     def prepare_model(self, path_to_model: Path):

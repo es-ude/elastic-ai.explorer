@@ -8,7 +8,6 @@ from torch import Tensor, flatten
 
 class QuantizationScheme(ABC):
     dtype: str
-    num_output_bytes: int
     total_bits: int
     frac_bits: int
     signed: bool

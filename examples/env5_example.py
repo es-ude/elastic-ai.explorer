@@ -41,7 +41,6 @@ logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 
 
-
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 BATCH_SIZE = 64
 INPUT_DIM = 6

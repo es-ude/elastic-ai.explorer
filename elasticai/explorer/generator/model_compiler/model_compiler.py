@@ -19,7 +19,6 @@ from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_con
 from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
 from ai_edge_torch.quantize.quant_config import QuantConfig
 
-from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     FullPrecisionScheme,
@@ -34,7 +33,7 @@ from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv
 from elasticai.creator.nn import fixed_point
 
 
-class ModelCompiler(ABC, Reflective):
+class ModelCompiler(ABC):
     @abstractmethod
     def compile(
         self,

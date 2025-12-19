@@ -7,11 +7,6 @@ import tarfile
 
 from python_on_whales import docker
 from settings import ROOT_DIR
-from elasticai.explorer.generator.reflection import Reflective
-from elasticai.explorer.hw_nas.search_space.quantization import (
-    FixedPointInt8Scheme,
-    QuantizationScheme,
-)
 from elasticai.explorer.utils import synthesis_utils
 
 
@@ -31,7 +26,7 @@ class VivadoParams:
     target_platform_name: str = ""
 
 
-class Compiler(ABC, Reflective):
+class Compiler(ABC):
     def __init__(self, compiler_params: DockerParams | VivadoParams):
         self.compiler_params = compiler_params
         logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
@@ -177,8 +172,3 @@ class ENv5Compiler(Compiler):
             pass
 
         return path_to_bin_file
-
-    def get_supported_quantization_schemes(
-        self,
-    ) -> tuple[type[QuantizationScheme]] | None:
-        return (FixedPointInt8Scheme,)
