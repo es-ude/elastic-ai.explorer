@@ -8,11 +8,8 @@ from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 from torch.optim.adam import Adam
 
-from elasticai.explorer.hw_nas.sampler_builder import (
-    Sampler,
-    SamplerBuilder,
-    get_sampler,
-)
+from elasticai.explorer.hw_nas.sampler_builder import get_sampler
+
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
@@ -99,6 +96,7 @@ def search(
     """
     search_space = SearchSpace(search_space_cfg)
 
+    # TODO after merge with feat 150 look how to parameterize the the different samplers
     sampler = get_sampler(hwnas_cfg.search_algorithm, search_space=search_space_cfg)
 
     study = optuna.create_study(

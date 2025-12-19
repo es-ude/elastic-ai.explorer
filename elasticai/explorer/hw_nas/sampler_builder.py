@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 import inspect
 from optuna.samplers import (
     TPESampler,
@@ -13,13 +12,6 @@ from optuna.samplers import (
     NSGAIISampler,
     NSGAIIISampler,
 )
-
-
-class Sampler(Enum):
-    RANDOM_SEARCH = "random"
-    GRID_SEARCH = "grid"
-    EVOlUTIONARY_SEARCH = "evolution"
-
 
 class SamplerBuilder(ABC):
     """Abstract base class for sampler builders."""
