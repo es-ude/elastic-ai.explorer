@@ -137,6 +137,38 @@ def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
     return {Metric.ACCURACY.value: {"value": 100.0 * correct / total, "unit": "%"}}
 
 
+def _run_latency_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
+    import time
+
+    elapsed_ns = 0
+    total = 0
+    num_bytes_outputs = 4
+    if not hw_manager.test_loader:
+        raise TypeError("Testloader not defined.")
+    if not hw_manager.quantization_scheme:
+        raise TypeError("Quantization Scheme is not defined")
+    if not isinstance(host, SerialHost):
+        raise TypeError("Need Serialhost for this test.")
+
+    for inputs_rational, target in hw_manager.test_loader:
+        data_bytearray = parse_fxp_tensor_to_bytearray(
+            inputs_rational,
+            hw_manager.quantization_scheme.total_bits,
+            hw_manager.quantization_scheme.frac_bits,
+        )
+        for sample in data_bytearray:
+            start_time = time.time_ns()
+            result_bytes = host.send_data_bytes(
+                sample=sample,
+                num_bytes_outputs=num_bytes_outputs,
+            )
+            end_time = time.time_ns()
+            elapsed_ns = elapsed_ns + (end_time - start_time)
+            total += 1
+
+    return {Metric.LATENCY.value: {"value": (elapsed_ns / total) / 1000, "unit": "us"}}
+
+
 def search_generate_measure_for_env5(
     explorer: Explorer,
     rpi_type: str,
@@ -162,7 +194,10 @@ def search_generate_measure_for_env5(
         model_builder=CreatorModelBuilder(),
     )
 
-    metric_to_source = {Metric.ACCURACY: _run_accuracy_test}
+    metric_to_source = {
+        Metric.ACCURACY: _run_accuracy_test,
+        Metric.LATENCY: _run_latency_test,
+    }
     df = measure_on_device(
         explorer=explorer,
         top_models=top_models,
