@@ -155,6 +155,7 @@ class Explorer:
                 "optimization_criteria.toml",
             )
 
+        # TODO return top quantizations
         return top_models
 
     def choose_target_hw(
@@ -199,6 +200,7 @@ class Explorer:
             self.logger.error(err)
             raise err
 
+        # TODO must quantization be used here better in run_measurement because every model could have different quantization.
         self.hw_manager.prepare_dataset(data_spec, quantization_scheme)
 
         for metric, source in metric_to_source.items():

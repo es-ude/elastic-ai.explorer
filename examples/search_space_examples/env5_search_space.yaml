@@ -1,11 +1,11 @@
 input: [1, 6]
 output: 4
-#quantization:
-  # quant_candidates: ["fixed_point_int8"]
-  # fixed_point_int8:
-  #       total_bits: [8]
-  #       frac_bits: [2]
-  #       signed: [1]
+quantization:
+  quant_candidates: ["fixed_point_int8"]
+  fixed_point_int8:
+        total_bits: [8]
+        frac_bits: [2]
+        signed: [1]
 
 blocks:
   - block:  "1" 
