@@ -214,7 +214,7 @@ def search_generate_measure_for_env5(
 if __name__ == "__main__":
     max_search_trials = 2
     top_n_models = 1
-    retrain_epochs = 5
+    retrain_epochs = 10
     hw_platform = "env5_s15"
 
     # TODO obscure this

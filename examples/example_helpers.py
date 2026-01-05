@@ -118,7 +118,7 @@ def setup_example_optimization_criteria(
         metric_name="accuracy",
         n_estimation_epochs=3,
     )
-    criteria.register_objective(estimator=accuracy_estimator)
+    criteria.register_objective(estimator=accuracy_estimator, weight=100)
 
     criteria.register_objective(estimator=flops_estimator, transform=log10, weight=-2.0)
 

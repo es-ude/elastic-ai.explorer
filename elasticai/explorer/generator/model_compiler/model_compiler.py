@@ -189,7 +189,7 @@ class CreatorModelCompiler(ModelCompiler):
         self.logger = logging.getLogger(
             "explorer.generator.model_compiler.model_compiler.CreatorModelCompiler"
         )
-        self.skeleton_id = [randint(0, 16) for i in range(16)]
+        self.skeleton_id = [1 for i in range(16)]
 
     def compile(
         self,

@@ -18,7 +18,9 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     FullPrecisionScheme,
     QuantizationScheme,
 )
-
+from elasticai.creator.nn.fixed_point.lstm.layer import (
+    FixedPointLSTMWithHardActivations,
+)
 from elasticai.explorer.hw_nas.search_space.registry import (
     ACTIVATION_REGISTRY,
     ADAPTER_REGISTRY,
@@ -113,6 +115,62 @@ class CreatorLinearBuilder(LayerBuilder):
                 self.input_shape = width
             self.add_activation(activation)
 
+        return self.get_layers()
+
+
+class CreatorLSTMBuilder(LayerBuilder):
+    base_type = FixedPointLSTMWithHardActivations
+
+    def build(self, num_layers: int, is_last_block: bool):
+        for i in range(num_layers):
+            hidden_size = parse_search_param(
+                self.trial,
+                f"hidden_size_b{self.block_id}_l{i}",
+                self.search_params,
+                "hidden_size",
+                default_value=None,
+            )
+            num_lstm_layers = parse_search_param(
+                self.trial,
+                f"num_lstm_layers_b{self.block_id}_l{i}",
+                self.search_params,
+                "num_lstm_layers",
+                default_value=None,
+            )
+            bidirectional = parse_search_param(
+                self.trial,
+                f"bidirectional_b{self.block_id}_l{i}",
+                self.search_params,
+                "bidirectional",
+                default_value=False,
+            )
+            dropout = parse_search_param(
+                self.trial,
+                f"dropout_b{self.block_id}_l{i}",
+                self.search_params,
+                key="dropout",
+                default_value=0.0,
+            )
+            if is_last_block and i == num_layers - 1:
+                hidden_size = self.output_shape
+                if bidirectional & ((self.output_shape % 2) != 0):
+                    raise NotImplementedError
+                elif bidirectional:
+                    hidden_size = self.output_shape / 2
+
+            self.layers.append(
+                FixedPointLSTMWithHardActivations(
+                    total_bits=self.quantization_scheme.total_bits,
+                    frac_bits=self.quantization_scheme.frac_bits,
+                    input_size=self.input_shape[-1],
+                    hidden_size=hidden_size,
+                    bias=True,
+                )
+            )
+            self.input_shape = [
+                self.input_shape[0],
+                hidden_size * 2 if bidirectional else hidden_size,
+            ]
         return self.get_layers()
 
 

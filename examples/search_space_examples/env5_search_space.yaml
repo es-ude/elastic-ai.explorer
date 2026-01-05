@@ -11,7 +11,7 @@ blocks:
   - block:  "1" 
     op_candidates: ["linear"]
     activation: ["relu"]
-    depth: [1, 2]
+    depth: [1]
     linear:
       activation: [ "relu"]
       width: [4]

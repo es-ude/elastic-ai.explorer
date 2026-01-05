@@ -225,7 +225,7 @@ class ENv5Host(SerialHost):
         return self._ser
 
     def flash(self, local_path: Path):
-        skeleton_id = [randint(0, 16) for i in range(16)]
+        skeleton_id = [1 for i in range(16)]
         skeleton_id_as_bytearray = bytearray()
         for x in skeleton_id:
             skeleton_id_as_bytearray.extend(
