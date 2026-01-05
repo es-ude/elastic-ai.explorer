@@ -581,7 +581,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ai-edge-torch", specifier = "==0.5.0" },
-    { name = "elasticai-creator", specifier = "==0.66.0" },
+    { name = "elasticai-creator", git = "https://github.com/es-ude/elastic-ai.creator.git" },
     { name = "elasticai-runtime-env5", git = "https://github.com/es-ude/elastic-ai.runtime.enV5.git?rev=a9bc18749b1c1666828453a47c9c37f6f0aa2d61" },
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "fvcore", specifier = ">=0.1.5.post20221221" },
@@ -612,8 +612,8 @@ dev = [
 
 [[package]]
 name = "elasticai-creator"
-version = "0.66.0"
-source = { registry = "https://pypi.org/simple" }
+version = "0.66.1.dev30+g24611799a"
+source = { git = "https://github.com/es-ude/elastic-ai.creator.git#24611799a4cdb9c08e16dce384c7adc0e08d9aa1" }
 dependencies = [
     { name = "click" },
     { name = "cocotb" },
@@ -621,10 +621,6 @@ dependencies = [
     { name = "pyserial" },
     { name = "tomlkit" },
     { name = "torch" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/f4/8753943627e0062622e27958a59346b65eab186e877fcab5ecc83f2364a0/elasticai_creator-0.66.0.tar.gz", hash = "sha256:e776eb21d293e6269351654909a88f7f72250b78abe2d534fed368e2360da0ec", size = 497597, upload-time = "2025-09-24T07:27:41.666Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b5/eb/1cf576901a7d60023841b5a197bbc9d321325b4ddad0218d746893cfee35/elasticai_creator-0.66.0-py3-none-any.whl", hash = "sha256:da3204799ba08924985bea5aff7e43a7a2858d84228e0b84fcd6761d1cf6cbd6", size = 306695, upload-time = "2025-09-24T07:27:39.963Z" },
 ]
 
 [[package]]
