@@ -263,7 +263,7 @@ class ENv5HWManager(HWManager):
         fxp_params = FxpParams(
             total_bits=quantization_scheme.total_bits,
             frac_bits=quantization_scheme.frac_bits,
-            signed=True,
+            signed=quantization_scheme.signed,
         )
         fxp_conf = FxpArithmetic(fxp_params)
         self.dataset = self.dataset_spec.dataset_type(
@@ -271,7 +271,7 @@ class ENv5HWManager(HWManager):
             dataset_spec.transform,
             target_transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
         )
-        train_subset, test_subset, val_subset = random_split(
+        _, test_subset, _ = random_split(
             self.dataset,
             dataset_spec.train_val_test_ratio,
         )

@@ -9,6 +9,7 @@ from elasticai.creator.nn import fixed_point
 import torch
 from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.hw_nas.search_space.layer_adapter import ToLinearAdapter
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LayerBuilder,
     parse_search_param,
@@ -63,23 +64,29 @@ class DefaultModelBuilder(ModelBuilder):
     def get_supported_quantization_schemes(self) -> list[type[QuantizationScheme]]:
         return [FullPrecisionScheme]
 
-    def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
-        return nn.Sequential(*searchspace.create_model_layers(trial))
+    def build_from_trial(
+        self, trial, searchspace: SearchSpace
+    ) -> tuple[torch.nn.Module, QuantizationScheme]:
+        return (
+            nn.Sequential(*searchspace.create_model_layers(trial)),
+            searchspace.get_quantization_scheme(),
+        )
 
 
 class CreatorLinearBuilder(LayerBuilder):
     base_type = fixed_point.Linear
 
     def build(self, num_layers: int, is_last_block: bool) -> Any:
+        if isinstance(self.input_shape, int):
+            self.input_shape = self.input_shape
+        else:
+            self.input_shape = math.prod(self.input_shape)
+        if isinstance(self.output_shape, int):
+            self.output_shape = self.output_shape
+        else:
+            self.output_shape = math.prod(self.output_shape)
         for i in range(num_layers):
-            if isinstance(self.input_shape, int):
-                self.input_shape = self.input_shape
-            else:
-                self.input_shape = math.prod(self.input_shape)
-            if isinstance(self.output_shape, int):
-                self.output_shape = self.output_shape
-            else:
-                self.output_shape = math.prod(self.output_shape)
+
             width = parse_search_param(
                 self.trial,
                 f"layer_width_b{self.block_id}_l{i}",
@@ -188,16 +195,20 @@ class CreatorModelBuilder(ModelBuilder):
 
     def get_activation_mappings(self) -> dict[str, nn.Module]:
         return {
-            "relu": fixed_point.ReLU(total_bits=self.quantization_scheme.total_bits)
+            "relu": fixed_point.ReLU(
+                total_bits=self.quantization_scheme.total_bits, use_clock=False
+            )
         }
 
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
         return {(None, "linear"): None}
 
-    def build_from_trial(self, trial, searchspace: SearchSpace) -> torch.nn.Module:
+    def build_from_trial(
+        self, trial, searchspace: SearchSpace
+    ) -> tuple[torch.nn.Module, QuantizationScheme]:
         model = creator_nn.Sequential(*searchspace.create_model_layers(trial=trial))
         self._validate_model(model, self.quantization_scheme)
-        return model
+        return model, searchspace.get_quantization_scheme()
 
     def get_supported_quantization_schemes(
         self,

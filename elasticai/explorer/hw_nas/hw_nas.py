@@ -13,6 +13,7 @@ from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 
 logger = logging.getLogger("explorer.nas")
 intermediate_metrics_template = "{metric_name}_intermediates"
@@ -36,19 +37,18 @@ def objective_wrapper(
     optimization_criteria: OptimizationCriteria,
     model_builder: ModelBuilder,
 ) -> float:
-    
+
     def objective(trial: optuna.Trial) -> float:
         search_space = SearchSpace(search_space_cfg)
         try:
-            model = model_builder.build_from_trial(trial, search_space)
+            model, _ = model_builder.build_from_trial(trial, search_space)
         except NotImplementedError:
             raise optuna.TrialPruned()
         score = 0.0
         for estimator in optimization_criteria:
 
             final_estimate, estimates = estimator.estimate(model)
-            
-        
+
             trial.set_user_attr(estimator.metric_name, final_estimate)
             trial.set_user_attr(
                 intermediate_metrics_template.format(metric_name=estimator.metric_name),
@@ -99,7 +99,7 @@ def search(
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
     model_builder: ModelBuilder,
-) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
+) -> tuple[list[Any], list[dict[str, Any]], list[Any], list[QuantizationScheme]]:
     """
     Returns: top-models, model-parameters, metrics
     """
@@ -159,25 +159,27 @@ def search(
 
     if len(top_k_frozen_trials) == 0:
         logger.warning("No models found in the search space.")
-        return [], [], []
+        return [], [], [], []
 
     top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
+    top_k_quant_scheme: list[QuantizationScheme] = []
+
     metric_names = [
         estimator.metric_name for estimator in optimization_criteria.get_estimators()
     ]
 
     for frozen_trial in top_k_frozen_trials:
-        top_k_models.append(
-            (model_builder.build_from_trial(frozen_trial, search_space))
-        )
+        model, quant_scheme = model_builder.build_from_trial(frozen_trial, search_space)
+        top_k_models.append((model))
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
                 "score": eval(frozen_trial),
             }
         )
+        top_k_quant_scheme.append(quant_scheme)
         for metric_name in metric_names:
             intermediates_key = intermediate_metrics_template.format(
                 metric_name=metric_name
@@ -186,5 +188,4 @@ def search(
             top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
                 intermediates_key
             ]
-    return top_k_models, top_k_params, top_k_metrics
-
+    return top_k_models, top_k_params, top_k_metrics, top_k_quant_scheme

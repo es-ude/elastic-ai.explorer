@@ -114,14 +114,14 @@ class Explorer:
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
         model_builder: ModelBuilder = DefaultModelBuilder(),
-    ) -> list[Any]:
+    ) -> tuple[list[Any], list[QuantizationScheme]]:
         self.logger.info(
             "Start Hardware NAS with %d number of trials searching for top %d models. ",
             hw_nas_parameters.max_search_trials,
             hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
-            top_models, model_parameters, metrics = hw_nas.search(
+            top_models, model_parameters, metrics, quantization_schemes = hw_nas.search(
                 search_space_cfg=self.search_space_cfg,
                 search_strategy=search_strategy,
                 hw_nas_parameters=hw_nas_parameters,
@@ -154,9 +154,7 @@ class Explorer:
                 self._experiment_dir,
                 "optimization_criteria.toml",
             )
-
-        # TODO return top quantizations
-        return top_models
+        return top_models, quantization_schemes
 
     def choose_target_hw(
         self,
@@ -200,7 +198,6 @@ class Explorer:
             self.logger.error(err)
             raise err
 
-        # TODO must quantization be used here better in run_measurement because every model could have different quantization.
         self.hw_manager.prepare_dataset(data_spec, quantization_scheme)
 
         for metric, source in metric_to_source.items():

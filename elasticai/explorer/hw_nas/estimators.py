@@ -115,7 +115,7 @@ class TrainMetricsEstimator(Estimator):
             else:
                 estimate_value = metric_avg.get(self.metric_name)
 
-            if not estimate_value:
+            if estimate_value == None:
                 err = TypeError(
                     f"Trainer Type does not support {self.metric_name} estimation."
                 )

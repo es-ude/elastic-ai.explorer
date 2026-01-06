@@ -31,10 +31,8 @@ from elasticai.explorer.hw_nas.estimators import (
 )
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
-from elasticai.explorer.hw_nas.search_space.quantization import (
-    FullPrecisionScheme,
-    QuantizationScheme,
-)
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
+
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 
 
@@ -116,7 +114,7 @@ def setup_example_optimization_criteria(
             extra_metrics={"accuracy": accuracy_fn},
         ),
         metric_name="accuracy",
-        n_estimation_epochs=3,
+        n_estimation_epochs=10,
     )
     criteria.register_objective(estimator=accuracy_estimator, weight=100)
 
@@ -146,16 +144,20 @@ def measure_on_device(
     device: str,
     dataset_spec: DatasetSpecification,
     model_suffix: str = ".pt",
-    quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
+    top_quantization_schemes: list[QuantizationScheme] = [],
 ):
 
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec, quantization_scheme)
     metrics_to_measurements = {"accuracy after retrain in %": []}
     for metric, _ in metric_to_source.items():
         metrics_to_measurements.update({metric.value + " on device": []})
 
-    for i, model in enumerate(top_models):
-
+    previous_quant_scheme = None
+    for i, (model, quant_scheme) in enumerate(
+        zip(top_models, top_quantization_schemes)
+    ):
+        if i == 0 or previous_quant_scheme != quant_scheme:
+            explorer.hw_setup_on_target(metric_to_source, dataset_spec, quant_scheme)
+        previous_quant_scheme = quant_scheme
         trainer = SupervisedTrainer(
             device=device,
             dataset_spec=dataset_spec,

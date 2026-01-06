@@ -79,6 +79,9 @@ class SearchSpace:
         quantization_builder_cls = QUANT_REGISTRY[quantization]
         return quantization_builder_cls(trial, quantization_params).build()
 
+    def get_quantization_scheme(self):
+        return self.quantization_scheme
+
     def create_model_layers(self, trial) -> list:
         self.next_input_shape = self.search_space_cfg["input"]
         self.output_shape = self.search_space_cfg["output"]

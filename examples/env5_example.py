@@ -43,7 +43,37 @@ logger = logging.getLogger("explorer.main")
 
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 BATCH_SIZE = 64
-INPUT_DIM = 6
+INPUT_DIM = 2
+
+
+class NotAndDataset(BaseDataset):
+    def __init__(
+        self,
+        root: str | Path,
+        transform: Callable[..., Any] | None = None,
+        target_transform: Callable[..., Any] | None = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(root, transform, target_transform, *args, **kwargs)
+
+        self.data = torch.randint(0, 2, (BATCH_SIZE * 25, INPUT_DIM))
+        summed = self.data.sum(dim=1)
+        self.targets = torch.empty(BATCH_SIZE * 25, dtype=torch.long)
+        self.targets[summed == 2] = 0
+        self.targets[summed < 2] = 1
+
+    def __getitem__(self, idx) -> Any:
+        data, target = self.data[idx], self.targets[idx]
+        if self.transform is not None:
+            data = self.transform(self.data[idx])
+
+        if self.target_transform is not None:
+            target = self.target_transform(self.targets[idx])
+        return data, target
+
+    def __len__(self) -> int:
+        return len(self.data)
 
 
 class SumDataset(BaseDataset):
@@ -52,18 +82,18 @@ class SumDataset(BaseDataset):
         root,
         transform: Callable[..., Any] | None = None,
         target_transform: Callable[..., Any] | None = None,
-        thresholds=[-1.5, 0.0, 1.5],
+        thresholds=[-0.5, 0.0, 0.5],
         noise_std=0.0,
         *args,
         **kwargs,
     ):
         super().__init__(root, transform, target_transform, *args, **kwargs)
-        self.data = torch.randn(BATCH_SIZE * 10, INPUT_DIM)
+        self.data = torch.randn(BATCH_SIZE * 100, INPUT_DIM)
         summed = self.data.sum(dim=1)
         if noise_std > 0:
             summed = summed + noise_std * torch.randn_like(summed)
 
-        self.targets = torch.empty(BATCH_SIZE * 10, dtype=torch.long)
+        self.targets = torch.empty(BATCH_SIZE * 100, dtype=torch.long)
         self.targets[summed <= thresholds[0]] = 0
         self.targets[(summed > thresholds[0]) & (summed <= thresholds[1])] = 1
         self.targets[(summed > thresholds[1]) & (summed <= thresholds[2])] = 2
@@ -91,7 +121,7 @@ def create_example_dataset_spec(quantization_scheme):
     )
     fxp_conf = FxpArithmetic(fxp_params)
     return DatasetSpecification(
-        dataset_type=SumDataset,
+        dataset_type=NotAndDataset,
         dataset_location=Path(""),
         deployable_dataset_path=None,
         transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
@@ -102,7 +132,7 @@ def create_example_dataset_spec(quantization_scheme):
 def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
     correct = 0
     total = 0
-    num_bytes_outputs = 4
+    num_bytes_outputs = 2
     if not hw_manager.test_loader:
         raise TypeError("Testloader not defined.")
     if not hw_manager.quantization_scheme:
@@ -187,7 +217,7 @@ def search_generate_measure_for_env5(
     optimization_criteria = setup_example_optimization_criteria(
         dataset_spec, device, (1, 1, INPUT_DIM)
     )
-    top_models = explorer.search(
+    top_models, top_quantization_schemes = explorer.search(
         search_strategy=SearchStrategy.RANDOM_SEARCH,
         optimization_criteria=optimization_criteria,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
@@ -196,7 +226,7 @@ def search_generate_measure_for_env5(
 
     metric_to_source = {
         Metric.ACCURACY: _run_accuracy_test,
-        Metric.LATENCY: _run_latency_test,
+        # Metric.LATENCY: _run_latency_test,
     }
     df = measure_on_device(
         explorer=explorer,
@@ -206,13 +236,13 @@ def search_generate_measure_for_env5(
         device="cpu",
         dataset_spec=dataset_spec,
         model_suffix="",
-        quantization_scheme=quantization_scheme,
+        top_quantization_schemes=top_quantization_schemes,
     )
     logger.info("Models:\n %s", df)
 
 
 if __name__ == "__main__":
-    max_search_trials = 2
+    max_search_trials = 1
     top_n_models = 1
     retrain_epochs = 10
     hw_platform = "env5_s15"
@@ -229,7 +259,6 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
     search_space = Path("examples/search_space_examples/env5_search_space.yaml")
-    retrain_epochs = 3
     search_generate_measure_for_env5(
         explorer,
         hw_platform,

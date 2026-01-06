@@ -40,7 +40,7 @@ def search_generate_measure_for_pi(
     dataset_spec = setup_mnist(path_to_test_data)
     criteria_reg = setup_example_optimization_criteria(dataset_spec, device)
 
-    top_models = explorer.search(
+    top_models, top_quant_schemes = explorer.search(
         search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
         optimization_criteria=criteria_reg,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
@@ -51,7 +51,13 @@ def search_generate_measure_for_pi(
     }
 
     df = measure_on_device(
-        explorer, top_models, metric_to_source, retrain_epochs, device, dataset_spec
+        explorer,
+        top_models,
+        metric_to_source,
+        retrain_epochs,
+        device,
+        dataset_spec,
+        top_quantization_schemes=top_quant_schemes,
     )
 
     logger.info("Summary:\n %s", df)
