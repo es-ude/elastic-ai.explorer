@@ -73,7 +73,7 @@ class KuntzeDataset(MultivariateTimeseriesDataset):
         *args,
         **kwargs,
     ):
-        data_columns = ["pH", "Temp", "Cl2", "DIS-Control1", "Event_Dosage_Check"]
+        data_columns = ["pH", "Temp", "Cl2", "DIS-Control1", "Event_No_Water", "Event_Dosage_Check"]
         self.df = pd.read_csv(root, usecols=data_columns, skiprows=4)
         self.num_features = len(data_columns) - 1   # Exclude target column
         self.system_id = int(Path(root).stem.split("_")[2])
@@ -98,9 +98,10 @@ class KuntzeRegressionDataset(KuntzeDataset):
         super().__init__(root, transform, target_transform, *args, **kwargs)
 
     def _setup_data(self):
-        return self.df.copy(deep=False).drop(columns=["Event_Dosage_Check"])[:-self.lag_time_samples].astype(float)
+        return self.df.copy(deep=False).drop(columns=["Event_No_Water", "Event_Dosage_Check"])[:-self.lag_time_samples].astype(float)
 
     def _setup_targets(self):
+        # TODO: Use Event_No_Water(t) to mask prediction targets
         return self.df.copy(deep=False)["Cl2"][self.lag_time_samples:].astype(float)
 
 
@@ -116,9 +117,10 @@ class KuntzeClassificationDataset(KuntzeDataset):
         super().__init__(root, transform, target_transform, *args, **kwargs)
 
     def _setup_data(self):
-        return self.df.copy(deep=False).drop(columns=["Event_Dosage_Check"])[:-self.lag_time_samples].astype(float)
+        return self.df.copy(deep=False).drop(columns=["Event_No_Water", "Event_Dosage_Check"])[:-self.lag_time_samples].astype(float)
 
     def _setup_targets(self):
+        # TODO: Use Event_No_Water(t) to mask prediction targets
         return self.df.copy(deep=False)["Event_Dosage_Check"][self.lag_time_samples:].astype(float)
     
 def validate(model, test_loader):
@@ -206,7 +208,4 @@ def train_autoencoder():
     
 
 if __name__ == "__main__":
-    # dataset = KuntzeRegressionDataset(root="data/kuntze/raw_data/exported_data_570_2024-10-01 00-00-00_to_2024-10-31 00-00-00.csv")
-    # print(dataset.system_id)
-    # print(dataset.df)
     train_autoencoder()
