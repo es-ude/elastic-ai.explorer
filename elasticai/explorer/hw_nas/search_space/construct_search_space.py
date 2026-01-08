@@ -3,11 +3,11 @@ import torch.nn as nn
 
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LAYER_REGISTRY,
-    parse_search_param,
 )
 from elasticai.explorer.hw_nas.search_space.registry import (
     ADAPTER_REGISTRY,
 )
+from elasticai.explorer.hw_nas.search_space.sample_blocks import parse_search_param
 
 
 class SearchSpace:

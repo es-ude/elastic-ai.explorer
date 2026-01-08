@@ -12,6 +12,10 @@ from torch.optim.adam import Adam
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
+from elasticai.explorer.hw_nas.search_space.sample_blocks import (
+    Sampler,
+    construct_model,
+)
 from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
@@ -48,10 +52,13 @@ def objective_wrapper(
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
+        search_space_sampler = Sampler(trial)
 
-        search_space = SearchSpace(search_space_cfg)
         try:
-            model = search_space.create_model_sample(trial)
+            sample = search_space_sampler.construct_sample(search_space_cfg)
+            model = construct_model(
+                sample, search_space_cfg["input"], search_space_cfg["output"]
+            )
         except NotImplementedError:
             raise optuna.TrialPruned()
         trainer = trainer_cls.create_instance()
@@ -99,7 +106,7 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-    search_space = SearchSpace(search_space_cfg)
+
     match hwnas_cfg.search_algorithm:
         case SearchAlgorithm.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
@@ -162,7 +169,14 @@ def search(
     top_k_metrics: list[dict] = []
 
     for frozen_trial in top_k_frozen_trials:
-        top_k_models.append(search_space.create_model_sample(frozen_trial))
+        sp_sampler = Sampler(frozen_trial)
+        sample = sp_sampler.construct_sample(search_space_cfg)
+
+        top_k_models.append(
+            construct_model(
+                sample, search_space_cfg["input"], search_space_cfg["output"]
+            )
+        )
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
