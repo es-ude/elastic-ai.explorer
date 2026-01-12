@@ -34,13 +34,18 @@ class LayerBuilder(ABC):
 class LinearLayer(LayerBuilder):
 
     def build(self, input_shape, search_parameters: dict, output_shape=None):
+        activation = search_parameters.get("activation", None)
+
         if output_shape is not None:
-            return nn.Linear(input_shape, output_shape), output_shape
+            linear = nn.Linear(input_shape, output_shape)
+            next_in_shape = output_shape
         else:
-            return (
-                nn.Linear(input_shape, search_parameters["width"]),
-                search_parameters["width"],
-            )
+            linear = nn.Linear(input_shape, search_parameters["width"])
+            next_in_shape = search_parameters["width"]
+        if activation is not None:
+            return nn.Sequential(linear, activation_mapping[activation]), next_in_shape
+        else:
+            return linear, next_in_shape
 
 
 class ConvLayer(LayerBuilder):
