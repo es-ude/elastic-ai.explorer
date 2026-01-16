@@ -1,12 +1,9 @@
 from abc import abstractmethod, ABC
+
 from torch import nn as nn
 
-from elasticai.explorer.hw_nas.search_space.architecture_components import (
-    SimpleLSTM,
-    GaussianDropout,
-    RepeatVector,
-    TimeDistributed,
-)
+from elasticai.explorer.hw_nas.search_space.architecture_components import GaussianDropout, RepeatVector, \
+    TimeDistributed, SimpleLSTM
 from elasticai.explorer.hw_nas.search_space.registry import activation_mapping
 from elasticai.explorer.hw_nas.search_space.utils import calculate_output_shape
 
@@ -126,6 +123,8 @@ class PoolLayer(LayerBuilder):
     param_keys = {"kernel_size": None, "stride": 1, "padding": 0}
 
     def build(self, input_shape, search_parameters: dict, output_shape=None):
+        if isinstance(input_shape, int):
+            return nn.Identity(), input_shape
         ndim = 2 if len(input_shape) == 3 else 1
         layer_cls = self.layer_map.get(f"{ndim}d", None)
         if layer_cls is None:
@@ -133,7 +132,9 @@ class PoolLayer(LayerBuilder):
                 f"No matching class for {ndim}D in {self.__class__.__name__}"
             )
 
-        pool = layer_cls(**{k: search_parameters.get(k, v) for k, v in self.param_keys})
+        pool = layer_cls(
+            **{k: search_parameters.get(k, v) for k, v in self.param_keys.items()}
+        )
 
         shape = calculate_output_shape(
             input_shape,
@@ -149,6 +150,7 @@ class PoolLayer(LayerBuilder):
 class MaxPoolLayer(PoolLayer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.layer_map = {"1d": nn.MaxPool1d, "2d": nn.MaxPool2d}
 
 
@@ -165,10 +167,13 @@ class BatchNormLayer(LayerBuilder):
         num_features = (
             input_shape[0] if isinstance(input_shape, (list, tuple)) else input_shape
         )
-        if len(input_shape) == 3:
+        if isinstance(input_shape, int):
+            layer_cls = nn.BatchNorm1d
+        elif len(input_shape) == 3:
             layer_cls = nn.BatchNorm2d
         else:
             layer_cls = nn.BatchNorm1d
+
         return layer_cls(num_features=num_features), input_shape
 
 
@@ -184,10 +189,7 @@ class DropoutLayer(LayerBuilder):
 @register_layer("activation")
 class ActivationLayer(LayerBuilder):
     def build(self, input_shape, search_parameters: dict, output_shape=None):
-        return (
-            activation_mapping(search_parameters.get("op"), "identity")(),
-            input_shape,
-        )
+        return activation_mapping[search_parameters.get("op", "identity")], input_shape
 
 
 @register_layer("layer_norm")
