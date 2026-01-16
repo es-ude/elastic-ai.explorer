@@ -90,7 +90,7 @@ class MultivariateTimeseriesDataset(BaseDataset):
         return len(self.data.index)
 
     def __getitem__(self, idx):
-        feature_vector = np.array(self.data.iloc[idx, 1:])
+        feature_vector = np.array(self.data.iloc[idx])
         target = np.array(self.targets.iloc[idx])
         if self.transform:
             feature_vector = self.transform(feature_vector)

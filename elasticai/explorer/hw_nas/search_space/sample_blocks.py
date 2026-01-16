@@ -10,8 +10,16 @@ from yaml.error import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.layer_builder import LAYER_REGISTRY
 from elasticai.explorer.hw_nas.search_space.registry import ADAPTER_REGISTRY
-from settings import ROOT_DIR
 
+from importlib.util import spec_from_file_location, module_from_spec
+from pathlib import Path
+
+settings_path = Path(__file__).resolve().parents[4] / "settings.py"
+spec = spec_from_file_location("settings", settings_path)
+settings = module_from_spec(spec)
+spec.loader.exec_module(settings)
+
+ROOT_DIR = settings.ROOT_DIR
 
 class RepeatType(Enum):
     REPEAT_OP = "repeat_op"

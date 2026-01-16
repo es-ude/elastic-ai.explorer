@@ -6,10 +6,16 @@ from typing import Any
 import torch
 import yaml
 
-from settings import ROOT_DIR
+from importlib.util import spec_from_file_location, module_from_spec
+from pathlib import Path
 
+settings_path = Path(__file__).resolve().parents[2] / "settings.py"
+spec = spec_from_file_location("settings", settings_path)
+settings = module_from_spec(spec)
+spec.loader.exec_module(settings)
 logger = logging.getLogger("explorer.config")
 
+ROOT_DIR = settings.ROOT_DIR
 
 @dataclass
 class DockerParameter:
