@@ -19,8 +19,8 @@ ADAPTER_REGISTRY = {
     ("lstm", "conv2d"): LSTMToConv2dAdapter,
     ("lstm", None): LSTMNoSequenceAdapter,
     (None, "linear"): ToLinearAdapter,
-    ("conv1d", "linear"): ToLinearAdapter,
     ("*", "linear"): ToLinearAdapter,
+    ("conv1d", "linear"): ToLinearAdapter,
 }
 
 activation_mapping = {

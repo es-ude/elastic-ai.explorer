@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Type, Union
 import numpy as np
 import pandas as pd
+import torch
 from torchvision.datasets import MNIST
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose
@@ -73,13 +74,14 @@ class MultivariateTimeseriesDataset(BaseDataset):
         root: Union[str, Path],
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
+        window_size: Optional[int] = 1,
         *args,
         **kwargs,
     ):
         super().__init__(root, transform, target_transform, *args, **kwargs)
         self.data = self._setup_data()
         self.targets = self._setup_targets()
-
+        self.window_size = window_size
         if len(self.data.index) != len(self.targets):
             raise ValueError("The features and labels must have the same length.")
 
@@ -87,11 +89,20 @@ class MultivariateTimeseriesDataset(BaseDataset):
         self.target_transform = target_transform
 
     def __len__(self):
-        return len(self.data.index)
+        return len(self.data.index) - self.window_size
+
+    # def __len__(self):
+    #     return len(self.data.index)
 
     def __getitem__(self, idx):
-        feature_vector = np.array(self.data.iloc[idx])
-        target = np.array(self.targets.iloc[idx])
+
+        feature_vector = torch.tensor(
+            np.array(self.data.iloc[idx : idx + self.window_size]), dtype=torch.float32
+        )
+        target = torch.tensor(
+            np.array(self.targets.iloc[idx + self.window_size]), dtype=torch.float32
+        ).unsqueeze(-1)
+
         if self.transform:
             feature_vector = self.transform(feature_vector)
         if self.target_transform:

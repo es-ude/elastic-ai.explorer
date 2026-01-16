@@ -68,6 +68,7 @@ def objective_wrapper(
         cost_estimator = CostEstimator()
         sample, _ = next(iter(trainer.test_loader))
         flops = cost_estimator.estimate_flops(model, sample)
+
         params = cost_estimator.compute_num_params(model)
         apply_constraints(trial, flops, params, constraints)
         metric = {

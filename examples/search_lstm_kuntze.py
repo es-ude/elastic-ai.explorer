@@ -13,7 +13,10 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
 
-from elasticai.explorer.training.data import DatasetSpecification, MultivariateTimeseriesDataset
+from elasticai.explorer.training.data import (
+    DatasetSpecification,
+    MultivariateTimeseriesDataset,
+)
 from elasticai.explorer.training.trainer import SupervisedTrainer
 
 from importlib.util import spec_from_file_location, module_from_spec
@@ -26,26 +29,43 @@ spec.loader.exec_module(settings)
 
 ROOT_DIR = settings.ROOT_DIR
 
+
 class KuntzeDataset(MultivariateTimeseriesDataset):
     def __init__(
         self,
         root: Union[str, Path],
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
+        window_size: int = 90,
         *args,
         **kwargs,
     ):
-        data_columns = ["pH", "Temp", "Cl2", "DIS-Control1", "Event_No_Water", "Event_Dosage_Check"]
+        data_columns = [
+            "pH",
+            "Temp",
+            "Cl2",
+            "DIS-Control1",
+            "Event_No_Water",
+            "Event_Dosage_Check",
+        ]
         self.df = pd.read_csv(root, usecols=data_columns, skiprows=4)
-        self.num_features = len(data_columns) - 1   # Exclude target column
+        self.num_features = len(data_columns) - 1  # Exclude target column
         self.system_id = int(Path(root).stem.split("_")[2])
-        self.lag_time_minutes = 12.67 if self.system_id == 570 \
-                    else 9.87 if self.system_id == 785 \
-                    else 6.31 if self.system_id == 1215 \
-                    else 0
-        self.lag_time_samples = round(self.lag_time_minutes * 6)  # Assuming data is sampled every 10 seconds
+        self.lag_time_minutes = (
+            12.67
+            if self.system_id == 570
+            else (
+                9.87 if self.system_id == 785 else 6.31 if self.system_id == 1215 else 0
+            )
+        )
+        self.lag_time_samples = round(
+            self.lag_time_minutes * 6
+        )  # Assuming data is sampled every 10 seconds
 
-        super().__init__(root, transform, target_transform, *args, **kwargs)
+        super().__init__(
+            root, transform, target_transform, window_size=window_size, *args, **kwargs
+        )
+
 
 class KuntzeRegressionDataset(KuntzeDataset):
     def __init__(
@@ -53,17 +73,26 @@ class KuntzeRegressionDataset(KuntzeDataset):
         root: Union[str, Path],
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
+        window_size: int = 90,
         *args,
         **kwargs,
     ):
-        super().__init__(root, transform, target_transform, *args, **kwargs)
+        super().__init__(
+            root, transform, target_transform, window_size=window_size, *args, **kwargs
+        )
 
     def _setup_data(self):
-        return self.df.copy(deep=False).drop(columns=["Event_No_Water", "Event_Dosage_Check"])[:-self.lag_time_samples].astype(float)
+        return (
+            self.df.copy(deep=False)
+            .drop(columns=["Event_No_Water", "Event_Dosage_Check"])[
+                : -self.lag_time_samples
+            ]
+            .astype(float)
+        )
 
     def _setup_targets(self):
         # TODO: Use Event_No_Water(t) to mask prediction targets
-        return self.df.copy(deep=False)["Cl2"][self.lag_time_samples:].astype(float)
+        return self.df.copy(deep=False)["Cl2"][self.lag_time_samples :].astype(float)
 
 
 def validate(model, test_loader):
@@ -71,7 +100,7 @@ def validate(model, test_loader):
     preds = []
     targets = []
     total_loss = 0
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
     with torch.no_grad():
         for seqs, target in test_loader:
             output = model(seqs)
@@ -100,9 +129,10 @@ def run_lstm_search():
     batch_size = 32
     data_spec = DatasetSpecification(
         dataset_type=KuntzeRegressionDataset,
-        dataset_location=Path("data/kuntze/raw_data/exported_data_570_2024-10-01 00-00-00_to_2024-10-31 00-00-00.csv"),
-        transform=Compose([partial(torch.tensor, dtype=torch.float32)]),
-        target_transform=Compose([partial(torch.tensor, dtype=torch.float32)]),
+        dataset_location=Path(
+            ROOT_DIR
+            / "data/kuntze/raw_data/exported_data_570_2024-10-01 00-00-00_to_2024-10-31 00-00-00.csv"
+        ),
         train_val_test_ratio=[0.7, 0.1, 0.2],
         shuffle=False,
         split_seed=42,

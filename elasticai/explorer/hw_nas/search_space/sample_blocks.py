@@ -21,6 +21,7 @@ spec.loader.exec_module(settings)
 
 ROOT_DIR = settings.ROOT_DIR
 
+
 class RepeatType(Enum):
     REPEAT_OP = "repeat_op"
     REPEAT_PARAMS = "repeat_params"
@@ -371,7 +372,7 @@ def objective(trial, search_space):
 
 
 if __name__ == "__main__":
-    search_space = yaml.safe_load(open(ROOT_DIR / "kuntze_sp.yaml"))
+    search_space = yaml.safe_load(open(ROOT_DIR / "search_space.yaml"))
 
     sampler = RandomSampler(seed=1)
     study = optuna.create_study(

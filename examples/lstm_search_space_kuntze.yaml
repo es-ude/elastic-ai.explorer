@@ -4,7 +4,7 @@ sequence:
   - block: "1"
     type_repeat:
       type: "repeat_op"
-      depth: [ 1, 2 ]
+      depth: [ 1]
     op_candidates: [ "lstm" ]
     lstm:
       hidden_size: [ 10, 15, 20 ]
