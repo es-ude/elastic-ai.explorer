@@ -2,8 +2,12 @@ from abc import abstractmethod, ABC
 
 from torch import nn as nn
 
-from elasticai.explorer.hw_nas.search_space.architecture_components import GaussianDropout, RepeatVector, \
-    TimeDistributed, SimpleLSTM
+from elasticai.explorer.hw_nas.search_space.architecture_components import (
+    GaussianDropout,
+    RepeatVector,
+    TimeDistributed,
+    SimpleLSTM,
+)
 from elasticai.explorer.hw_nas.search_space.registry import activation_mapping
 from elasticai.explorer.hw_nas.search_space.utils import calculate_output_shape
 
