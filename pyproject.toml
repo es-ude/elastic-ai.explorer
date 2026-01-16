@@ -2,9 +2,9 @@
 name = "elastic-ai.explorer"
 version = "0.1.0"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
-authors = [{ name = "Department Intelligent Embedded Systems - University Duisburg Essen" }]
+authors = [{ name = "Intelligent Embedded Systems Lab, University Duisburg Essen" }]
 readme = "README.md"
-license = "LICENSE"
+license = "MIT"
 
 requires-python = ">=3.11"
 dependencies = [
@@ -26,9 +26,6 @@ dependencies = [
     "tflite>=2.18.0",
 ]
 
-# Same as Black.
-line-length = 88
-indent-width = 4
 
 [dependency-groups]
 dev = [
@@ -41,9 +38,11 @@ dev = [
     "pip<23"
 ]
 
-
+[tool.setuptools.packages.find]
+include = ["elasticai*"]
 
 [tool.uv]
+package = true
 default-groups = ["dev"]
 override-dependencies = ["tf-nightly; sys_platform == 'never'",]
 [tool.uv.sources]
