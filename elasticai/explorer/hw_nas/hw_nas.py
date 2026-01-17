@@ -30,12 +30,12 @@ class SearchAlgorithm(Enum):
 def apply_constraints(trial, flops, params, constraints):
     max_flops = constraints.get("max_flops")
     max_params = constraints.get("max_params")
-    if max_flops and flops > max_flops:
+    if max_flops and flops > float(max_flops):
         logger.info(
             f"Trial {trial.number} pruned because flops {flops} > max_flops {max_flops}"
         )
         raise optuna.TrialPruned()
-    if max_params and params > max_params:
+    if max_params and params > float(max_params):
         logger.info(
             f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
         )

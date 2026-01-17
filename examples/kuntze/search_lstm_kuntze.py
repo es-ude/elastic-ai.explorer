@@ -1,11 +1,8 @@
 from typing import Optional, Callable, Union
-from functools import partial
 
-import torch
 import pandas as pd
 from matplotlib import pyplot as plt
-from torch import nn
-from torchvision.transforms import Compose
+import torch
 
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
@@ -22,7 +19,7 @@ from elasticai.explorer.training.trainer import SupervisedTrainer
 from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
 
-settings_path = Path(__file__).resolve().parents[1] / "settings.py"
+settings_path = Path(__file__).resolve().parents[2] / "settings.py"
 spec = spec_from_file_location("settings", settings_path)
 settings = module_from_spec(spec)
 spec.loader.exec_module(settings)
@@ -100,7 +97,7 @@ def validate(model, test_loader):
     preds = []
     targets = []
     total_loss = 0
-    criterion = nn.L1Loss()
+    criterion = torch.nn.L1Loss()
     with torch.no_grad():
         for seqs, target in test_loader:
             output = model(seqs)
@@ -111,20 +108,18 @@ def validate(model, test_loader):
 
             loss = criterion(output, target)
             total_loss += loss.item()
-    print(preds)
-    print(targets)
-    print(len(test_loader))
-    print(total_loss / len(test_loader))
+    print("Total loss:", total_loss / len(test_loader))
     # Plot
-    plt.plot(targets, label="True")
-    plt.plot(preds, label="Predicted")
+    plt.plot(targets, label="True", linewidth=0.5, alpha=0.7)
+    plt.plot(preds, label="Predicted", linewidth=0.5, alpha=0.7)
+    plt.plot(list((t - p) for t, p in zip(targets, preds)), label="Difference", linewidth=0.5, alpha=0.5)
     plt.legend()
     plt.title("Cl2 Prediction")
-    plt.show()
+    plt.savefig(ROOT_DIR / "examples/kuntze/experiments/lstm_model.svg", format='svg')
 
 
 def run_lstm_search():
-    search_space = Path(ROOT_DIR / "examples/lstm_search_space_kuntze.yaml")
+    search_space = Path(ROOT_DIR / "examples/kuntze/config/lstm_search_space_kuntze.yaml")
 
     batch_size = 32
     data_spec = DatasetSpecification(
@@ -138,32 +133,45 @@ def run_lstm_search():
         split_seed=42,
     )
     trainer = SupervisedTrainer(
-        "cpu",
+        "cuda",
         dataset_spec=data_spec,
         batch_size=batch_size,
-        loss_fn=nn.L1Loss(),
+        loss_fn=torch.nn.L1Loss(),
         extra_metrics={},
     )
     search_space_cfg = yaml_to_dict(search_space)
     top_models, _, _ = hw_nas.search(
         search_space_cfg,
-        HWNASConfig(),
+        HWNASConfig(ROOT_DIR / "examples/kuntze/config/hwnas_config.yaml"),
         trainer=trainer,
     )
+
+    for n, model in enumerate(top_models):
+        with open(ROOT_DIR / f"examples/kuntze/experiments/top_model_{n}.txt", "w") as f:
+            print(top_models[n], file=f)
+    
     model = top_models[0]
-    print(model)
+    
     trainer = SupervisedTrainer(
-        "cpu",
+        "cuda",
         dataset_spec=data_spec,
         batch_size=batch_size,
-        loss_fn=nn.L1Loss(),
+        loss_fn=torch.nn.L1Loss(),
         extra_metrics={},
     )
     trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
     trainer.train(model, epochs=50, early_stopping=True)
+
+    model.to("cpu")
     validate(model, trainer.test_loader)
+
+    torch.save(
+        model.state_dict(),
+        ROOT_DIR / "examples/kuntze/experiments/lstm_model_0.pt",
+    )
+
     generator = RPiGenerator()
-    generator.generate(model, ROOT_DIR / "experiments/lstm_model")
+    generator.generate(model, ROOT_DIR / "examples/kuntze/experiments/lstm_model_0_rpi")
 
 
 if __name__ == "__main__":
