@@ -15,7 +15,7 @@ sequence:
     op_candidates: ["linear", "conv1d"]
     type_repeat:
       type: "repeat_op"
-      depth: [1, 2]
+      depth: [1]
     linear:
       activation: ["relu", "tanh"]
       width: [15, 30]

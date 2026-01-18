@@ -115,7 +115,7 @@ def validate(model, test_loader):
     plt.plot(list((t - p) for t, p in zip(targets, preds)), label="Difference", linewidth=0.5, alpha=0.5)
     plt.legend()
     plt.title("Cl2 Prediction")
-    plt.savefig(ROOT_DIR / "examples/kuntze/experiments/lstm_model.svg", format='svg')
+    plt.savefig(ROOT_DIR / "examples/kuntze/results/lstm_model.svg", format='svg')
 
 
 def run_lstm_search():
@@ -147,7 +147,7 @@ def run_lstm_search():
     )
 
     for n, model in enumerate(top_models):
-        with open(ROOT_DIR / f"examples/kuntze/experiments/top_model_{n}.txt", "w") as f:
+        with open(ROOT_DIR / f"examples/kuntze/results/top_model_{n}.txt", "w") as f:
             print(top_models[n], file=f)
     
     model = top_models[0]
@@ -167,11 +167,11 @@ def run_lstm_search():
 
     torch.save(
         model.state_dict(),
-        ROOT_DIR / "examples/kuntze/experiments/lstm_model_0.pt",
+        ROOT_DIR / "examples/kuntze/results/lstm_model_0.pt",
     )
 
     generator = RPiGenerator()
-    generator.generate(model, ROOT_DIR / "examples/kuntze/experiments/lstm_model_0_rpi")
+    generator.generate(model, ROOT_DIR / "examples/kuntze/results/lstm_model_0_rpi")
 
 
 if __name__ == "__main__":

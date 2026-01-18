@@ -1,0 +1,17 @@
+Sequential(
+  (0): SimpleLSTM(
+    (lstm): LSTM(4, 15, num_layers=2, batch_first=True)
+  )
+  (1): LSTMNoSequenceAdapter()
+  (2): Sequential(
+    (0): Linear(in_features=15, out_features=30, bias=True)
+    (1): ReLU()
+  )
+  (3): ToLinearAdapter(
+    (layer): Flatten(start_dim=1, end_dim=-1)
+  )
+  (4): Sequential(
+    (0): Linear(in_features=30, out_features=1, bias=True)
+    (1): Identity()
+  )
+)
