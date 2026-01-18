@@ -1,11 +1,36 @@
 from abc import ABC, abstractmethod
 import logging
 from typing import Any, Tuple, Callable
+import math
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset, random_split
 from torch.optim.optimizer import Optimizer
-from elasticai.explorer.training.data import DatasetSpecification
+from elasticai.explorer.training.data import DatasetSpecification, MultivariateTimeseriesDataset
+
+def temporal_train_val_test_split(dataset, ratios):
+    ratios = [float(r) for r in ratios]
+
+    if not math.isclose(sum(ratios), 1.0, rel_tol=1e-9):
+        raise ValueError("train_val_test_ratio must sum to 1.0")
+
+    N = len(dataset)
+
+    n_train = int(N * ratios[0])
+    n_val   = int(N * ratios[1])
+    n_test  = N - n_train - n_val  # Rest
+
+    indices = list(range(N))
+
+    train_idx = indices[:n_train]
+    val_idx   = indices[n_train:n_train + n_val]
+    test_idx  = indices[n_train + n_val:]
+
+    return (
+        Subset(dataset, train_idx),
+        Subset(dataset, val_idx),
+        Subset(dataset, test_idx),
+    )
 
 
 class Trainer(ABC):
@@ -25,20 +50,26 @@ class Trainer(ABC):
         self.batch_size = batch_size
         self.extra_metrics = extra_metrics
 
-        dataset = dataset_spec.dataset_type(
+        self.dataset = dataset_spec.dataset_type(
             dataset_spec.dataset_location,
             transform=dataset_spec.transform,
             target_transform=dataset_spec.target_transform,
         )
 
-        train_subset, val_subset, test_subset = random_split(
-            dataset,
-            dataset_spec.train_val_test_ratio,
-            generator=torch.Generator().manual_seed(dataset_spec.split_seed),
-        )
+        if issubclass(dataset_spec.dataset_type, MultivariateTimeseriesDataset):
+            train_subset, val_subset, test_subset = temporal_train_val_test_split(
+                self.dataset,
+                dataset_spec.train_val_test_ratio,
+            )
+        else:
+            train_subset, val_subset, test_subset = random_split(
+                self.dataset,
+                dataset_spec.train_val_test_ratio,
+                generator=torch.Generator().manual_seed(dataset_spec.split_seed),
+            )
 
         self.train_loader = DataLoader(
-            train_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
+            train_subset, batch_size=batch_size, shuffle=True   # TODO: Always shuffle training data?
         )
         self.val_loader = DataLoader(
             val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
