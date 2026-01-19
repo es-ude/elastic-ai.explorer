@@ -1,0 +1,10 @@
+Sequential(
+  (0): SimpleLSTM(
+    (lstm): LSTM(4, 20, num_layers=2, batch_first=True, dropout=0.4)
+  )
+  (1): LSTMNoSequenceAdapter()
+  (2): Sequential(
+    (0): Linear(in_features=20, out_features=1, bias=True)
+    (1): Identity()
+  )
+)

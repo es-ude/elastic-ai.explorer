@@ -1,0 +1,508 @@
+2026-01-18 22:58:08.989435: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:354: UserWarning: Device capability of jax unspecified, assuming `cpu` and `cuda`. Please specify it via the `devices` argument of `register_backend`.
+  warnings.warn(
+[I 2026-01-18 22:58:12,626] A new study created in memory with name: no-name-b5a9b29c-84d7-433e-adad-58ae362315c9
+
+  0%|          | 0/36 [00:00<?, ?it/s]                                        0%|          | 0/36 [02:52<?, ?it/s]Best trial: 0. Best value: -0.0147981:   0%|          | 0/36 [02:53<?, ?it/s]Best trial: 0. Best value: -0.0147981:   3%|▎         | 1/36 [02:53<1:41:01, 173.19s/it]                                                                                        Best trial: 0. Best value: -0.0147981:   3%|▎         | 1/36 [05:48<1:41:01, 173.19s/it]Best trial: 1. Best value: -0.0107654:   3%|▎         | 1/36 [05:48<1:41:01, 173.19s/it]Best trial: 1. Best value: -0.0107654:   6%|▌         | 2/36 [05:48<1:38:55, 174.58s/it]                                                                                        Best trial: 1. Best value: -0.0107654:   6%|▌         | 2/36 [08:30<1:38:55, 174.58s/it]Best trial: 1. Best value: -0.0107654:   6%|▌         | 2/36 [08:30<1:38:55, 174.58s/it]Best trial: 1. Best value: -0.0107654:   8%|▊         | 3/36 [08:30<1:32:52, 168.88s/it]                                                                                        Best trial: 1. Best value: -0.0107654:   8%|▊         | 3/36 [11:30<1:32:52, 168.88s/it]Best trial: 1. Best value: -0.0107654:   8%|▊         | 3/36 [11:30<1:32:52, 168.88s/it]Best trial: 1. Best value: -0.0107654:  11%|█         | 4/36 [11:30<1:32:20, 173.15s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.4 and num_layers=1
+  warnings.warn(
+                                                                                        Best trial: 1. Best value: -0.0107654:  11%|█         | 4/36 [13:29<1:32:20, 173.15s/it]Best trial: 1. Best value: -0.0107654:  11%|█         | 4/36 [13:29<1:32:20, 173.15s/it]Best trial: 1. Best value: -0.0107654:  14%|█▍        | 5/36 [13:29<1:19:20, 153.57s/it]                                                                                        Best trial: 1. Best value: -0.0107654:  14%|█▍        | 5/36 [16:04<1:19:20, 153.57s/it]Best trial: 1. Best value: -0.0107654:  14%|█▍        | 5/36 [16:04<1:19:20, 153.57s/it]Best trial: 1. Best value: -0.0107654:  17%|█▋        | 6/36 [16:04<1:17:06, 154.23s/it]1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:01:05,518] Trial 0 finished with value: -0.014798143023345605 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 0 with value: -0.014798143023345605.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:04:01,053] Trial 1 finished with value: -0.0107653685866437 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:06:43,157] Trial 2 finished with value: -0.6917552463006326 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:09:42,859] Trial 3 finished with value: -0.011009615578305211 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:11:41,712] Trial 4 finished with value: -0.016580667084042267 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:14:17,222] Trial 5 finished with value: -0.011059136278130256 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+                                                                                        Best trial: 1. Best value: -0.0107654:  17%|█▋        | 6/36 [18:03<1:17:06, 154.23s/it]Best trial: 1. Best value: -0.0107654:  17%|█▋        | 6/36 [18:03<1:17:06, 154.23s/it]Best trial: 1. Best value: -0.0107654:  19%|█▉        | 7/36 [18:03<1:08:53, 142.54s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+                                                                                        Best trial: 1. Best value: -0.0107654:  19%|█▉        | 7/36 [20:03<1:08:53, 142.54s/it]Best trial: 1. Best value: -0.0107654:  19%|█▉        | 7/36 [20:03<1:08:53, 142.54s/it]Best trial: 1. Best value: -0.0107654:  22%|██▏       | 8/36 [20:03<1:03:11, 135.41s/it]                                                                                        Best trial: 1. Best value: -0.0107654:  22%|██▏       | 8/36 [22:41<1:03:11, 135.41s/it]Best trial: 1. Best value: -0.0107654:  22%|██▏       | 8/36 [22:42<1:03:11, 135.41s/it]Best trial: 1. Best value: -0.0107654:  25%|██▌       | 9/36 [22:42<1:04:12, 142.68s/it]                                                                                        Best trial: 1. Best value: -0.0107654:  25%|██▌       | 9/36 [25:20<1:04:12, 142.68s/it]Best trial: 9. Best value: -0.00984088:  25%|██▌       | 9/36 [25:20<1:04:12, 142.68s/it]Best trial: 9. Best value: -0.00984088:  28%|██▊       | 10/36 [25:20<1:03:56, 147.56s/it]                                                                                          Best trial: 9. Best value: -0.00984088:  28%|██▊       | 10/36 [27:18<1:03:56, 147.56s/it]Best trial: 9. Best value: -0.00984088:  28%|██▊       | 10/36 [27:19<1:03:56, 147.56s/it]Best trial: 9. Best value: -0.00984088:  31%|███       | 11/36 [27:19<57:46, 138.65s/it]                                                                                          Best trial: 9. Best value: -0.00984088:  31%|███       | 11/36 [29:58<57:46, 138.65s/it]Best trial: 9. Best value: -0.00984088:  31%|███       | 11/36 [29:59<57:46, 138.65s/it]Best trial: 9. Best value: -0.00984088:  33%|███▎      | 12/36 [29:59<58:04, 145.19s/it]
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:16:15,705] Trial 6 finished with value: -0.01796869780691962 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:18:15,835] Trial 7 finished with value: -0.014318742189772941 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:20:54,517] Trial 8 finished with value: -0.13375558066102566 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 1 with value: -0.0107653685866437.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:23:32,981] Trial 9 finished with value: -0.009840879614164926 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 9 with value: -0.009840879614164926.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.0}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:25:31,448] Trial 10 finished with value: -0.015397277670738103 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 9 with value: -0.009840879614164926.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:28:11,584] Trial 11 finished with value: -0.07516318193633781 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 9 with value: -0.009840879614164926.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}}
+[90, 25]
+                                                                                        Best trial: 9. Best value: -0.00984088:  33%|███▎      | 12/36 [32:57<58:04, 145.19s/it]Best trial: 9. Best value: -0.00984088:  33%|███▎      | 12/36 [32:58<58:04, 145.19s/it]Best trial: 9. Best value: -0.00984088:  36%|███▌      | 13/36 [32:58<59:34, 155.39s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.4 and num_layers=1
+  warnings.warn(
+                                                                                        Best trial: 9. Best value: -0.00984088:  36%|███▌      | 13/36 [34:58<59:34, 155.39s/it]Best trial: 9. Best value: -0.00984088:  36%|███▌      | 13/36 [34:58<59:34, 155.39s/it]Best trial: 9. Best value: -0.00984088:  39%|███▉      | 14/36 [34:58<53:05, 144.81s/it]                                                                                        Best trial: 9. Best value: -0.00984088:  39%|███▉      | 14/36 [36:55<53:05, 144.81s/it]Best trial: 14. Best value: -0.00977384:  39%|███▉      | 14/36 [36:55<53:05, 144.81s/it]Best trial: 14. Best value: -0.00977384:  42%|████▏     | 15/36 [36:55<47:45, 136.46s/it]                                                                                         Best trial: 14. Best value: -0.00977384:  42%|████▏     | 15/36 [39:34<47:45, 136.46s/it]Best trial: 15. Best value: -0.00866912:  42%|████▏     | 15/36 [39:34<47:45, 136.46s/it]Best trial: 15. Best value: -0.00866912:  44%|████▍     | 16/36 [39:34<47:43, 143.17s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+                                                                                         Best trial: 15. Best value: -0.00866912:  44%|████▍     | 16/36 [41:33<47:43, 143.17s/it]Best trial: 15. Best value: -0.00866912:  44%|████▍     | 16/36 [41:33<47:43, 143.17s/it]Best trial: 15. Best value: -0.00866912:  47%|████▋     | 17/36 [41:33<43:03, 135.99s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.4 and num_layers=1
+  warnings.warn(
+                                                                                         Best trial: 15. Best value: -0.00866912:  47%|████▋     | 17/36 [43:32<43:03, 135.99s/it]Best trial: 15. Best value: -0.00866912:  47%|████▋     | 17/36 [43:32<43:03, 135.99s/it]Best trial: 15. Best value: -0.00866912:  50%|█████     | 18/36 [43:32<39:16, 130.91s/it]                                                                                         block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:31:10,454] Trial 12 finished with value: -0.010303935818297102 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 9 with value: -0.009840879614164926.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:33:10,812] Trial 13 finished with value: -0.014694580215952843 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 9 with value: -0.009840879614164926.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.0}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:35:07,916] Trial 14 finished with value: -0.00977383667140515 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 14 with value: -0.00977383667140515.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:37:46,668] Trial 15 finished with value: -0.00866912032198822 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:39:45,949] Trial 16 finished with value: -0.013732804773786796 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:41:45,032] Trial 17 finished with value: -0.013267169701984183 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.4}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:44:37,290] Trial 18 finished with value: -0.012311646581561322 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.Best trial: 15. Best value: -0.00866912:  50%|█████     | 18/36 [46:24<39:16, 130.91s/it]Best trial: 15. Best value: -0.00866912:  50%|█████     | 18/36 [46:24<39:16, 130.91s/it]Best trial: 15. Best value: -0.00866912:  53%|█████▎    | 19/36 [46:24<40:36, 143.33s/it]                                                                                         Best trial: 15. Best value: -0.00866912:  53%|█████▎    | 19/36 [49:21<40:36, 143.33s/it]Best trial: 15. Best value: -0.00866912:  53%|█████▎    | 19/36 [49:22<40:36, 143.33s/it]Best trial: 15. Best value: -0.00866912:  56%|█████▌    | 20/36 [49:22<40:55, 153.49s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.4 and num_layers=1
+  warnings.warn(
+                                                                                         Best trial: 15. Best value: -0.00866912:  56%|█████▌    | 20/36 [51:20<40:55, 153.49s/it]Best trial: 15. Best value: -0.00866912:  56%|█████▌    | 20/36 [51:20<40:55, 153.49s/it]Best trial: 15. Best value: -0.00866912:  58%|█████▊    | 21/36 [51:20<35:44, 142.94s/it]                                                                                         Best trial: 15. Best value: -0.00866912:  58%|█████▊    | 21/36 [54:17<35:44, 142.94s/it]Best trial: 15. Best value: -0.00866912:  58%|█████▊    | 21/36 [54:18<35:44, 142.94s/it]Best trial: 15. Best value: -0.00866912:  61%|██████    | 22/36 [54:18<35:47, 153.38s/it]                                                                                         Best trial: 15. Best value: -0.00866912:  61%|██████    | 22/36 [57:15<35:47, 153.38s/it]Best trial: 15. Best value: -0.00866912:  61%|██████    | 22/36 [57:15<35:47, 153.38s/it]Best trial: 15. Best value: -0.00866912:  64%|██████▍   | 23/36 [57:15<34:47, 160.55s/it]                                                                                         Best trial: 15. Best value: -0.00866912:  64%|██████▍   | 23/36 [59:51<34:47, 160.55s/it]Best trial: 15. Best value: -0.00866912:  64%|██████▍   | 23/36 [59:51<34:47, 160.55s/it]Best trial: 15. Best value: -0.00866912:  67%|██████▋   | 24/36 [59:51<31:49, 159.16s/it]                                                                                         Best trial: 15. Best value: -0.00866912:  67%|██████▋   | 24/36 [1:02:48<31:49, 159.16s/it]Best trial: 15. Best value: -0.00866912:  67%|██████▋   | 24/36 [1:02:48<31:49, 159.16s/it]Best trial: 15. Best value: -0.00866912:  69%|██████▉   | 25/36 [1:02:48<30:11, 164.67s/it]
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:47:34,477] Trial 19 finished with value: -0.18820526077470687 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:49:32,824] Trial 20 finished with value: -0.009590372814922412 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:52:30,555] Trial 21 finished with value: -0.008984853572901052 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.4}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:55:27,805] Trial 22 finished with value: -0.4446325319112697 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-18 23:58:03,717] Trial 23 finished with value: -0.009049722999273292 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:01:01,266] Trial 24 finished with value: -0.009189223006169691 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}                                                                                           Best trial: 15. Best value: -0.00866912:  69%|██████▉   | 25/36 [1:04:45<30:11, 164.67s/it]Best trial: 15. Best value: -0.00866912:  69%|██████▉   | 25/36 [1:04:45<30:11, 164.67s/it]Best trial: 15. Best value: -0.00866912:  72%|███████▏  | 26/36 [1:04:45<25:03, 150.32s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.4 and num_layers=1
+  warnings.warn(
+                                                                                           Best trial: 15. Best value: -0.00866912:  72%|███████▏  | 26/36 [1:06:46<25:03, 150.32s/it]Best trial: 15. Best value: -0.00866912:  72%|███████▏  | 26/36 [1:06:46<25:03, 150.32s/it]Best trial: 15. Best value: -0.00866912:  75%|███████▌  | 27/36 [1:06:46<21:13, 141.46s/it]                                                                                           Best trial: 15. Best value: -0.00866912:  75%|███████▌  | 27/36 [1:09:43<21:13, 141.46s/it]Best trial: 15. Best value: -0.00866912:  75%|███████▌  | 27/36 [1:09:43<21:13, 141.46s/it]Best trial: 15. Best value: -0.00866912:  78%|███████▊  | 28/36 [1:09:43<20:17, 152.18s/it]                                                                                           Best trial: 15. Best value: -0.00866912:  78%|███████▊  | 28/36 [1:12:23<20:17, 152.18s/it]Best trial: 15. Best value: -0.00866912:  78%|███████▊  | 28/36 [1:12:24<20:17, 152.18s/it]Best trial: 15. Best value: -0.00866912:  81%|████████  | 29/36 [1:12:24<18:02, 154.65s/it]                                                                                           Best trial: 15. Best value: -0.00866912:  81%|████████  | 29/36 [1:15:01<18:02, 154.65s/it]Best trial: 15. Best value: -0.00866912:  81%|████████  | 29/36 [1:15:01<18:02, 154.65s/it]Best trial: 15. Best value: -0.00866912:  83%|████████▎ | 30/36 [1:15:01<15:33, 155.54s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+                                                                                           Best trial: 15. Best value: -0.00866912:  83%|████████▎ | 30/36 [1:16:59<15:33, 155.54s/it]Best trial: 15. Best value: -0.00866912:  83%|████████▎ | 30/36 [1:16:59<15:33, 155.54s/it]Best trial: 15. Best value: -0.00866912:  86%|████████▌ | 31/36 [1:16:59<12:01, 144.20s/it]
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.0}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:02:58,085] Trial 25 finished with value: -0.016357768186663776 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:04:58,867] Trial 26 finished with value: -0.014569064261037037 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.4}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:07:56,073] Trial 27 finished with value: -0.5843085530067902 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:10:36,470] Trial 28 finished with value: -0.025113149647471904 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:13:14,086] Trial 29 finished with value: -0.025158459332955012 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.2}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:15:11,847] Trial 30 finished with value: -0.018545972097396588 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}}                                                                                           Best trial: 15. Best value: -0.00866912:  86%|████████▌ | 31/36 [1:19:35<12:01, 144.20s/it]Best trial: 15. Best value: -0.00866912:  86%|████████▌ | 31/36 [1:19:36<12:01, 144.20s/it]Best trial: 15. Best value: -0.00866912:  89%|████████▉ | 32/36 [1:19:36<09:51, 147.94s/it]                                                                                           Best trial: 15. Best value: -0.00866912:  89%|████████▉ | 32/36 [1:22:33<09:51, 147.94s/it]Best trial: 15. Best value: -0.00866912:  89%|████████▉ | 32/36 [1:22:33<09:51, 147.94s/it]Best trial: 15. Best value: -0.00866912:  92%|█████████▏| 33/36 [1:22:33<07:50, 156.79s/it]                                                                                           Best trial: 15. Best value: -0.00866912:  92%|█████████▏| 33/36 [1:25:31<07:50, 156.79s/it]Best trial: 15. Best value: -0.00866912:  92%|█████████▏| 33/36 [1:25:32<07:50, 156.79s/it]Best trial: 15. Best value: -0.00866912:  94%|█████████▍| 34/36 [1:25:32<05:26, 163.30s/it]                                                                                           Best trial: 15. Best value: -0.00866912:  94%|█████████▍| 34/36 [1:28:05<05:26, 163.30s/it]Best trial: 15. Best value: -0.00866912:  94%|█████████▍| 34/36 [1:28:06<05:26, 163.30s/it]Best trial: 15. Best value: -0.00866912:  97%|█████████▋| 35/36 [1:28:06<02:40, 160.52s/it]/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.4 and num_layers=1
+  warnings.warn(
+                                                                                           Best trial: 15. Best value: -0.00866912:  97%|█████████▋| 35/36 [1:30:04<02:40, 160.52s/it]Best trial: 15. Best value: -0.00866912:  97%|█████████▋| 35/36 [1:30:05<02:40, 160.52s/it]Best trial: 15. Best value: -0.00866912: 100%|██████████| 36/36 [1:30:05<00:00, 148.08s/it]Best trial: 15. Best value: -0.00866912: 100%|██████████| 36/36 [1:30:05<00:00, 150.14s/it]
+
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:17:48,521] Trial 31 finished with value: -0.013451753025196422 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:20:45,934] Trial 32 finished with value: -0.012106368096287878 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:23:44,440] Trial 33 finished with value: -0.08010137268119828 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.2}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:26:18,460] Trial 34 finished with value: -0.01731490295332137 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 25, 'num_layers': 1, 'bidirectional': False, 'dropout': 0.4}}
+[90, 25]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 00:28:17,532] Trial 35 finished with value: -0.012046627962754198 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 25, 'num_layers_b1_l0': 1, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 15 with value: -0.00866912032198822.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+Total loss: 3.0429162771384615

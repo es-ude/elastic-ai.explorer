@@ -1,0 +1,84 @@
+2026-01-19 13:43:29.167646: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:354: UserWarning: Device capability of jax unspecified, assuming `cpu` and `cuda`. Please specify it via the `devices` argument of `register_backend`.
+  warnings.warn(
+[I 2026-01-19 13:43:32,716] A new study created in memory with name: no-name-67ce9b74-1c83-430b-a779-1676b1eee4bb
+  0%|          | 0/3 [00:00<?, ?it/s]                                       0%|          | 0/3 [00:37<?, ?it/s]Best trial: 0. Best value: -0.0117:   0%|          | 0/3 [00:37<?, ?it/s]Best trial: 0. Best value: -0.0117:  33%|███▎      | 1/3 [00:37<01:15, 37.98s/it]                                                                                 Best trial: 0. Best value: -0.0117:  33%|███▎      | 1/3 [01:15<01:15, 37.98s/it]Best trial: 0. Best value: -0.0117:  33%|███▎      | 1/3 [01:15<01:15, 37.98s/it]Best trial: 0. Best value: -0.0117:  67%|██████▋   | 2/3 [01:15<00:37, 37.99s/it]                                                                                 Best trial: 0. Best value: -0.0117:  67%|██████▋   | 2/3 [01:48<00:37, 37.99s/it]Best trial: 2. Best value: -0.00950688:  67%|██████▋   | 2/3 [01:48<00:37, 37.99s/it]Best trial: 2. Best value: -0.00950688: 100%|██████████| 3/3 [01:48<00:00, 35.50s/it]Best trial: 2. Best value: -0.00950688: 100%|██████████| 3/3 [01:48<00:00, 36.17s/it]
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity']}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity'}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity'}}
+1
+[I 2026-01-19 13:44:10,375] Trial 0 finished with value: -0.011700009389980332 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 15, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity'}. Best is trial 0 with value: -0.011700009389980332.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity']}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity'}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity'}}
+1
+[I 2026-01-19 13:44:48,370] Trial 1 finished with value: -0.014458623462359627 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 3, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.2, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity'}. Best is trial 0 with value: -0.011700009389980332.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity']}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity'}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity'}}
+1
+[I 2026-01-19 13:45:20,933] Trial 2 finished with value: -0.009506884087894414 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 20, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.4, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity'}. Best is trial 2 with value: -0.009506884087894414.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity']}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.4}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity'}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity'}}
+1
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity']}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 15, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.0}}
+[90, 15]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity'}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity'}}
+1
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10, 15, 20, 25], 'num_layers': [1, 2, 3], 'bidirectional': [False], 'dropout': [0.0, 0.2, 0.4]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity']}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 20, 'num_layers': 3, 'bidirectional': False, 'dropout': 0.2}}
+[90, 20]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity'}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity'}}
+1
+Total loss: 0.07761910570591839
+Total loss: 0.4761502865066683
+Total loss: 0.06273937374046044

@@ -1,0 +1,32 @@
+2026-01-19 09:58:11.914717: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/homes/sjchring/Git/elastic-ai.explorer/.venv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:354: UserWarning: Device capability of jax unspecified, assuming `cpu` and `cuda`. Please specify it via the `devices` argument of `register_backend`.
+  warnings.warn(
+[I 2026-01-19 09:58:15,450] A new study created in memory with name: no-name-898cf112-f565-4b71-9412-a4564346f001
+  0%|          | 0/1 [00:00<?, ?it/s]                                       0%|          | 0/1 [00:33<?, ?it/s]Best trial: 0. Best value: -0.0102173:   0%|          | 0/1 [00:33<?, ?it/s]Best trial: 0. Best value: -0.0102173: 100%|██████████| 1/1 [00:33<00:00, 33.40s/it]Best trial: 0. Best value: -0.0102173: 100%|██████████| 1/1 [00:33<00:00, 33.40s/it]
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10], 'num_layers': [2], 'bidirectional': [False], 'dropout': [0.0]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+[I 2026-01-19 09:58:48,557] Trial 0 finished with value: -0.010217292989705737 and parameters: {'operation_b1': 'lstm', 'depth_b1': 1, 'hidden_size_b1_l0': 10, 'num_layers_b1_l0': 2, 'bidirectional_b1_l0': False, 'dropout_b1_l0': 0.0, 'operation_b2': 'linear', 'depth_b2': 1, 'activation_b2_l0': 'identity', 'width_b2_l0': 10}. Best is trial 0 with value: -0.010217292989705737.
+1
+{'block': '1', 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'op_candidates': ['lstm'], 'lstm': {'hidden_size': [10], 'num_layers': [2], 'bidirectional': [False], 'dropout': [0.0]}}
+{'type': 'repeat_op', 'depth': [1]}
+2
+{'block': '2', 'op_candidates': ['linear'], 'type_repeat': {'type': 'repeat_op', 'depth': [1]}, 'linear': {'activation': ['identity'], 'width': [10]}}
+{'type': 'repeat_op', 'depth': [1]}
+block1 hereOrderedDict([('1_0', {'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}})])
+layer_index 1_0 here{'operation': 'lstm', 'params': {'hidden_size': 10, 'num_layers': 2, 'bidirectional': False, 'dropout': 0.0}}
+[90, 10]
+block2 hereOrderedDict([('2_0', {'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}})])
+layer_index 2_0 here{'operation': 'linear', 'params': {'activation': 'identity', 'width': 10}}
+1
+Total loss: 0.04570564395238498
