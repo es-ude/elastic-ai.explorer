@@ -54,6 +54,7 @@ class ConvLayer(LayerBuilder):
     layer_type: str = None
 
     def build(self, input_shape, search_parameters: dict, output_shape=None):
+        activation = search_parameters.get("activation", None)
         output_shape = calculate_output_shape(
             input_shape,
             search_parameters["kernel_size"],
@@ -62,16 +63,21 @@ class ConvLayer(LayerBuilder):
             out_channels=search_parameters["out_channels"],
             layer_type=self.layer_type,
         )
-        return (
-            self.conv_class(
+        conv = self.conv_class(
                 input_shape[0],
                 search_parameters["out_channels"],
                 search_parameters["kernel_size"],
                 search_parameters.get("stride", 1),
                 search_parameters.get("padding", 0),
-            ),
-            output_shape,
-        )
+            )
+
+        if activation is not None:
+            return nn.Sequential(conv, activation_mapping[activation]), output_shape
+        else:
+            return (
+                conv,
+                output_shape,
+            )
 
 
 @register_layer("conv2d")
@@ -83,7 +89,7 @@ class Conv2dLayer(ConvLayer):
 
 
 @register_layer("conv1d")
-class Conv2dLayer(ConvLayer):
+class Conv1dLayer(ConvLayer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conv_class = nn.Conv1d
