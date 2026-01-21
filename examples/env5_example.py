@@ -1,5 +1,6 @@
 import logging.config
 from pathlib import Path
+import numpy as np
 import torch
 from typing import Any, Callable
 
@@ -43,7 +44,7 @@ logger = logging.getLogger("explorer.main")
 
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 BATCH_SIZE = 64
-INPUT_DIM = 2
+INPUT_DIM = 6
 
 
 class NotAndDataset(BaseDataset):
@@ -121,10 +122,11 @@ def create_example_dataset_spec(quantization_scheme):
     )
     fxp_conf = FxpArithmetic(fxp_params)
     return DatasetSpecification(
-        dataset_type=NotAndDataset,
+        dataset_type=SumDataset,
         dataset_location=Path(""),
         deployable_dataset_path=None,
-        transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
+        transform=lambda x: 
+            fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
         target_transform=None,
     )
 
@@ -132,7 +134,7 @@ def create_example_dataset_spec(quantization_scheme):
 def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
     correct = 0
     total = 0
-    num_bytes_outputs = 2
+    num_bytes_outputs = 4
     if not hw_manager.test_loader:
         raise TypeError("Testloader not defined.")
     if not hw_manager.quantization_scheme:
@@ -141,6 +143,7 @@ def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
         raise TypeError("Need Serialhost for this test.")
 
     for inputs_rational, target in hw_manager.test_loader:
+
         data_bytearray = parse_fxp_tensor_to_bytearray(
             inputs_rational,
             hw_manager.quantization_scheme.total_bits,
@@ -165,6 +168,96 @@ def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
         total += target.size(0)
 
     return {Metric.ACCURACY.value: {"value": 100.0 * correct / total, "unit": "%"}}
+
+
+def _run_validation_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
+    correct = 0
+    total = 0
+    num_bytes_outputs = 2
+    if not hw_manager.test_loader:
+        raise TypeError("Testloader not defined.")
+    if not hw_manager.quantization_scheme:
+        raise TypeError("Quantization Scheme is not defined")
+    if not isinstance(host, SerialHost):
+        raise TypeError("Need Serialhost for this test.")
+    val_input = torch.Tensor(
+        [
+            [5.2500, 14.2500],
+            [6.7500, -8.0000],
+            [-4.2500, 5.0000],
+            [15.0000, 3.5000],
+            [13.5000, 8.0000],
+            [9.5000, -11.5000],
+            [-5.0000, -10.2500],
+            [4.7500, -4.2500],
+            [-0.7500, 3.5000],
+            [13.2500, 4.5000],
+            [9.5000, -6.7500],
+            [-3.2500, -11.2500],
+            [4.5000, 10.2500],
+            [-10.5000, -6.7500],
+            [2.2500, 11.7500],
+            [5.0000, -5.0000],
+            [-11.7500, 14.0000],
+            [-15.0000, 1.2500],
+            [8.5000, -12.5000],
+            [0.0000, 2.7500],
+        ]
+    )
+    val_output = torch.Tensor(
+        [
+            [31.7500, -31.2500],
+            [-1.5000, 31.7500],
+            [6.0000, -31.2500],
+            [31.7500, 21.0000],
+            [31.7500, -10.0000],
+            [-4.7500, 31.7500],
+            [-28.7500, 31.7500],
+            [7.0000, 31.7500],
+            [17.5000, -22.2500],
+            [31.7500, 10.0000],
+            [20.0000, 31.7500],
+            [-28.7500, 31.7500],
+            [31.7500, -31.2500],
+            [-28.7500, 12.2500],
+            [31.7500, -31.2500],
+            [4.5000, 31.7500],
+            [12.0000, -31.2500],
+            [-28.7500, -31.2500],
+            [-15.5000, 31.7500],
+            [17.5000, -15.7500],
+        ]
+    )
+    fxp = FxpArithmetic(
+        FxpParams(
+            total_bits=hw_manager.quantization_scheme.total_bits,
+            frac_bits=hw_manager.quantization_scheme.frac_bits,
+        )
+    )
+
+    data_bytearray = parse_fxp_tensor_to_bytearray(
+        val_input,
+        hw_manager.quantization_scheme.total_bits,
+        hw_manager.quantization_scheme.frac_bits,
+    )
+    batch_results_bytes = []
+    for sample in data_bytearray:
+        result_bytes = host.send_data_bytes(
+            sample=sample,
+            num_bytes_outputs=num_bytes_outputs,
+        )
+        batch_results_bytes.append(result_bytes)
+
+    print(batch_results_bytes)
+
+    result = parse_bytearray_to_fxp_tensor(
+        batch_results_bytes,
+        hw_manager.quantization_scheme.total_bits,
+        hw_manager.quantization_scheme.frac_bits,
+        (20, num_bytes_outputs),
+    )
+    print(result)
+    return {Metric.ACCURACY.value: {"value": 100.0, "unit": "%"}}
 
 
 def _run_latency_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
@@ -201,7 +294,7 @@ def _run_latency_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
 
 def search_generate_measure_for_env5(
     explorer: Explorer,
-    rpi_type: str,
+    fpga_type: str,
     serial_params: SerialParams,
     compiler_params: VivadoParams,
     search_space_path: Path,
@@ -211,17 +304,16 @@ def search_generate_measure_for_env5(
 ):
 
     quantization_scheme = FixedPointInt8Scheme()
-    explorer.choose_target_hw(rpi_type, compiler_params, serial_params)
+    explorer.choose_target_hw(fpga_type, compiler_params, serial_params)
     explorer.generate_search_space(search_space_path)
     dataset_spec = create_example_dataset_spec(quantization_scheme)
     optimization_criteria = setup_example_optimization_criteria(
-        dataset_spec, device, (1, 1, INPUT_DIM)
+        dataset_spec, device, (1, INPUT_DIM)
     )
     top_models, top_quantization_schemes = explorer.search(
         search_strategy=SearchStrategy.RANDOM_SEARCH,
         optimization_criteria=optimization_criteria,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
-        model_builder=CreatorModelBuilder(),
     )
 
     metric_to_source = {
@@ -233,7 +325,7 @@ def search_generate_measure_for_env5(
         top_models=top_models,
         metric_to_source=metric_to_source,
         retrain_epochs=retrain_epochs,
-        device="cpu",
+        retrain_device="cpu",
         dataset_spec=dataset_spec,
         model_suffix="",
         top_quantization_schemes=top_quantization_schemes,
@@ -242,10 +334,10 @@ def search_generate_measure_for_env5(
 
 
 if __name__ == "__main__":
-    max_search_trials = 1
-    top_n_models = 1
+    max_search_trials = 4
+    top_n_models = 4
     retrain_epochs = 10
-    hw_platform = "env5_s15"
+    hw_platform = "env5_s50"
 
     # TODO obscure this
     compiler_params = VivadoParams(

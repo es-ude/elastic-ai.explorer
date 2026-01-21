@@ -50,7 +50,7 @@ override-dependencies = ["tf-nightly; sys_platform == 'never'",]
 [tool.uv.sources]
 iesude-data = { git = "https://github.com/es-ude/data.git" }
 elasticai-runtime-env5 = { git = "https://github.com/es-ude/elastic-ai.runtime.enV5.git", rev = "a9bc18749b1c1666828453a47c9c37f6f0aa2d61" }
-elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git" }
+elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git"}
 [tool.black]
 preview = true
 line-length = 88

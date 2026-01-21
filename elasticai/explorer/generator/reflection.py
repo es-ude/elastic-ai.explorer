@@ -39,7 +39,7 @@ class Reflective(ABC):
             supported_activations.append(type(activation))
         return supported_activations
 
-    def _validate_model(
+    def validate_model(
         self, model: torch.nn.Module, quantization_scheme: QuantizationScheme
     ):
         """Override if necessary"""

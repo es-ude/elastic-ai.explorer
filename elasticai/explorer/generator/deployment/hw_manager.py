@@ -44,6 +44,7 @@ class HWManager(ABC):
     def __init__(self, target: Host, compiler: Compiler):
         self.target = target
         self.compiler = compiler
+        self.path_to_executable = None
         self.dataset_spec: None | DatasetSpecification = None
         self.quantization_scheme: None | QuantizationScheme = None
         self.test_loader: None | DataLoader = None
@@ -77,15 +78,17 @@ class HWManager(ABC):
                 compiled = self.compiler.compile_code(src_path, src_path.parent)
             else:
                 compiled = src_path
+
             if isinstance(self.target, SSHHost):
-                self.target.put_file(local_path=compiled, remote_path=".")
-                cmd = f"./{Path(compiled).name} {path_to_model.name}"
-                out = self.target.run_command(cmd)
+                if compiled:
+                    self.target.put_file(local_path=compiled, remote_path=".")
+                    cmd = f"./{Path(compiled).name} {path_to_model.name}"
+                    out = self.target.run_command(cmd)
             elif isinstance(self.target, SerialHost):
                 path_to_executable = self.compiler.compile_code(source)
-                self.target.flash(local_path=path_to_executable)
-                out = self.target.receive()
-
+                if path_to_executable:
+                    self.target.flash(local_path=path_to_executable)
+                    out = self.target.receive()
             if out:
                 return json.loads(out)
             else:
@@ -255,7 +258,6 @@ class ENv5HWManager(HWManager):
         dataset_spec: DatasetSpecification,
         quantization_scheme: QuantizationScheme,
     ):
-        # this part will be improved by feat151
         super().prepare_dataset(dataset_spec, quantization_scheme)
         self.frac_bits = quantization_scheme.frac_bits
         self.total_bits = quantization_scheme.total_bits
@@ -281,7 +283,10 @@ class ENv5HWManager(HWManager):
         )
 
     def prepare_model(self, path_to_model: Path):
-        path_to_executable = self.compiler.compile_code(
-            path_to_model, path_to_model.parent
-        )
+        try:
+            self.path_to_executable = self.compiler.compile_code(
+                path_to_model, path_to_model.parent
+            )
+        except CompilerError:
+            self.path_to_executable = None
         self.target.flash(local_path=path_to_executable)

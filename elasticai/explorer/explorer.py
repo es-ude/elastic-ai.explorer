@@ -62,7 +62,7 @@ class Explorer:
         self.model_compiler: Optional[ModelCompiler] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
-        self.model_builder: Optional[ModelBuilder] = None
+        self.model_builder: ModelBuilder = DefaultModelBuilder()
 
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
@@ -113,8 +113,8 @@ class Explorer:
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
-        model_builder: ModelBuilder = DefaultModelBuilder(),
     ) -> tuple[list[Any], list[QuantizationScheme]]:
+
         self.logger.info(
             "Start Hardware NAS with %d number of trials searching for top %d models. ",
             hw_nas_parameters.max_search_trials,
@@ -126,7 +126,7 @@ class Explorer:
                 search_strategy=search_strategy,
                 hw_nas_parameters=hw_nas_parameters,
                 optimization_criteria=optimization_criteria,
-                model_builder=model_builder,
+                model_builder=self.model_builder,
             )
         else:
             self.logger.error(
@@ -168,6 +168,8 @@ class Explorer:
             self.generator.communication_protocol(communication_params),
             self.generator.compiler(compiler_params),
         )
+
+        self.model_builder = self.generator.model_builder()
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, Generator:\n%s",
             target_platform_name,
@@ -193,7 +195,7 @@ class Explorer:
         if not self.hw_manager:
 
             err = TypeError(
-                "HwManager is not initialized! First run choose_target_hw(deploy_cfg) before hw_setup_on_target()."
+                "HwManager is not initialized! First run choose_target_hw(...) before hw_setup_on_target(...)."
             )
             self.logger.error(err)
             raise err
@@ -212,7 +214,7 @@ class Explorer:
             self.logger.info(measurement)
         else:
             self.logger.error(
-                "HwManager is not initialized! First run choose_target_hw(deploy_cfg) and hw_setup_on_target(path_to_testdata), before run_measurement()."
+                "HwManager is not initialized! First run choose_target_hw(...) and hw_setup_on_target(...), before run_measurement(...)."
             )
             exit(-1)
         return measurement

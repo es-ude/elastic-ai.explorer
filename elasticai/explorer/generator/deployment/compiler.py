@@ -41,7 +41,7 @@ class Compiler(ABC):
         pass
 
     @abstractmethod
-    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path | None:
         pass
 
 
@@ -69,7 +69,7 @@ class RPICompiler(Compiler):
         )
         self.logger.debug("Crosscompiler available now.")
 
-    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path | None:
         context_path = self.compiler_params.build_context
         docker.build(
             context_path,
@@ -111,7 +111,7 @@ class PicoCompiler(Compiler):
             },
         )
 
-    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path | None:
         context_path = self.compiler_params.build_context
         docker.build(
             context_path=context_path,
@@ -142,7 +142,7 @@ class ENv5Compiler(Compiler):
     def is_setup(self) -> bool:
         return True
 
-    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path | None:
 
         if self.compiler_params.target_platform_name == "env5_s50":
             target = synthesis_utils.TargetPlatforms.env5_s50
@@ -155,13 +155,19 @@ class ENv5Compiler(Compiler):
             self.logger.error(err)
             raise err
 
-        path_to_bin_file = synthesis_utils.run_vhdl_synthesis(
-            src_dir=source,
-            remote_working_dir=self.compiler_params.remote_working_dir,
-            host=self.compiler_params.host,
-            ssh_user=self.compiler_params.ssh_user,
-            target=target,
-        )
+        try:
+            path_to_bin_file = synthesis_utils.run_vhdl_synthesis(
+                src_dir=source,
+                remote_working_dir=self.compiler_params.remote_working_dir,
+                host=self.compiler_params.host,
+                ssh_user=self.compiler_params.ssh_user,
+                target=target,
+            )
+        except Exception as e:
+            self.logger.error(e)
+            self.logger.info(f"The code from source {source}, could not be compiled!")
+
+            path_to_bin_file = None
 
         tar = tarfile.open(str(output_dir) + "/vivado_run_results.tar.gz")
         tar.extractall(output_dir)

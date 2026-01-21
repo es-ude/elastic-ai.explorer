@@ -28,7 +28,12 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 import elasticai.creator.nn as creator_nn
 from elasticai.creator.file_generation.on_disk_path import OnDiskPath
 from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
+from elasticai.creator.arithmetic import (
+    FxpArithmetic,
+    FxpParams,
+)
 
+from elasticai.creator.nn.fixed_point import MathOperations
 
 from elasticai.creator.nn import fixed_point
 
@@ -189,7 +194,7 @@ class CreatorModelCompiler(ModelCompiler):
         self.logger = logging.getLogger(
             "explorer.generator.model_compiler.model_compiler.CreatorModelCompiler"
         )
-        self.skeleton_id = [1 for i in range(16)]
+        self.skeleton_id = [2 for i in range(16)]
 
     def compile(
         self,
@@ -199,7 +204,8 @@ class CreatorModelCompiler(ModelCompiler):
         quantization_scheme: QuantizationScheme = FixedPointInt8Scheme(),
     ):
         destination = OnDiskPath(str(output_path), parent="")
-
+        features_in = len(input_sample)
+        features_out = len(model(input_sample))
         if not isinstance(model, creator_nn.Sequential):
             err = TypeError(
                 f"{type(model)} is not supported by the CreatorModelCompiler, best to build models with the CreatorModelBuilder!"
@@ -213,13 +219,13 @@ class CreatorModelCompiler(ModelCompiler):
 
         firmware = FirmwareENv5(
             network=my_design,
-            x_num_values=len(input_sample),
-            y_num_values=len(model(input_sample)),
+            x_num_values=features_in,
+            y_num_values=features_out,
             id=self.skeleton_id,
             skeleton_version="v2",
         )
         firmware.save_to(destination)
-        return nn
+
 
     def get_supported_layers(self) -> tuple[type] | None:
         return (fixed_point.Linear,)

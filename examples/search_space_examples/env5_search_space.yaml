@@ -9,10 +9,21 @@ quantization:
 
 blocks:
   - block:  "1" 
-    op_candidates: ["linear"]
+    op_candidates: ["conv1d", "linear"]
+    activation: ["relu"]
+    depth: [1]
+    conv1d:
+      kernel_size: [1]
+      signal_length: [1]
+      out_channels: [4]
+    linear:
+      activation: [ "relu"]
+      width: [4,6,8]
+  - block:  "2" 
+    op_candidates: ["linear", "linear"]
     activation: ["relu"]
     depth: [1]
     linear:
       activation: [ "relu"]
-      width: [4]
-    
+      width: [4,6,8]
+  

@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
 import logging
 import math
-
-from torch import nn
+from torch import conv1d, nn
 from typing import Any
 from elasticai.creator import nn as creator_nn
 from elasticai.creator.nn import fixed_point
 import torch
+from transformers import Conv1D
 from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.hw_nas.search_space.layer_adapter import ToLinearAdapter
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
+    LSTMBuilder,
     LayerBuilder,
     parse_search_param,
 )
@@ -110,6 +111,7 @@ class CreatorLinearBuilder(LayerBuilder):
                         frac_bits=self.quantization_scheme.frac_bits,
                     )
                 )
+                self.input_shape = self.output_shape
             else:
                 self.layers.append(
                     fixed_point.Linear(
@@ -121,6 +123,63 @@ class CreatorLinearBuilder(LayerBuilder):
                 )
                 self.input_shape = width
             self.add_activation(activation)
+
+        return self.get_layers()
+
+
+class CreatorConv1dBuilder(LayerBuilder):
+    base_type = fixed_point.Conv1d
+
+    def build(self, num_layers: int, is_last_block: bool):
+        if isinstance(self.input_shape, int):
+            self.input_shape = self.input_shape
+        else:
+            self.input_shape = math.prod(self.input_shape)
+        if isinstance(self.output_shape, int):
+            self.output_shape = self.output_shape
+        for i in range(num_layers):
+            out_channels = parse_search_param(
+                self.trial,
+                f"out_channels_b{self.block_id}_l{i}",
+                self.search_params,
+                "out_channels",
+                default_value=None,
+            )
+            kernel_size = parse_search_param(
+                self.trial,
+                f"kernel_size_b{self.block_id}_l{i}",
+                self.search_params,
+                "kernel_size",
+                default_value=None,
+            )
+            signal_length = parse_search_param(
+                self.trial,
+                f"signal_length_b{self.block_id}_l{i}",
+                self.search_params,
+                "signal_length",
+                default_value=None,
+            )
+
+            activation = parse_search_param(
+                self.trial,
+                f"activation_func_b{self.block_id}_l{i}",
+                self.block,
+                "activation",
+                default_value="relu",
+            )
+            self.layers.append(
+                fixed_point.Conv1d(
+                    total_bits=self.quantization_scheme.total_bits,
+                    frac_bits=self.quantization_scheme.frac_bits,
+                    in_channels=self.input_shape,
+                    out_channels=out_channels,
+                    signal_length=signal_length,
+                    kernel_size=kernel_size,
+                )
+            )
+            self.add_activation(activation)
+
+            self.input_shape = out_channels
 
         return self.get_layers()
 
@@ -191,23 +250,39 @@ class CreatorModelBuilder(ModelBuilder):
         self.setup_registries(True)
 
     def get_layer_mappings(self) -> dict[str, type[LayerBuilder]]:
-        return {"linear": CreatorLinearBuilder}
+        return {
+            "linear": CreatorLinearBuilder,
+            "conv1d": CreatorConv1dBuilder,
+            "lstm": LSTMBuilder,
+        }
 
     def get_activation_mappings(self) -> dict[str, nn.Module]:
         return {
             "relu": fixed_point.ReLU(
                 total_bits=self.quantization_scheme.total_bits, use_clock=False
-            )
+            ),
+            "sigmoid": fixed_point.HardSigmoid(
+                total_bits=self.quantization_scheme.total_bits,
+                frac_bits=self.quantization_scheme.frac_bits,
+            ),
+            "tanh": fixed_point.HardTanh(
+                total_bits=self.quantization_scheme.total_bits,
+                frac_bits=self.quantization_scheme.frac_bits,
+            ),
         }
 
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
-        return {(None, "linear"): None}
+        return {
+            (None, "linear"): None,
+            ("conv1d", "linear"): ToLinearAdapter,
+            ("linear", "conv1d"): None,
+        }
 
     def build_from_trial(
         self, trial, searchspace: SearchSpace
     ) -> tuple[torch.nn.Module, QuantizationScheme]:
         model = creator_nn.Sequential(*searchspace.create_model_layers(trial=trial))
-        self._validate_model(model, self.quantization_scheme)
+        self.validate_model(model, self.quantization_scheme)
         return model, searchspace.get_quantization_scheme()
 
     def get_supported_quantization_schemes(

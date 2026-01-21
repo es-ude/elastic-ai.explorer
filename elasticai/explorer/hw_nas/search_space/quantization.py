@@ -96,4 +96,5 @@ def parse_fxp_tensor_to_bytearray(
         for item in batch:
             item_as_bytes = int(item).to_bytes(1, byteorder="big", signed=True)
             data[i].extend(item_as_bytes)
+    print(data)
     return data

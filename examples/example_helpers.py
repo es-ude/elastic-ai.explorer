@@ -20,6 +20,7 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     RPiHWManager,
 )
 from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     CreatorModelCompiler,
     TFliteModelCompiler,
@@ -84,6 +85,7 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             ENv5HWManager,
             ENv5Host,
             ENv5Compiler,
+            CreatorModelBuilder,
         )
     )
     knowledge_repository.register_hw_platform(
@@ -94,6 +96,7 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             ENv5HWManager,
             ENv5Host,
             ENv5Compiler,
+            CreatorModelBuilder,
         )
     )
 
@@ -141,7 +144,7 @@ def measure_on_device(
     top_models: List,
     metric_to_source: Any,
     retrain_epochs: int,
-    device: str,
+    retrain_device: str,
     dataset_spec: DatasetSpecification,
     model_suffix: str = ".pt",
     top_quantization_schemes: list[QuantizationScheme] = [],
@@ -159,7 +162,7 @@ def measure_on_device(
             explorer.hw_setup_on_target(metric_to_source, dataset_spec, quant_scheme)
         previous_quant_scheme = quant_scheme
         trainer = SupervisedTrainer(
-            device=device,
+            device=retrain_device,
             dataset_spec=dataset_spec,
             loss_fn=nn.CrossEntropyLoss(),
             batch_size=64,
@@ -172,7 +175,7 @@ def measure_on_device(
             test_metrics.get("accuracy")
         )
         model_name = "model_" + str(i) + model_suffix
-        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
+        explorer.generate_for_hw_platform(model, model_name, dataset_spec, quant_scheme)
 
         for metric in metric_to_source.keys():
             measure = explorer.run_measurement(metric, model_name)
