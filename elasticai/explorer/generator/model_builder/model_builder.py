@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
 import logging
 import math
-from torch import conv1d, nn
+from torch import nn
 from typing import Any
 from elasticai.creator import nn as creator_nn
 from elasticai.creator.nn import fixed_point
 import torch
-from transformers import Conv1D
 from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.hw_nas.search_space.layer_adapter import ToLinearAdapter
@@ -56,7 +55,7 @@ class DefaultModelBuilder(ModelBuilder):
         )
         self.setup_registries()
 
-    def get_activation_mappings(self) -> dict[str, nn.Module]:
+    def get_activation_mappings(self) -> dict[str, Any]:
         return DEFAULT_ACTIVATION
 
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], type | None]:
@@ -126,6 +125,11 @@ class CreatorLinearBuilder(LayerBuilder):
 
         return self.get_layers()
 
+    def add_activation(self, activation_name: str):
+        self.layers.append(
+            ACTIVATION_REGISTRY[activation_name].build(self.quantization_scheme)
+        )
+
 
 class CreatorConv1dBuilder(LayerBuilder):
     base_type = fixed_point.Conv1d
@@ -182,6 +186,40 @@ class CreatorConv1dBuilder(LayerBuilder):
             self.input_shape = out_channels
 
         return self.get_layers()
+
+    def add_activation(self, activation_name: str):
+        self.layers.append(
+            ACTIVATION_REGISTRY[activation_name].build(self.quantization_scheme)
+        )
+
+
+class ActivationBuilder(ABC):
+    @abstractmethod
+    def build(self, quantization_scheme: QuantizationScheme) -> Any:
+        pass
+
+
+class CreatorReluBuilder(ActivationBuilder):
+    def build(self, quantization_scheme: QuantizationScheme) -> Any:
+        return fixed_point.ReLU(
+            total_bits=quantization_scheme.total_bits, use_clock=False
+        )
+
+
+class CreatorSigmoidBuilder(ActivationBuilder):
+    def build(self, quantization_scheme: QuantizationScheme) -> Any:
+        return fixed_point.HardSigmoid(
+            total_bits=quantization_scheme.total_bits,
+            frac_bits=quantization_scheme.frac_bits,
+        )
+
+
+class CreatorTanhBuilder(ActivationBuilder):
+    def build(self, quantization_scheme: QuantizationScheme) -> Any:
+        return fixed_point.HardTanh(
+            total_bits=quantization_scheme.total_bits,
+            frac_bits=quantization_scheme.frac_bits,
+        )
 
 
 class CreatorLSTMBuilder(LayerBuilder):
@@ -243,7 +281,6 @@ class CreatorLSTMBuilder(LayerBuilder):
 class CreatorModelBuilder(ModelBuilder):
     def __init__(self) -> None:
         super().__init__()
-        self.quantization_scheme = FixedPointInt8Scheme()
         self.logger = logging.getLogger(
             "explorer.generator.model_builder.CreatorModelBuilder"
         )
@@ -256,19 +293,11 @@ class CreatorModelBuilder(ModelBuilder):
             "lstm": LSTMBuilder,
         }
 
-    def get_activation_mappings(self) -> dict[str, nn.Module]:
+    def get_activation_mappings(self) -> dict[str, Any]:
         return {
-            "relu": fixed_point.ReLU(
-                total_bits=self.quantization_scheme.total_bits, use_clock=False
-            ),
-            "sigmoid": fixed_point.HardSigmoid(
-                total_bits=self.quantization_scheme.total_bits,
-                frac_bits=self.quantization_scheme.frac_bits,
-            ),
-            "tanh": fixed_point.HardTanh(
-                total_bits=self.quantization_scheme.total_bits,
-                frac_bits=self.quantization_scheme.frac_bits,
-            ),
+            "relu": CreatorReluBuilder(),
+            "sigmoid": CreatorSigmoidBuilder(),
+            "tanh": CreatorTanhBuilder(),
         }
 
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
@@ -282,10 +311,11 @@ class CreatorModelBuilder(ModelBuilder):
         self, trial, searchspace: SearchSpace
     ) -> tuple[torch.nn.Module, QuantizationScheme]:
         model = creator_nn.Sequential(*searchspace.create_model_layers(trial=trial))
-        self.validate_model(model, self.quantization_scheme)
-        return model, searchspace.get_quantization_scheme()
+        quant_scheme = searchspace.get_quantization_scheme()
+        self.validate_model(model, quant_scheme)
+        return model, quant_scheme
 
     def get_supported_quantization_schemes(
         self,
     ) -> list[type[QuantizationScheme]]:
-        return [type(self.quantization_scheme)]
+        return [FixedPointInt8Scheme]

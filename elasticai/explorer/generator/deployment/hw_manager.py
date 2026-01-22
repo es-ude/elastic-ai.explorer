@@ -283,10 +283,10 @@ class ENv5HWManager(HWManager):
         )
 
     def prepare_model(self, path_to_model: Path):
-        try:
-            self.path_to_executable = self.compiler.compile_code(
-                path_to_model, path_to_model.parent
-            )
-        except CompilerError:
-            self.path_to_executable = None
-        self.target.flash(local_path=path_to_executable)
+        
+        self.path_to_executable = self.compiler.compile_code(
+            path_to_model, path_to_model.parent
+        )
+        
+        if self.path_to_executable:
+          self.target.flash(local_path=self.path_to_executable)
