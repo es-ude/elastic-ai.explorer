@@ -71,7 +71,7 @@ if __name__ == "__main__":
     rpi_type = "rpi5"
 
     ssh_params = SSHParams(
-        hostname="<hostname>", username="<username>"
+        hostname="transfair.local", username="robin"
     )  # <-- connection details for your RPi
     compiler_params = DockerParams()  # <-- configure this only if necessary
     knowledge_repo = setup_knowledge_repository()

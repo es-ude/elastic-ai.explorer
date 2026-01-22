@@ -339,9 +339,8 @@ if __name__ == "__main__":
     retrain_epochs = 10
     hw_platform = "env5_s50"
 
-    # TODO obscure this
     compiler_params = VivadoParams(
-        "/home/vivado/robin-build/", "65.108.38.237", "vivado", hw_platform
+        "/home/vivado/robin-build/", "**.***.**.***", "vivado", hw_platform
     )
 
     serial_params = SerialParams(

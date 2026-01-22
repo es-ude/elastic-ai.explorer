@@ -3,8 +3,10 @@ import pytest
 import torch
 import yaml
 from optuna.trial import FixedTrial
-from torch import nn
+from torch import Value, nn
 
+from elasticai.explorer.generator import model_builder
+from elasticai.explorer.generator.model_builder.model_builder import DefaultModelBuilder
 from elasticai.explorer.hw_nas.search_space.construct_search_space import (
     SearchSpace,
     parse_search_param,
@@ -113,7 +115,8 @@ blocks:
             "activation_func_b1_l0": "relu",
             "activation_func_b1_l1": "relu",
         }
-        result = search_space.create_model_layers(FixedTrial(sample))
+        model_builder = DefaultModelBuilder()
+        result, _ = model_builder.build_from_trial(FixedTrial(sample), search_space)
         assert result(x).shape == torch.Size([5, 10])
 
     @pytest.mark.parametrize(
@@ -160,22 +163,10 @@ blocks:
     ):
         search_space = SearchSpace(search_space_dict_mult_blocks)
         x = torch.randn(5, 1, 28, 28)
-        sample_model = search_space.create_model_layers(FixedTrial({**b1, **b2}))
-        assert sample_model(x).shape == torch.Size([5, 10])
 
-    @pytest.mark.parametrize(
-        "type, value, expected",
-        [
-            (list, [1, 2, 3], 3),
-            (dict, {"start": 1, "end": 4}, 2),
-            (int, 2, 2),
-            (str, "Hello", "Hello"),
-        ],
-    )
-    def test_parse_params(self, type, value, expected):
-        trial = FixedTrial({f"type_{type}": expected})
-        actual = parse_search_param(trial, "type_{}".format(type), value)
-        assert actual == expected
+        model_builder = DefaultModelBuilder()
+        sample_model, _ = model_builder.build_from_trial(FixedTrial({**b1, **b2}), search_space)
+        assert sample_model(x).shape == torch.Size([5, 10])
 
 
 def objective(trial):

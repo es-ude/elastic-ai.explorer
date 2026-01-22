@@ -104,7 +104,7 @@ class TestHWNasSetupAndSearch:
             self.optimization_criteria.register_hard_constraint(
                 estimator=ParamEstimator(), operator=operator.lt, value=0
             )
-        top_k_models = self.RPI5explorer.search(
+        top_k_models, _ = self.RPI5explorer.search(
             optimization_criteria=self.optimization_criteria,
             search_strategy=search_strategy,
             hw_nas_parameters=HWNASParameters(2, 2),

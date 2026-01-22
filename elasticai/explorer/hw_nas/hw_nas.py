@@ -172,7 +172,7 @@ def search(
 
     for frozen_trial in top_k_frozen_trials:
         model, quant_scheme = model_builder.build_from_trial(frozen_trial, search_space)
-        top_k_models.append((model))
+        top_k_models.append(model)
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {

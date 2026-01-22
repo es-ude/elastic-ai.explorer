@@ -17,7 +17,7 @@ blocks:
       num_lstm_layers: [ 1]
       bidirectional: [ False ]
   - block:  "2" #namefield muss noch rein
-    op_candidates: [ "lstm"]
+    op_candidates: [ "lstm","linear"]
     depth: [1, 2]
     activation: [ "identity"]
     linear:
@@ -31,13 +31,3 @@ blocks:
       hidden_size: [1]
       num_lstm_layers: [1]
       bidirectional: [ False]
-  - block: "3"
-    op_candidates: ["linear"]
-    activation: ["relu", "tanh"]
-    depth: 3
-    linear:
-      width: [10]
-    conv2d:
-      kernel_size: [ 1, 2 ]
-      stride: [ 1, 2 ]
-      out_channels: [ 10, 4 ]

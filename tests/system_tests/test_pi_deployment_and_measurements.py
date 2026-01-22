@@ -27,10 +27,9 @@ from tests.system_tests.system_test_settings import RPI_HOSTNAME, RPI_USERNAME
 
 class TestDeploymentAndMeasurement:
     def setup_class(self):
-
         ssh_params = SSHParams(
             hostname=RPI_HOSTNAME, username=RPI_USERNAME
-        )  # <-- Set the credentials of your RPi
+        )
         compiler_params = DockerParams()
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
@@ -57,9 +56,6 @@ class TestDeploymentAndMeasurement:
         )
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         MNIST(path_to_dataset, download=True, transform=transf)
-        transf = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
         root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
         setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
         metric_to_source = {

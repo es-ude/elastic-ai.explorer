@@ -29,7 +29,7 @@ class TestPiHWManager:
 
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
-        attr = {"compile_code.return_value": ""}
+        attr = {"compile_code.return_value": "."}
         compiler.configure_mock(**attr)
 
         self.hwmanager = RPiHWManager(target, compiler)
@@ -50,7 +50,7 @@ class TestPiHWManager:
         expected = {"Accuracy": {"value": 94.8, "unit": "percent"}}
         target_attr = {"run_command.return_value": output}
         target.configure_mock(**target_attr)
-        compiler_attr = {"compile_code.return_value": ""}
+        compiler_attr = {"compile_code.return_value": "."}
         compiler.configure_mock(**compiler_attr)
         self.hwmanager = RPiHWManager(target, compiler)
         self.hwmanager._register_metric_to_source(
