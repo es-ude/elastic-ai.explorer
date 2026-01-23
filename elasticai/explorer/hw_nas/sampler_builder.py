@@ -39,13 +39,6 @@ class RandomSamplerBuilder(SamplerBuilder):
         params = self._get_valid_params(RandomSampler, **kwargs)
         return RandomSampler(**params)
 
-
-class GridSamplerBuilder(SamplerBuilder):
-    def build(self, **kwargs) -> BaseSampler:
-        params = self._get_valid_params(GridSampler, **kwargs)
-        return GridSampler(**params)
-
-
 class CmaEsSamplerBuilder(SamplerBuilder):
     def build(self, **kwargs) -> BaseSampler:
         params = self._get_valid_params(CmaEsSampler, **kwargs)
@@ -87,7 +80,6 @@ def get_sampler(sampler_type: str, **kwargs):
     builders = {
         "tpe": TPESamplerBuilder(),
         "random": RandomSamplerBuilder(),
-        "grid": GridSamplerBuilder(),
         "cmaes": CmaEsSamplerBuilder(),
         "bruteforce": BruteForceSamplerBuilder(),
         "gp": GPSamplerBuilder(),
