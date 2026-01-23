@@ -95,8 +95,6 @@ def search(
     Returns: top-models, model-parameters, metrics
     """
     search_space = SearchSpace(search_space_cfg)
-
-    # TODO after merge with feat 150 look how to parameterize the the different samplers
     sampler = get_sampler(hwnas_cfg.search_algorithm, search_space=search_space_cfg)
 
     study = optuna.create_study(
