@@ -3,7 +3,6 @@ import inspect
 from optuna.samplers import (
     TPESampler,
     RandomSampler,
-    GridSampler,
     CmaEsSampler,
     BaseSampler,
     BruteForceSampler,
