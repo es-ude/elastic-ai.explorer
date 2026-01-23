@@ -2,12 +2,13 @@ import logging
 import math
 from typing import Any, Callable
 from functools import partial
-from enum import Enum
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 from torch.optim.adam import Adam
+
+from elasticai.explorer.hw_nas.sampler_builder import get_sampler
 
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.config import HWNASConfig
@@ -15,12 +16,6 @@ from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
 from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
-
-
-class SearchAlgorithm(Enum):
-    RANDOM_SEARCH = "random"
-    GRID_SEARCH = "grid"
-    EVOlUTIONARY_SEARCH = "evolution"
 
 
 def apply_constraints(trial, flops, params, constraints):
@@ -100,18 +95,7 @@ def search(
     Returns: top-models, model-parameters, metrics
     """
     search_space = SearchSpace(search_space_cfg)
-    match hwnas_cfg.search_algorithm:
-        case SearchAlgorithm.RANDOM_SEARCH:
-            sampler = optuna.samplers.RandomSampler()
-        case SearchAlgorithm.GRID_SEARCH:
-            sampler = optuna.samplers.GridSampler(search_space_cfg)
-        case SearchAlgorithm.EVOlUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(
-                population_size=20,
-                mutation_prob=0.1,
-            )
-        case _:
-            sampler = optuna.samplers.RandomSampler()
+    sampler = get_sampler(hwnas_cfg.search_algorithm, search_space=search_space_cfg)
 
     study = optuna.create_study(
         sampler=sampler,

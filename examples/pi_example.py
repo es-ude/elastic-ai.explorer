@@ -3,7 +3,7 @@ import logging.config
 from pathlib import Path
 
 import torch
-from torch import optim, nn
+from torch import nn
 from torch.optim.adam import Adam
 from torchvision.transforms import transforms
 
