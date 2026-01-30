@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
@@ -10,7 +11,18 @@ from fabric import Connection
 import serial
 from paramiko.ssh_exception import AuthenticationException
 
-from elasticai.explorer.config import DeploymentConfig
+
+@dataclass
+class SSHParams:
+    hostname: str
+    username: str
+
+
+@dataclass
+class SerialParams:
+    device_path: Path
+    serial_port: str = "/dev/ttyACM0"
+    baud_rate: int = 115200
 
 
 class SSHException(Exception):
@@ -19,7 +31,7 @@ class SSHException(Exception):
 
 class Host(ABC):
     @abstractmethod
-    def __init__(self, deploy_cfg: DeploymentConfig):
+    def __init__(self, params):
         pass
 
     @abstractmethod
@@ -32,15 +44,15 @@ class Host(ABC):
 
 
 class RPiHost(Host):
-    def __init__(self, deploy_cfg: DeploymentConfig):
-        self.host_name = deploy_cfg.target_name
-        self.user = deploy_cfg.target_user
+    def __init__(self, params: SSHParams):
+        self.hostname = params.hostname
+        self.username = params.username
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.device_communication.Host"
         )
 
     def _get_connection(self):
-        return Connection(host=self.host_name, user=self.user)
+        return Connection(host=self.hostname, user=self.username)
 
     def run_command(self, command: str) -> str:
         try:
@@ -57,7 +69,7 @@ class RPiHost(Host):
         if result.failed:
             raise SSHException(
                 "The command `{0}` on host {1} failed with the error: "
-                "{2}".format(command, self.host_name, str(result.stderr))
+                "{2}".format(command, self.hostname, str(result.stderr))
             )
         return result.stdout
 
@@ -74,19 +86,19 @@ class RPiHost(Host):
         raise SSHException(
             "SSH: could not connect to {host} "
             "(username: {user}): {exc}".format(
-                host=self.host_name, user=self.user, exc=exc
+                host=self.hostname, user=self.username, exc=exc
             )
         )
 
 
 class PicoHost(Host):
-    def __init__(self, deploy_cfg: DeploymentConfig):
-        self.BAUD_RATE = deploy_cfg.baud_rate
-        self.host_name = deploy_cfg.device_path
+    def __init__(self, params: SerialParams):
+        self.BAUD_RATE = params.baud_rate
+        self.host_name = params.device_path
         self.logger = logging.getLogger(
             "explorer.platforms.deployment.device_communication.PicoHost"
         )
-        self.serial_port = deploy_cfg.serial_port
+        self.serial_port = params.serial_port
         self.timeout_s = 40
 
     def _get_measurement(self) -> str:

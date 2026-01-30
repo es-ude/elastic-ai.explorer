@@ -10,7 +10,7 @@ from settings import ROOT_DIR
 class TestSciebo:
     def setup_class(self):
         self.save_dir = str(ROOT_DIR / "tests/system_tests/samples/data")
-
+        
     def test_sciebo_download(self):
 
         get_file_from_sciebo(
