@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Callable
 from functools import partial
-from enum import Enum
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
@@ -110,7 +109,7 @@ def objective_wrapper(
 
 def search(
     search_space_cfg: dict,
-    search_strategy: SearchStrategy,
+    sampler: Sampler,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
@@ -118,19 +117,9 @@ def search(
     Returns: top-models, model-parameters, metrics
     """
 
-    match search_strategy:
-        case SearchStrategy.RANDOM_SEARCH:
-            sampler = optuna.samplers.RandomSampler()
-        case SearchStrategy.EVOLUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(
-                population_size=20,
-                mutation_prob=0.1,
-            )
-        case _:
-            sampler = optuna.samplers.RandomSampler()
-
+    search_space = SearchSpace(search_space_cfg)
     study = optuna.create_study(
-        sampler=sampler,
+        sampler=sampler.build(),
         direction="maximize",
     )
 
