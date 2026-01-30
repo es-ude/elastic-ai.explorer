@@ -23,17 +23,16 @@ const uint32_t CHANNEL_COUNT = 1;
 const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 784;
 const uint32_t OUTPUT_FEATURE_COUNT = 10;
 const uint32_t INFERENCE_EVERY_NTH_POINTS = 10;
-
-std::unique_ptr<TfLiteInterpreter> interpreter = nullptr;
+const bool IS_QUANT = true std::unique_ptr<TfLiteInterpreter> interpreter = nullptr;
 
 std::unique_ptr<TfLiteInterpreter> getInterpreter()
 {
     std::unique_ptr<tflite::MicroMutableOpResolver<11>> resolver(new tflite::MicroMutableOpResolver<11>());
-    #if __has_include("resolver_ops.h")
-    #include "resolver_ops.h"
-    #endif
+#if __has_include("resolver_ops.h")
+#include "resolver_ops.h"
+#endif
     // printf("Added layers\n");
-    std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));
+    std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE, IS_QUANT));
 
     // printf("Created Interpreter pointer.\n");
     interpreter->initialize();

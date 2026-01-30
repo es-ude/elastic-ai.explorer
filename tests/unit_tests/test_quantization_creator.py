@@ -1,6 +1,8 @@
 import pytest
 import yaml
+from elasticai.explorer.generator import model_compiler
 from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
+from elasticai.explorer.generator.model_compiler.model_compiler import TFliteModelCompiler
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from optuna.trial import FixedTrial
 
@@ -9,7 +11,7 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 )
 
 
-class TestConstruct_SP:
+class TestCreatorBuilder:
     @pytest.fixture
     def search_space_dict(self):
         return yaml.safe_load(
@@ -66,3 +68,6 @@ blocks:
         model_builder.validate_model(model, FixedPointInt8Scheme("int8", 8, 2, True))
 
         assert model != None
+    
+    
+

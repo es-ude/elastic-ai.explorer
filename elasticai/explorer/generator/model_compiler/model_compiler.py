@@ -21,7 +21,6 @@ from ai_edge_torch.quantize.quant_config import QuantConfig
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     FullPrecisionScheme,
-    Int8Uniform,
     QuantizationScheme,
 )
 import elasticai.creator.nn as creator_nn
@@ -119,7 +118,7 @@ class TFliteModelCompiler(ModelCompiler):
         sample_input_int8 = (sample_input[0].to(torch.int8),)
         edge_output = pt2e_drq_model(*sample_input_int8)
         self.logger.debug(f"Sample output quantized: ", edge_output)
-        return pt2e_drq_model, torch_output
+        return pt2e_drq_model, torch_output, edge_output
 
     def _model_to_cpp(self, tflite_model_path: Path):
         process = subprocess.run(
@@ -156,16 +155,20 @@ class TFliteModelCompiler(ModelCompiler):
         input_sample_nchw = input_sample.unsqueeze(1)
         input_tuple_nchw = (input_sample_nchw,)
         input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 3, 1),)
-
+        model.eval()
         torch_output = model(*input_tuple_nchw)
         nhwc_model = to_channel_last_io(model, args=[0]).eval()
         sample_tflite_input = input_tuple_nhwc
+        edge_output = None
         if isinstance(quantization_scheme, FullPrecisionScheme):
             edge_model = ai_edge_torch.convert(
                 nhwc_model, sample_args=sample_tflite_input
             )
-        elif isinstance(quantization_scheme, Int8Uniform):
-            edge_model, torch_output = self._quantize(model, input_tuple_nchw)
+            edge_output = edge_model(*sample_tflite_input)
+        elif isinstance(quantization_scheme, FixedPointInt8Scheme):
+            edge_model, torch_output, edge_output = self._quantize(
+                model, input_tuple_nchw
+            )
             self.logger.warning(
                 "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
             )
@@ -176,7 +179,6 @@ class TFliteModelCompiler(ModelCompiler):
             self.logger.error(err)
             raise err
 
-        edge_output = edge_model(*sample_tflite_input)
         self._validate(torch_output, edge_output)
         edge_model.export(str(output_path.with_suffix(".tflite")))
         self._model_to_cpp(output_path.with_suffix(".tflite"))
@@ -218,7 +220,6 @@ class CreatorModelCompiler(ModelCompiler):
             skeleton_version="v2",
         )
         firmware.save_to(destination)
-
 
     def get_supported_layers(self) -> tuple[type] | None:
         return (fixed_point.Linear,)

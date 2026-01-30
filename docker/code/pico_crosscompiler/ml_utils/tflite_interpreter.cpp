@@ -10,11 +10,13 @@
 TfLiteInterpreter::TfLiteInterpreter(
     const uint8_t *const modelBuffer,
     tflite::MicroOpResolver &resolver,
-    const uint32_t tensorArenaSize) : modelBuffer(modelBuffer),
-                                      resolver(&resolver),
-                                      tensorArenaSize(tensorArenaSize),
-                                      tensorArena(new uint8_t[tensorArenaSize]),
-                                      initialized(false) {}
+    const uint32_t tensorArenaSize,
+    bool is_quant) : modelBuffer(modelBuffer),
+                     resolver(&resolver),
+                     tensorArenaSize(tensorArenaSize),
+                     tensorArena(new uint8_t[tensorArenaSize]),
+                     is_quant(is_quant),
+                     initialized(false) {}
 
 int TfLiteInterpreter::initialize()
 {
@@ -43,10 +45,21 @@ int TfLiteInterpreter::initialize()
     this->input = this->interpreter->input(0);
     this->output = this->interpreter->output(0);
 
-    if ((this->input->type != kTfLiteFloat32) ||
-        (this->output->type != kTfLiteFloat32))
+    if (is_quant)
     {
-        printf("Expect model with Float32 input/output tensor\n");
+        if ((this->input->type != kTfLiteUInt8) ||
+            (this->output->type != kTfLiteUInt8))
+        {
+            printf("Expect model with Int8 input/output tensor\n");
+        }
+    }
+    else
+    {
+        if ((this->input->type != kTfLiteFloat32) ||
+            (this->output->type != kTfLiteFloat32))
+        {
+            printf("Expect model with Float32 input/output tensor\n");
+        }
     }
 
     this->inputFeatureCount = this->input->bytes;
@@ -67,11 +80,17 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         return -1;
     }
 
-
     for (uint32_t inputIdx = 0; inputIdx < 784; inputIdx++)
     {
         const float x = inputBuffer[inputIdx];
-        this->input->data.f[inputIdx] = x;
+        if (is_quant)
+        {
+            this->input->data.uint8[inputIdx] = quantize(x);
+        }
+        else
+        {
+            this->input->data.f[inputIdx] = x;
+        }
     }
 
     TfLiteStatus invokeStatus = this->interpreter->Invoke();
@@ -83,8 +102,16 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
 
     for (uint32_t outputIdx = 0; outputIdx < 10; outputIdx++)
     {
-        float output_y = this->output->data.f[outputIdx];
-        outputBuffer[outputIdx] = output_y;
+        if (is_quant)
+        {
+            const uint8_t quant_y = this->output->data.uint8[outputIdx];
+            outputBuffer[outputIdx] = dequantize(quant_y);
+        }
+        else
+        {
+            float output_y = this->output->data.f[outputIdx];
+            outputBuffer[outputIdx] = output_y;
+        }
 
         // printf("Output %d is %.04f \n", outputIdx ,output_y);
     }
@@ -100,4 +127,16 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         }
     }
     return max_idx;
+}
+
+int8_t TfLiteInterpreter::quantize(float x)
+{
+
+    return x / this->input->params.scale + this->input->params.zero_point;
+}
+
+float TfLiteInterpreter::dequantize(int8_t x)
+{
+
+    return (x - this->output->params.zero_point) * this->output->params.scale;
 }

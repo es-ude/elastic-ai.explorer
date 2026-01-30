@@ -64,8 +64,8 @@ def search_generate_measure_for_pico(
     )
 
     metric_to_source = {
-        Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
-        Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
+        Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy_quant"),
+        #Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
     }
 
     df = measure_on_device(
@@ -83,8 +83,8 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 10
-    top_n_models = 10
+    max_search_trials = 1
+    top_n_models = 1
     retrain_epochs = 3
 
     serial_params = SerialParams(
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     )  # <-- Set the device path and rest only if necessary.
     compiler_params = DockerParams(
         library_path=Path("./code/pico_crosscompiler"),
-        image_name="picobase",
+        image_name="picobase_quant",
         build_context=DOCKER_CONTEXT_DIR,
         path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
     )  # <-- Configure this only if necessary.

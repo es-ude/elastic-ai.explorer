@@ -3,11 +3,8 @@ import pytest
 import torch
 import yaml
 
-from elasticai.explorer.generator import model_builder
-from elasticai.explorer.generator.model_builder.model_builder import (
-    CreatorModelBuilder,
-    ModelBuilder,
-)
+from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
+
 import elasticai.creator.nn.fixed_point as nn_creator
 from elasticai.creator.arithmetic import (
     FxpArithmetic,
@@ -15,7 +12,6 @@ from elasticai.creator.arithmetic import (
 )
 from elasticai.creator.nn import Sequential
 from elasticai.creator.nn.fixed_point import MathOperations
-from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from optuna.trial import FixedTrial
 
@@ -140,6 +136,4 @@ blocks:
         model.eval()
         with torch.no_grad():
             val_output = model(val_input)
-        print(val_output)
-        print(val_output)
-        #ModelCompiler.
+    

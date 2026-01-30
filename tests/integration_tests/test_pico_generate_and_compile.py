@@ -1,8 +1,11 @@
 import os
 from pathlib import Path
 
+import torch
+
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.hw_nas.search_space.quantization import FixedPointInt8Scheme
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import (
     DockerParams,
@@ -120,6 +123,20 @@ class TestPicoGenerateAndCompile:
         assert (
             os.path.exists(self.pico_explorer.experiment_dir / "resolver_ops.h") == True
         )
+
+    def test_quantization(self):
+        model = sample_MLP.SampleMLP(28 * 28)
+        model_compiler = TFliteModelCompiler()
+        data_sample = torch.randn((1, 28, 28), dtype=torch.float32)
+        output_path = self.pico_explorer.model_dir / self.model_name
+        model_compiler.compile(
+            model,
+            output_path=output_path,
+            input_sample=data_sample,
+            quantization_scheme=FixedPointInt8Scheme(),
+        )
+        assert os.path.exists(output_path / ".tflite") == True
+        assert os.path.exists(output_path / ".cpp") == True
 
     def teardown_method(self):
 

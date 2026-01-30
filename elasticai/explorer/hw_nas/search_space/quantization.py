@@ -42,18 +42,6 @@ class FullPrecisionScheme(QuantizationScheme):
         return True
 
 
-@dataclass(frozen=True)
-class Int8Uniform(QuantizationScheme):
-    dtype: str = "int8"
-    total_bits: int = 8
-    frac_bits: int = 4
-    signed: bool = True
-
-    def name(self) -> str:
-        return self.dtype
-
-    def is_compatible_with_layer(self, layer_type: Type) -> bool:
-        return True
 
 
 def parse_bytearray_to_fxp_tensor(
