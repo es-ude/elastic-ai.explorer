@@ -89,7 +89,7 @@ class TrainMetricsEstimator(Estimator):
     def __init__(
         self,
         trainer: Trainer,
-        metric_name: str | Literal["loss"] = "loss",
+        metric_name: str = "loss",
         n_estimation_epochs: int = 3,
     ) -> None:
 
