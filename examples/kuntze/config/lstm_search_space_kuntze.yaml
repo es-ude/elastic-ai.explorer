@@ -1,35 +1,17 @@
-input: [20, 4]
+input: [90, 4]
 output: 1
 sequence:
   - block: "1"
-    op_candidates: [ "layer_norm" ]
-  - block: "2"
     type_repeat:
       type: "repeat_op"
-      depth: [1, 2]
+      depth: [1]
     op_candidates: ["lstm"]
     lstm:
-      hidden_size: [10, 15, 20]
-      num_layers: [2, 3]
-      bidirectional: [False, True]
-      dropout: [0.0, 0.2, 0.5]
-  - block: "3"
-    op_candidates: ["linear", "conv1d"]
-    type_repeat:
-      type: "repeat_op"
-      depth: [1, 2]
-    linear:
-      activation: ["relu", "tanh"]
-      width: [15, 30]
-    conv1d:
-      kernel_size: [3, 5, 7]
-      stride: [1, 2]
-      out_channels: [1, 4]
-  - block: "4"
-    op_candidates: ["activation"]
-    activation:
-      op: ["relu", "tanh", "identity"]
-  - block: "5"
+      hidden_size: [10, 15, 20, 25]
+      num_layers: [1, 2, 3]
+      bidirectional: [False]
+      dropout: [0.0, 0.2, 0.4]
+  - block: "2"
     op_candidates: ["linear"]
     type_repeat:
       type: "repeat_op"

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import torch
+from tensorflow.python.data.ops.dataset_ops import DatasetSpec
 from torch import jit, nn
 from torch.utils.data import Subset, DataLoader
 
@@ -36,7 +37,7 @@ class KuntzeDataset(MultivariateTimeseriesDataset):
         root: Union[str, Path],
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
-        window_size: int = 90,
+        window_size: int = 90,  # FIXME: Hardcoded. Could be hyperparameter.
         *args,
         **kwargs,
     ):
@@ -57,10 +58,11 @@ class KuntzeDataset(MultivariateTimeseriesDataset):
             else (
                 9.87 if self.system_id == 785 else 6.31 if self.system_id == 1215 else 0
             )
-        )
-        self.lag_time_samples = round(
+        ) / 2  # FIXME: Hardcoded, halve lag time for prediction, ensure that window_size > lag_time_samples. Could be hyperparameter.
+        self.lag_time_samples = 1 + round(
             self.lag_time_minutes * 6
-        )  # Assuming data is sampled every 10 seconds
+        )  # Assuming data is sampled every 10 seconds, FIXME: hardcoded
+
         super().__init__(
             root, transform, target_transform, window_size=window_size, *args, **kwargs
         )
@@ -94,24 +96,50 @@ class KuntzeRegressionDataset(KuntzeDataset):
         return self.df.copy(deep=False)["Cl2"][self.lag_time_samples :].astype(float)
 
 
-def validate(model, test_loader):
+def validate(model, test_loader, window_size: int, lag_time_samples: int):
     model.eval()
     preds = []
     targets = []
-    total_loss = 0
-    criterion = torch.nn.L1Loss()
+    time_indices = []
+    criterion = torch.nn.MSELoss()
+    total_loss = 0.0
+    global_sample_idx = 0  # zählt Dataset-Samples (nicht CSV-Zeitpunkte!)
 
     with torch.no_grad():
         for seqs, target in test_loader:
             output = model(seqs)
 
-            for i, out in enumerate(output):
+            batch_size = target.shape[0]
+
+            # Verlust korrekt über Batch
+            loss = criterion(output, target)
+            total_loss += loss.item()
+
+            for i in range(batch_size):
                 preds.append(output[i].item())
                 targets.append(target[i].item())
 
-            loss = criterion(output, target)
-            total_loss += loss.item()
-    print("Total loss:", total_loss / len(test_loader))
+                # Rekonstruktion des Original-Zeitindex
+                # y(idx) gehört zu:
+                # CSV-Zeit = idx + window_size + lag_time_samples
+                time_idx = global_sample_idx + window_size + lag_time_samples
+                time_indices.append(time_idx)
+
+                global_sample_idx += 1
+
+    avg_loss = total_loss / len(test_loader)
+    print("Total loss:", avg_loss)
+
+    # Sortieren (robust gegen zukünftige Änderungen wie shuffle=True)
+    time_indices = np.array(time_indices)
+    preds = np.array(preds)
+    targets = np.array(targets)
+
+    order = np.argsort(time_indices)
+    time_indices = time_indices[order]
+    preds = preds[order]
+    targets = targets[order]
+
     # Plot
     plt.plot(targets, label="True", linewidth=0.5, alpha=0.7)
     plt.plot(preds, label="Predicted", linewidth=0.5, alpha=0.7)
@@ -121,9 +149,27 @@ def validate(model, test_loader):
         linewidth=0.5,
         alpha=0.5,
     )
+    plt.figure(figsize=(10, 4))
+    plt.plot(time_indices, targets, label="True", linewidth=0.7, alpha=0.7)
+    plt.plot(time_indices, preds, label="Predicted", linewidth=0.7, alpha=0.7)
+    plt.plot(
+        time_indices,
+        targets - preds,
+        label="Difference",
+        linewidth=0.6,
+        alpha=0.5,
+    )
     plt.legend()
+    plt.xlabel("Time index (CSV samples)")
+    plt.ylabel("Cl2")
     plt.title("Cl2 Prediction")
     plt.savefig(ROOT_DIR / "examples/kuntze/experiments/lstm_model.svg", format="svg")
+    plt.tight_layout()
+    plt.savefig(
+        ROOT_DIR / "examples/kuntze/results/lstm_model.svg",
+        format="svg",
+    )
+    plt.close()
 
 
 def run_lstm_search():
@@ -143,10 +189,10 @@ def run_lstm_search():
         split_seed=42,
     )
     trainer = SupervisedTrainer(
-        "mps",
+        "cuda",
         dataset_spec=data_spec,
         batch_size=batch_size,
-        loss_fn=torch.nn.L1Loss(),
+        loss_fn=torch.nn.MSELoss(),
         extra_metrics={},
     )
     search_space_cfg = yaml_to_dict(search_space)
@@ -165,17 +211,22 @@ def run_lstm_search():
     model = top_models[0]
 
     trainer = SupervisedTrainer(
-        "mps",
+        "cuda",
         dataset_spec=data_spec,
         batch_size=batch_size,
-        loss_fn=torch.nn.L1Loss(),
+        loss_fn=torch.nn.MSELoss(),
         extra_metrics={},
     )
     trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
     trainer.train(model, epochs=50, early_stopping=True)
 
     model.to("cpu")
-    validate(model, trainer.test_loader)
+    validate(
+        model,
+        trainer.test_loader,
+        window_size=trainer.dataset.window_size,
+        lag_time_samples=trainer.dataset.lag_time_samples,
+    )
 
     torch.save(
         model.state_dict(),
@@ -275,6 +326,23 @@ def validate_events(
     # dosage_intervals = event_intervals(timestamps, dosage_events)
     # nowater_intervals = event_intervals(timestamps, nowater_events)
 
+    N = min(
+        len(timestamps),
+        len(preds),
+        len(targets),
+        len(cl2),
+        len(feature_values),
+        len(dosage_events),
+        len(nowater_events),
+    )
+
+    timestamps = timestamps.iloc[:N].reset_index(drop=True)
+    preds = preds[:N]
+    targets = targets[:N]
+    cl2 = cl2[:N]
+    feature_values = feature_values[:N]
+    dosage_events = np.asarray(dosage_events)[:N]
+    nowater_events = np.asarray(nowater_events)[:N]
     # --- convert to numpy ---
     preds = np.asarray(preds)
     targets = np.asarray(targets)
@@ -441,17 +509,15 @@ def validate_events(
     plt.show(block=True)
 
 
-def get_event_windows(window_size=90, batch_size=32):
-    lag_time_minutes = 12.67
-    lag_time_samples = round(lag_time_minutes * 6)
-
-    dataset_location = Path(
-        ROOT_DIR
-        / "data/kuntze/raw_data/exported_data_570_2024-10-01 00-00-00_to_2024-10-31 00-00-00.csv"
-    )
+def get_event_windows(
+    lag_time_samples,
+    dataset_spec: DatasetSpecification,
+    window_size=90,
+    batch_size=32,
+):
 
     df = pd.read_csv(
-        dataset_location,
+        dataset_spec.dataset_location,
         usecols=("Event_Dosage_Check", "Event_No_Water", "device_ts"),
         skiprows=4,
     )
@@ -481,7 +547,7 @@ def get_event_windows(window_size=90, batch_size=32):
     )
 
     # --- same split logic as dataset ---
-    ratio = [0.7, 0.1, 0.2]
+    ratio = dataset_spec.train_val_test_ratio
     N = len(dosage_windowed)
     val_end = int((ratio[0] + ratio[1]) * N)
 
@@ -492,36 +558,6 @@ def get_event_windows(window_size=90, batch_size=32):
     nowater_loader = DataLoader(nowater_test, batch_size=batch_size, shuffle=False)
 
     return dosage_loader, nowater_loader
-
-
-# def get_test_timestamps(window_size=90):
-#     lag_time_minutes = 12.67
-#     lag_time_samples = round(lag_time_minutes * 6)
-#
-#     dataset_location = Path(
-#         ROOT_DIR
-#         / "data/kuntze/raw_data/exported_data_570_2024-10-01 00-00-00_to_2024-10-31 00-00-00.csv"
-#     )
-#
-#     df = pd.read_csv(
-#         dataset_location,
-#         usecols=("device_ts",),
-#         skiprows=4,
-#     )
-#     print(df.head())
-#     print(df.dtypes)
-#     ts = pd.to_datetime(df["device_ts"])
-#
-#     # timestamps aligned with window targets
-#     ts_aligned = ts.iloc[
-#         lag_time_samples + window_size : lag_time_samples + window_size + len(ts)
-#     ].reset_index(drop=True)
-#
-#     ratio = [0.7, 0.1, 0.2]
-#     N = len(ts_aligned)
-#     val_end = int((ratio[0] + ratio[1]) * N)
-#
-#     return ts_aligned.iloc[val_end:]
 
 
 def get_test_timestamps(
@@ -548,27 +584,28 @@ def get_test_timestamps(
     return ts_aligned.iloc[val_end:]
 
 
-def validate_model(model, window_size=90):
+def validate_model(
+    model,
+    data_spec,
+    lag_time_samples,
+    window_size=90,
+    batch_size=32,
+    loss_fn=nn.MSELoss(),
+):
 
-    batch_size = 32
-    data_spec = DatasetSpecification(
-        dataset_type=KuntzeRegressionDataset,
-        dataset_location=Path(
-            ROOT_DIR
-            / "data/kuntze/raw_data/exported_data_570_2024-10-01 00-00-00_to_2024-10-31 00-00-00.csv"
-        ),
-        train_val_test_ratio=[0.7, 0.1, 0.2],
-        shuffle=False,
-        split_seed=42,
-    )
     trainer = SupervisedTrainer(
         "mps",
         dataset_spec=data_spec,
         batch_size=batch_size,
-        loss_fn=nn.MSELoss(),
+        loss_fn=loss_fn,
         extra_metrics={},
     )
-    dosage_loader, nowater_loader = get_event_windows(window_size=window_size)
+    dosage_loader, nowater_loader = get_event_windows(
+        window_size=window_size,
+        lag_time_samples=lag_time_samples,
+        batch_size=batch_size,
+        dataset_spec=data_spec,
+    )
     count = 0
     total = 0
 
@@ -596,4 +633,25 @@ if __name__ == "__main__":
         ROOT_DIR
         / "examples/kuntze/experiments/schonmal_funktionierend/lstm_model_0_rpi.pt"
     )
-    validate_model(window_size=window_size, model=model)
+
+    lag_time_minutes = (
+        12.67 / 2
+    )  # FIXME: Hardcoded, halve lag time for prediction, ensure that window_size > lag_time_samples. Could be hyperparameter.
+    lag_time_samples = 1 + round(lag_time_minutes * 6)
+    data_spec = DatasetSpecification(
+        dataset_type=KuntzeRegressionDataset,
+        dataset_location=Path(
+            ROOT_DIR
+            / "data/kuntze/raw_data/exported_data_570_2024-10-01 00-00-00_to_2024-10-31 00-00-00.csv"
+        ),
+        train_val_test_ratio=[0.7, 0.1, 0.2],
+        shuffle=False,
+        split_seed=42,
+    )
+    validate_model(
+        window_size=window_size,
+        data_spec=data_spec,
+        model=model,
+        batch_size=32,
+        lag_time_samples=lag_time_samples,
+    )

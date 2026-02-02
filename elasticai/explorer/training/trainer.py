@@ -1,11 +1,27 @@
 from abc import ABC, abstractmethod
 import logging
 from typing import Any, Tuple, Callable
+import math
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, random_split, Subset
+from torch.utils.data import DataLoader, Subset, random_split
 from torch.optim.optimizer import Optimizer
-from elasticai.explorer.training.data import DatasetSpecification
+from elasticai.explorer.training.data import (
+    DatasetSpecification,
+    MultivariateTimeseriesDataset,
+)
+
+
+def temporal_train_val_test_split(dataset, ratios):
+    N = len(dataset)
+    train_end = int(ratios[0] * N)
+    val_end = int((ratios[0] + ratios[1]) * N)
+
+    train_subset = Subset(dataset, range(0, train_end))
+    val_subset = Subset(dataset, range(train_end, val_end))
+    test_subset = Subset(dataset, range(val_end, N))
+
+    return train_subset, val_subset, test_subset
 
 
 class Trainer(ABC):
@@ -25,29 +41,27 @@ class Trainer(ABC):
         self.batch_size = batch_size
         self.extra_metrics = extra_metrics
 
-        dataset = dataset_spec.dataset_type(
+        self.dataset = dataset_spec.dataset_type(
             dataset_spec.dataset_location,
             transform=dataset_spec.transform,
             target_transform=dataset_spec.target_transform,
         )
         if dataset_spec.shuffle:
             train_subset, val_subset, test_subset = random_split(
-                dataset,
+                self.dataset,
                 dataset_spec.train_val_test_ratio,
                 generator=torch.Generator().manual_seed(dataset_spec.split_seed),
             )
         else:
-            ratio = dataset_spec.train_val_test_ratio
-            N = len(dataset)
-            train_end = int(ratio[0] * N)
-            val_end = int((ratio[0] + ratio[1]) * N)
-
-            train_subset = Subset(dataset, range(0, train_end))
-            val_subset = Subset(dataset, range(train_end, val_end))
-            test_subset = Subset(dataset, range(val_end, N))
+            train_subset, val_subset, test_subset = temporal_train_val_test_split(
+                self.dataset,
+                dataset_spec.train_val_test_ratio,
+            )
 
         self.train_loader = DataLoader(
-            train_subset, batch_size=batch_size, shuffle=True
+            train_subset,
+            batch_size=batch_size,
+            shuffle=True,  # TODO: Always shuffle training data?
         )
         self.val_loader = DataLoader(
             val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle

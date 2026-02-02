@@ -24,7 +24,7 @@ experiment_data.csv
 tests/integration_tests/data
 #plots
 plots/
-
+examples/kuntze/results
 #metrics
 metrics/
 

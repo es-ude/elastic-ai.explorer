@@ -6,7 +6,7 @@ HWNASConfig:
   host_processor: "cuda" 
 
   # The search trials the HW-NAS should do at max.
-  max_search_trials: 10
+  max_search_trials: 36
 
   # Whether to count only completed trials towards the max_search_trials OR to count all trials (including failed ones).
   count_only_completed_trials: false
@@ -27,7 +27,7 @@ HWNASConfig:
   }
 
   # The number of training epochs for accuracy estimation.
-  n_estimation_epochs: 3
+  n_estimation_epochs: 5
 
   # The weight of the FLOPs-Estimation for the Proxy metric.
   # proxy_metric = accuracy_estimation - log10(flops_estimation) * flops_weight
