@@ -3,14 +3,28 @@ from pathlib import Path
 import pytest
 import shutil
 import torch
-from elasticai.explorer.config import HWNASConfig, DeploymentConfig
+
+import operator
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
+from elasticai.explorer.hw_nas.estimators import (
+    FLOPsEstimator,
+    ParamEstimator,
+    TrainMetricsEstimator,
+)
+from elasticai.explorer.hw_nas.hw_nas import (
+    HWNASParameters,
+    SearchStrategy,
+)
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import RPICompiler
+from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import RPiHost
+from elasticai.explorer.platforms.deployment.device_communication import (
+    RPiHost,
+    SSHParams,
+)
 from torchvision import transforms
 from elasticai.explorer.training.trainer import SupervisedTrainer
 from settings import ROOT_DIR
@@ -40,13 +54,6 @@ class TestHWNasSetupAndSearch:
             ROOT_DIR / "tests/integration_tests/test_experiment"
         )
         self.model_name = "ts_model_0.pt"
-        self.hwnas_cfg = HWNASConfig(
-            ROOT_DIR / Path("tests/integration_tests/test_configs/hwnas_config.yaml")
-        )
-        self.deploy_cfg = DeploymentConfig(
-            ROOT_DIR
-            / Path("tests/integration_tests/test_configs/deployment_config.yaml")
-        )
 
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
         transf = transforms.Compose(
@@ -56,28 +63,55 @@ class TestHWNasSetupAndSearch:
             dataset=MNISTWrapper(path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_dataset,
         )
+        self.device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        trainer = SupervisedTrainer(
+            self.device,
+            self.dataset_spec,
+            batch_size=64,
+        )
+
+        accuracy_estimator = TrainMetricsEstimator(
+            trainer, metric_name="accuracy", n_estimation_epochs=1
+        )
+        self.optimization_criteria = OptimizationCriteria()
+        self.optimization_criteria.register_objective(estimator=accuracy_estimator)
+
+        self.search_space = self.RPI5explorer.generate_search_space(
+            ROOT_DIR / Path("tests/integration_tests/samples/search_space.yml")
+        )
 
     @pytest.mark.parametrize(
-        ("hwnas_cfg", "expected"),
+        ("search_strategy", "with_hardconstraints", "expected"),
         [
-            ("tests/integration_tests/test_configs/hwnas_config.yaml", 2),
-            ("tests/integration_tests/test_configs/grid_hwnas_config.yaml", 2),
-            ("tests/integration_tests/test_configs/evolution_hwnas_config.yaml", 2),
-            ("tests/integration_tests/test_configs/constraint_hwnas_config.yaml", 0),
+            (SearchStrategy.RANDOM_SEARCH, False, 2),
+            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 2),
+            (SearchStrategy.RANDOM_SEARCH, True, 0),
         ],
     )
-    def test_search(self, hwnas_cfg, expected):
-
-        hwnas_cfg = HWNASConfig(config_path=ROOT_DIR / Path(hwnas_cfg))
-        self.RPI5explorer.generate_search_space(
-            Path(ROOT_DIR / "elasticai/explorer/hw_nas/search_space/search_space.yaml")
+    def test_search(self, search_strategy, with_hardconstraints, expected):
+        if with_hardconstraints:
+            data_sample = torch.randn(
+                (1, 1, 28, 28), dtype=torch.float32, device=self.device
+            )
+            self.optimization_criteria.register_hard_constraint(
+                estimator=FLOPsEstimator(data_sample), operator=operator.lt, value=0
+            )
+            self.optimization_criteria.register_hard_constraint(
+                estimator=ParamEstimator(), operator=operator.lt, value=0
+            )
+        top_k_models = self.RPI5explorer.search(
+            optimization_criteria=self.optimization_criteria,
+            search_strategy=search_strategy,
+            hw_nas_parameters=HWNASParameters(2, 2),
         )
-        trainer = SupervisedTrainer(hwnas_cfg.host_processor, self.dataset_spec)
-        top_k_models = self.RPI5explorer.search(hwnas_cfg, trainer)
         assert len(top_k_models) == expected
 
     def test_generate_for_hw_platform(self):
-        self.RPI5explorer.choose_target_hw(self.deploy_cfg)
+        self.RPI5explorer.choose_target_hw(
+            "rpi5",
+            compiler_params=CompilerParams(),
+            communication_params=SSHParams("", ""),
+        )
         model = SampleMLP(28 * 28)
 
         self.RPI5explorer.generate_for_hw_platform(

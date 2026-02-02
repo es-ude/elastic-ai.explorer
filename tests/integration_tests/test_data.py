@@ -58,7 +58,7 @@ class TestData:
         dataset_spec = DatasetSpecification(
             dataset=TimeSeriesDatasetExample(root=self.sample_dir / "test_dataset.csv"),
             deployable_dataset_path=self.sample_dir / "test_dataset.csv",
-            train_val_train_ratio=[0.6, 0.2, 0.2],
+            train_val_test_ratio=[0.6, 0.2, 0.2],
         )
         model = SampleMLP(2)
 

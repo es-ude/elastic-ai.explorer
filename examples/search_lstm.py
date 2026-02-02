@@ -1,14 +1,14 @@
 from pathlib import Path
-from typing import Optional, Callable
 
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
 
-from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas import hw_nas
 
+from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
+from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
 
@@ -20,15 +20,12 @@ from settings import ROOT_DIR
 class SineDataset(BaseDataset):
     def __init__(
         self,
-        root,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
         seq_length=50,
         total_samples=1000,
         *args,
         **kwargs,
     ):
-        super().__init__("", transform, target_transform, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         x = np.linspace(0, 100, total_samples + seq_length)
         noise_level = 0.1
         self.data = (
@@ -79,30 +76,37 @@ def validate(model, test_loader):
 
 
 def run_lstm_search():
-    search_space = Path(ROOT_DIR / "examples/lstm_search_space.yaml")
-
+    search_space = Path(
+        ROOT_DIR / "examples/search_space_examples/lstm_search_space.yaml"
+    )
+    device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    max_search_trials, top_n_models = 2, 2
     batch_size = 32
     data_spec = DatasetSpecification(
-        dataset_type=SineDataset,
-        dataset_location=Path(""),
-        transform=None,
-        target_transform=None,
+        dataset=SineDataset(),
         train_val_test_ratio=[0.7, 0.1, 0.2],
         shuffle=False,
         split_seed=42,
     )
     trainer = SupervisedTrainer(
-        "cpu",
+        device,
         dataset_spec=data_spec,
         batch_size=batch_size,
         loss_fn=nn.MSELoss(),
         extra_metrics={},
     )
+
+    criteria_reg = OptimizationCriteria()
+
+    accuracy_estimator = TrainMetricsEstimator(trainer, n_estimation_epochs=3)
+    criteria_reg.register_objective(estimator=accuracy_estimator)
+
     search_space_cfg = yaml_to_dict(search_space)
     top_models, _, _ = hw_nas.search(
         search_space_cfg,
-        HWNASConfig(Path(ROOT_DIR / "configs/hwnas_config.yaml")),
-        trainer=trainer,
+        hw_nas.SearchStrategy.EVOLUTIONARY_SEARCH,
+        criteria_reg,
+        hw_nas_parameters=hw_nas.HWNASParameters(max_search_trials, top_n_models),
     )
     model = top_models[0]
     print(model)

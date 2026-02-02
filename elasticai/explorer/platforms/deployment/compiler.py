@@ -1,15 +1,24 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 import logging
 from pathlib import Path
 
 from python_on_whales import docker
 
-from elasticai.explorer.config import DeploymentConfig
+from settings import ROOT_DIR
+
+
+@dataclass
+class CompilerParams:
+    image_name: str = "cross"
+    library_path: Path = Path("./code/libtorch")
+    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.picross"
+    build_context: Path = ROOT_DIR / "docker"
 
 
 class Compiler(ABC):
     @abstractmethod
-    def __init__(self, deploy_cfg: DeploymentConfig):
+    def __init__(self, compiler_params: CompilerParams):
         pass
 
     @abstractmethod
@@ -26,12 +35,12 @@ class Compiler(ABC):
 
 
 class RPICompiler(Compiler):
-    def __init__(self, deploy_cfg: DeploymentConfig):
+    def __init__(self, compiler_params: CompilerParams):
         self.logger = logging.getLogger("RPICompiler")
-        self.image_name: str = deploy_cfg.docker.image_name  # "cross"
-        self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
-        self.context_path: Path = Path(deploy_cfg.docker.build_context)
-        self.libtorch_path: Path = Path(deploy_cfg.docker.library_path)
+        self.image_name: str = compiler_params.image_name  # "cross"
+        self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
+        self.context_path: Path = Path(compiler_params.build_context)
+        self.libtorch_path: Path = Path(compiler_params.library_path)
         if not self.is_setup():
             self.setup()
 
@@ -67,13 +76,13 @@ class RPICompiler(Compiler):
 
 class PicoCompiler(Compiler):
 
-    def __init__(self, deploy_cfg: DeploymentConfig):
+    def __init__(self, compiler_params: CompilerParams):
         self.logger = logging.getLogger("PicoCompiler")
-        self.context_path: Path = Path(deploy_cfg.docker.build_context)
-        self.image_name: str = deploy_cfg.docker.image_name
-        self.path_to_dockerfile: Path = Path(deploy_cfg.docker.path_to_dockerfile)
-        self.context_path: Path = Path(deploy_cfg.docker.build_context)
-        self.cross_compiler_path: Path = Path(deploy_cfg.docker.library_path)
+        self.context_path: Path = Path(compiler_params.build_context)
+        self.image_name: str = compiler_params.image_name
+        self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
+        self.context_path: Path = Path(compiler_params.build_context)
+        self.cross_compiler_path: Path = Path(compiler_params.library_path)
         if not self.is_setup():
             self.setup()
 
@@ -81,6 +90,7 @@ class PicoCompiler(Compiler):
         return bool(docker.images(self.image_name))
 
     def setup(self) -> None:
+        
         docker.build(
             context_path=self.context_path,
             tags=self.image_name,

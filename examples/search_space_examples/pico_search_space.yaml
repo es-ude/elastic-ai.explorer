@@ -1,5 +1,4 @@
 input: [1, 28, 28]
-#input: [50, 1] output: 1
 output: 10
 blocks:
   - block: "1" #namefield muss noch rein
@@ -23,7 +22,7 @@ blocks:
     activation: [ "identity"]
     linear:
       #überall range oder choices
-      width: [16]
+      width: [8,16]
     conv2d:
       kernel_size: [1]
       stride: [1]

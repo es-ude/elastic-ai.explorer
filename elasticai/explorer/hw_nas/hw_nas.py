@@ -1,5 +1,5 @@
+from dataclasses import dataclass
 import logging
-import math
 from typing import Any, Callable
 from functools import partial
 from enum import Enum
@@ -7,44 +7,32 @@ from enum import Enum
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
-from torch.optim.adam import Adam
 
+from elasticai.explorer.hw_nas.optimization_criteria import (
+    OptimizationCriteria,
+)
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
-from elasticai.explorer.config import HWNASConfig
-from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
-from elasticai.explorer.training.trainer import Trainer
 
 logger = logging.getLogger("explorer.nas")
+intermediate_metrics_template = "{metric_name}_intermediates"
 
 
-class SearchAlgorithm(Enum):
+@dataclass
+class HWNASParameters:
+    max_search_trials: int = 2
+    top_n_models: int = 2
+    count_only_completed_trials: bool = False
+
+
+class SearchStrategy(Enum):
     RANDOM_SEARCH = "random"
-    GRID_SEARCH = "grid"
-    EVOlUTIONARY_SEARCH = "evolution"
-
-
-def apply_constraints(trial, flops, params, constraints):
-    max_flops = constraints.get("max_flops")
-    max_params = constraints.get("max_params")
-    if max_flops and flops > max_flops:
-        logger.info(
-            f"Trial {trial.number} pruned because flops {flops} > max_flops {max_flops}"
-        )
-        raise optuna.TrialPruned()
-    if max_params and params > max_params:
-        logger.info(
-            f"Trial {trial.number} pruned because params {params} > max_params {max_params}"
-        )
-        raise optuna.TrialPruned()
+    EVOLUTIONARY_SEARCH = "evolution"
 
 
 def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
-    trainer_cls: Trainer,
-    n_estimation_epochs: int,
-    flops_weight: float,
-    constraints: dict[str, int] = {},
+    optimization_criteria: OptimizationCriteria,
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
@@ -54,58 +42,69 @@ def objective_wrapper(
             model = search_space.create_model_sample(trial)
         except NotImplementedError:
             raise optuna.TrialPruned()
-        trainer = trainer_cls.create_instance()
-        optimizer = Adam(model.parameters(), lr=0.01)  # type: ignore
-        trainer.configure_optimizer(optimizer)
+        score = 0.0
+        for estimator in optimization_criteria:
+            final_estimate, estimates = estimator.estimate(model)
+            trial.set_user_attr(estimator.metric_name, final_estimate)
+            trial.set_user_attr(
+                intermediate_metrics_template.format(metric_name=estimator.metric_name),
+                estimates,
+            )
+            hard_constraints = optimization_criteria.get_hard_constraints(estimator)
+            for hc in hard_constraints:
+                if not hc.comparator(final_estimate, hc.constraint_value):
+                    logger.info(
+                        f"Trial {trial.number} pruned, because {estimator.metric_name} trial does not meet constraint: {hc.comparator}({final_estimate:.2f}, {hc.constraint_value})."
+                    )
+                    raise optuna.TrialPruned()
 
-        cost_estimator = CostEstimator()
-        sample, _ = next(iter(trainer.test_loader))
-        flops = cost_estimator.estimate_flops(model, sample)
-        params = cost_estimator.compute_num_params(model)
-        apply_constraints(trial, flops, params, constraints)
-        metric = {
-            "default": 0,
-            "val_loss": 0,
-            "val_accuracy": -1,
-            "flops log10": math.log10(flops),
-        }
-        default = 0
-        val_loss = float("inf")
-        flops_log10 = math.log10(flops)
+            soft_constraints = optimization_criteria.get_soft_constraints(estimator)
+            for sc in soft_constraints:
+                if not sc.comparator(final_estimate, sc.constraint_value):
+                    penalty_value = sc.penalty_weight * sc.penalty_fn(
+                        sc.penalty_estimate_transform(final_estimate),
+                        sc.constraint_value,
+                    )
+                    score -= penalty_value
+                    logger.info(
+                        f"Trial {trial.number} gets a soft penalty of {penalty_value:.2f}, because {estimator.metric_name} trial does not meet constraint: {sc.comparator}({final_estimate:.2f}, {sc.constraint_value})."
+                    )
 
-        for epoch in range(n_estimation_epochs):
-            trainer.train_epoch(model, epoch)
-            val_metrics, val_loss = trainer.validate(model)
-            if "accuracy" in val_metrics:
-                default = val_metrics["accuracy"] * 100 - (flops_log10 * flops_weight)
-                trial.set_user_attr("val_accuracy", val_metrics["accuracy"] * 100)
-            else:
-                default = -val_loss - (flops_log10 * flops_weight)
-                trial.set_user_attr("val_accuracy", -1)
-            trial.report(default, epoch)
+            objectives = optimization_criteria.get_objectives(estimator)
+            for o in objectives:
+                if o.transform:
+                    objective_value = o.weight * o.transform(final_estimate)
+                else:
+                    objective_value = o.weight * final_estimate
 
-        trial.set_user_attr("flops_log10", flops_log10)
-        trial.set_user_attr("val_loss", val_loss)
-        return default
+                score += objective_value
+                logger.info(
+                    f"Trial {trial.number} added a objective value of {objective_value:.2f}, because the {estimator.metric_name} is {final_estimate:.2f}."
+                )
+
+        logger.info(f"Trial {trial.number} has an final score of {score:.2f}")
+
+        return score
 
     return objective(trial)
 
 
 def search(
     search_space_cfg: dict,
-    hwnas_cfg: HWNASConfig,
-    trainer: Trainer,
+    search_strategy: SearchStrategy,
+    optimization_criteria: OptimizationCriteria,
+    hw_nas_parameters: HWNASParameters,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
+
     search_space = SearchSpace(search_space_cfg)
-    match hwnas_cfg.search_algorithm:
-        case SearchAlgorithm.RANDOM_SEARCH:
+
+    match search_strategy:
+        case SearchStrategy.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
-        case SearchAlgorithm.GRID_SEARCH:
-            sampler = optuna.samplers.GridSampler(search_space_cfg)
-        case SearchAlgorithm.EVOlUTIONARY_SEARCH:
+        case SearchStrategy.EVOLUTIONARY_SEARCH:
             sampler = optuna.samplers.NSGAIISampler(
                 population_size=20,
                 mutation_prob=0.1,
@@ -118,25 +117,24 @@ def search(
         direction="maximize",
     )
 
-    if hwnas_cfg.count_only_completed_trials:
+    if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
         callbacks = [
             MaxTrialsCallback(
-                hwnas_cfg.max_search_trials, states=(TrialState.COMPLETE,)
+                hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,)
             )
         ]
     else:
-        n_trials = hwnas_cfg.max_search_trials
-        callbacks = [MaxTrialsCallback(hwnas_cfg.max_search_trials, states=None)]
+        n_trials = hw_nas_parameters.max_search_trials
+        callbacks = [
+            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)
+        ]
 
     study.optimize(
         partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
-            trainer_cls=trainer,
-            n_estimation_epochs=hwnas_cfg.n_estimation_epochs,
-            flops_weight=hwnas_cfg.flops_weight,
-            constraints=hwnas_cfg.hw_constraints,
+            optimization_criteria=optimization_criteria,
         ),
         n_trials=n_trials,
         callbacks=callbacks,
@@ -151,7 +149,7 @@ def search(
     )
     test_results.sort(key=eval, reverse=True)
 
-    top_k_frozen_trials = test_results[: hwnas_cfg.top_n_models]
+    top_k_frozen_trials = test_results[: hw_nas_parameters.top_n_models]
 
     if len(top_k_frozen_trials) == 0:
         logger.warning("No models found in the search space.")
@@ -160,17 +158,24 @@ def search(
     top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
+    metric_names = [
+        estimator.metric_name for estimator in optimization_criteria.get_estimators()
+    ]
 
     for frozen_trial in top_k_frozen_trials:
         top_k_models.append(search_space.create_model_sample(frozen_trial))
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
-                "default": eval(frozen_trial),
-                "val_accuracy": frozen_trial.user_attrs["val_accuracy"],
-                "val_loss": frozen_trial.user_attrs["val_loss"],
-                "flops log10": frozen_trial.user_attrs["flops_log10"],
+                "score": eval(frozen_trial),
             }
         )
-
+        for metric_name in metric_names:
+            intermediates_key = intermediate_metrics_template.format(
+                metric_name=metric_name
+            )
+            top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
+            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
+                intermediates_key
+            ]
     return top_k_models, top_k_params, top_k_metrics

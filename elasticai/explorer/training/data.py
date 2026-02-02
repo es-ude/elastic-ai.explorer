@@ -30,7 +30,7 @@ class DatasetSpecification:
     # If dataset deployment is not necessary, leave it unspecified. Specifics have to be implemented in corresponding Generator.
     deployable_dataset_path: Path | None = None
 
-    train_val_train_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
+    train_val_test_ratio: List[float] = field(default_factory=lambda: [0.7, 0.1, 0.2])
     shuffle: bool = False
     split_seed: int = 42
 

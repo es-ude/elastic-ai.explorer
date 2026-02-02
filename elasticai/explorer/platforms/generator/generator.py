@@ -11,7 +11,7 @@ from torch import nn
 from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
 from torch._export import capture_pre_autograd_graph
 
-import ai_edge_torch
+from ai_edge_torch import convert, to_channel_last_io
 from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_config
 from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
 from ai_edge_torch.quantize.quant_config import QuantConfig
@@ -39,7 +39,7 @@ class RPiGenerator(Generator):
         self,
         model: nn.Module,
         path: Path,
-        input_sample: torch.Tensor = None,
+        input_sample: torch.Tensor | None = None,
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         if quantization == "int8":
@@ -93,7 +93,7 @@ class PicoGenerator(Generator):
         pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
         torch_output = pt2e_torch_model(*sample_input)
 
-        pt2e_drq_model = ai_edge_torch.convert(
+        pt2e_drq_model = convert(
             pt2e_torch_model,
             sample_input,
             quant_config=QuantConfig(pt2e_quantizer=pt2e_quantizer),
@@ -135,16 +135,15 @@ class PicoGenerator(Generator):
         quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         self.logger.info("Generate torchscript model from %s", model)
-
         input_sample_nchw = input_sample.unsqueeze(1)
         input_tuple_nchw = (input_sample_nchw,)
         input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 3, 1),)
 
         torch_output = model(*input_tuple_nchw)
-        nhwc_model = ai_edge_torch.to_channel_last_io(model, args=[0]).eval()
+        nhwc_model = to_channel_last_io(model, args=[0]).eval()
         sample_tflite_input = input_tuple_nhwc
         if quantization == "full_precision":
-            edge_model = ai_edge_torch.convert(
+            edge_model = convert(
                 nhwc_model, sample_args=sample_tflite_input
             )
         else:
