@@ -27,9 +27,9 @@ const unsigned char model_tflite[] = {1};
 const unsigned int model_tflite_len = 1;
 EOF
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_images.h
-#ifndef MNIST_IMAGES_H
-#define MNIST_TEST_IMAGES_H
+RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_features.h
+#ifndef MNIST_FEATURES_H
+#define MNIST_TEST_FEATURES_H
 const float mnist_images[1][1] = {
     {1.0f},
 };

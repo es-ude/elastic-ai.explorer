@@ -1,4 +1,4 @@
-import shutil
+import tomllib
 
 import pytest
 from elasticai.explorer.explorer import Explorer
@@ -14,21 +14,21 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     RPiHost,
     SSHParams,
 )
-from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 from pathlib import Path
 
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR
-from tests.system_tests.system_test_settings import RPI_HOSTNAME, RPI_USERNAME
 
 
 class TestDeploymentAndMeasurement:
     def setup_class(self):
+        with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
+            config = tomllib.load(f)
 
         ssh_params = SSHParams(
-            hostname=RPI_HOSTNAME, username=RPI_USERNAME
+            hostname=config["RPI_HOSTNAME"], username=config["RPI_USERNAME"]
         )  # <-- Set the credentials of your RPi
         compiler_params = CompilerParams()
         knowledge_repository = KnowledgeRepository()
