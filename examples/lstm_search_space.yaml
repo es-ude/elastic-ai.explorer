@@ -1,6 +1,7 @@
 input: [50, 1]
 output: 1
 sequence:
+
   - block: "1"
     type_repeat:
       type: "repeat_op"
@@ -27,7 +28,7 @@ sequence:
       depth: [3]
 
     linear:
-      activation: ["relu", "tanh"]
+      activation: ["relu", "tanh", "identity"]
       width: [30, 60]
     conv2d:
       kernel_size: [ 1, 2 ]

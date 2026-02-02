@@ -180,7 +180,7 @@ def construct_model(sample: OrderedDict, in_dim, out_dim):
             layers.append(build_layer)
             prev_op = layer_params["operation"]
             if is_negative(next_in_shape):
-                raise ShapeValueError("Shape must be negative")
+                raise ShapeValueError("Shape must not be negative")
 
     return nn.Sequential(*layers)
 

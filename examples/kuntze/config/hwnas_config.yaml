@@ -6,7 +6,7 @@ HWNASConfig:
   host_processor: "cuda" 
 
   # The search trials the HW-NAS should do at max.
-  max_search_trials: 50
+  max_search_trials: 10
 
   # Whether to count only completed trials towards the max_search_trials OR to count all trials (including failed ones).
   count_only_completed_trials: false
@@ -16,7 +16,7 @@ HWNASConfig:
 
   # The search algorithm to use for the HW-NAS.
   # Options: "random", "grid", "evolution"
-  search_algorithm: "random"
+  search_algorithm: "evolution"
 
   # The hardware constraints for the search.
   # Currently, only "max_flops" and "max_params" are supported.

@@ -8,13 +8,12 @@ import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 from torch.optim.adam import Adam
-
-from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 from elasticai.explorer.config import HWNASConfig
 from elasticai.explorer.hw_nas.cost_estimator import CostEstimator
 from elasticai.explorer.hw_nas.search_space.sample_blocks import (
     Sampler,
     construct_model,
+    ShapeValueError,
 )
 from elasticai.explorer.training.trainer import Trainer
 
@@ -59,7 +58,7 @@ def objective_wrapper(
             model = construct_model(
                 sample, search_space_cfg["input"], search_space_cfg["output"]
             )
-        except NotImplementedError:
+        except (NotImplementedError, ShapeValueError):
             raise optuna.TrialPruned()
         trainer = trainer_cls.create_instance()
         optimizer = Adam(model.parameters(), lr=0.01)  # type: ignore

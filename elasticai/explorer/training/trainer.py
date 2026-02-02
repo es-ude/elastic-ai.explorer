@@ -3,7 +3,7 @@ import logging
 from typing import Any, Tuple, Callable
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Subset
 from torch.optim.optimizer import Optimizer
 from elasticai.explorer.training.data import DatasetSpecification
 
@@ -30,15 +30,24 @@ class Trainer(ABC):
             transform=dataset_spec.transform,
             target_transform=dataset_spec.target_transform,
         )
+        if dataset_spec.shuffle:
+            train_subset, val_subset, test_subset = random_split(
+                dataset,
+                dataset_spec.train_val_test_ratio,
+                generator=torch.Generator().manual_seed(dataset_spec.split_seed),
+            )
+        else:
+            ratio = dataset_spec.train_val_test_ratio
+            N = len(dataset)
+            train_end = int(ratio[0] * N)
+            val_end = int((ratio[0] + ratio[1]) * N)
 
-        train_subset, val_subset, test_subset = random_split(
-            dataset,
-            dataset_spec.train_val_test_ratio,
-            generator=torch.Generator().manual_seed(dataset_spec.split_seed),
-        )
+            train_subset = Subset(dataset, range(0, train_end))
+            val_subset = Subset(dataset, range(train_end, val_end))
+            test_subset = Subset(dataset, range(val_end, N))
 
         self.train_loader = DataLoader(
-            train_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
+            train_subset, batch_size=batch_size, shuffle=True
         )
         self.val_loader = DataLoader(
             val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
