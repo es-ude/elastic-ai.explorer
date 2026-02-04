@@ -25,14 +25,8 @@ class Trainer(ABC):
         self.batch_size = batch_size
         self.extra_metrics = extra_metrics
 
-        dataset = dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            transform=dataset_spec.transform,
-            target_transform=dataset_spec.target_transform,
-        )
-
         train_subset, val_subset, test_subset = random_split(
-            dataset,
+            dataset_spec.dataset,
             dataset_spec.train_val_test_ratio,
             generator=torch.Generator().manual_seed(dataset_spec.split_seed),
         )

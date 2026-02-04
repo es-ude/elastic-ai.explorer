@@ -67,10 +67,13 @@ class TestPicoGenerateAndCompile:
         )
 
         self.dataset_spec = DatasetSpecification(
-            dataset_type=MNISTWrapper,
-            dataset_location=path_to_dataset,
+            dataset=MNISTWrapper(
+                Path(ROOT_DIR / "data/mnist"),
+                transform=transforms.Compose(
+                    [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+                ),
+            ),
             deployable_dataset_path=path_to_deployable_dataset,
-            transform=transf,
         )
 
     def test_generate_for_hw_platform(self):

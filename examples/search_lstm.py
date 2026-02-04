@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional, Callable
 
 import numpy as np
 import torch
@@ -21,15 +20,12 @@ from settings import ROOT_DIR
 class SineDataset(BaseDataset):
     def __init__(
         self,
-        root,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
         seq_length=50,
         total_samples=1000,
         *args,
         **kwargs,
     ):
-        super().__init__("", transform, target_transform, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         x = np.linspace(0, 100, total_samples + seq_length)
         noise_level = 0.1
         self.data = (
@@ -87,10 +83,7 @@ def run_lstm_search():
     max_search_trials, top_n_models = 2, 2
     batch_size = 32
     data_spec = DatasetSpecification(
-        dataset_type=SineDataset,
-        dataset_location=Path(""),
-        transform=None,
-        target_transform=None,
+        dataset=SineDataset(),
         train_val_test_ratio=[0.7, 0.1, 0.2],
         shuffle=False,
         split_seed=42,

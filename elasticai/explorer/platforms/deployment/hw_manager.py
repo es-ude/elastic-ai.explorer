@@ -14,7 +14,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     RPiHost,
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
-from elasticai.explorer.training.data import DatasetSpecification
+from elasticai.explorer.training.data import DatasetSpecification, RootedDataset
 from settings import DOCKER_CONTEXT_DIR
 
 
@@ -72,8 +72,14 @@ class RPiHWManager(HWManager):
 
         if dataset_spec.deployable_dataset_path:
             dataset_dir = dataset_spec.deployable_dataset_path
+        elif isinstance(dataset_spec.dataset, RootedDataset):
+            dataset_dir = Path(dataset_spec.dataset.root)
         else:
-            dataset_dir = dataset_spec.dataset_location
+            error = ValueError(
+                "For dataset installation on device a RootedDataset or a alternative deployable_dataset_path has to be given via the DatasetSpecification."
+            )
+            self.logger.error(error)
+            raise error
         archive_name = dataset_dir.with_suffix(".tar.gz")
         with tarfile.open(archive_name, "w:gz") as tar:
             tar.add(dataset_dir, arcname=dataset_dir.name)
