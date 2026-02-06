@@ -121,7 +121,7 @@ class TestPicoGenerateAndCompile:
         )
 
         assert (
-            os.path.exists(self.pico_explorer.experiment_dir / "resolver_ops.h") == True
+            os.path.exists(self.pico_explorer.experiment_dir / "resolver_ops.h")
         )
 
     def test_quantization(self):
@@ -135,8 +135,8 @@ class TestPicoGenerateAndCompile:
             input_sample=data_sample,
             quantization_scheme=FixedPointInt8Scheme(),
         )
-        assert os.path.exists(output_path / ".tflite") == True
-        assert os.path.exists(output_path / ".cpp") == True
+        assert os.path.exists(output_path.with_suffix(".tflite"))
+        assert os.path.exists(output_path.with_suffix(".cpp"))
 
     def teardown_method(self):
 

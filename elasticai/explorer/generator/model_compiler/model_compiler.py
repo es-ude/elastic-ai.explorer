@@ -100,25 +100,23 @@ class TFliteModelCompiler(ModelCompiler):
     def _quantize(self, model: nn.Module, sample_input: tuple[Any]):
         pt2e_quantizer = PT2EQuantizer().set_global(
             get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
-        )
-
+        )   
         pt2e_torch_model = capture_pre_autograd_graph(model, sample_input)
         pt2e_torch_model = prepare_pt2e(pt2e_torch_model, pt2e_quantizer)  # type:ignore
 
         # Prepare model by running one inference.
-        pt2e_torch_model(*sample_input)
-        pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
         torch_output = pt2e_torch_model(*sample_input)
-
+        self.logger.debug(f"Sample output before quantization: ", torch_output)
+        pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
+        torch_output_quantized = pt2e_torch_model(*sample_input)
+        self.logger.debug(f"Sample output quantized: ", torch_output_quantized)
         pt2e_drq_model = convert(
             pt2e_torch_model,
             sample_input,
             quant_config=QuantConfig(pt2e_quantizer=pt2e_quantizer),
         )
-        sample_input_int8 = (sample_input[0].to(torch.int8),)
-        edge_output = pt2e_drq_model(*sample_input_int8)
-        self.logger.debug(f"Sample output quantized: ", edge_output)
-        return pt2e_drq_model, torch_output, edge_output
+
+        return pt2e_drq_model, torch_output, torch_output_quantized
 
     def _model_to_cpp(self, tflite_model_path: Path):
         process = subprocess.run(

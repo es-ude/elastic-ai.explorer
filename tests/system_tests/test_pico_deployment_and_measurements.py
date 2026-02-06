@@ -106,3 +106,7 @@ class TestPicoDeploymentAndMeasurement:
             )
             == int
         )
+class TestPicoQuantization:
+    def setup_class(self):
+        pass
+
