@@ -23,7 +23,8 @@ const uint32_t CHANNEL_COUNT = 1;
 const uint32_t INPUT_FEATURE_COUNT = CHANNEL_COUNT * 784;
 const uint32_t OUTPUT_FEATURE_COUNT = 10;
 const uint32_t INFERENCE_EVERY_NTH_POINTS = 10;
-const bool IS_QUANT = true std::unique_ptr<TfLiteInterpreter> interpreter = nullptr;
+const bool IS_QUANT = true;
+std::unique_ptr<TfLiteInterpreter> interpreter = nullptr;
 
 std::unique_ptr<TfLiteInterpreter> getInterpreter()
 {
@@ -72,6 +73,7 @@ int main()
     int dataset_size = 256;
 
     interpreter = getInterpreter();
+
     int correct = runInference(dataset_size);
     printf("{\"Accuracy\": { \"value\":  %.3f, \"unit\": \"percent\"}}", (static_cast<double>(correct) / dataset_size) * 100);
 

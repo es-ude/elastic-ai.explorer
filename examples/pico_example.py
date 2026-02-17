@@ -85,7 +85,7 @@ if __name__ == "__main__":
     ### Hyperparameters
     max_search_trials = 1
     top_n_models = 1
-    retrain_epochs = 3
+    retrain_epochs = 1
 
     serial_params = SerialParams(
         device_path=Path("/media/robin/RPI-RP2")

@@ -109,4 +109,5 @@ class TestPicoDeploymentAndMeasurement:
 class TestPicoQuantization:
     def setup_class(self):
         pass
+        # TODO add hardware test for pico quantization
 

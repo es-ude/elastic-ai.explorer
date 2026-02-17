@@ -44,12 +44,12 @@ int TfLiteInterpreter::initialize()
 
     this->input = this->interpreter->input(0);
     this->output = this->interpreter->output(0);
-
     if (is_quant)
     {
-        if ((this->input->type != kTfLiteUInt8) ||
-            (this->output->type != kTfLiteUInt8))
+        if ((this->input->type != kTfLiteInt8) ||
+            (this->output->type != kTfLiteInt8))
         {
+
             printf("Expect model with Int8 input/output tensor\n");
         }
     }
@@ -69,6 +69,16 @@ int TfLiteInterpreter::initialize()
 
     return 0;
 }
+int8_t TfLiteInterpreter::quantize(float x)
+{
+    return x / this->input->params.scale + this->input->params.zero_point;
+}
+
+float TfLiteInterpreter::dequantize(int8_t x)
+{
+
+    return (x - this->output->params.zero_point) * this->output->params.scale;
+}
 
 int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outputBuffer)
 {
@@ -85,7 +95,7 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         const float x = inputBuffer[inputIdx];
         if (is_quant)
         {
-            this->input->data.uint8[inputIdx] = quantize(x);
+            this->input->data.int8[inputIdx] = quantize(x);
         }
         else
         {
@@ -104,16 +114,16 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
     {
         if (is_quant)
         {
-            const uint8_t quant_y = this->output->data.uint8[outputIdx];
+            const int8_t quant_y = this->output->data.int8[outputIdx];
             outputBuffer[outputIdx] = dequantize(quant_y);
+
+            //printf("Output %d is %.04f \n", outputIdx, output_y);
         }
         else
         {
             float output_y = this->output->data.f[outputIdx];
             outputBuffer[outputIdx] = output_y;
         }
-
-        // printf("Output %d is %.04f \n", outputIdx ,output_y);
     }
 
     int max_idx = 0;
@@ -127,16 +137,4 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         }
     }
     return max_idx;
-}
-
-int8_t TfLiteInterpreter::quantize(float x)
-{
-
-    return x / this->input->params.scale + this->input->params.zero_point;
-}
-
-float TfLiteInterpreter::dequantize(int8_t x)
-{
-
-    return (x - this->output->params.zero_point) * this->output->params.scale;
 }

@@ -15,8 +15,11 @@ public:
         const uint32_t tensorArenaSize,
         bool is_quant = false);
     int initialize();
+    int8_t quantize(float x);
+    float dequantize(int8_t x);
     int runInference(float *const inputBuffer, float *const outputBuffer);
-
+    TfLiteTensor *input;
+    TfLiteTensor *output;
 private:
     const uint32_t tensorArenaSize;
     uint8_t *const tensorArena;
@@ -26,12 +29,7 @@ private:
     const tflite::Model *model;
     tflite::MicroOpResolver *resolver;
     tflite::MicroInterpreter *interpreter;
-    TfLiteTensor *input;
-    TfLiteTensor *output;
     bool initialized;
-
-    uint8_t quantize(float x);
-    float dequantize(uint8_t x);
 };
 
 #endif
