@@ -33,7 +33,8 @@ docker/code/pico_crosscompiler/data/mnist_features.h
 docker/code/pico_crosscompiler/data/mnist_images.h
 # Tests
 tests/data
-#bin 
+
+#bin
 docker/bin
 
 #data
