@@ -33,7 +33,8 @@ docker/code/libtorch*
 
 
 tests/data
-#bin 
+
+#bin
 docker/bin
 
 #data
