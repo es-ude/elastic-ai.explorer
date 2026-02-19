@@ -6,8 +6,8 @@ ARG PATH_TO_SOURCE
 ARG SOURCE_NAME
 ARG CROSS_COMPILER_PATH
 
-COPY $PATH_TO_SOURCE/ $PATH_TO_SOURCE/
-COPY $CROSS_COMPILER_PATH/data /code/pico_crosscompiler/data
+#COPY $PATH_TO_SOURCE/ $PATH_TO_SOURCE/
+COPY $CROSS_COMPILER_PATH /code/pico_crosscompiler
 
 RUN mkdir -p /code/build && mkdir -p $BIN_DIR
 WORKDIR /code/build

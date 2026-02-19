@@ -9,7 +9,7 @@ import numpy
 
 
 import torch
-from torch import nn
+from torch import Tensor, dequantize, int8, nn
 from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
 from torch._export import capture_pre_autograd_graph
 
@@ -22,12 +22,15 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     FullPrecisionScheme,
     QuantizationScheme,
+    tflite_dequantize,
+    tflite_quantize,
 )
 import elasticai.creator.nn as creator_nn
 from elasticai.creator.file_generation.on_disk_path import OnDiskPath
 from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
 
 from elasticai.creator.nn import fixed_point
+import tensorflow as tf
 
 
 class ModelCompiler(ABC):
@@ -97,11 +100,11 @@ class TFliteModelCompiler(ModelCompiler):
         else:
             self.logger.warning("Something wrong with Pytorch --> TfLite")
 
-    def _quantize(self, model: nn.Module, sample_input: tuple[Any]):
+    def _quantize(self, model: nn.Module, sample_input: tuple[Tensor]):
         pt2e_quantizer = PT2EQuantizer().set_global(
             get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
-        )   
-        pt2e_torch_model = capture_pre_autograd_graph(model, sample_input)
+        )
+        pt2e_torch_model = torch.export.export(model, sample_input).module()
         pt2e_torch_model = prepare_pt2e(pt2e_torch_model, pt2e_quantizer)  # type:ignore
 
         # Prepare model by running one inference.
@@ -115,8 +118,28 @@ class TFliteModelCompiler(ModelCompiler):
             sample_input,
             quant_config=QuantConfig(pt2e_quantizer=pt2e_quantizer),
         )
+        numpy_input = sample_input[0].cpu().numpy()
+        quantized_input = tflite_quantize(numpy_input)
+        int8_input = quantized_input.astype(numpy.int8)
 
-        return pt2e_drq_model, torch_output, torch_output_quantized
+        quantized_output = pt2e_drq_model(int8_input)
+
+        dequantized_output = tflite_dequantize(
+            numpy.array(quantized_output, dtype=numpy.float32)
+        )
+
+        # Test tflite quantization
+        # torch_output = model(*sample_input)
+
+        # numpy_input = sample_input[0].cpu().numpy()
+        # tfl_converter_flags = {"optimizations": [tf.lite.Optimize.DEFAULT]}
+        # tfl_drq_model = convert(
+        #     model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
+        # )
+
+        # tflite_output = tfl_drq_model(*sample_input)
+
+        return pt2e_drq_model, dequantized_output
 
     def _model_to_cpp(self, tflite_model_path: Path):
         process = subprocess.run(
@@ -149,7 +172,7 @@ class TFliteModelCompiler(ModelCompiler):
         input_sample: torch.Tensor,
         quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
-        self.logger.info("Generate torchscript model from %s", model)
+        self.logger.info("Generate tflite model from %s", model)
         input_sample_nchw = input_sample.unsqueeze(1)
         input_tuple_nchw = (input_sample_nchw,)
         input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 3, 1),)
@@ -164,11 +187,8 @@ class TFliteModelCompiler(ModelCompiler):
             )
             edge_output = edge_model(*sample_tflite_input)
         elif isinstance(quantization_scheme, FixedPointInt8Scheme):
-            edge_model, torch_output, edge_output = self._quantize(
-                model, input_tuple_nchw
-            )
-            self.logger.warning(
-                "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
+            edge_model, edge_output = self._quantize(
+                nhwc_model, sample_tflite_input
             )
         else:
             err = NotImplementedError(

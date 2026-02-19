@@ -71,13 +71,13 @@ int TfLiteInterpreter::initialize()
 }
 int8_t TfLiteInterpreter::quantize(float x)
 {
-    return x / this->input->params.scale + this->input->params.zero_point;
+    return static_cast<int8_t>((x / this->input->params.scale) - this->input->params.zero_point);
 }
 
 float TfLiteInterpreter::dequantize(int8_t x)
 {
 
-    return (x - this->output->params.zero_point) * this->output->params.scale;
+    return this->output->params.scale * (x + this->output->params.zero_point);
 }
 
 int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outputBuffer)
@@ -116,8 +116,7 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
         {
             const int8_t quant_y = this->output->data.int8[outputIdx];
             outputBuffer[outputIdx] = dequantize(quant_y);
-
-            //printf("Output %d is %.04f \n", outputIdx, output_y);
+            // printf("Output %d is %.04f \n", outputIdx, output_y);
         }
         else
         {
@@ -125,14 +124,13 @@ int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outpu
             outputBuffer[outputIdx] = output_y;
         }
     }
-
     int max_idx = 0;
-    float max_val = output->data.f[0];
+    float max_val = outputBuffer[0];
     for (int i = 0; i < 10; ++i)
     {
-        if (output->data.f[i] > max_val)
+        if (outputBuffer[i] > max_val)
         {
-            max_val = output->data.f[i];
+            max_val = outputBuffer[i];
             max_idx = i;
         }
     }

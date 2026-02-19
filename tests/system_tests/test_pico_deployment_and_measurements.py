@@ -1,6 +1,7 @@
 import math
 
 import pytest
+from torch import Tensor
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
@@ -107,7 +108,6 @@ class TestPicoDeploymentAndMeasurement:
             == int
         )
 class TestPicoQuantization:
-    def setup_class(self):
-        pass
-        # TODO add hardware test for pico quantization
+
+    pass
 

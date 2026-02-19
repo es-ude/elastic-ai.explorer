@@ -85,14 +85,14 @@ if __name__ == "__main__":
     ### Hyperparameters
     max_search_trials = 1
     top_n_models = 1
-    retrain_epochs = 1
+    retrain_epochs = 2
 
     serial_params = SerialParams(
         device_path=Path("/media/robin/RPI-RP2")
     )  # <-- Set the device path and rest only if necessary.
     compiler_params = DockerParams(
         library_path=Path("./code/pico_crosscompiler"),
-        image_name="picobase_quant",
+        image_name="picobase",
         build_context=DOCKER_CONTEXT_DIR,
         path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
     )  # <-- Configure this only if necessary.

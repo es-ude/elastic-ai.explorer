@@ -117,7 +117,7 @@ def setup_example_optimization_criteria(
             extra_metrics={"accuracy": accuracy_fn},
         ),
         metric_name="accuracy",
-        n_estimation_epochs=10,
+        n_estimation_epochs=3,
     )
     criteria.register_objective(estimator=accuracy_estimator, weight=100)
 

@@ -5,7 +5,7 @@ from typing import Type
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from torch import Tensor, flatten
 
-
+from numpy import array
 class QuantizationScheme(ABC):
     dtype: str
     total_bits: int
@@ -86,3 +86,11 @@ def parse_fxp_tensor_to_bytearray(
             data[i].extend(item_as_bytes)
     print(data)
     return data
+
+
+def tflite_quantize(array, scaling: float = 0.012722019106149673, zeropoint: float = 95): 
+    return (array / scaling) - zeropoint   
+
+def tflite_dequantize(array, scaling: float = 0.00390625, zeropoint: float = 128):
+    return scaling * (array + zeropoint)
+    
