@@ -8,8 +8,8 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
+from optuna.samplers import BaseSampler, RandomSampler
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
-from elasticai.explorer.hw_nas.sampler import RandomSamplerWrapper, Sampler
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams
@@ -99,7 +99,7 @@ class Explorer:
 
     def search(
         self,
-        sampler: Sampler = RandomSamplerWrapper(),
+        sampler: BaseSampler | None = None,
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
@@ -110,6 +110,9 @@ class Explorer:
             hw_nas_parameters.max_search_trials,
             hw_nas_parameters.top_n_models,
         )
+    
+        if not sampler:
+            sampler = RandomSampler(seed=42)
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
                 search_space_cfg=self.search_space_cfg,
@@ -133,7 +136,7 @@ class Explorer:
             data_utils.save_to_toml(
                 dataclass_instance_to_toml(
                     hw_nas_parameters,
-                    additional_info={"search_strategy": Sampler.__name__},
+                    additional_info={"search_strategy": sampler.__name__},
                 ),
                 self._experiment_dir,
                 "hw_nas_params.toml",
