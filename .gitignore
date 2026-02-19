@@ -51,6 +51,7 @@ experiments/
 #system-tests
 tests/system_tests/test_experiment/
 tests/system_tests/samples/data/
+tests/system_tests/system_test_settings.toml
 #integration-tests
 tests/integration_tests/test_experiment/
 tests/integration_tests/samples/features.csv

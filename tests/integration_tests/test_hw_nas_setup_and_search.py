@@ -13,15 +13,15 @@ from elasticai.explorer.hw_nas.estimators import (
 )
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 
-from elasticai.explorer.hw_nas.sampler import (
-    BruteForceSamplerWrapper,
-    CmaEsSamplerWrapper,
-    GPSamplerWrapper,
-    NSGAIIISamplerWrapper,
-    NSGAIISamplerWrapper,
-    QMCSamplerWrapper,
-    RandomSamplerWrapper,
-    TPESamplerWrapper,
+from optuna.samplers import (
+    BruteForceSampler,
+    CmaEsSampler,
+    GPSampler,
+    NSGAIIISampler,
+    NSGAIISampler,
+    QMCSampler,
+    RandomSampler,
+    TPESampler,
 )
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
@@ -93,14 +93,14 @@ class TestHWNasSetupAndSearch:
     @pytest.mark.parametrize(
         ("sampler", "expected"),
         [
-            (RandomSamplerWrapper, 1),
-            (BruteForceSamplerWrapper, 1),
-            (TPESamplerWrapper, 1),
-            (NSGAIISamplerWrapper, 1),
-            (NSGAIIISamplerWrapper, 1),
-            (GPSamplerWrapper, 1),
-            (CmaEsSamplerWrapper, 1),
-            (QMCSamplerWrapper, 1),
+            (RandomSampler, 1),
+            (BruteForceSampler, 1),
+            (TPESampler, 1),
+            (NSGAIISampler, 1),
+            (NSGAIIISampler, 1),
+            (GPSampler, 1),
+            (CmaEsSampler, 1),
+            (QMCSampler, 1),
         ],
     )
     def test_search(self, sampler, expected):
@@ -124,7 +124,7 @@ class TestHWNasSetupAndSearch:
         )
         top_k_models = self.RPI5explorer.search(
             optimization_criteria=self.optimization_criteria,
-            sampler=RandomSamplerWrapper(),
+            sampler=RandomSampler(),
             hw_nas_parameters=HWNASParameters(2, 2),
         )
         assert len(top_k_models) == 0

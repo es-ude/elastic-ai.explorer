@@ -6,11 +6,11 @@ from functools import partial
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
+from optuna.samplers import BaseSampler
 
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
-from elasticai.explorer.hw_nas.sampler import Sampler
 from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
 
 logger = logging.getLogger("explorer.nas")
@@ -85,7 +85,7 @@ def objective_wrapper(
 
 def search(
     search_space_cfg: dict,
-    sampler: Sampler,
+    sampler: BaseSampler,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
@@ -95,7 +95,7 @@ def search(
 
     search_space = SearchSpace(search_space_cfg)
     study = optuna.create_study(
-        sampler=sampler.build(),
+        sampler=sampler,
         direction="maximize",
     )
 
