@@ -2,14 +2,12 @@ import logging.config
 from pathlib import Path
 import torch
 
+from optuna.samplers import NSGAIISampler
 
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.explorer import Explorer
-
-from elasticai.explorer.hw_nas.sampler import NSGAIISamplerWrapper
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams
 from elasticai.explorer.platforms.deployment.device_communication import SSHParams
-
 from elasticai.explorer.platforms.deployment.hw_manager import Metric
 
 from examples.example_helpers import (
@@ -44,7 +42,7 @@ def search_generate_measure_for_pi(
     criteria_reg = setup_example_optimization_criteria(dataset_spec, device)
 
     top_models = explorer.search(
-        sampler=NSGAIISamplerWrapper(),
+        sampler=NSGAIISampler(),
         optimization_criteria=criteria_reg,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
     )
