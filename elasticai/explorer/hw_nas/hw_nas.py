@@ -2,11 +2,11 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Callable
 from functools import partial
-from enum import Enum
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
+from optuna.samplers import BaseSampler
 
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
@@ -22,12 +22,6 @@ class HWNASParameters:
     max_search_trials: int = 2
     top_n_models: int = 2
     count_only_completed_trials: bool = False
-
-
-class SearchStrategy(Enum):
-    RANDOM_SEARCH = "random"
-    EVOLUTIONARY_SEARCH = "evolution"
-
 
 def objective_wrapper(
     trial: optuna.Trial,
@@ -91,7 +85,7 @@ def objective_wrapper(
 
 def search(
     search_space_cfg: dict,
-    search_strategy: SearchStrategy,
+    sampler: BaseSampler,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
@@ -100,18 +94,6 @@ def search(
     """
 
     search_space = SearchSpace(search_space_cfg)
-
-    match search_strategy:
-        case SearchStrategy.RANDOM_SEARCH:
-            sampler = optuna.samplers.RandomSampler()
-        case SearchStrategy.EVOLUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(
-                population_size=20,
-                mutation_prob=0.1,
-            )
-        case _:
-            sampler = optuna.samplers.RandomSampler()
-
     study = optuna.create_study(
         sampler=sampler,
         direction="maximize",

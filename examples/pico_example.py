@@ -5,8 +5,10 @@ from pathlib import Path
 import torch
 from torchvision.transforms import transforms
 
+from optuna.samplers import NSGAIISampler
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
+
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams
 from elasticai.explorer.platforms.deployment.device_communication import SerialParams
 from elasticai.explorer.platforms.deployment.hw_manager import Metric
@@ -52,7 +54,7 @@ def search_generate_measure_for_pico(
     criteria = setup_example_optimization_criteria(dataset_spec, device)
 
     top_models = explorer.search(
-        search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
+        sampler=NSGAIISampler(),
         hw_nas_parameters=HWNASParameters(
             max_search_trials=max_search_trials, top_n_models=top_n_models
         ),

@@ -1,5 +1,4 @@
 input: [1, 28, 28]
-#input: [50, 1] output: 1
 output: 10
 blocks:
   - block: "1" #namefield muss noch rein
@@ -11,34 +10,5 @@ blocks:
       width: [ 4, 5, 16 ]
     conv2d:
       kernel_size: [ 10]
-      stride: [ 1, 2 ]
-      out_channels: [ 10, 4 ]
-    lstm:
-      hidden_size: [ 10, 20, 50 ]
-      num_lstm_layers: [ 1]
-      bidirectional: [ False ]
-  - block:  "2" #namefield muss noch rein
-    op_candidates: [ "lstm"]
-    depth: [1, 2]
-    activation: [ "identity"]
-    linear:
-      #überall range oder choices
-      width: [16]
-    conv2d:
-      kernel_size: [1]
-      stride: [1]
-      out_channels: [10, 4]
-    lstm:
-      hidden_size: [1]
-      num_lstm_layers: [1]
-      bidirectional: [ False]
-  - block: "3"
-    op_candidates: ["linear"]
-    activation: ["relu", "tanh"]
-    depth: 3
-    linear:
-      width: [10]
-    conv2d:
-      kernel_size: [ 1, 2 ]
       stride: [ 1, 2 ]
       out_channels: [ 10, 4 ]
