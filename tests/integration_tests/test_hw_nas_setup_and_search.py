@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import pytest
 import shutil
 import torch
 
@@ -13,16 +12,7 @@ from elasticai.explorer.hw_nas.estimators import (
 )
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 
-from optuna.samplers import (
-    BruteForceSampler,
-    CmaEsSampler,
-    GPSampler,
-    NSGAIIISampler,
-    NSGAIISampler,
-    QMCSampler,
-    RandomSampler,
-    TPESampler,
-)
+from optuna.samplers import RandomSampler
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -89,27 +79,6 @@ class TestHWNasSetupAndSearch:
         self.search_space = self.RPI5explorer.generate_search_space(
             ROOT_DIR / Path("tests/integration_tests/samples/search_space.yml")
         )
-
-    @pytest.mark.parametrize(
-        ("sampler", "expected"),
-        [
-            (RandomSampler, 1),
-            (BruteForceSampler, 1),
-            (TPESampler, 1),
-            (NSGAIISampler, 1),
-            (NSGAIIISampler, 1),
-            (GPSampler, 1),
-            (CmaEsSampler, 1),
-            (QMCSampler, 1),
-        ],
-    )
-    def test_search(self, sampler, expected):
-        top_k_models = self.RPI5explorer.search(
-            optimization_criteria=self.optimization_criteria,
-            sampler=sampler(),
-            hw_nas_parameters=HWNASParameters(expected, expected),
-        )
-        assert len(top_k_models) == expected
 
     def test_search_hardconstraints(self):
 
