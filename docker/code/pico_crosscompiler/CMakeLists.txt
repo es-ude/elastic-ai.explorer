@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(PICO_SDK_FETCH_FROM_GIT Off)
 set(PICO_SDK_PATH ${CMAKE_SOURCE_DIR}/third_party/pico-sdk)
 
-set(PICO_PLATFORM rp2040)
+#set(PICO_PLATFORM rp2040)
 # set(PICO_PLATFORM rp2350-arm-s)
 
 include(pico_sdk_import.cmake)

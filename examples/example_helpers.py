@@ -43,6 +43,16 @@ def setup_knowledge_repository() -> KnowledgeRepository:
     )
     knowledge_repository.register_hw_platform(
         HWPlatform(
+            "pico2w",
+            "Pico2w with RP2350 MCU and 4MB control memory",
+            PicoGenerator,
+            PicoHWManager,
+            PicoHost,
+            PicoCompiler,
+        )
+    )
+    knowledge_repository.register_hw_platform(
+        HWPlatform(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
             RPiGenerator,

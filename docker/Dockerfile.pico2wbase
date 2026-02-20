@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PICO_SDK_PATH=/code/pico_crosscompiler/third_party/pico-sdk
 ENV TFLITE_PATH=/code/pico_crosscompiler/third_party/pico-tflmicro
 ENV BIN_DIR=/tmp/bin
-ENV PICO_TYPE=rp2040
+ENV PICO_TYPE=rp2350-arm-s
 
 ARG CROSS_COMPILER_PATH
 
@@ -20,28 +20,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ${CROSS_COMPILER_PATH} /code/pico_crosscompiler
-
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/model.cpp
-#include <model.h>
-const unsigned char model_tflite[] = {1};
-const unsigned int model_tflite_len = 1;
-EOF
-
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_features.h
-#ifndef MNIST_FEATURES_H
-#define MNIST_TEST_FEATURES_H
-const float mnist_images[1][1] = {
-    {1.0f},
-};
-#endif
-EOF
-
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_labels.h
-#ifndef MNIST_LABELS_H
-#define MNIST_LABELS_H
-const int mnist_labels[1] = {7};
-#endif // MNIST_LABELS_H
-EOF
 
 RUN mkdir -p $PICO_SDK_PATH
 RUN mkdir -p $TFLITE_PATH
