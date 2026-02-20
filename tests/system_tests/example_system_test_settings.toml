@@ -2,7 +2,7 @@
 
 # Set the device path to your PICO in bootsel-mode, for Linux probably just fill in your username.
 PICO_DEVICE_PATH = "/media/<host>/RPI-RP2"
-
+PICO2W_DEVICE_PATH = "/media/<host>/RP2350"
 # Set the ssh params of your RPi.
 RPI_USERNAME = "<user>"
 RPI_HOSTNAME = "<host>"
