@@ -136,7 +136,7 @@ class Explorer:
             data_utils.save_to_toml(
                 dataclass_instance_to_toml(
                     hw_nas_parameters,
-                    additional_info={"search_strategy": sampler.__name__},
+                    additional_info={"search_strategy": sampler.__str__()},
                 ),
                 self._experiment_dir,
                 "hw_nas_params.toml",
@@ -211,12 +211,7 @@ class Explorer:
         self, model: nn.Module, model_name: str, dataset_spec: data.DatasetSpecification
     ) -> Any:
         model_path = self._model_dir / model_name
-
-        dataset = dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            transform=dataset_spec.transform,
-        )
-        sample_input, _ = next(iter(dataset))
+        sample_input, _ = next(iter(dataset_spec.dataset))
         if self.generator:
             return self.generator.generate(model, model_path, sample_input)
         else:

@@ -1,4 +1,5 @@
 import math
+import tomllib
 
 import pytest
 from elasticai.explorer.explorer import Explorer
@@ -23,12 +24,12 @@ from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from torchvision import transforms
 
-from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
-
 
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
-        serial_params = SerialParams(PICO_DEVICE_PATH)
+        with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
+            config = tomllib.load(f)
+        serial_params = SerialParams(config["PICO_DEVICE_PATH"])
         compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
@@ -75,12 +76,11 @@ class TestPicoDeploymentAndMeasurement:
         )
 
         self.dataset_spec = data.DatasetSpecification(
-            dataset_type=data.MNISTWrapper,
-            dataset_location=path_to_dataset,
+            dataset=data.MNISTWrapper(root=path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_deployable_dataset,
-            transform=transf,
         )
         self.pico_explorer.hw_setup_on_target(metric_to_source, self.dataset_spec)
+
     @pytest.mark.hardware
     def test_pico_accuracy_measurement(self):
         assert math.isclose(
@@ -90,6 +90,7 @@ class TestPicoDeploymentAndMeasurement:
             78.516,
             abs_tol=0.01,
         )
+
     @pytest.mark.hardware
     def test_pico_latency_measurement(self):
         assert (

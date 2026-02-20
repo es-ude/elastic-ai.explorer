@@ -48,10 +48,8 @@ def search_generate_measure_for_pico(
     setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
 
     dataset_spec = DatasetSpecification(
-        dataset_type=MNISTWrapper,
-        dataset_location=path_to_dataset,
+        dataset=MNISTWrapper(root=path_to_dataset, transform=transf),
         deployable_dataset_path=root_dir_cpp_mnist,
-        transform=transf,
     )
     criteria = setup_example_optimization_criteria(dataset_spec, device)
 
@@ -84,7 +82,7 @@ def search_generate_measure_for_pico(
 if __name__ == "__main__":
     ### Hyperparameters
     max_search_trials = 6
-    top_n_models = 2
+    top_n_models = 4
     retrain_epochs = 3
 
     serial_params = SerialParams(
