@@ -8,7 +8,6 @@ from elasticai.explorer.training.data import (
     DatasetSpecification,
     MultivariateTimeseriesDataset,
 )
-import torch
 
 from elasticai.explorer.training.download import DownloadableSciebo
 from elasticai.explorer.training.trainer import SupervisedTrainer
@@ -73,9 +72,3 @@ class TestData:
         metrics, loss = mlp_trainer.validate(model)
         assert metrics["accuracy"] >= 0
         assert loss >= 0
-
-    def teardown_method(self):
-        try:
-            os.remove(self.sample_dir / "test_dataset.csv")
-        except:
-            pass
