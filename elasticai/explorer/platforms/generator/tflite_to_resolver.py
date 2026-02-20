@@ -43,6 +43,7 @@ OP_TO_RESOLVER = {
     "CAST": "AddCast",
     "FLOOR": "AddFloor",
     "CEIL": "AddCeil",
+    "BROADCAST_TO": "AddBroadcastTo"
 }
 
 

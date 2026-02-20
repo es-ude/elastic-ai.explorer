@@ -207,12 +207,7 @@ class Explorer:
         self, model: nn.Module, model_name: str, dataset_spec: data.DatasetSpecification
     ) -> Any:
         model_path = self._model_dir / model_name
-
-        dataset = dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            transform=dataset_spec.transform,
-        )
-        sample_input, _ = next(iter(dataset))
+        sample_input, _ = next(iter(dataset_spec.dataset))
         if self.generator:
             return self.generator.generate(model, model_path, sample_input)
         else:

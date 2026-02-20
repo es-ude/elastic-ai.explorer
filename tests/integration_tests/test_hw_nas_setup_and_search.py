@@ -60,10 +60,8 @@ class TestHWNasSetupAndSearch:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         self.dataset_spec = DatasetSpecification(
-            dataset_type=MNISTWrapper,
-            dataset_location=path_to_dataset,
+            dataset=MNISTWrapper(path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_dataset,
-            transform=transf,
         )
         self.device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         trainer = SupervisedTrainer(

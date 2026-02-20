@@ -40,8 +40,8 @@ def setup_mnist_for_cpp(root_dir_mnist: Path, root_dir_cpp_mnist: Path, transf: 
         labels.append(label)
 
     os.makedirs(root_dir_cpp_mnist, exist_ok=True)
-    with open(root_dir_cpp_mnist / "mnist_images.h", "w") as f:
-        f.write("#ifndef MNIST_IMAGES_H\n#define MNIST_TEST_IMAGES_H\n\n")
+    with open(root_dir_cpp_mnist / "mnist_features.h", "w") as f:
+        f.write("#ifndef MNIST_FEATURES_H\n#define MNIST_FEATURES_H\n\n")
         f.write("const float mnist_images[256][784] = {\n")
 
         for img in images:
@@ -55,7 +55,7 @@ def setup_mnist_for_cpp(root_dir_mnist: Path, root_dir_cpp_mnist: Path, transf: 
                     f.write("\n    ")
             f.write("\n  },\n")
 
-        f.write("};\n\n#endif // MNIST_IMAGES_H\n")
+        f.write("};\n\n#endif // MNIST_FEATURES_H\n")
 
     with open(root_dir_cpp_mnist / "mnist_labels.h", "w") as f:
         f.write("#ifndef MNIST_LABELS_H\n#define MNIST_LABELS_H\n\n")
