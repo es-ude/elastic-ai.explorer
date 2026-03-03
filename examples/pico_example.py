@@ -62,18 +62,18 @@ def search_generate_measure_for_pico(
         Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
         Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
     }
-    # explorer.hw_setup_on_target(metric_to_source, dataset_spec)
-    #
-    # df = measure_on_device(
-    #     explorer,
-    #     top_models,
-    #     metric_to_source,
-    #     retrain_epochs,
-    #     "cpu",
-    #     dataset_spec,
-    #     model_suffix=".tflite",
-    # )
-    # logger.info("Models:\n %s", df)
+    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
+
+    df = measure_on_device(
+        explorer,
+        top_models,
+        metric_to_source,
+        retrain_epochs,
+        "cpu",
+        dataset_spec,
+        model_suffix=".tflite",
+    )
+    logger.info("Models:\n %s", df)
 
 
 if __name__ == "__main__":

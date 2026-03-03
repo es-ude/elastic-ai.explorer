@@ -44,7 +44,7 @@ To configure the Explorer for your specific setup, create your own OptimizationC
 
 For test deployment and hardware-specific search, create your own HWPlatform with a Generator, Compiler, Host, and HwManager. You can also use the out-of-the-box solutions shown in the examples, or write your own classes using the provided interfaces.
 
-## Search space YAML
+# Search space YAML
  The search space is specified in a search space yaml which will be given into the hardware Nas component of the explorer 
  and translated to an optuna compatible search space. Then each trial the search parameters will be sampled which will
  be automatically translated to a pytorch model.
@@ -347,7 +347,7 @@ Sequential(
 )
 ```
 
-## Adding new operations
+# Adding new operations
 It is possible to add new operation to the search space with minimal coding effort.
 A Layer class must be added in  [layer_builder.py](elasticai/explorer/hw_nas/search_space/layer_builder.py).
 This class will automatically be added to a layer registry which will be used to look up and translate operations
