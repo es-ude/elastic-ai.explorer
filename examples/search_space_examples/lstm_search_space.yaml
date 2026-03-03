@@ -1,37 +1,36 @@
 input: [50, 1]
 output: 1
-blocks:
+sequence:
   - block: "1"
     op_candidates: [ "lstm" , "linear"]
-    depth: [1, 2]
-    activation: [ "tanh"]
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: [1, 2]
     linear:
-      #überall range oder choices
+      activation:  "tanh"
       width: [ 16, 32 ]
     lstm:
-      hidden_size: [ 10, 20, 50 ]
-      num_lstm_layers: [ 2]
+      hidden_size:
+        start: 10
+        end: 50
+        step: 10
+      num_lstm_layers: 2
       bidirectional: [ False, True ]
-      dropout: [0.2, 0.5]
+      dropout:
+        start: 0.2
+        end: 0.5
+        step: 0.1
   - block:  "2"
-    op_candidates: [ "lstm"]
-    depth: [1]
-    activation: [ "identity"]
-    linear:
-      #überall range oder choices
-      width: [16, 32]
-    conv2d:
-      kernel_size: [1, 2]
-      stride: [1, 2]
-      out_channels: [10, 4]
+    op_candidates: "lstm"
     lstm:
-      hidden_size: [5]
-      num_lstm_layers: [2]
-      dropout: [0.5, 0.2]
+      hidden_size: 5
+      num_lstm_layers: 2
   - block: "3"
     op_candidates: ["linear"]
     activation: ["relu", "tanh"]
-    depth: 3
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: 3
     linear:
       width: [30, 60]
     conv2d:

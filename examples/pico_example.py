@@ -1,4 +1,3 @@
-import logging
 import logging.config
 from pathlib import Path
 
@@ -21,7 +20,7 @@ from examples.example_helpers import (
 
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
@@ -63,18 +62,18 @@ def search_generate_measure_for_pico(
         Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
         Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
     }
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
-
-    df = measure_on_device(
-        explorer,
-        top_models,
-        metric_to_source,
-        retrain_epochs,
-        "cpu",
-        dataset_spec,
-        model_suffix=".tflite",
-    )
-    logger.info("Models:\n %s", df)
+    # explorer.hw_setup_on_target(metric_to_source, dataset_spec)
+    #
+    # df = measure_on_device(
+    #     explorer,
+    #     top_models,
+    #     metric_to_source,
+    #     retrain_epochs,
+    #     "cpu",
+    #     dataset_spec,
+    #     model_suffix=".tflite",
+    # )
+    # logger.info("Models:\n %s", df)
 
 
 if __name__ == "__main__":

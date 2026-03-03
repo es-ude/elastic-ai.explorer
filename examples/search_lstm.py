@@ -80,7 +80,7 @@ def run_lstm_search():
         ROOT_DIR / "examples/search_space_examples/lstm_search_space.yaml"
     )
     device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    max_search_trials, top_n_models = 2, 2
+    max_search_trials, top_n_models = 20, 20
     batch_size = 32
     data_spec = DatasetSpecification(
         dataset=SineDataset(),
