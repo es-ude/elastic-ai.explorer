@@ -43,8 +43,8 @@ def setup_knowledge_repository() -> KnowledgeRepository:
     )
     knowledge_repository.register_hw_platform(
         HWPlatform(
-            "pico2w",
-            "Pico2w with RP2350 MCU and 4MB control memory",
+            "pico2",
+            "pico2 with RP2350 MCU and 4MB control memory",
             PicoGenerator,
             PicoHWManager,
             PicoHost,
