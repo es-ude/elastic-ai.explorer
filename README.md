@@ -48,7 +48,7 @@ After this you can use the System Tests by creating your own system_test_setting
 ## Setup your Raspberry Pi Pico for Deployment
 There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably "media/RPI-RP2"). Additionally it can be necessary to add the user to dialout and tty group at the serial port (default is "/dev/ttyACM0") in order to communicate over the serial connection.
 
-After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in "tests/system_tests/example_system_test_settings.toml". Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
+After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
 
 ## Examples 
 For the full workflow from HW-NAS to on-device measurements, see the examples folder.
