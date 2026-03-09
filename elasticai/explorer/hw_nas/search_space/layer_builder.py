@@ -26,35 +26,49 @@ def register_layer(name: str):
 
 class LayerBuilder(ABC):
 
-    @abstractmethod
     def build(self, input_shape, search_parameters: dict, output_shape=None):
+        activation = search_parameters.get("activation", None)
+        if output_shape is None:
+            layer, shape = self.build_layer(input_shape, search_parameters)
+        else:
+            layer, shape = self.get_last_layer(
+                input_shape, search_parameters, output_shape
+            )
+
+        if activation is not None:
+            return nn.Sequential(layer, activation_mapping[activation]), shape
+        return layer, shape
+
+    @abstractmethod
+    def build_layer(self, input_shape, search_parameters: dict):
+        pass
+
+    @abstractmethod
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         pass
 
 
 @register_layer("linear")
 class LinearLayer(LayerBuilder):
 
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
-        activation = search_parameters.get("activation", None)
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        linear = nn.Linear(input_shape, output_shape)
+        return linear, output_shape
 
-        if output_shape is not None:
-            linear = nn.Linear(input_shape, output_shape)
-            next_in_shape = output_shape
-        else:
-            linear = nn.Linear(input_shape, search_parameters["width"])
-            next_in_shape = search_parameters["width"]
-        if activation is not None:
-            return nn.Sequential(linear, activation_mapping[activation]), next_in_shape
-        else:
-            return linear, next_in_shape
+    def build_layer(self, input_shape, search_parameters: dict):
+        linear = nn.Linear(input_shape, search_parameters["width"])
+        return linear, search_parameters["width"]
 
 
 class ConvLayer(LayerBuilder):
+
     conv_class: type[nn.Module] = None
     layer_type: str = None
 
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
-        activation = search_parameters.get("activation", None)
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        return self.build_layer(input_shape, search_parameters)
+
+    def build_layer(self, input_shape, search_parameters: dict):
 
         stride = search_parameters.get("stride", 1)
         padding = search_parameters.get("padding", 0)
@@ -75,10 +89,8 @@ class ConvLayer(LayerBuilder):
             stride,
             padding=padding,
         )
-        if activation is not None:
-            return nn.Sequential(conv, activation_mapping[activation]), output_shape
-        else:
-            return conv, output_shape
+
+        return conv, output_shape
 
 
 @register_layer("conv2d")
@@ -99,17 +111,9 @@ class Conv1dLayer(ConvLayer):
 
 @register_layer("lstm")
 class LSTMLayer(LayerBuilder):
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
-        bidirectional: bool = search_parameters.get("bidirectional", False)
-        hidden_size = search_parameters["hidden_size"]
-        if output_shape is not None:
-            hidden_size = output_shape
-            if bidirectional:
-                if (output_shape % 2) != 0:
-                    raise NotImplementedError
-                else:
-                    hidden_size = output_shape / 2
-
+    def create_layer(
+        self, input_shape, hidden_size, bidirectional, search_parameters: dict
+    ):
         lstm = SimpleLSTM(
             input_shape[-1],
             hidden_size=hidden_size,
@@ -124,16 +128,34 @@ class LSTMLayer(LayerBuilder):
             input_shape[0],
             hidden_size * 2 if bidirectional else hidden_size,
         ]
-
         return lstm, input_shape
+
+    def build_layer(self, input_shape, search_parameters: dict):
+        bidirectional: bool = search_parameters.get("bidirectional", False)
+        hidden_size = search_parameters["hidden_size"]
+        return self.create_layer(
+            input_shape, hidden_size, bidirectional, search_parameters
+        )
+
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        bidirectional: bool = search_parameters.get("bidirectional", False)
+        hidden_size = output_shape
+        if bidirectional:
+            if (output_shape % 2) != 0:
+                raise NotImplementedError
+            else:
+                hidden_size = output_shape / 2
+
+        return self.create_layer(
+            input_shape, hidden_size, bidirectional, search_parameters
+        )
 
 
 class PoolLayer(LayerBuilder):
-
     layer_map = {}
     param_keys = {"kernel_size": None, "stride": 1, "padding": 0}
 
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         if isinstance(input_shape, int):
             return nn.Identity(), input_shape
         ndim = 2 if len(input_shape) == 3 else 1
@@ -156,6 +178,9 @@ class PoolLayer(LayerBuilder):
         )
         return pool, shape
 
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        return self.build_layer(input_shape, search_parameters)
+
 
 @register_layer("maxpool")
 class MaxPoolLayer(PoolLayer):
@@ -174,7 +199,7 @@ class AvgPoolLayer(PoolLayer):
 
 @register_layer("batch_norm")
 class BatchNormLayer(LayerBuilder):
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         num_features = (
             input_shape[0] if isinstance(input_shape, (list, tuple)) else input_shape
         )
@@ -187,53 +212,77 @@ class BatchNormLayer(LayerBuilder):
 
         return layer_cls(num_features=num_features), input_shape
 
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        self.build_layer(input_shape, search_parameters)
+
 
 @register_layer("dropout")
 class DropoutLayer(LayerBuilder):
     param_keys = ["p"]
     layer_map = {"1d": nn.Dropout, "2d": nn.Dropout2d}
 
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         return nn.Dropout(search_parameters.get("p", 0.5)), input_shape
+
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        return self.build_layer(input_shape, search_parameters)
 
 
 @register_layer("activation")
 class ActivationLayer(LayerBuilder):
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         return activation_mapping[search_parameters.get("op", "identity")], input_shape
+
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        return self.build_layer(input_shape, search_parameters)
 
 
 @register_layer("layer_norm")
 class LayerNorm(LayerBuilder):
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         return nn.LayerNorm(input_shape), input_shape
+
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        self.build_layer(input_shape, search_parameters)
 
 
 @register_layer("gaussian_dropout")
 class GaussianDropoutLayer(LayerBuilder):
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         return GaussianDropout(search_parameters.get("p", 0.5)), input_shape
+
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        self.build_layer(input_shape, search_parameters)
 
 
 @register_layer("repeat_vector")
 class RepeatVectorLayer(LayerBuilder):
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         times = search_parameters["times"]
         input_shape.append(times)
         return RepeatVector(times), input_shape
 
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        self.build_layer(input_shape, search_parameters)
+
 
 @register_layer("time_distributed_linear")
 class TimeDistributedLinear(LayerBuilder):
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build_layer(self, input_shape, search_parameters: dict):
         batch_first = search_parameters.get("batch_first", True)
-        if output_shape is None:
-            output_sample_shape = [input_shape[0], search_parameters["width"]]
-        else:
-            output_sample_shape = output_shape
-        print(
-            f"shape before time_distributed_linear input: {input_shape} Output: {output_shape}"
+
+        output_sample_shape = [input_shape[0], search_parameters["width"]]
+
+        module = nn.Sequential(
+            nn.Linear(input_shape[-1], output_sample_shape[-1]),
+            activation_mapping[search_parameters.get("activation", "identity")],
         )
+
+        return TimeDistributed(module, batch_first=batch_first), output_sample_shape
+
+    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+        batch_first = search_parameters.get("batch_first", True)
+        output_sample_shape = output_shape
         module = nn.Sequential(
             nn.Linear(input_shape[-1], output_sample_shape[-1]),
             activation_mapping[search_parameters.get("activation", "identity")],

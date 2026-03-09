@@ -20,6 +20,9 @@ class RepeatType(Enum):
     NONE = "none"
 
 
+"""These parameters have to be checked for in the last layer of the model while sampling the search space 
+because they are ignored during model creation where the output shape is taken instead. Not doing this would lead to 
+multiple different search space samples leading to the same architecture, increasing the search costs."""
 FORCED_PARAMS = {
     "linear": ["width"],
     "lstm": ["hidden_size"],
@@ -260,7 +263,6 @@ class VaryOp(OpCandidates):
     def __init__(self, block_identifier, op_cfg):
         self.block_identifier = block_identifier
         self.op_cfg = op_cfg
-        self.layer_num = 0
 
     def sample(self, sampler: Sampler):
         name = sampler.scoped(f"operation")
@@ -270,7 +272,6 @@ class VaryOp(OpCandidates):
             self.op_cfg,
             "op_candidates",
         )
-        self.layer_num += 1
         return op
 
 
@@ -374,25 +375,3 @@ class VaryAllFactory(BlockFactory):
             VaryOp(block_id, block_cfg),
             VaryParams(block_id, block_cfg, sampler.default_op_params),
         )
-
-
-def objective(trial, search_space):
-    search_space_sampler = Sampler(trial)
-    sample = search_space_sampler.construct_sample(search_space)
-    model = construct_model(sample, search_space["input"], search_space["output"])
-    print(model)
-    return 1
-
-
-if __name__ == "__main__":
-    search_space = yaml.safe_load(open(ROOT_DIR / "search_space.yaml"))
-
-    sampler = RandomSampler(seed=1)
-    study = optuna.create_study(
-        direction="maximize",
-        sampler=RandomSampler(),
-        study_name="study_name7",
-        load_if_exists=True,
-    )
-    study.optimize(lambda trial: objective(trial, search_space), n_trials=20)
-    print(study.best_trial)

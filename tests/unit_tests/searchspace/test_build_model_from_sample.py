@@ -9,6 +9,7 @@ from elasticai.explorer.hw_nas.search_space.build_model import construct_model
 from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     ToLinearAdapter,
     LSTMNoSequenceAdapter,
+    Conv1dToLSTM,
 )
 
 
@@ -255,3 +256,24 @@ def test_build_lstm_model():
     expected.load_state_dict(states)
 
     assert torch.equal(model(input), expected(input)) == True
+
+
+def test_lstm_to_conv1d():
+    input = torch.rand([16, 6, 10])
+
+    conv_layer = nn.Conv1d(6, 6, 2)
+    shape = conv_layer(input).shape
+    layer_adapter = Conv1dToLSTM()
+    adapter_shape = layer_adapter.infer_output_shape(shape[1:])
+    lstm_layer = SimpleLSTM(
+        adapter_shape[1],
+        6,
+        1,
+        bidirectional=False,
+        batch_first=True,
+        bias=True,
+        dropout=0,
+    )
+
+    output = LSTMNoSequenceAdapter()((lstm_layer(layer_adapter(conv_layer(input)))))
+    assert output.shape == torch.Size([16, 6])
