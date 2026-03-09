@@ -41,14 +41,14 @@ First Deployment with Docker for each platform is slow because the necessary Doc
 
 ## Setup your Raspberry Pi 4/5 for Deployment
 To use the Explorer to deploy models on your Raspberry Pi, we recommend using Bookworm as an OS. You also need to enable ssh connections on your RPi and make one initial connection between your host PC and the RPi.  
-Then install libtorch on your Pi under "/code/libtorch" directly at the root of your system, add this libtorch version also under "docker/code/libtorch" in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
+Then install libtorch on your Pi under "/code/libtorch" directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be "docker/code/libtorch") in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
 
-After this you can use the System Tests by creating your own system_test_settings.toml as shown in "tests/system_tests/example_system_test_settings.toml". Similarly, you can use the example ("examples/pi_example.py") by adding your RPi's credentials to the SSHParams. 
+After this you can use the System Tests by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pi_example.py) by adding your RPi's credentials to the SSHParams. 
 
 ## Setup your Raspberry Pi Pico for Deployment
 There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably "media/RPI-RP2"). Additionally it can be necessary to add the user to dialout and tty group at the serial port (default is "/dev/ttyACM0") in order to communicate over the serial connection.
 
-After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in "tests/system_tests/example_system_test_settings.toml". Similarly, you can use the example ("examples/pico_example.py") by adding your device path and serial port to the SerialParams. 
+After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in "tests/system_tests/example_system_test_settings.toml". Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
 
 ## Examples 
 For the full workflow from HW-NAS to on-device measurements, see the examples folder.
