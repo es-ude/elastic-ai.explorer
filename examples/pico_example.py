@@ -1,4 +1,3 @@
-import logging
 import logging.config
 from pathlib import Path
 
@@ -21,7 +20,7 @@ from examples.example_helpers import (
 
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 

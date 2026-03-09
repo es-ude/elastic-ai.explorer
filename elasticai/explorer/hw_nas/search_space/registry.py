@@ -2,12 +2,12 @@ from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     Conv2dToLSTMAdapter,
+    LinearToConv2dAdapter,
+    LinearToLstmAdapter,
     Conv2dToLinearAdapter,
     LSTMNoSequenceAdapter,
-    LinearToConv2dAdapter,
     LSTMToConv2dAdapter,
     ToLinearAdapter,
-    LinearToLstmAdapter,
 )
 
 ADAPTER_REGISTRY = {
@@ -19,6 +19,8 @@ ADAPTER_REGISTRY = {
     ("lstm", "conv2d"): LSTMToConv2dAdapter,
     ("lstm", None): LSTMNoSequenceAdapter,
     (None, "linear"): ToLinearAdapter,
+    ("*", "linear"): ToLinearAdapter,
+    ("conv1d", "linear"): ToLinearAdapter,
 }
 
 activation_mapping = {
@@ -27,3 +29,5 @@ activation_mapping = {
     "identity": nn.Identity(),
     "tanh": nn.Tanh(),
 }
+
+COMPOSITE_REGISTRY = {}

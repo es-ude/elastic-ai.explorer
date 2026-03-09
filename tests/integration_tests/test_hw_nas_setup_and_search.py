@@ -63,7 +63,13 @@ class TestHWNasSetupAndSearch:
             dataset=MNISTWrapper(path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_dataset,
         )
-        self.device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self.device = str(
+            torch.device(
+                "mps"
+                if torch.mps.is_available()
+                else "cuda" if torch.cuda.is_available() else "cpu"
+            )
+        )
         trainer = SupervisedTrainer(
             self.device,
             self.dataset_spec,

@@ -1,3 +1,4 @@
+import traceback
 from dataclasses import dataclass
 import logging
 from typing import Any, Callable
@@ -11,7 +12,11 @@ from optuna.study import MaxTrialsCallback
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
-from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.hw_nas.search_space.build_model import (
+    construct_model,
+    ShapeValueError,
+)
+from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
 logger = logging.getLogger("explorer.nas")
 intermediate_metrics_template = "{metric_name}_intermediates"
@@ -29,6 +34,64 @@ class SearchStrategy(Enum):
     EVOLUTIONARY_SEARCH = "evolution"
 
 
+def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
+    score = 0.0
+    for estimator in optimization_criteria:
+        final_estimate, estimates = estimator.estimate(model)
+        trial.set_user_attr(estimator.metric_name, final_estimate)
+        trial.set_user_attr(
+            intermediate_metrics_template.format(metric_name=estimator.metric_name),
+            estimates,
+        )
+        hard_constraints = optimization_criteria.get_hard_constraints(estimator)
+        for hc in hard_constraints:
+            if not hc.comparator(final_estimate, hc.constraint_value):
+                logger.info(
+                    f"Trial {trial.number} pruned, because {estimator.metric_name} trial does not meet constraint: {hc.comparator}({final_estimate:.2f}, {hc.constraint_value})."
+                )
+                raise optuna.TrialPruned()
+
+        soft_constraints = optimization_criteria.get_soft_constraints(estimator)
+        for sc in soft_constraints:
+            if not sc.comparator(final_estimate, sc.constraint_value):
+                penalty_value = sc.penalty_weight * sc.penalty_fn(
+                    sc.penalty_estimate_transform(final_estimate),
+                    sc.constraint_value,
+                )
+                score -= penalty_value
+                logger.info(
+                    f"Trial {trial.number} gets a soft penalty of {penalty_value:.2f}, because {estimator.metric_name} trial does not meet constraint: {sc.comparator}({final_estimate:.2f}, {sc.constraint_value})."
+                )
+
+        objectives = optimization_criteria.get_objectives(estimator)
+        for o in objectives:
+            if o.transform:
+                objective_value = o.weight * o.transform(final_estimate)
+            else:
+                objective_value = o.weight * final_estimate
+
+            score += objective_value
+            logger.info(
+                f"Trial {trial.number} added an objective value of {objective_value:.2f}, because the {estimator.metric_name} is {final_estimate:.2f}."
+            )
+    return score
+
+
+def sample_and_create_model(trial, search_space: dict):
+    search_space_sampler = Sampler(trial)
+    try:
+        sample = search_space_sampler.construct_sample(search_space)
+        model = construct_model(sample, search_space["input"], search_space["output"])
+        return model
+
+    except (ShapeValueError, NotImplementedError) as e:
+        print(traceback.format_exc())
+        logger.warning(
+            f"Failed to construct model due to exception: {e}. Pruning trial."
+        )
+        raise optuna.TrialPruned()
+
+
 def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
@@ -36,53 +99,9 @@ def objective_wrapper(
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
-
-        search_space = SearchSpace(search_space_cfg)
-        try:
-            model = search_space.create_model_sample(trial)
-        except NotImplementedError:
-            raise optuna.TrialPruned()
-        score = 0.0
-        for estimator in optimization_criteria:
-            final_estimate, estimates = estimator.estimate(model)
-            trial.set_user_attr(estimator.metric_name, final_estimate)
-            trial.set_user_attr(
-                intermediate_metrics_template.format(metric_name=estimator.metric_name),
-                estimates,
-            )
-            hard_constraints = optimization_criteria.get_hard_constraints(estimator)
-            for hc in hard_constraints:
-                if not hc.comparator(final_estimate, hc.constraint_value):
-                    logger.info(
-                        f"Trial {trial.number} pruned, because {estimator.metric_name} trial does not meet constraint: {hc.comparator}({final_estimate:.2f}, {hc.constraint_value})."
-                    )
-                    raise optuna.TrialPruned()
-
-            soft_constraints = optimization_criteria.get_soft_constraints(estimator)
-            for sc in soft_constraints:
-                if not sc.comparator(final_estimate, sc.constraint_value):
-                    penalty_value = sc.penalty_weight * sc.penalty_fn(
-                        sc.penalty_estimate_transform(final_estimate),
-                        sc.constraint_value,
-                    )
-                    score -= penalty_value
-                    logger.info(
-                        f"Trial {trial.number} gets a soft penalty of {penalty_value:.2f}, because {estimator.metric_name} trial does not meet constraint: {sc.comparator}({final_estimate:.2f}, {sc.constraint_value})."
-                    )
-
-            objectives = optimization_criteria.get_objectives(estimator)
-            for o in objectives:
-                if o.transform:
-                    objective_value = o.weight * o.transform(final_estimate)
-                else:
-                    objective_value = o.weight * final_estimate
-
-                score += objective_value
-                logger.info(
-                    f"Trial {trial.number} added a objective value of {objective_value:.2f}, because the {estimator.metric_name} is {final_estimate:.2f}."
-                )
-
-        logger.info(f"Trial {trial.number} has an final score of {score:.2f}")
+        model = sample_and_create_model(trial, search_space_cfg)
+        score = _evaluate_constraints(trial, model, optimization_criteria)
+        logger.info(f"Trial {trial.number} has a final score of {score:.2f}")
 
         return score
 
@@ -98,8 +117,6 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-
-    search_space = SearchSpace(search_space_cfg)
 
     match search_strategy:
         case SearchStrategy.RANDOM_SEARCH:
@@ -143,7 +160,6 @@ def search(
     )
 
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
-
     eval: Callable[[FrozenTrial], float] = lambda trial: (
         trial.value if trial.value is not None else float("-inf")
     )
@@ -163,7 +179,8 @@ def search(
     ]
 
     for frozen_trial in top_k_frozen_trials:
-        top_k_models.append(search_space.create_model_sample(frozen_trial))
+
+        top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
