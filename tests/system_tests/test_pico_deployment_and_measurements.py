@@ -49,8 +49,8 @@ class TestPicoDeploymentAndMeasurement:
         )
         knowledge_repository.register_hw_platform(
             HWPlatform(
-                "pico2w",
-                "Pico2w with RP2350 MCU and 4MB control memory",
+                "pico2",
+                "pico2 with RP2350 MCU and 4MB control memory",
                 PicoGenerator,
                 PicoHWManager,
                 PicoHost,
@@ -95,7 +95,7 @@ class TestPicoDeploymentAndMeasurement:
         ("image_name", "docker_file", "DEVICE_PATH_KEY"),
         [
             ("picobase", "docker/Dockerfile.picobase", "PICO_DEVICE_PATH"),
-            ("pico2wbase", "docker/Dockerfile.pico2wbase", "PICO2W_DEVICE_PATH"),
+            ("pico2base", "docker/Dockerfile.pico2base", "PICO2_DEVICE_PATH"),
         ],
     )
     def test_pico_accuracy_measurement(self, image_name, docker_file, DEVICE_PATH_KEY):
@@ -122,7 +122,7 @@ class TestPicoDeploymentAndMeasurement:
         ("image_name", "docker_file", "DEVICE_PATH_KEY"),
         [
             ("picobase", "docker/Dockerfile.picobase", "PICO_DEVICE_PATH"),
-            ("pico2wbase", "docker/Dockerfile.pico2wbase", "PICO2W_DEVICE_PATH"),
+            ("pico2base", "docker/Dockerfile.pico2base", "pico2_DEVICE_PATH"),
         ],
     )
     def test_pico_latency_measurement(self, image_name, docker_file, DEVICE_PATH_KEY):
