@@ -73,9 +73,3 @@ class TestData:
         metrics, loss = mlp_trainer.validate(model)
         assert metrics["accuracy"] >= 0
         assert loss >= 0
-
-    def teardown_method(self):
-        try:
-            os.remove(self.sample_dir / "test_dataset.csv")
-        except:
-            pass

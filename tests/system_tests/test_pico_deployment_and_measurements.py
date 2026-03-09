@@ -122,7 +122,7 @@ class TestPicoDeploymentAndMeasurement:
         ("image_name", "docker_file", "DEVICE_PATH_KEY"),
         [
             ("picobase", "docker/Dockerfile.picobase", "PICO_DEVICE_PATH"),
-            ("pico2base", "docker/Dockerfile.pico2base", "pico2_DEVICE_PATH"),
+            ("pico2base", "docker/Dockerfile.pico2base", "PICO2_DEVICE_PATH"),
         ],
     )
     def test_pico_latency_measurement(self, image_name, docker_file, DEVICE_PATH_KEY):
