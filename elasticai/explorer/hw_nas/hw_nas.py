@@ -29,11 +29,6 @@ class HWNASParameters:
     count_only_completed_trials: bool = False
 
 
-class SearchStrategy(Enum):
-    RANDOM_SEARCH = "random"
-    EVOLUTIONARY_SEARCH = "evolution"
-
-
 def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
     score = 0.0
     for estimator in optimization_criteria:
@@ -118,7 +113,6 @@ def search(
     Returns: top-models, model-parameters, metrics
     """
 
-    search_space = SearchSpace(search_space_cfg)
     study = optuna.create_study(
         sampler=sampler,
         direction="maximize",
