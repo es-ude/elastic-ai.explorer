@@ -136,7 +136,7 @@ class Explorer:
             data_utils.save_to_toml(
                 dataclass_instance_to_toml(
                     hw_nas_parameters,
-                    additional_info={"search_strategy": sampler.__name__},
+                    additional_info={"search_strategy": sampler.__class__},
                 ),
                 self._experiment_dir,
                 "hw_nas_params.toml",
