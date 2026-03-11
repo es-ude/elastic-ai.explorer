@@ -8,8 +8,8 @@ quantization:
         signed: [1]
 blocks:
   - block: "1" #namefield muss noch rein
-    op_candidates: [ "linear", "conv2d"]
-    depth: [1,2, 3]
+    op_candidates: [ "linear"]
+    depth: [1,2,3]
     activation: [ "sigmoid"]
     linear:
       #überall range oder choices
