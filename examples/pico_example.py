@@ -64,8 +64,8 @@ def search_generate_measure_for_pico(
     )
 
     metric_to_source = {
-        Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy_quant"),
-        #Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
+        Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
+        Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
     }
 
     df = measure_on_device(

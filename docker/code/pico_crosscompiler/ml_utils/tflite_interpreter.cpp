@@ -44,22 +44,20 @@ int TfLiteInterpreter::initialize()
 
     this->input = this->interpreter->input(0);
     this->output = this->interpreter->output(0);
-    if (is_quant)
+    if ((this->input->type == kTfLiteInt8) &&
+        (this->output->type == kTfLiteInt8))
     {
-        if ((this->input->type != kTfLiteInt8) ||
-            (this->output->type != kTfLiteInt8))
-        {
-
-            printf("Expect model with Int8 input/output tensor\n");
-        }
+        is_quant = true;
+    }
+    else if ((this->input->type == kTfLiteFloat32) &&
+             (this->output->type == kTfLiteFloat32))
+    {
+        is_quant = false;
     }
     else
     {
-        if ((this->input->type != kTfLiteFloat32) ||
-            (this->output->type != kTfLiteFloat32))
-        {
-            printf("Expect model with Float32 input/output tensor\n");
-        }
+        printf("Expect Model with Int8 or Float32 input and output tensor\n");
+        return -1;
     }
 
     this->inputFeatureCount = this->input->bytes;

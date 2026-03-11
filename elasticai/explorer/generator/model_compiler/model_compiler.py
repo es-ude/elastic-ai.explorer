@@ -102,8 +102,6 @@ class TFliteModelCompiler(ModelCompiler):
 
     def _quantize(self, model: nn.Module, sample_input: tuple[Tensor]):
         numpy_input = sample_input[0].cpu().numpy()
-        quantized_input = tflite_quantize(numpy_input)
-        int8_input = quantized_input.astype(numpy.int8)
 
         def representative_dataset():
             for _ in range(100):
@@ -119,8 +117,6 @@ class TFliteModelCompiler(ModelCompiler):
         tfl_drq_model = convert(
             model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
         )
-        
-        # TODO remove measure accuracy quant and make it automatically check if float32 or int8 to determine quantization
     
         return tfl_drq_model
 
