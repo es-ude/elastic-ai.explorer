@@ -83,8 +83,8 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 1
-    top_n_models = 1
+    max_search_trials = 5
+    top_n_models = 5
     retrain_epochs = 2
 
     serial_params = SerialParams(

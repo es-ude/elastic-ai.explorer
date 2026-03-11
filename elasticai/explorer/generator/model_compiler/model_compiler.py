@@ -7,29 +7,16 @@ from typing import Any
 import ai_edge_torch
 import numpy
 
-
 import torch
-from torch import Tensor, dequantize, int8, nn
-from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
-from torch._export import capture_pre_autograd_graph
+from torch import Tensor,nn
 
 from ai_edge_torch import convert, to_channel_last_io
-from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_config
-from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
-from ai_edge_torch.quantize.quant_config import QuantConfig
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FixedPointInt8Scheme,
     FullPrecisionScheme,
     QuantizationScheme,
-    tflite_dequantize,
-    tflite_quantize,
 )
-import elasticai.creator.nn as creator_nn
-from elasticai.creator.file_generation.on_disk_path import OnDiskPath
-from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
-
-from elasticai.creator.nn import fixed_point
 import tensorflow as tf
 
 
@@ -177,48 +164,3 @@ class TFliteModelCompiler(ModelCompiler):
         edge_model.export(str(output_path.with_suffix(".tflite")))
         self._model_to_cpp(output_path.with_suffix(".tflite"))
 
-
-class CreatorModelCompiler(ModelCompiler):
-    def __init__(self) -> None:
-        self.logger = logging.getLogger(
-            "explorer.generator.model_compiler.model_compiler.CreatorModelCompiler"
-        )
-        self.skeleton_id = [2 for i in range(16)]
-
-    def compile(
-        self,
-        model: nn.Module,
-        output_path: Path,
-        input_sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = FixedPointInt8Scheme(),
-    ):
-        destination = OnDiskPath(str(output_path), parent="")
-        features_in = len(input_sample)
-        features_out = len(model(input_sample))
-        if not isinstance(model, creator_nn.Sequential):
-            err = TypeError(
-                f"{type(model)} is not supported by the CreatorModelCompiler, best to build models with the CreatorModelBuilder!"
-            )
-            self.logger.error(err)
-            raise err
-
-        my_design = model.create_design("myNetwork")
-
-        my_design.save_to(destination.create_subpath("srcs"))
-
-        firmware = FirmwareENv5(
-            network=my_design,
-            x_num_values=features_in,
-            y_num_values=features_out,
-            id=self.skeleton_id,
-            skeleton_version="v2",
-        )
-        firmware.save_to(destination)
-
-    def get_supported_layers(self) -> tuple[type] | None:
-        return (fixed_point.Linear,)
-
-    def get_supported_quantization_schemes(
-        self,
-    ) -> tuple[type[QuantizationScheme]] | None:
-        return (FixedPointInt8Scheme,)

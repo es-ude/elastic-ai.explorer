@@ -25,10 +25,6 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 from elasticai.explorer.training.data import DatasetSpecification
 
 from settings import DOCKER_CONTEXT_DIR
-from elasticai.creator.arithmetic import (
-    FxpArithmetic,
-    FxpParams,
-)
 from torch.utils.data import DataLoader, random_split
 
 MetricFunction = Callable[[Host, "HWManager"], dict[str, dict]]
@@ -242,51 +238,3 @@ class PicoHWManager(HWManager):
             DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/model.cpp",
         )
 
-
-class ENv5HWManager(HWManager):
-    def __init__(self, target: ENv5Host, compiler: Compiler):
-        self.compiler = compiler
-        self.target = target
-        self.logger = logging.getLogger(
-            "explorer.generator.deployment.hw_manager.ENv5HWManager"
-        )
-        self.logger.info("Initializing PI Hardware Manager...")
-        super().__init__(target, compiler)
-
-    def prepare_dataset(
-        self,
-        dataset_spec: DatasetSpecification,
-        quantization_scheme: QuantizationScheme,
-    ):
-        super().prepare_dataset(dataset_spec, quantization_scheme)
-        self.frac_bits = quantization_scheme.frac_bits
-        self.total_bits = quantization_scheme.total_bits
-        self.dataset_spec = dataset_spec
-        fxp_params = FxpParams(
-            total_bits=quantization_scheme.total_bits,
-            frac_bits=quantization_scheme.frac_bits,
-            signed=quantization_scheme.signed,
-        )
-        fxp_conf = FxpArithmetic(fxp_params)
-        self.dataset = self.dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            dataset_spec.transform,
-            target_transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
-        )
-        _, test_subset, _ = random_split(
-            self.dataset,
-            dataset_spec.train_val_test_ratio,
-        )
-        self.batch_size = 64
-        self.test_loader = DataLoader(
-            test_subset, batch_size=self.batch_size, shuffle=dataset_spec.shuffle
-        )
-
-    def prepare_model(self, path_to_model: Path):
-        
-        self.path_to_executable = self.compiler.compile_code(
-            path_to_model, path_to_model.parent
-        )
-        
-        if self.path_to_executable:
-          self.target.flash(local_path=self.path_to_executable)

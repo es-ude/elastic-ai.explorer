@@ -5,24 +5,19 @@ from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.deployment.compiler import (
-    ENv5Compiler,
     PicoCompiler,
     RPICompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
-    ENv5Host,
     PicoHost,
     RPiHost,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
-    ENv5HWManager,
     PicoHWManager,
     RPiHWManager,
 )
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
 from elasticai.explorer.generator.model_compiler.model_compiler import (
-    CreatorModelCompiler,
     TFliteModelCompiler,
     TorchscriptModelCompiler,
 )
@@ -75,28 +70,6 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             RPiHWManager,
             RPiHost,
             RPICompiler,
-        )
-    )
-    knowledge_repository.register_hw_platform(
-        Generator(
-            "env5_s50",
-            "Env5 with RP2040 and xc7s50ftgb196-2 FPGA",
-            CreatorModelCompiler,
-            ENv5HWManager,
-            ENv5Host,
-            ENv5Compiler,
-            CreatorModelBuilder,
-        )
-    )
-    knowledge_repository.register_hw_platform(
-        Generator(
-            "env5_s15",
-            "Env5 with RP2040 and xc7s15ftgb196-2 FPGA",
-            CreatorModelCompiler,
-            ENv5HWManager,
-            ENv5Host,
-            ENv5Compiler,
-            CreatorModelBuilder,
         )
     )
 
