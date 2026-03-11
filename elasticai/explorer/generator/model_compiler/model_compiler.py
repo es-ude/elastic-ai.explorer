@@ -87,12 +87,12 @@ class TFliteModelCompiler(ModelCompiler):
             "explorer.generator.model_compiler.model_compiler.TFliteModelCompiler"
         )
 
-    def _validate(self, torch_output, edge_output):
+    def _validate(self, torch_output, edge_output, atol=1e-2, rtol=1e-2):
         if numpy.allclose(
             torch_output.detach().numpy(),
             edge_output,
-            atol=1e-2,
-            rtol=1e-2,
+            atol=atol,
+            rtol=rtol,
         ):
             self.logger.info(
                 "Inference result with Pytorch and TfLite was within tolerance"
@@ -101,42 +101,12 @@ class TFliteModelCompiler(ModelCompiler):
             self.logger.warning("Something wrong with Pytorch --> TfLite")
 
     def _quantize(self, model: nn.Module, sample_input: tuple[Tensor]):
-        # pt2e_quantizer = PT2EQuantizer().set_global(
-        #     get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
-        # )
-        # pt2e_torch_model = torch.export.export(model, sample_input).module()
-        # pt2e_torch_model = prepare_pt2e(pt2e_torch_model, pt2e_quantizer)  # type:ignore
-
-        # # Prepare model by running one inference.
-        # torch_output = pt2e_torch_model(*sample_input)
-        # self.logger.debug(f"Sample output before quantization: ", torch_output)
-        # pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
-        # torch_output_quantized = pt2e_torch_model(*sample_input)
-        # self.logger.debug(f"Sample output quantized: ", torch_output_quantized)
-        # pt2e_drq_model = convert(
-        #     pt2e_torch_model,
-        #     sample_input,
-        #     quant_config=QuantConfig(pt2e_quantizer=pt2e_quantizer),
-        # )
         numpy_input = sample_input[0].cpu().numpy()
         quantized_input = tflite_quantize(numpy_input)
         int8_input = quantized_input.astype(numpy.int8)
 
-        # quantized_output = pt2e_drq_model(int8_input)
-
-        # dequantized_output = tflite_dequantize(
-        #     numpy.array(quantized_output, dtype=numpy.float32)
-        # )
-
-        # Test tflite quantization
-        torch_output = model(*sample_input)
-
-        #numpy_input = sample_input[0].cpu().numpy().astype(numpy.int8)
-        
         def representative_dataset():
-            for _ in range(10):
-                # Get sample input data as a numpy array in a method of your choosing.
-                data = numpy.random.rand(1, 28, 28, 1).astype(numpy.float32)
+            for _ in range(100):
                 yield [numpy_input]
 
         tfl_converter_flags = {
@@ -149,10 +119,10 @@ class TFliteModelCompiler(ModelCompiler):
         tfl_drq_model = convert(
             model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
         )
-
-        tflite_output_int8 = tfl_drq_model(*int8_input)
-        tflite_output= tflite_dequantize(tflite_output_int8)
-        return tfl_drq_model, tflite_output
+        
+        # TODO remove measure accuracy quant and make it automatically check if float32 or int8 to determine quantization
+    
+        return tfl_drq_model
 
     def _model_to_cpp(self, tflite_model_path: Path):
         process = subprocess.run(
@@ -193,14 +163,14 @@ class TFliteModelCompiler(ModelCompiler):
         torch_output = model(*input_tuple_nchw)
         nhwc_model = to_channel_last_io(model, args=[0]).eval()
         sample_tflite_input = input_tuple_nhwc
-        edge_output = None
         if isinstance(quantization_scheme, FullPrecisionScheme):
             edge_model = ai_edge_torch.convert(
                 nhwc_model, sample_args=sample_tflite_input
             )
             edge_output = edge_model(*sample_tflite_input)
+            self._validate(torch_output, edge_output)
         elif isinstance(quantization_scheme, FixedPointInt8Scheme):
-            edge_model, edge_output = self._quantize(nhwc_model, sample_tflite_input)
+            edge_model = self._quantize(nhwc_model, sample_tflite_input)
         else:
             err = NotImplementedError(
                 f"The quantization scheme -{quantization_scheme}- is not supported by the TFliteModelCompiler."
@@ -208,7 +178,6 @@ class TFliteModelCompiler(ModelCompiler):
             self.logger.error(err)
             raise err
 
-        self._validate(torch_output, edge_output)
         edge_model.export(str(output_path.with_suffix(".tflite")))
         self._model_to_cpp(output_path.with_suffix(".tflite"))
 
