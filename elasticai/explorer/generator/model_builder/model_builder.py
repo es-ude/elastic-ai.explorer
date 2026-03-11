@@ -5,7 +5,7 @@ from torch import nn
 from typing import Any
 import torch
 from elasticai.explorer.generator.reflection import Reflective
-from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
+from elasticai.explorer.hw_nas.search_space.build_model import construct_model
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FullPrecisionScheme,
@@ -19,11 +19,12 @@ from elasticai.explorer.hw_nas.search_space.registry import (
     DEFAULT_ADAPTER,
     LAYER_REGISTRY,
 )
+from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
 
 class ModelBuilder(Reflective, ABC):
     @abstractmethod
-    def build_from_trial(self, trial, searchspace: SearchSpace) -> Any:
+    def build_from_trial(self, trial, search_space: dict) -> Any:
         pass
 
     def setup_registries(self, replace=False):
@@ -55,11 +56,13 @@ class DefaultModelBuilder(ModelBuilder):
         return [FullPrecisionScheme]
 
     def build_from_trial(
-        self, trial, searchspace: SearchSpace
+        self, trial, search_space: dict
     ) -> tuple[torch.nn.Module, QuantizationScheme]:
+        sampler = Sampler(trial)
+        sample = sampler.construct_sample(trial)
         return (
-            nn.Sequential(*searchspace.create_model_layers(trial)),
-            searchspace.get_quantization_scheme(),
+            nn.Sequential(
+                *construct_model(sample, search_space["input"], search_space["output"])
+            ),
+            sampler.quantization_scheme,
         )
-
-

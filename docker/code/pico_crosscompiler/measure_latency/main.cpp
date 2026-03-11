@@ -8,7 +8,7 @@
 #include "pico/time.h"
 #include "pico/bootrom.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-#include "mnist_images.h"
+#include "mnist_features.h"
 #include "mnist_labels.h"
 
 #include "model.h"
@@ -30,9 +30,9 @@ std::unique_ptr<TfLiteInterpreter> getInterpreter()
 {
     std::unique_ptr<tflite::MicroMutableOpResolver<11>> resolver(new tflite::MicroMutableOpResolver<11>());
 
-    #if __has_include("resolver_ops.h")
-    #include "resolver_ops.h"
-    #endif
+#if __has_include("resolver_ops.h")
+#include "resolver_ops.h"
+#endif
 
     // printf("Added layers\n");
     std::unique_ptr<TfLiteInterpreter> interpreter(new TfLiteInterpreter(model_tflite, *resolver, TENSOR_ARENA_SIZE));

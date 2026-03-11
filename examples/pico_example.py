@@ -1,4 +1,3 @@
-import logging
 import logging.config
 from pathlib import Path
 
@@ -8,7 +7,7 @@ from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 
-from elasticai.explorer.generator.deployment.compiler import DockerParams
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer.generator.deployment.device_communication import SerialParams
 
 from elasticai.explorer.generator.deployment.hw_manager import Metric
@@ -23,7 +22,7 @@ from examples.example_helpers import (
 
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
-logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
@@ -31,7 +30,7 @@ device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 def search_generate_measure_for_pico(
     explorer: Explorer,
     serial_params: SerialParams,
-    compiler_params: DockerParams,
+    compiler_params: CompilerParams,
     search_space: Path,
     retrain_epochs: int = 4,
     max_search_trials: int = 2,
@@ -48,10 +47,8 @@ def search_generate_measure_for_pico(
     setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
 
     dataset_spec = DatasetSpecification(
-        dataset_type=MNISTWrapper,
-        dataset_location=path_to_dataset,
+        dataset=MNISTWrapper(root=path_to_dataset, transform=transf),
         deployable_dataset_path=root_dir_cpp_mnist,
-        transform=transf,
     )
     criteria = setup_example_optimization_criteria(dataset_spec, device)
 
@@ -83,14 +80,14 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 5
-    top_n_models = 5
-    retrain_epochs = 2
+    max_search_trials = 1
+    top_n_models = 1
+    retrain_epochs = 1
 
     serial_params = SerialParams(
         device_path=Path("/media/robin/RPI-RP2")
     )  # <-- Set the device path and rest only if necessary.
-    compiler_params = DockerParams(
+    compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
         image_name="picobase",
         build_context=DOCKER_CONTEXT_DIR,

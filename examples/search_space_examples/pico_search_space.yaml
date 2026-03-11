@@ -1,24 +1,28 @@
 input: [1, 28, 28]
 output: 10
-quantization:
-  quant_candidates: ["fixed_point_int8"]
-  fixed_point_int8:
-        total_bits: [8]
-        frac_bits: [2]
-        signed: [1]
-blocks:
-  - block: "1" #namefield muss noch rein
-    op_candidates: [ "linear"]
-    depth: [1,2,3]
-    activation: [ "sigmoid"]
+sequence:
+  - block: "1"
+    op_candidates: "linear"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: [ 1, 2 ]
     linear:
-      #überall range oder choices
+      activation: [ "sigmoid" , "relu"]
       width: [ 4, 5, 16 ]
-    conv2d:
-      kernel_size: [ 10]
-      stride: [ 2 ]
-      out_channels: [ 10, 4 ]
+  - block:  "2"
+    op_candidates:  "lstm"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: [ 1, 2 ]
     lstm:
-      hidden_size: [ 10, 20, 50 ]
-      num_lstm_layers: [ 1]
-      bidirectional: [ False ]
+      hidden_size: 1
+      num_lstm_layers: 1
+      bidirectional: False
+  - block: "3"
+    op_candidates: "linear"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: 3
+    linear:
+      activation: ["relu", "tanh"]
+      width: 10

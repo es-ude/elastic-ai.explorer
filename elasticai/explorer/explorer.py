@@ -4,7 +4,10 @@ from pathlib import Path
 from typing import Mapping, Optional, Any
 from torch import nn
 
-from elasticai.explorer.generator.deployment.compiler import VivadoParams, DockerParams
+from elasticai.explorer.generator.deployment.compiler import (
+    VivadoParams,
+    CompilerParams,
+)
 from elasticai.explorer.generator.deployment.device_communication import (
     SSHParams,
     SerialParams,
@@ -159,7 +162,7 @@ class Explorer:
     def choose_target_hw(
         self,
         target_platform_name: str,
-        compiler_params: VivadoParams | DockerParams,
+        compiler_params: VivadoParams | CompilerParams,
         communication_params: SSHParams | SerialParams,
     ):
         self.generator = self.knowledge_repository.fetch_hw_info(target_platform_name)
@@ -228,10 +231,7 @@ class Explorer:
     ) -> Any:
         model_path = self._model_dir / model_name
 
-        dataset = dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            transform=dataset_spec.transform,
-        )
+        dataset = dataset_spec.dataset
         sample_input, _ = next(iter(dataset))
         if self.model_compiler:
             return self.model_compiler.compile(

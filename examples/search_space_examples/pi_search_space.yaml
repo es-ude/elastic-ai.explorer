@@ -1,40 +1,26 @@
 input: [1, 28, 28]
 output: 10
-blocks:
-  - block: "1" #namefield muss noch rein
-    op_candidates: [ "conv2d" ]
-    depth: [1, 2]
-    activation: [ "sigmoid" , "relu"]
-    linear:
-      #überall range oder choices
-      width: [ 4, 5, 16, 32 ]
+sequence:
+  - block: "1"
+    op_candidates:  "conv2d"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: [1, 2]
     conv2d:
-      kernel_size: [ 10]
+      kernel_size: 10
       stride: [ 1, 2 ]
       out_channels: [ 10, 4 ]
+  - block:  "2"
+    op_candidates:  "lstm"
     lstm:
-      hidden_size: [ 10, 20, 50 ]
-      num_lstm_layers: [ 1]
-      bidirectional: [ False ]
-  - block:  "2" #namefield muss noch rein
-    op_candidates: [ "lstm"]
-    depth: [1, 2]
-    activation: [ "identity"]
-    linear:
-      #überall range oder choices
-      width: [16, 32]
-    conv2d:
-      kernel_size: [1, 2]
-      stride: [1, 2]
-      out_channels: [10, 4]
-    lstm:
-      hidden_size: [1]
-      num_lstm_layers: [1]
-      bidirectional: [ False]
+      hidden_size: 1
+      num_lstm_layers: 1
+      bidirectional:  False
   - block: "3"
-    op_candidates: ["linear"]
-    activation: ["relu", "tanh"]
-    depth: 3
+    op_candidates: "linear"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: 3
     linear:
+      activation: ["relu", "tanh"]
       width: [30, 60]
-  

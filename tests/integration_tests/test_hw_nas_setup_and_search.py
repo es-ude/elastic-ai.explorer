@@ -19,7 +19,7 @@ from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
-from elasticai.explorer.generator.deployment.compiler import DockerParams, RPICompiler
+from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     TorchscriptModelCompiler,
@@ -63,12 +63,16 @@ class TestHWNasSetupAndSearch:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         self.dataset_spec = DatasetSpecification(
-            dataset_type=MNISTWrapper,
-            dataset_location=path_to_dataset,
+            dataset=MNISTWrapper(path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_dataset,
-            transform=transf,
         )
-        self.device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self.device = str(
+            torch.device(
+                "mps"
+                if torch.mps.is_available()
+                else "cuda" if torch.cuda.is_available() else "cpu"
+            )
+        )
         trainer = SupervisedTrainer(
             self.device,
             self.dataset_spec,
@@ -114,7 +118,7 @@ class TestHWNasSetupAndSearch:
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(
             "rpi5",
-            compiler_params=DockerParams(),
+            compiler_params=CompilerParams(),
             communication_params=SSHParams("", ""),
         )
         model = SampleMLP(28 * 28)

@@ -11,7 +11,7 @@ from elasticai.explorer.utils import synthesis_utils
 
 
 @dataclass
-class DockerParams:
+class CompilerParams:
     image_name: str = "cross"
     library_path: Path = Path("./code/libtorch")
     path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.picross"
@@ -27,7 +27,7 @@ class VivadoParams:
 
 
 class Compiler(ABC):
-    def __init__(self, compiler_params: DockerParams | VivadoParams):
+    def __init__(self, compiler_params: CompilerParams | VivadoParams):
         self.compiler_params = compiler_params
         logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
         self.logger = logging.getLogger(logger_name)
@@ -46,7 +46,7 @@ class Compiler(ABC):
 
 
 class RPICompiler(Compiler):
-    def __init__(self, compiler_params: DockerParams):
+    def __init__(self, compiler_params: CompilerParams):
         super().__init__(compiler_params)
         self.compiler_params = compiler_params
         self.image_name: str = compiler_params.image_name  # "cross"
@@ -91,7 +91,7 @@ class RPICompiler(Compiler):
 
 class PicoCompiler(Compiler):
 
-    def __init__(self, compiler_params: DockerParams):
+    def __init__(self, compiler_params: CompilerParams):
         super().__init__(compiler_params)
         self.compiler_params = compiler_params
         if not self.is_setup():

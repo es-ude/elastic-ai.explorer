@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 
-from elasticai.explorer.generator.deployment.compiler import DockerParams
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.deployment.device_communication import SSHParams
@@ -27,7 +27,7 @@ def search_generate_measure_for_pi(
     explorer: Explorer,
     rpi_type: str,
     ssh_params: SSHParams,
-    compiler_params: DockerParams,
+    compiler_params: CompilerParams,
     search_space_path: Path,
     retrain_epochs: int = 4,
     max_search_trials: int = 4,
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     ssh_params = SSHParams(
         hostname="transfair.local", username="robin"
     )  # <-- connection details for your RPi
-    compiler_params = DockerParams()  # <-- configure this only if necessary
+    compiler_params = CompilerParams()  # <-- configure this only if necessary
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
 
