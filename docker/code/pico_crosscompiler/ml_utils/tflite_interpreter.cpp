@@ -71,13 +71,13 @@ int TfLiteInterpreter::initialize()
 }
 int8_t TfLiteInterpreter::quantize(float x)
 {
-    return static_cast<int8_t>((x / this->input->params.scale) - this->input->params.zero_point);
+    return x / this->input->params.scale + this->input->params.zero_point;
 }
 
 float TfLiteInterpreter::dequantize(int8_t x)
 {
 
-    return this->output->params.scale * (x + this->output->params.zero_point);
+    return (x - this->output->params.zero_point) * this->output->params.scale;
 }
 
 int TfLiteInterpreter::runInference(float *const inputBuffer, float *const outputBuffer)

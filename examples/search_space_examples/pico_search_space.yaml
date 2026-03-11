@@ -9,7 +9,7 @@ quantization:
 blocks:
   - block: "1" #namefield muss noch rein
     op_candidates: [ "linear" ]
-    depth: [1, 2]
+    depth: [2]
     activation: [ "sigmoid"]
     linear:
       #überall range oder choices

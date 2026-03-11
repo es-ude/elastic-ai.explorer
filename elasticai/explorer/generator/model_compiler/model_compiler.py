@@ -101,45 +101,58 @@ class TFliteModelCompiler(ModelCompiler):
             self.logger.warning("Something wrong with Pytorch --> TfLite")
 
     def _quantize(self, model: nn.Module, sample_input: tuple[Tensor]):
-        pt2e_quantizer = PT2EQuantizer().set_global(
-            get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
-        )
-        pt2e_torch_model = torch.export.export(model, sample_input).module()
-        pt2e_torch_model = prepare_pt2e(pt2e_torch_model, pt2e_quantizer)  # type:ignore
+        # pt2e_quantizer = PT2EQuantizer().set_global(
+        #     get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
+        # )
+        # pt2e_torch_model = torch.export.export(model, sample_input).module()
+        # pt2e_torch_model = prepare_pt2e(pt2e_torch_model, pt2e_quantizer)  # type:ignore
 
-        # Prepare model by running one inference.
-        torch_output = pt2e_torch_model(*sample_input)
-        self.logger.debug(f"Sample output before quantization: ", torch_output)
-        pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
-        torch_output_quantized = pt2e_torch_model(*sample_input)
-        self.logger.debug(f"Sample output quantized: ", torch_output_quantized)
-        pt2e_drq_model = convert(
-            pt2e_torch_model,
-            sample_input,
-            quant_config=QuantConfig(pt2e_quantizer=pt2e_quantizer),
-        )
+        # # Prepare model by running one inference.
+        # torch_output = pt2e_torch_model(*sample_input)
+        # self.logger.debug(f"Sample output before quantization: ", torch_output)
+        # pt2e_torch_model = convert_pt2e(pt2e_torch_model, fold_quantize=False)
+        # torch_output_quantized = pt2e_torch_model(*sample_input)
+        # self.logger.debug(f"Sample output quantized: ", torch_output_quantized)
+        # pt2e_drq_model = convert(
+        #     pt2e_torch_model,
+        #     sample_input,
+        #     quant_config=QuantConfig(pt2e_quantizer=pt2e_quantizer),
+        # )
         numpy_input = sample_input[0].cpu().numpy()
         quantized_input = tflite_quantize(numpy_input)
         int8_input = quantized_input.astype(numpy.int8)
 
-        quantized_output = pt2e_drq_model(int8_input)
+        # quantized_output = pt2e_drq_model(int8_input)
 
-        dequantized_output = tflite_dequantize(
-            numpy.array(quantized_output, dtype=numpy.float32)
-        )
-
-        # Test tflite quantization
-        # torch_output = model(*sample_input)
-
-        # numpy_input = sample_input[0].cpu().numpy()
-        # tfl_converter_flags = {"optimizations": [tf.lite.Optimize.DEFAULT]}
-        # tfl_drq_model = convert(
-        #     model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
+        # dequantized_output = tflite_dequantize(
+        #     numpy.array(quantized_output, dtype=numpy.float32)
         # )
 
-        # tflite_output = tfl_drq_model(*sample_input)
+        # Test tflite quantization
+        torch_output = model(*sample_input)
 
-        return pt2e_drq_model, dequantized_output
+        #numpy_input = sample_input[0].cpu().numpy().astype(numpy.int8)
+        
+        def representative_dataset():
+            for _ in range(10):
+                # Get sample input data as a numpy array in a method of your choosing.
+                data = numpy.random.rand(1, 28, 28, 1).astype(numpy.float32)
+                yield [numpy_input]
+
+        tfl_converter_flags = {
+            "optimizations": [tf.lite.Optimize.DEFAULT],
+            "representative_dataset": representative_dataset,
+            "target_spec": {"supported_ops": [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]},
+            "inference_input_type": tf.int8,
+            "inference_output_type": tf.int8,
+        }
+        tfl_drq_model = convert(
+            model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
+        )
+
+        tflite_output_int8 = tfl_drq_model(*int8_input)
+        tflite_output= tflite_dequantize(tflite_output_int8)
+        return tfl_drq_model, tflite_output
 
     def _model_to_cpp(self, tflite_model_path: Path):
         process = subprocess.run(
@@ -187,9 +200,7 @@ class TFliteModelCompiler(ModelCompiler):
             )
             edge_output = edge_model(*sample_tflite_input)
         elif isinstance(quantization_scheme, FixedPointInt8Scheme):
-            edge_model, edge_output = self._quantize(
-                nhwc_model, sample_tflite_input
-            )
+            edge_model, edge_output = self._quantize(nhwc_model, sample_tflite_input)
         else:
             err = NotImplementedError(
                 f"The quantization scheme -{quantization_scheme}- is not supported by the TFliteModelCompiler."
