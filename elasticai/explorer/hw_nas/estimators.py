@@ -50,7 +50,7 @@ class Estimator:
 
     @abstractmethod
     def estimate(
-        self, model_sample, quantization_scheme: QuantizationScheme
+        self, model_sample, target_quantization_scheme: QuantizationScheme
     ) -> tuple[float | int, list[float | int]]:
         """
         Returns:
@@ -67,9 +67,11 @@ class FLOPsEstimator(Estimator):
         self.data_sample = data_sample
 
     def estimate(
-        self, model_sample: torch.nn.Module, quantization_scheme: QuantizationScheme
+        self,
+        model_sample: torch.nn.Module,
+        target_quantization_scheme: QuantizationScheme,
     ) -> tuple[float | int, list[float | int]]:
-        get_quantization_info(quantization_scheme, self.logger)
+        get_quantization_info(target_quantization_scheme, self.logger)
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
         flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(
             **handlers
@@ -87,9 +89,11 @@ class ParamEstimator(Estimator):
         self.logger: Logger = logging.getLogger()
 
     def estimate(
-        self, model_sample: torch.nn.Module, quantization_scheme: QuantizationScheme
+        self,
+        model_sample: torch.nn.Module,
+        target_quantization_scheme: QuantizationScheme,
     ) -> tuple[float | int, list[float | int]]:
-        get_quantization_info(quantization_scheme, self.logger)
+        get_quantization_info(target_quantization_scheme, self.logger)
         param_count = parameter_count(model_sample)[""]
         return param_count, []
 
@@ -109,9 +113,11 @@ class TrainMetricsEstimator(Estimator):
         self.n_estimation_epochs = n_estimation_epochs
 
     def estimate(
-        self, model_sample: torch.nn.Module, quantization_scheme: QuantizationScheme
+        self,
+        model_sample: torch.nn.Module,
+        target_quantization_scheme: QuantizationScheme,
     ) -> tuple[float | int, list[float | int]]:
-        get_quantization_info(quantization_scheme, self.logger)
+        get_quantization_info(target_quantization_scheme, self.logger)
         optimizer = Adam(model_sample.parameters(), lr=1e-3)
         self.trainer.configure_optimizer(optimizer)
 
@@ -142,7 +148,7 @@ class TrainMetricsEstimator(Estimator):
 
 
 def get_quantization_info(
-    quantization_scheme: QuantizationScheme,
+    target_quantization_scheme: QuantizationScheme,
     logger,
     optimal_schemes: list[type[QuantizationScheme]] = [FullPrecisionScheme],
 ):
@@ -151,7 +157,7 @@ def get_quantization_info(
         optimal_schemes.name() for optimal_schemes in optimal_schemes
     ]
 
-    if not (type(quantization_scheme) in optimal_schemes):
+    if not (type(target_quantization_scheme) in optimal_schemes):
         logger.info(
-            f"The estimation is most optimal for {optimal_schemes_names} but this model should be deployed as {quantization_scheme.name()}"
+            f"The estimation is most optimal for {optimal_schemes_names} but this models target quantization is{target_quantization_scheme.name()}"
         )

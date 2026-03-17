@@ -45,7 +45,7 @@ def _evaluate_constraints(
     score = 0.0
     for estimator in optimization_criteria:
         final_estimate, estimates = estimator.estimate(
-            model, quantization_scheme=quant_scheme
+            model, target_quantization_scheme=quant_scheme
         )
         trial.set_user_attr(estimator.metric_name, final_estimate)
         trial.set_user_attr(
@@ -123,7 +123,7 @@ def search(
     search_strategy: SearchStrategy,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
-    model_builder: ModelBuilder, 
+    model_builder: ModelBuilder,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any], list[QuantizationScheme]]:
     """
     Returns: top-models, model-parameters, metrics
