@@ -8,12 +8,12 @@ import ai_edge_torch
 import numpy
 
 import torch
-from torch import Tensor,nn
+from torch import Tensor, nn
 
 from ai_edge_torch import convert, to_channel_last_io
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FixedPointInt8Scheme,
+    PTQFullyQuantizedInt8Scheme,
     FullPrecisionScheme,
     QuantizationScheme,
 )
@@ -104,7 +104,7 @@ class TFliteModelCompiler(ModelCompiler):
         tfl_drq_model = convert(
             model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
         )
-    
+
         return tfl_drq_model
 
     def _model_to_cpp(self, tflite_model_path: Path):
@@ -152,7 +152,7 @@ class TFliteModelCompiler(ModelCompiler):
             )
             edge_output = edge_model(*sample_tflite_input)
             self._validate(torch_output, edge_output)
-        elif isinstance(quantization_scheme, FixedPointInt8Scheme):
+        elif isinstance(quantization_scheme, PTQFullyQuantizedInt8Scheme):
             edge_model = self._quantize(nhwc_model, sample_tflite_input)
         else:
             err = NotImplementedError(
@@ -163,4 +163,3 @@ class TFliteModelCompiler(ModelCompiler):
 
         edge_model.export(str(output_path.with_suffix(".tflite")))
         self._model_to_cpp(output_path.with_suffix(".tflite"))
-

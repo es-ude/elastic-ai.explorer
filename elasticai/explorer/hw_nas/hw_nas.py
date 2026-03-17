@@ -18,7 +18,10 @@ from elasticai.explorer.hw_nas.search_space.build_model import (
     ShapeValueError,
 )
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
-from elasticai.explorer.hw_nas.search_space.quantization import FullPrecisionScheme, QuantizationScheme
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
 
 logger = logging.getLogger("explorer.nas")
 intermediate_metrics_template = "{metric_name}_intermediates"
@@ -36,10 +39,14 @@ class SearchStrategy(Enum):
     EVOLUTIONARY_SEARCH = "evolution"
 
 
-def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
+def _evaluate_constraints(
+    trial, model, optimization_criteria: OptimizationCriteria, quant_scheme
+):
     score = 0.0
     for estimator in optimization_criteria:
-        final_estimate, estimates = estimator.estimate(model)
+        final_estimate, estimates = estimator.estimate(
+            model, quantization_scheme=quant_scheme
+        )
         trial.set_user_attr(estimator.metric_name, final_estimate)
         trial.set_user_attr(
             intermediate_metrics_template.format(metric_name=estimator.metric_name),
@@ -79,12 +86,10 @@ def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCrite
     return score
 
 
-def sample_and_create_model(trial, search_space: dict):
-    search_space_sampler = Sampler(trial)
+def sample_and_create_model(model_builder: ModelBuilder, trial, search_space: dict):
     try:
-        sample = search_space_sampler.construct_sample(search_space)
-        model = construct_model(sample, search_space["input"], search_space["output"])
-        return model
+        model, quant_scheme = model_builder.build_from_trial(trial, search_space)
+        return model, quant_scheme
 
     except (ShapeValueError, NotImplementedError) as e:
         print(traceback.format_exc())
@@ -98,11 +103,14 @@ def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
     optimization_criteria: OptimizationCriteria,
+    model_builder: ModelBuilder,
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
-        model = sample_and_create_model(trial, search_space_cfg)
-        score = _evaluate_constraints(trial, model, optimization_criteria)
+        model, quant_scheme = sample_and_create_model(
+            model_builder, trial, search_space_cfg
+        )
+        score = _evaluate_constraints(trial, model, optimization_criteria, quant_scheme)
         logger.info(f"Trial {trial.number} has a final score of {score:.2f}")
 
         return score
@@ -115,7 +123,7 @@ def search(
     search_strategy: SearchStrategy,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
-    model_builder: ModelBuilder,
+    model_builder: ModelBuilder, 
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any], list[QuantizationScheme]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -155,6 +163,7 @@ def search(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
             optimization_criteria=optimization_criteria,
+            model_builder=model_builder,
         ),
         n_trials=n_trials,
         callbacks=callbacks,
@@ -184,16 +193,17 @@ def search(
     ]
 
     for frozen_trial in top_k_frozen_trials:
-
-        top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
+        model, quant_scheme = model_builder.build_from_trial(
+            frozen_trial, search_space_cfg
+        )
+        top_k_models.append(model)
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
                 "score": eval(frozen_trial),
             }
         )
-        # TODO put this back in
-        top_k_quant_scheme.append(FullPrecisionScheme())
+        top_k_quant_scheme.append(quant_scheme)
         for metric_name in metric_names:
             intermediates_key = intermediate_metrics_template.format(
                 metric_name=metric_name

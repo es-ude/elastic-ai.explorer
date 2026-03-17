@@ -3,19 +3,15 @@ from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
-from random import randint
 import shutil
 from socket import error as socket_error
 import time
 from typing import Any
 
-
-from fabric import Connection
-
 import serial
+from fabric import Connection
 from paramiko.ssh_exception import AuthenticationException
 
-from elasticai.runtime.env5.usb import UserRemoteControl, get_env5_port
 
 
 @dataclass
@@ -206,60 +202,3 @@ class PicoHost(SerialHost):
             time_passed_s = time.time() - start_time_s
 
         return last_line
-
-
-class ENv5Host(SerialHost):
-    def __init__(self, params: SerialParams):
-        super().__init__(params=params)
-        self.logger = logging.getLogger(
-            "explorer.generator.deployment.device_communication.ENv5Host"
-        )
-        self.flash_start_address = 0
-        self._ser = None
-
-    def _get_connection(self) -> serial.Serial:
-        if not self._ser:
-            self._ser = serial.Serial(
-                get_env5_port(), baudrate=self.BAUD_RATE, timeout=1
-            )
-        return self._ser
-
-    def flash(self, local_path: Path):
-        skeleton_id = [2 for i in range(16)]
-        skeleton_id_as_bytearray = bytearray()
-        for x in skeleton_id:
-            skeleton_id_as_bytearray.extend(
-                x.to_bytes(length=1, byteorder="little", signed=False)
-            )
-
-        ser = self._get_connection()
-        self._urc = UserRemoteControl(device=ser)
-        self._urc.send_and_deploy_model(
-            local_path, self.flash_start_address, skeleton_id_as_bytearray
-        )
-        self._urc.fpga_leds(True, False, False, False)
-        skeleton_id_on_device = bytearray(self._urc._enV5RCP.read_skeleton_id())
-
-        if skeleton_id_on_device == skeleton_id_as_bytearray:
-            self.logger.info("The byte stream has been written correctly to the ENv5.")
-        else:
-            self.logger.warning(
-                f"The byte stream hasn't been written correctly to the ENv5. Verification bytes are not equal: {skeleton_id_on_device} != {skeleton_id_as_bytearray}!"
-            )
-
-    def send_data_bytes(self, sample: bytearray, num_bytes_outputs: int) -> bytearray:
-        if self._urc:
-            raw_result = self._urc.inference_with_data(sample, num_bytes_outputs)
-            return raw_result
-
-        with self._get_connection() as ser:
-            urc = UserRemoteControl(device=ser)
-            raw_result = urc.inference_with_data(sample, num_bytes_outputs)
-            return raw_result
-
-    def receive(self, **kwargs) -> Any:
-        if self._urc:
-            raw_result = self._urc.read_data_from_flash(
-                kwargs.get("flash_start_address", 0), kwargs.get("num_bytes", 0)
-            )
-            return raw_result

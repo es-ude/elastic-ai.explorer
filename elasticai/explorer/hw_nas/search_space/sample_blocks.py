@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from enum import Enum
-import optuna
-import yaml
-from optuna.samplers import RandomSampler
 from yaml.error import YAMLError
 
-from elasticai.explorer.hw_nas.search_space.build_model import construct_model
-from elasticai.explorer.hw_nas.search_space.quantization import FullPrecisionScheme
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
+from elasticai.explorer.hw_nas.search_space.quantization_builder import QUANT_REGISTRY
 from elasticai.explorer.hw_nas.search_space.registry import COMPOSITE_REGISTRY
 from settings import ROOT_DIR
 
@@ -77,8 +77,6 @@ class Sampler:
         self.param_cache = {}
         self.block_cache = {}
         self.composite_cache = {}
-        # TODO fill this correctly
-        self.quantization_scheme = FullPrecisionScheme()
 
     def scoped(self, name: str) -> str:
         return f"{self.scope}/{name}" if self.scope else name
@@ -101,6 +99,9 @@ class Sampler:
             raise TypeError(f"Unsupported repeat type {repeat_type}")
 
     def construct_sample(self, search_space: dict):
+
+        quant_scheme = get_quantization_scheme(search_space, self.trial)
+
         model = OrderedDict()
 
         if "default_op_params" in search_space:
@@ -111,7 +112,6 @@ class Sampler:
 
         sequence = search_space["sequence"]
         total_blocks = len(sequence)
-
         for block_idx, block in enumerate(sequence):
             block_id = block["block"]
             repeat_cfg = block.get("type_repeat", {})
@@ -134,7 +134,7 @@ class Sampler:
                 is_last_block=is_last_block, last_model_layer=is_last_block
             )
 
-        return model
+        return model, quant_scheme
 
 
 class LayerContext:
@@ -378,3 +378,22 @@ class VaryAllFactory(BlockFactory):
             VaryOp(block_id, block_cfg),
             VaryParams(block_id, block_cfg, sampler.default_op_params),
         )
+
+
+def get_quantization_scheme(search_space: dict, trial) -> QuantizationScheme:
+    quant_scheme = QuantizationScheme
+    if "quantization" in search_space:
+        quant_cfg = search_space["quantization"]
+        quant_name = parse_search_param(
+            trial,
+            "quantization",
+            quant_cfg,
+            "quant_candidates",
+        )
+        quant_params = quant_cfg.get(quant_name, {})
+        quant_builder_cls = QUANT_REGISTRY[quant_name]
+        quant_builder = quant_builder_cls(trial, quant_params)
+        quant_scheme = quant_builder.build()
+    else:
+        quant_scheme = FullPrecisionScheme()
+    return quant_scheme

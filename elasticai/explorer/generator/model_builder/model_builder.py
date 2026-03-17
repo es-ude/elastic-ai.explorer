@@ -59,10 +59,10 @@ class DefaultModelBuilder(ModelBuilder):
         self, trial, search_space: dict
     ) -> tuple[torch.nn.Module, QuantizationScheme]:
         sampler = Sampler(trial)
-        sample = sampler.construct_sample(trial)
+        sample, quant_scheme = sampler.construct_sample(search_space)
         return (
             nn.Sequential(
                 *construct_model(sample, search_space["input"], search_space["output"])
             ),
-            sampler.quantization_scheme,
+            quant_scheme,
         )

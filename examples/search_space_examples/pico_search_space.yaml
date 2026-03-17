@@ -1,5 +1,7 @@
 input: [1, 28, 28]
 output: 10
+quantization:
+  quant_candidates: ["fully_quantized_int8"]
 sequence:
   - block: "1"
     op_candidates: "linear"

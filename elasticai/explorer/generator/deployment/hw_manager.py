@@ -11,7 +11,6 @@ from typing import Callable, Dict
 
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
-    ENv5Host,
     Host,
     SSHHost,
     PicoHost,
@@ -142,7 +141,9 @@ class RPiHWManager(HWManager):
         if dataset_spec.deployable_dataset_path:
             dataset_dir = dataset_spec.deployable_dataset_path
         else:
-            dataset_dir = dataset_spec.dataset_location
+            raise Exception(
+                f"There is no deployable dataset path. Cannot prepare the dataset"
+            )
         archive_name = dataset_dir.with_suffix(".tar.gz")
         with tarfile.open(archive_name, "w:gz") as tar:
             tar.add(dataset_dir, arcname=dataset_dir.name)
@@ -237,4 +238,3 @@ class PicoHWManager(HWManager):
             path_to_model.parent / (path_to_model.stem + ".cpp"),
             DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/model.cpp",
         )
-

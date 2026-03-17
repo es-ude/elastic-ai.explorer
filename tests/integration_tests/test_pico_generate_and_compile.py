@@ -5,7 +5,9 @@ import torch
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.hw_nas.search_space.quantization import FixedPointInt8Scheme
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    PTQFullyQuantizedInt8Scheme,
+)
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.generator.deployment.compiler import (
     CompilerParams,
@@ -133,7 +135,7 @@ class TestPicoGenerateAndCompile:
             model,
             output_path=output_path,
             input_sample=data_sample,
-            quantization_scheme=FixedPointInt8Scheme(),
+            quantization_scheme=PTQFullyQuantizedInt8Scheme(),
         )
         assert os.path.exists(output_path.with_suffix(".tflite"))
         assert os.path.exists(output_path.with_suffix(".cpp"))
