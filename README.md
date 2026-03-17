@@ -37,16 +37,27 @@ If you don't need dev dependencies add:
 - The Docker Engine (https://docs.docker.com/engine/install/)
 - And the Docker-Buildx-Plugin (https://github.com/docker/buildx)
 
-First Deployment with Docker for each platform is slow because the necessary Docker-Images have to be created, after that the Docker-Images can be reused and deployment is much faster. 
+>First Deployment with Docker for each platform is slow because the necessary Docker-Images have to be created, after that the Docker-Images can be reused and deployment is much faster. 
 
-## Setup your Raspberry Pi 4/5 for Deployment
-To use the Explorer to deploy models on your Raspberry Pi, we recommend using Bookworm as an OS. You also need to enable ssh connections on your RPi and make one initial connection between your host PC and the RPi.  
-Then install libtorch on your Pi under "/code/libtorch" directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be "docker/code/libtorch") in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
+### Troubleshooting
+
+To resolve the following error:
+```
+Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+```
+Follow the steps in the Docker documentation: [How do I use Docker SDKs with Docker Desktop for Linux?](https://docs.docker.com/desktop/troubleshoot-and-support/faqs/linuxfaqs/#how-do-i-use-docker-sdks-with-docker-desktop-for-linux)
+
+## Set up your Raspberry Pi 4/5 for Deployment
+To use the Explorer to deploy models on your Raspberry Pi, we recommend using Bookworm 64-Bit as an OS. You also need to enable ssh connections on your RPi and make one initial connection between your host PC and the RPi. Make sure to add you public SSH key to the Raspberry Pi under `~/.ssh/authorized_keys`.
+
+Then install libtorch on your Pi under `/code/libtorch` directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be `docker/code/libtorch`) in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
+
+Ensure a `data` directory exists on the Raspberry Pi user's home directory.
 
 After this you can use the System Tests by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pi_example.py) by adding your RPi's credentials to the SSHParams. 
 
-## Setup your Raspberry Pi Pico for Deployment
-There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably "media/RPI-RP2"). Additionally it can be necessary to add the user to dialout and tty group at the serial port (default is "/dev/ttyACM0") in order to communicate over the serial connection.
+## Set up your Raspberry Pi Pico for Deployment
+There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably `/media/RPI-RP2`). Additionally, it can be necessary to add the user to dialout and tty group at the serial port (default is `/dev/ttyACM0`) in order to communicate over the serial connection.
 
 After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
 
@@ -58,5 +69,5 @@ To configure the Explorer for your specific setup, create your own OptimizationC
 For test deployment and hardware-specific search, create your own HWPlatform with a Generator, Compiler, Host, and HwManager. You can also use the out-of-the-box solutions shown in the examples, or write your own classes using the provided interfaces.
 
 # Search Space Specification
-To learn how to specify your own search space for a HW-NAS in yaml format or to learn how to extend the supported operations in code
+To learn how to specify your own search space for a HW-NAS in YAML format or to learn how to extend the supported operations in code
 see the [search space specification](elasticai/explorer/hw_nas/search_space/README.md).
