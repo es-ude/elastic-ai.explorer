@@ -12,7 +12,7 @@ from elasticai.explorer import get_path_to_project
 class CompilerParams:
     image_name: str = "cross"
     library_path: Path = Path("./code/libtorch")
-    path_to_dockerfile: Path = get_path_to_project() / "docker" / "Dockerfile.pibase"
+    path_to_dockerfile: Path = get_path_to_project() / "docker" / "Dockerfile.picross"
     build_context: Path = get_path_to_project() / "docker"
 
 
