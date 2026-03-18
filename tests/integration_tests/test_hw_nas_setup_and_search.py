@@ -5,7 +5,6 @@ import shutil
 import torch
 
 import operator
-from elasticai.explorer.generator import model_builder
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.estimators import (
     FLOPsEstimator,

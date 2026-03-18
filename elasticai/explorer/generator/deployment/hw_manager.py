@@ -24,7 +24,7 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 from elasticai.explorer.training.data import DatasetSpecification
 
 from settings import DOCKER_CONTEXT_DIR
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 
 MetricFunction = Callable[[Host, "HWManager"], dict[str, dict]]
 
@@ -142,7 +142,7 @@ class RPiHWManager(HWManager):
             dataset_dir = dataset_spec.deployable_dataset_path
         else:
             raise Exception(
-                f"There is no deployable dataset path. Cannot prepare the dataset"
+                f"There is no deployable dataset path. Cannot prepare the dataset."
             )
         archive_name = dataset_dir.with_suffix(".tar.gz")
         with tarfile.open(archive_name, "w:gz") as tar:
