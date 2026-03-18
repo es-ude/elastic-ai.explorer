@@ -1,26 +1,39 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any
+from typing import Mapping, Optional, Any
 from torch import nn
 
+from elasticai.explorer.generator.deployment.compiler import (
+    VivadoParams,
+    CompilerParams,
+)
+from elasticai.explorer.generator.deployment.device_communication import (
+    SSHParams,
+    SerialParams,
+)
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator.model_builder.model_builder import (
+    ModelBuilder,
+    DefaultModelBuilder,
+)
 from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams
-from elasticai.explorer.platforms.deployment.device_communication import (
-    SSHParams,
-    SerialParams,
-)
-from elasticai.explorer.platforms.deployment.hw_manager import (
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.generator.deployment.hw_manager import (
     HWManager,
     Metric,
+    MetricFunction,
 )
-from elasticai.explorer.platforms.generator.generator import Generator
+from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
 from elasticai.explorer.utils.logging_utils import (
@@ -32,26 +45,28 @@ from settings import MAIN_EXPERIMENT_DIR
 
 class Explorer:
     """
-    The explorer class manages the HW-NAS and the deployment on hardware.
+    The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework. 
+    For more customization use the the HW-NAS and Deployment tools directly. 
     """
 
     def __init__(
         self,
-        knowledge_repository: KnowledgeRepository,
+        generator_registry: GeneratorRegistry,
         experiment_name: Optional[str] = None,
     ):
         """
         Args:
-            knowledge_repository
+            generator_registry
             experiment_name (str, optional): The name of the current experiment. Defaults to timestamp at instantiation.
               This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
         """
         self.logger = logging.getLogger("explorer")
-        self.target_hw_platform: Optional[HWPlatform] = None
-        self.knowledge_repository: KnowledgeRepository = knowledge_repository
-        self.generator: Optional[Generator] = None
+        self.target_hw_platform: Optional[Generator] = None
+        self.generator_registry: GeneratorRegistry = generator_registry
+        self.model_compiler: Optional[ModelCompiler] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
+        self.model_builder: ModelBuilder = DefaultModelBuilder()
 
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
@@ -102,7 +117,7 @@ class Explorer:
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
-    ) -> list[Any]:
+    ) -> tuple[list[Any], list[QuantizationScheme]]:
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials searching for top %d models. ",
@@ -110,11 +125,12 @@ class Explorer:
             hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
-            top_models, model_parameters, metrics = hw_nas.search(
+            top_models, model_parameters, metrics, quantization_schemes = hw_nas.search(
                 search_space_cfg=self.search_space_cfg,
                 search_strategy=search_strategy,
                 hw_nas_parameters=hw_nas_parameters,
                 optimization_criteria=optimization_criteria,
+                model_builder=self.model_builder,
             )
         else:
             self.logger.error(
@@ -142,74 +158,86 @@ class Explorer:
                 self._experiment_dir,
                 "optimization_criteria.toml",
             )
-
-        return top_models
+        return top_models, quantization_schemes
 
     def choose_target_hw(
         self,
         target_platform_name: str,
-        compiler_params: CompilerParams,
+        compiler_params: VivadoParams | CompilerParams,
         communication_params: SSHParams | SerialParams,
     ):
-        self.target_hw_platform = self.knowledge_repository.fetch_hw_info(
-            target_platform_name
+        self.generator = self.generator_registry.fetch_hw_info(target_platform_name)
+        self.model_compiler = self.generator.model_compiler()
+        self.hw_manager = self.generator.platform_manager(
+            self.generator.communication_protocol(communication_params),
+            self.generator.compiler(compiler_params),
         )
-        self.generator = self.target_hw_platform.model_generator()
-        self.hw_manager = self.target_hw_platform.platform_manager(
-            self.target_hw_platform.communication_protocol(communication_params),
-            self.target_hw_platform.compiler(compiler_params),
-        )
+
+        self.model_builder = self.generator.model_builder()
         self.logger.info(
-            "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
+            "Configure chosen Target Hardware Platform. Name: %s, Generator:\n%s",
             target_platform_name,
-            self.target_hw_platform,
+            self.generator,
         )
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
+        self,
+        metric_to_source: Mapping[Metric, Path | MetricFunction],
+        data_spec: data.DatasetSpecification,
+        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
         """
         Args:
-            path_to_testdata: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
+            data_spec: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
             metric_to_source: Dictionary mapping Metric to source code Path inside the docker context. this doesn't explain anything
               E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
-              :param data_spec: this is missing
+            quantization_scheme: The quantization scheme used.
 
         """
         self.logger.info("Setup Hardware target for experiments.")
 
         if not self.hw_manager:
-            self.logger.error(
-                "HwManager is not initialized! First run choose_target_hw(deploy_cfg) before hw_setup_on_target()."
-            )
-            exit(-1)
 
-        self.hw_manager.install_dataset_on_target(data_spec)
+            err = TypeError(
+                "HwManager is not initialized! First run choose_target_hw(...) before hw_setup_on_target(...)."
+            )
+            self.logger.error(err)
+            raise err
+
+        self.hw_manager.prepare_dataset(data_spec, quantization_scheme)
 
         for metric, source in metric_to_source.items():
             self.logger.info(f"Installing program for {metric.name}: {source}")
-            self.hw_manager.install_code_on_target(source, metric)
+            self.hw_manager.prepare_measurement(source, metric)
 
     def run_measurement(self, metric: Metric, model_name: str) -> dict:
         model_path = self._model_dir / model_name
         if self.hw_manager:
-            self.hw_manager.deploy_model(model_path)
+            self.hw_manager.prepare_model(model_path)
             measurement = self.hw_manager.measure_metric(metric, model_path)
             self.logger.info(measurement)
         else:
             self.logger.error(
-                "HwManager is not initialized! First run choose_target_hw(deploy_cfg) and hw_setup_on_target(path_to_testdata), before run_measurement()."
+                "HwManager is not initialized! First run choose_target_hw(...) and hw_setup_on_target(...), before run_measurement(...)."
             )
             exit(-1)
         return measurement
 
     def generate_for_hw_platform(
-        self, model: nn.Module, model_name: str, dataset_spec: data.DatasetSpecification
+        self,
+        model: nn.Module,
+        model_name: str,
+        dataset_spec: data.DatasetSpecification,
+        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ) -> Any:
         model_path = self._model_dir / model_name
-        sample_input, _ = next(iter(dataset_spec.dataset))
-        if self.generator:
-            return self.generator.generate(model, model_path, sample_input)
+
+        dataset = dataset_spec.dataset
+        sample_input, _ = next(iter(dataset))
+        if self.model_compiler:
+            return self.model_compiler.compile(
+                model, model_path, sample_input, quantization_scheme
+            )
         else:
             self.logger.error(
                 "Generator is not initialized! First run choose_target_hw(deploy_cfg), before generate_for_hw_platform()"

@@ -6,28 +6,34 @@ This section describes the Syntax of the yaml file to describe the search space.
 
 ### Search space Structure
 
-Each search space definition needs to specify an input dimension, an output dimension and a sequence of blocks.
+Each search space definition needs to specify an input dimension, an output dimension and a sequence of blocks. Optionally, options for model-wide quantization schemes can be specified, if this isn't included it will default to Full-Precision (Float32). 
 Optionally, a section describing the default search parameters for primitive operations and a section for defining custom composite operations can be added.
 When the default_op_params doesn't include the default search parameters of an operation, the search parameters have to be defined in the block where they are used.
 ```yaml
-input: [1, 1313]        # The dimensions of an Input Sample without batch_size
-output: 2               # The dimensions of the Output
+input: [1, 1313]          # The dimensions of an Input Sample without batch_size
+output: 2                 # The dimensions of the Output
 
-sequence:               # The macro structure of the network consisting of multiple blocks (at least one)
-  - block: "1"          # Each block needs to have a unique string identifier
+quantization:             # It possible to specify quantization schemes that will applied model-wide. 
+  quant_candidates: [...] # Which schemes are supported dependents on the Generator. 
+    quant_candidate_1:    # These can also be parametrized individually.
+      param_1: [...]
+
+sequence:                 # The macro structure of the network consisting of multiple blocks (at least one)
+  - block: "1"            # Each block needs to have a unique string identifier
       ...               
   - block: "2"
       ...
-default_op_params:      # It is possible to specify the default search parameters for each primitive operation in this section of the yaml as a dictionary.
-                        # If an operation is used somewhere and it is not specified here, it will have to be specified in the block directly.
-    primitive_op_1:     # Supported primitive operations can be seen in Table 1. The naming must correspond.
-      param_1: [...]    # Valid parameters differ for each primitive operation and can be seen further down
+default_op_params:        # It is possible to specify the default search parameters for each primitive operation in this section of the yaml as a dictionary.
+                          # If an operation is used somewhere and it is not specified here, it will have to be specified in the block directly.
+    primitive_op_1:       # Supported primitive operations can be seen in Table 1. The naming must correspond.
+      param_1: [...]      # Valid parameters differ for each primitive operation and can be seen further down
       param_2: [...]
     primitive_op_2:
       param_1: [..]
-      
 
 ```
+
+
 Each block has a unique name, a rule of how to repeat the block, the candidate operations and optionally, for each operation possible parameter configurations.
 The type_repeat block can be omitted if the block should only be repeated once and does not reference a different block.
 If not, there are different options for the type:
@@ -37,18 +43,15 @@ If not, there are different options for the type:
     ...
 - block: "2"
   type_repeat:
-    type: "repeat_op" #Possible: "repeat_op", "repeat_params", "vary_all", "repeat_block", "mirror_block"
-    depth: [ 2, 3] #Only for repeat_op, repeat_params, vary_all
-    ref_block: "1" #Only for repeat_block, mirror_block
+    type: "repeat_op" # Possible: "repeat_op", "repeat_params", "vary_all", "repeat_block", "mirror_block"
+    depth: [ 2, 3] # Only for repeat_op, repeat_params, vary_all
+    ref_block: "1" # Only for repeat_block, mirror_block
   op_candidates: ["operation_1, operation_2"]  #All the operations the nas should try in this block
   operation_1:
       param_1: [...]
       param_2: [...]
   operation_2:
       ...
-  
-  
-  
 
 ```
 
@@ -78,6 +81,11 @@ If not, there are different options for the type:
 | layer_norm              | None                                | None                                                  |
 | repeat_vector           | times                               | None                                                  |
 | time_distributed_linear | width                               | batch_first, activation                               |
+
+| Supported Quantization  | Mandatory fields                    | Optional Fields                                       |
+|-------------------------|-------------------------------------|-------------------------------------------------------|
+| full_precision                 | None                       | None
+| ptq_fully_quantized_int8       | None                       | None
 
 ### Composite
 It's possible to combine Operations to a composite operation and reuse that in the rest of the search space. 
@@ -365,7 +373,7 @@ class ToLinearAdapter(nn.Module):
 
 After adding and adapter in this way it must be registered in [registry.py](registry.py)
 ```python 
-ADAPTER_REGISTRY = {
+DEFAULT_ADAPTER = {
     ("conv2d", "lstm"): Conv2dToLSTMAdapter,
     ("linear", "conv2d"): LinearToConv2dAdapter,
     ("linear", "lstm"): LinearToLstmAdapter,
@@ -384,3 +392,47 @@ and the value specifies the class of the adapter.
 If the key contains None this signifies that the adapter should be added at the beginning
 or end of the model.
 If the adapter should be inserted every time an operation appears, the wildcard * can be used instead of a concrete name.
+
+# Adding new quantization schemes
+This works similarly to adding new operations. You implement a QuantizationScheme and corresponding QuantizationBuilder and register it with the @register_quantization_scheme("name_of_scheme") wrapper. For schemes with extra parameters the parse_search_param(...) helper function can be used. 
+
+```python 
+class QuantizationScheme(ABC):
+    dtype: str
+
+    @staticmethod
+    @abstractmethod
+    def name() -> str: ...
+
+
+@dataclass(frozen=True)
+class ExampleQuantizationScheme(QuantizationScheme):
+    dtype: str = "float16"
+    total_bits: int = 2
+    @staticmethod
+    def name() -> str:
+        return "example_quant_scheme"
+
+class QuantizationBuilder(ABC):
+    base_type: type[QuantizationScheme]
+
+    def __init__(self, trial, search_params: dict) -> None:
+        self.trial = trial
+        self.search_params = search_params
+
+    def build(self) -> QuantizationScheme:
+        return self.base_type()
+
+@register_quantization_scheme("example_quant_scheme")
+class ExampleQuantizationSchemeBuilder(QuantizationBuilder):
+    base_type = ExampleQuantizationScheme
+    def build(self) -> QuantizationScheme:
+        total_bits = parse_search_param(
+            self.trial,
+            f"total_bits",
+            self.search_params,
+            "total_bits",
+        )
+        return self.base_type(total_bits)
+
+```

@@ -2,15 +2,18 @@ import tomllib
 
 import pytest
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
-from elasticai.explorer.platforms.deployment.hw_manager import (
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
+from elasticai.explorer.generator.deployment.hw_manager import (
     DOCKER_CONTEXT_DIR,
     RPiHWManager,
     Metric,
 )
-from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import (
+from elasticai.explorer.generator.model_compiler.model_compiler import (
+    TorchscriptModelCompiler,
+)
+from elasticai.explorer.generator.deployment.device_communication import (
     RPiHost,
     SSHParams,
 )
@@ -31,18 +34,18 @@ class TestDeploymentAndMeasurement:
             hostname=config["RPI_HOSTNAME"], username=config["RPI_USERNAME"]
         )  # <-- Set the credentials of your RPi
         compiler_params = CompilerParams()
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
-            HWPlatform(
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
+            Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                RPiGenerator,
+                TorchscriptModelCompiler,
                 RPiHWManager,
                 RPiHost,
                 RPICompiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_repository)
+        self.RPI5explorer = Explorer(generator_registry)
         self.RPI5explorer.experiment_dir = ROOT_DIR / Path(
             "tests/system_tests/test_experiment"
         )
