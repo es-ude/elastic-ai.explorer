@@ -7,8 +7,10 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     FullPrecisionScheme,
     QuantizationScheme,
 )
-from elasticai.explorer.hw_nas.search_space.quantization_builder import QUANT_REGISTRY
-from elasticai.explorer.hw_nas.search_space.registry import COMPOSITE_REGISTRY
+from elasticai.explorer.hw_nas.search_space.quantization_builder import (
+    quantization_registry,
+)
+from elasticai.explorer.hw_nas.search_space.registry import composite_registry
 from settings import ROOT_DIR
 
 
@@ -32,7 +34,7 @@ FORCED_PARAMS = {
 
 
 def is_composite_op(op: str) -> bool:
-    return op in COMPOSITE_REGISTRY
+    return op in composite_registry
 
 
 def parse_search_param(
@@ -100,15 +102,13 @@ class Sampler:
 
     def construct_sample(self, search_space: dict):
 
-        quant_scheme = get_quantization_scheme(search_space, self.trial)
-
         model = OrderedDict()
 
         if "default_op_params" in search_space:
             self.default_op_params = search_space["default_op_params"]
 
         if "composites" in search_space:
-            COMPOSITE_REGISTRY.update(search_space["composites"])
+            composite_registry.update(search_space["composites"])
 
         sequence = search_space["sequence"]
         total_blocks = len(sequence)
@@ -134,7 +134,25 @@ class Sampler:
                 is_last_block=is_last_block, last_model_layer=is_last_block
             )
 
-        return model, quant_scheme
+        return model
+
+    def get_quantization_scheme(self, search_space: dict) -> QuantizationScheme:
+        quant_scheme = QuantizationScheme
+        if "quantization" in search_space:
+            quant_cfg = search_space["quantization"]
+            quant_name = parse_search_param(
+                self.trial,
+                "quantization",
+                quant_cfg,
+                "quant_candidates",
+            )
+            quant_params = quant_cfg.get(quant_name, {})
+            quant_builder_cls = quantization_registry[quant_name]
+            quant_builder = quant_builder_cls(self.trial, quant_params)
+            quant_scheme = quant_builder.build()
+        else:
+            quant_scheme = FullPrecisionScheme()
+        return quant_scheme
 
 
 class LayerContext:
@@ -200,7 +218,7 @@ class Block:
             if op == "identity":
                 continue
             if is_composite_op(op):
-                composite_space = COMPOSITE_REGISTRY[op]
+                composite_space = composite_registry[op]
                 cache_key = (self.sampler.scope, op)
 
                 if self.repeat_block:
@@ -378,22 +396,3 @@ class VaryAllFactory(BlockFactory):
             VaryOp(block_id, block_cfg),
             VaryParams(block_id, block_cfg, sampler.default_op_params),
         )
-
-
-def get_quantization_scheme(search_space: dict, trial) -> QuantizationScheme:
-    quant_scheme = QuantizationScheme
-    if "quantization" in search_space:
-        quant_cfg = search_space["quantization"]
-        quant_name = parse_search_param(
-            trial,
-            "quantization",
-            quant_cfg,
-            "quant_candidates",
-        )
-        quant_params = quant_cfg.get(quant_name, {})
-        quant_builder_cls = QUANT_REGISTRY[quant_name]
-        quant_builder = quant_builder_cls(trial, quant_params)
-        quant_scheme = quant_builder.build()
-    else:
-        quant_scheme = FullPrecisionScheme()
-    return quant_scheme

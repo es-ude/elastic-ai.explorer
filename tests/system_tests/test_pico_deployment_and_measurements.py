@@ -5,7 +5,7 @@ import pytest
 from torch import Tensor
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import (
     CompilerParams,
     PicoCompiler,
@@ -40,8 +40,8 @@ class TestPicoDeploymentAndMeasurement:
             build_context=DOCKER_CONTEXT_DIR,
             path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
             Generator(
                 "pico",
                 "Pico with RP2040 MCU and 2MB control memory",
@@ -51,7 +51,7 @@ class TestPicoDeploymentAndMeasurement:
                 PicoCompiler,
             )
         )
-        self.pico_explorer = Explorer(knowledge_repository)
+        self.pico_explorer = Explorer(generator_registry)
         self.pico_explorer.experiment_dir = ROOT_DIR / Path(
             "tests/system_tests/test_experiment"
         )

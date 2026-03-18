@@ -7,7 +7,6 @@ from typing import Any, Optional
 import torch
 from fvcore.nn.jit_handles import get_shape
 from fvcore.nn import FlopCountAnalysis, parameter_count
-from torch import optim
 from torch.optim.adam import Adam
 from elasticai.explorer.hw_nas.search_space.quantization import (
     FullPrecisionScheme,

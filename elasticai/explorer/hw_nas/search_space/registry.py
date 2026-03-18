@@ -9,10 +9,14 @@ from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     LSTMToConv2dAdapter,
     ToLinearAdapter,
 )
+from elasticai.explorer.hw_nas.search_space.quantization import FullPrecisionScheme
 
-ADAPTER_REGISTRY = {}
-LAYER_REGISTRY = {}
-ACTIVATION_REGISTRY = {}
+adapter_registry = {}
+layer_registry = {}
+activation_registry = {}
+quantization_registry = {}
+composite_registry = {}
+
 DEFAULT_ADAPTER = {
     ("conv2d", "lstm"): Conv2dToLSTMAdapter,
     ("linear", "conv2d"): LinearToConv2dAdapter,
@@ -26,12 +30,11 @@ DEFAULT_ADAPTER = {
     ("conv1d", "linear"): ToLinearAdapter,
 }
 
-
-COMPOSITE_REGISTRY = {}
-
 DEFAULT_ACTIVATION = {
     "relu": nn.ReLU(),
     "sigmoid": nn.Sigmoid(),
     "identity": nn.Identity(),
     "tanh": nn.Tanh(),
 }
+
+DEFAULT_QUANTIZATION = {"FullPrecision": FullPrecisionScheme}

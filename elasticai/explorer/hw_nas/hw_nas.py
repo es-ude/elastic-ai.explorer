@@ -9,19 +9,19 @@ import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 
-from elasticai.explorer.generator.model_builder.model_builder import ModelBuilder
+from elasticai.explorer.generator.model_builder.model_builder import (
+    ModelBuilder,
+)
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
-from elasticai.explorer.hw_nas.search_space.build_model import (
-    construct_model,
+from elasticai.explorer.generator.model_builder.model_builder import (
     ShapeValueError,
 )
-from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FullPrecisionScheme,
     QuantizationScheme,
 )
+from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
 logger = logging.getLogger("explorer.nas")
 intermediate_metrics_template = "{metric_name}_intermediates"

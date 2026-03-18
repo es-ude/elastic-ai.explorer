@@ -11,7 +11,7 @@ from elasticai.explorer.generator.deployment.hw_manager import Metric
 
 from examples.example_helpers import (
     measure_on_device,
-    setup_knowledge_repository,
+    setup_generator_registry,
     setup_mnist,
     setup_example_optimization_criteria,
 )
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         hostname="transfair.local", username="robin"
     )  # <-- connection details for your RPi
     compiler_params = CompilerParams()  # <-- configure this only if necessary
-    knowledge_repo = setup_knowledge_repository()
+    knowledge_repo = setup_generator_registry()
     explorer = Explorer(knowledge_repo)
 
     search_space = Path(

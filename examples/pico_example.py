@@ -16,7 +16,7 @@ from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 
 from examples.example_helpers import (
     measure_on_device,
-    setup_knowledge_repository,
+    setup_generator_registry,
     setup_example_optimization_criteria,
 )
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
     )  # <-- Configure this only if necessary.
 
-    knowledge_repo = setup_knowledge_repository()
+    knowledge_repo = setup_generator_registry()
     explorer = Explorer(knowledge_repo)
     search_space = Path("examples/search_space_examples/pico_search_space.yaml")
     search_generate_measure_for_pico(

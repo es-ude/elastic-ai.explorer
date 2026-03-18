@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Type
 import numpy
 
 
@@ -18,7 +17,7 @@ class PTQFullyQuantizedInt8Scheme(QuantizationScheme):
 
     @staticmethod
     def name() -> str:
-        return "PTQFullyQuantizedInt8"
+        return "ptq_fully_quantized_int8"
 
 
 @dataclass(frozen=True)
@@ -27,10 +26,7 @@ class FullPrecisionScheme(QuantizationScheme):
 
     @staticmethod
     def name() -> str:
-        return "FullPrecision"
-
-    def is_compatible_with_layer(self, layer_type: Type) -> bool:
-        return True
+        return f"full_precision"
 
 
 def tflite_quantize(

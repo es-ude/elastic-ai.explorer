@@ -8,17 +8,18 @@ from elasticai.explorer.hw_nas.search_space.architecture_components import (
     RepeatVector,
     TimeDistributed,
 )
-from elasticai.explorer.hw_nas.search_space.registry import ACTIVATION_REGISTRY
+from elasticai.explorer.hw_nas.search_space.registry import (
+    activation_registry,
+    layer_registry,
+)
 from elasticai.explorer.hw_nas.search_space.utils import calculate_output_shape
-
-LAYER_REGISTRY = {}
 
 
 def register_layer(name: str):
     """Decorator to register new layer types."""
 
     def wrapper(cls):
-        LAYER_REGISTRY[name] = cls
+        layer_registry[name] = cls
         return cls
 
     return wrapper
@@ -37,7 +38,7 @@ class LayerBuilder(ABC):
             )
 
         if activation is not None:
-            return nn.Sequential(layer, ACTIVATION_REGISTRY[activation]), shape
+            return nn.Sequential(layer, activation_registry[activation]), shape
         return layer, shape
 
     @abstractmethod
@@ -232,7 +233,7 @@ class DropoutLayer(LayerBuilder):
 @register_layer("activation")
 class ActivationLayer(LayerBuilder):
     def build_layer(self, input_shape, search_parameters: dict):
-        return ACTIVATION_REGISTRY[search_parameters.get("op", "identity")], input_shape
+        return activation_registry[search_parameters.get("op", "identity")], input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         return self.build_layer(input_shape, search_parameters)
@@ -276,7 +277,7 @@ class TimeDistributedLinear(LayerBuilder):
 
         module = nn.Sequential(
             nn.Linear(input_shape[-1], output_sample_shape[-1]),
-            ACTIVATION_REGISTRY[search_parameters.get("activation", "identity")],
+            activation_registry[search_parameters.get("activation", "identity")],
         )
 
         return TimeDistributed(module, batch_first=batch_first), output_sample_shape
@@ -286,7 +287,7 @@ class TimeDistributedLinear(LayerBuilder):
         output_sample_shape = output_shape
         module = nn.Sequential(
             nn.Linear(input_shape[-1], output_sample_shape[-1]),
-            ACTIVATION_REGISTRY[search_parameters.get("activation", "identity")],
+            activation_registry[search_parameters.get("activation", "identity")],
         )
 
         return TimeDistributed(module, batch_first=batch_first), output_sample_shape

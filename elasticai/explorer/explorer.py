@@ -27,7 +27,7 @@ from elasticai.explorer.hw_nas.optimization_criteria import (
 )
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.hw_manager import (
     HWManager,
     Metric,
@@ -45,23 +45,24 @@ from settings import MAIN_EXPERIMENT_DIR
 
 class Explorer:
     """
-    The explorer class manages the HW-NAS and the deployment on hardware.
+    The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework. 
+    For more customization use the the HW-NAS and Deployment tools directly. 
     """
 
     def __init__(
         self,
-        knowledge_repository: KnowledgeRepository,
+        generator_registry: GeneratorRegistry,
         experiment_name: Optional[str] = None,
     ):
         """
         Args:
-            knowledge_repository
+            generator_registry
             experiment_name (str, optional): The name of the current experiment. Defaults to timestamp at instantiation.
               This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
         """
         self.logger = logging.getLogger("explorer")
         self.target_hw_platform: Optional[Generator] = None
-        self.knowledge_repository: KnowledgeRepository = knowledge_repository
+        self.generator_registry: GeneratorRegistry = generator_registry
         self.model_compiler: Optional[ModelCompiler] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
@@ -165,7 +166,7 @@ class Explorer:
         compiler_params: VivadoParams | CompilerParams,
         communication_params: SSHParams | SerialParams,
     ):
-        self.generator = self.knowledge_repository.fetch_hw_info(target_platform_name)
+        self.generator = self.generator_registry.fetch_hw_info(target_platform_name)
         self.model_compiler = self.generator.model_compiler()
         self.hw_manager = self.generator.platform_manager(
             self.generator.communication_protocol(communication_params),

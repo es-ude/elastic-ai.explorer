@@ -17,6 +17,7 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     RPiHWManager,
 )
 from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator.model_builder.model_builder import PicoModelBuilder
 from elasticai.explorer.generator.model_compiler.model_compiler import (
     TFliteModelCompiler,
     TorchscriptModelCompiler,
@@ -29,7 +30,7 @@ from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.generator_registry import GeneratorRegistry
 
 
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -39,9 +40,9 @@ from torch import optim
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 
 
-def setup_knowledge_repository() -> KnowledgeRepository:
-    knowledge_repository = KnowledgeRepository()
-    knowledge_repository.register_hw_platform(
+def setup_generator_registry() -> GeneratorRegistry:
+    generator_registry = GeneratorRegistry()
+    generator_registry.register_generator(
         Generator(
             "pico",
             "Pico with RP2040 MCU and 2MB control memory",
@@ -49,9 +50,10 @@ def setup_knowledge_repository() -> KnowledgeRepository:
             PicoHWManager,
             PicoHost,
             PicoCompiler,
+            PicoModelBuilder,
         )
     )
-    knowledge_repository.register_hw_platform(
+    generator_registry.register_generator(
         Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
@@ -62,7 +64,7 @@ def setup_knowledge_repository() -> KnowledgeRepository:
         )
     )
 
-    knowledge_repository.register_hw_platform(
+    generator_registry.register_generator(
         Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
@@ -73,7 +75,7 @@ def setup_knowledge_repository() -> KnowledgeRepository:
         )
     )
 
-    return knowledge_repository
+    return generator_registry
 
 
 def setup_example_optimization_criteria(

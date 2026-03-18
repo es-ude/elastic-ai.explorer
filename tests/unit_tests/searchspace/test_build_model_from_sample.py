@@ -5,7 +5,8 @@ import pytest
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
-from elasticai.explorer.hw_nas.search_space.build_model import construct_model
+from elasticai.explorer.generator.model_builder.model_builder import DefaultModelBuilder
+
 from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     ToLinearAdapter,
     LSTMNoSequenceAdapter,
@@ -44,7 +45,8 @@ from elasticai.explorer.hw_nas.search_space.layer_adapter import (
 def test_build_fc_model(first_block, expected):
 
     sample = OrderedDict({"1": first_block})
-    model = construct_model(sample, 20, 1)
+    builder = DefaultModelBuilder()
+    model = builder.construct_model(sample, 20, 1)
     states = model.state_dict()
     expected.load_state_dict(states)
     input = torch.rand([16, 20])
@@ -98,8 +100,8 @@ def test_build_conv2d_model():
         [("layer1", {"operation": "linear", "params": {"activation": "sigmoid"}})]
     )
     sample = OrderedDict({"1": block_1, "2": block_2, "3": block_3})
-
-    model = construct_model(sample, [16, 30, 20], 1)
+    builder = DefaultModelBuilder()
+    model = builder.construct_model(sample, [16, 30, 20], 1)
     print(model)
     first_part = [
         nn.Sequential(nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=0), nn.ReLU()),
@@ -168,7 +170,8 @@ def test_build_conv1d_model():
     )
     sample = OrderedDict({"1": block_1, "2": block_2, "3": block_3})
     in_dim = [2, 20]
-    model = construct_model(sample, in_dim, 1)
+    builder = DefaultModelBuilder()
+    model = builder.construct_model(sample, in_dim, 1)
     print(model)
     first_part = [
         nn.Sequential(
@@ -225,7 +228,8 @@ def test_build_lstm_model():
     sample = OrderedDict({"1": block_1, "2": block_2})
     # sequence_length, num_features
     in_dim = [2000, 2]
-    model = construct_model(sample, in_dim, 1)
+    builder = DefaultModelBuilder()
+    model = builder.construct_model(sample, in_dim, 1)
     print(model)
     states = model.state_dict()
     input = torch.rand([16, 2000, 2])

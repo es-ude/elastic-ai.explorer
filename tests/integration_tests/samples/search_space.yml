@@ -1,5 +1,7 @@
 input: [1, 28, 28]
 output: 10
+quantization:
+  quant_candidates: ["full_precision"]
 sequence:
   - block: "1"
     op_candidates: "conv-act-pool"

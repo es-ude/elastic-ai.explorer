@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 import torch
 from torch import nn
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
@@ -19,7 +20,7 @@ class Reflective(ABC):
     @abstractmethod
     def get_supported_quantization_schemes(
         self,
-    ) -> list[type[QuantizationScheme]]:
+    ) -> dict[str, Any]:
         pass
 
     def get_layer_mappings(self) -> dict[str, type[LayerBuilder]]:

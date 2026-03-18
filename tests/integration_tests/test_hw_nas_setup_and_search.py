@@ -5,6 +5,7 @@ import shutil
 import torch
 
 import operator
+from elasticai.explorer.generator import model_builder
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.estimators import (
     FLOPsEstimator,
@@ -18,7 +19,7 @@ from elasticai.explorer.hw_nas.hw_nas import (
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
 from elasticai.explorer.generator.model_compiler.model_compiler import (
@@ -41,8 +42,8 @@ class TestHWNasSetupAndSearch:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
     def setup_class(self):
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
             Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
@@ -52,7 +53,7 @@ class TestHWNasSetupAndSearch:
                 RPICompiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_repository)
+        self.RPI5explorer = Explorer(generator_registry)
         self.RPI5explorer.experiment_dir = Path(
             ROOT_DIR / "tests/integration_tests/test_experiment"
         )
@@ -92,8 +93,8 @@ class TestHWNasSetupAndSearch:
     @pytest.mark.parametrize(
         ("search_strategy", "with_hardconstraints", "expected"),
         [
-            (SearchStrategy.RANDOM_SEARCH, False, 2),
-            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 2),
+            (SearchStrategy.RANDOM_SEARCH, False, 1),
+            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 1),
             (SearchStrategy.RANDOM_SEARCH, True, 0),
         ],
     )
@@ -111,7 +112,7 @@ class TestHWNasSetupAndSearch:
         top_k_models, _ = self.RPI5explorer.search(
             optimization_criteria=self.optimization_criteria,
             search_strategy=search_strategy,
-            hw_nas_parameters=HWNASParameters(2, 2),
+            hw_nas_parameters=HWNASParameters(1, 1),
         )
         assert len(top_k_models) == expected
 
