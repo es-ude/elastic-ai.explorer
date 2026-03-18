@@ -12,7 +12,7 @@ from settings import ROOT_DIR
 class CompilerParams:
     image_name: str = "cross"
     library_path: Path = Path("./code/libtorch")
-    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.picross"
+    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.pibase"
     build_context: Path = ROOT_DIR / "docker"
 
 
