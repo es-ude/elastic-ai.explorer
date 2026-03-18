@@ -80,9 +80,9 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 1
-    top_n_models = 1
-    retrain_epochs = 1
+    max_search_trials = 6
+    top_n_models = 3
+    retrain_epochs = 3
 
     serial_params = SerialParams(
         device_path=Path("/media/robin/RPI-RP2")
