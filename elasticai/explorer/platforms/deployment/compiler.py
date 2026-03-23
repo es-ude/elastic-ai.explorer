@@ -5,15 +5,17 @@ from pathlib import Path
 
 from python_on_whales import docker
 
+from elasticai.explorer.utils import data_utils
 from settings import ROOT_DIR
 
 
 @dataclass
 class CompilerParams:
-    image_name: str = "cross"
+    image_name: str = "pibase"
     library_path: Path = Path("./code/libtorch")
     path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.pibase"
     build_context: Path = ROOT_DIR / "docker"
+    path_to_additional_cfg: Path | None = None
 
 
 class Compiler(ABC):
@@ -37,7 +39,7 @@ class Compiler(ABC):
 class RPICompiler(Compiler):
     def __init__(self, compiler_params: CompilerParams):
         self.logger = logging.getLogger("RPICompiler")
-        self.image_name: str = compiler_params.image_name  # "cross"
+        self.image_name: str = compiler_params.image_name
         self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
         self.context_path: Path = Path(compiler_params.build_context)
         self.libtorch_path: Path = Path(compiler_params.library_path)
@@ -83,6 +85,19 @@ class PicoCompiler(Compiler):
         self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
         self.context_path: Path = Path(compiler_params.build_context)
         self.cross_compiler_path: Path = Path(compiler_params.library_path)
+        self.platform_type: str = ""
+        if compiler_params.path_to_additional_cfg:
+            self.additional_config = data_utils.load_toml(
+                compiler_params.path_to_additional_cfg
+            )
+            self.platform_type = str(self.additional_config.get("PLATFORM_TYPE"))
+        elif not self.platform_type:
+            self.additional_config = {}
+            self.logger.warning(
+                "No platform type given -> Pico Type defaults to RP2040."
+            )
+            self.platform_type = "rp2040"
+
         if not self.is_setup():
             self.setup()
 
@@ -90,13 +105,14 @@ class PicoCompiler(Compiler):
         return bool(docker.images(self.image_name))
 
     def setup(self) -> None:
-        
+
         docker.build(
             context_path=self.context_path,
             tags=self.image_name,
             file=self.path_to_dockerfile,
             build_args={
                 "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
+                "PICO_TYPE": self.platform_type,
             },
         )
 
@@ -112,6 +128,7 @@ class PicoCompiler(Compiler):
                 "SOURCE_NAME": source.stem,
                 "PATH_TO_SOURCE": str(source),
                 "CROSS_COMPILER_PATH": str(self.cross_compiler_path),
+                "PICO_TYPE": self.platform_type,
             },
         )
         return self.context_path / "bin" / (source.stem + ".uf2")

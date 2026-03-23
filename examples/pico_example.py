@@ -33,8 +33,9 @@ def search_generate_measure_for_pico(
     retrain_epochs: int = 4,
     max_search_trials: int = 2,
     top_n_models: int = 2,
+    target: str = "pico",
 ):
-    explorer.choose_target_hw("pico", compiler_params, serial_params)
+    explorer.choose_target_hw(target, compiler_params, serial_params)
     explorer.generate_search_space(search_space)
 
     transf = transforms.Compose(
@@ -82,15 +83,24 @@ if __name__ == "__main__":
     top_n_models = 4
     retrain_epochs = 3
 
-    serial_params = SerialParams(
-        device_path=Path("/media/<username>/RPI-RP2")
-    )  # <-- Set the device path and rest only if necessary.
+    # additional device specifics, changes are necessary
+    target_platform_name = "pico"  # <-- or pico2
+    base_dockerfile = "docker/Dockerfile.picobase"
+    usb_device_path = Path(
+        "/media/<username>/RPI-RP2"
+    )  # <-- add your username and for pico2 this should be "/media/<username>/RP2350" instead
+    image_name = (
+        "picobase"  # <-- for pico2 use "pico2base" to create a separate base image
+    )
+    additional_config = Path("docker/configs/pico.toml")  # <-- for pico2 use pico2.toml
+    serial_params = SerialParams(device_path=usb_device_path)
     compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
-        image_name="picobase",
+        image_name=image_name,
         build_context=DOCKER_CONTEXT_DIR,
-        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
-    )  # <-- Configure this only if necessary.
+        path_to_dockerfile=ROOT_DIR / base_dockerfile,
+        path_to_additional_cfg=additional_config,
+    )
 
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
@@ -103,4 +113,5 @@ if __name__ == "__main__":
         retrain_epochs=retrain_epochs,
         max_search_trials=max_search_trials,
         top_n_models=top_n_models,
+        target=target_platform_name,
     )
