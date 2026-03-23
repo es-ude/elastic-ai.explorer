@@ -39,7 +39,7 @@ class Compiler(ABC):
 class RPICompiler(Compiler):
     def __init__(self, compiler_params: CompilerParams):
         self.logger = logging.getLogger("RPICompiler")
-        self.image_name: str = compiler_params.image_name 
+        self.image_name: str = compiler_params.image_name
         self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
         self.context_path: Path = Path(compiler_params.build_context)
         self.libtorch_path: Path = Path(compiler_params.library_path)
@@ -85,6 +85,7 @@ class PicoCompiler(Compiler):
         self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
         self.context_path: Path = Path(compiler_params.build_context)
         self.cross_compiler_path: Path = Path(compiler_params.library_path)
+        self.platform_type: str = ""
         if compiler_params.path_to_additional_cfg:
             self.additional_config = data_utils.load_toml(
                 compiler_params.path_to_additional_cfg
