@@ -85,22 +85,21 @@ if __name__ == "__main__":
 
     # additional device specifics, changes are necessary
     target_platform_name = "pico"  # <-- or pico2
-    base_dockerfile = (
-        "docker/Dockerfile.picobase"  # <-- for pico2 use "docker/Dockerfile.pico2base"
-    )
+    base_dockerfile = "docker/Dockerfile.picobase"
     usb_device_path = Path(
         "/media/<username>/RPI-RP2"
     )  # <-- add your username and for pico2 this should be "/media/<username>/RP2350" instead
     image_name = (
         "picobase"  # <-- for pico2 use "pico2base" to create a separate base image
     )
-
+    additional_config = Path("docker/configs/pico.toml")  # <-- for pico2 use pico2.toml
     serial_params = SerialParams(device_path=usb_device_path)
     compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
         image_name=image_name,
         build_context=DOCKER_CONTEXT_DIR,
         path_to_dockerfile=ROOT_DIR / base_dockerfile,
+        path_to_additional_cfg=additional_config,
     )
 
     knowledge_repo = setup_knowledge_repository()

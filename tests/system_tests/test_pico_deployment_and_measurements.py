@@ -92,19 +92,32 @@ class TestPicoDeploymentAndMeasurement:
 
     @pytest.mark.hardware
     @pytest.mark.parametrize(
-        ("image_name", "docker_file", "DEVICE_PATH_KEY"),
+        ("image_name", "docker_file", "DEVICE_PATH_KEY", "additional_config"),
         [
-            ("picobase", "docker/Dockerfile.picobase", "PICO_DEVICE_PATH"),
-            ("pico2base", "docker/Dockerfile.pico2base", "PICO2_DEVICE_PATH"),
+            (
+                "picobase",
+                "docker/Dockerfile.picobase",
+                "PICO_DEVICE_PATH",
+                "docker/configs/pico.toml",
+            ),
+            (
+                "pico2base",
+                "docker/Dockerfile.pico2base",
+                "PICO2_DEVICE_PATH",
+                "docker/configs/pico2.toml",
+            ),
         ],
     )
-    def test_pico_accuracy_measurement(self, image_name, docker_file, DEVICE_PATH_KEY):
+    def test_pico_accuracy_measurement(
+        self, image_name, docker_file, DEVICE_PATH_KEY, additional_config
+    ):
         serial_params = SerialParams(self.config[DEVICE_PATH_KEY])
         compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name=image_name,
             build_context=DOCKER_CONTEXT_DIR,
             path_to_dockerfile=ROOT_DIR / docker_file,
+            path_to_additional_cfg=additional_config,
         )  # <-- Configure this only if necessary.
         self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.pico_explorer.hw_setup_on_target(self.metric_to_source, self.dataset_spec)
@@ -119,19 +132,32 @@ class TestPicoDeploymentAndMeasurement:
 
     @pytest.mark.hardware
     @pytest.mark.parametrize(
-        ("image_name", "docker_file", "DEVICE_PATH_KEY"),
+        ("image_name", "docker_file", "DEVICE_PATH_KEY", "additional_config"),
         [
-            ("picobase", "docker/Dockerfile.picobase", "PICO_DEVICE_PATH"),
-            ("pico2base", "docker/Dockerfile.pico2base", "PICO2_DEVICE_PATH"),
+            (
+                "picobase",
+                "docker/Dockerfile.picobase",
+                "PICO_DEVICE_PATH",
+                "docker/configs/pico.toml",
+            ),
+            (
+                "pico2base",
+                "docker/Dockerfile.pico2base",
+                "PICO2_DEVICE_PATH",
+                "docker/configs/pico2.toml",
+            ),
         ],
     )
-    def test_pico_latency_measurement(self, image_name, docker_file, DEVICE_PATH_KEY):
+    def test_pico_latency_measurement(
+        self, image_name, docker_file, DEVICE_PATH_KEY, additional_config
+    ):
         serial_params = SerialParams(self.config[DEVICE_PATH_KEY])
         compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name=image_name,
             build_context=DOCKER_CONTEXT_DIR,
             path_to_dockerfile=ROOT_DIR / docker_file,
+            path_to_additional_cfg=additional_config,
         )  # <-- Configure this only if necessary.
         self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.pico_explorer.hw_setup_on_target(self.metric_to_source, self.dataset_spec)
