@@ -32,6 +32,7 @@ class TestPicoGenerateAndCompile:
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
             path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            path_to_additional_cfg=Path("docker/configs/pico.toml"),
         )  # <-- Configure this only if necessary.
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
