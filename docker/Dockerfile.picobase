@@ -4,9 +4,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PICO_SDK_PATH=/code/pico_crosscompiler/third_party/pico-sdk
 ENV TFLITE_PATH=/code/pico_crosscompiler/third_party/pico-tflmicro
 ENV BIN_DIR=/tmp/bin
-ENV PICO_TYPE=rp2040
 
+ARG PICO_TYPE
 ARG CROSS_COMPILER_PATH
+
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -54,5 +55,5 @@ RUN git clone -b main https://github.com/raspberrypi/pico-tflmicro.git $TFLITE_P
 
 RUN mkdir -p /code/build && mkdir -p $BIN_DIR
 WORKDIR /code/build
-RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH -DPICO_PLATFORM=$PICO_TYPE ../pico_crosscompiler
+RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH -DPICO_PLATFORM=${PICO_TYPE} ../pico_crosscompiler
 RUN make -j$(nproc)

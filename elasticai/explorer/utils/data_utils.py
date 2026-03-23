@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import tomllib
 from typing import Any
 import pandas as pd
 from torchvision import datasets
@@ -17,6 +18,10 @@ def save_to_toml(toml_str: str, path_to_dir: Path, filename: str):
     with open(path_to_dir / filename, "w") as outfile:
         outfile.write(toml_str + "\n")
 
+
+def load_toml(path_to_toml: Path) -> dict:
+    with open(path_to_toml, "rb") as f:
+            return tomllib.load(f)
 
 def load_json(path_to_json: Path | str) -> Any:
     with open(path_to_json, "r") as f:
