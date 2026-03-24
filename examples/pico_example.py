@@ -20,7 +20,7 @@ from examples.example_helpers import (
     setup_example_optimization_criteria,
 )
 
-from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
+from settings import DOCKER_CONTEXT_DIR, EXPERIMENTS_DIR, ROOT_DIR
 
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
@@ -80,9 +80,9 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 6
-    top_n_models = 3
-    retrain_epochs = 3
+    max_search_trials = 2
+    top_n_models = 1
+    retrain_epochs = 2
 
     serial_params = SerialParams(
         device_path=Path("/media/robin/RPI-RP2")
@@ -91,11 +91,11 @@ if __name__ == "__main__":
         library_path=Path("./code/pico_crosscompiler"),
         image_name="picobase",
         build_context=DOCKER_CONTEXT_DIR,
-        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+        base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
     )  # <-- Configure this only if necessary.
 
     knowledge_repo = setup_generator_registry()
-    explorer = Explorer(knowledge_repo)
+    explorer = Explorer(knowledge_repo, EXPERIMENTS_DIR)
     search_space = Path("examples/search_space_examples/pico_search_space.yaml")
     search_generate_measure_for_pico(
         explorer,

@@ -38,7 +38,7 @@ class TestPicoDeploymentAndMeasurement:
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
         generator_registry = GeneratorRegistry()
         generator_registry.register_generator(
@@ -51,10 +51,10 @@ class TestPicoDeploymentAndMeasurement:
                 PicoCompiler,
             )
         )
-        self.pico_explorer = Explorer(generator_registry)
-        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
-            "tests/system_tests/test_experiment"
+        self.pico_explorer = Explorer(
+            generator_registry, ROOT_DIR / Path("tests/system_tests"), "test_experiment"
         )
+
         self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.model_name = "ts_model_0.tflite"

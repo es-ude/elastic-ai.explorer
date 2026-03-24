@@ -37,25 +37,26 @@ from elasticai.explorer.utils.logging_utils import (
     dataclass_instance_to_toml,
     opt_crit_registry_to_toml,
 )
-from settings import MAIN_EXPERIMENT_DIR
 
 
 class Explorer:
     """
     The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework.
-    For more customization use the the HW-NAS and Deployment tools directly.
+    For more customization use the the HW-NAS and deployment tools directly.
     """
 
     def __init__(
         self,
         generator_registry: GeneratorRegistry,
+        experiments_dir: Path,
         experiment_name: Optional[str] = None,
     ):
         """
         Args:
             generator_registry
+            experiments_dir (Path): Path to the main experiments directory in which individual experiments are saved.
             experiment_name (str, optional): The name of the current experiment. Defaults to timestamp at instantiation.
-              This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
+              This defines in which directory the experiment files are stored inside experiments_dir.
         """
         self.logger = logging.getLogger("explorer")
         self.target_hw_platform: Optional[Generator] = None
@@ -64,7 +65,7 @@ class Explorer:
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
         self.model_builder: ModelBuilder = DefaultModelBuilder()
-
+        self._experiment_dir: Path = experiments_dir
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
         else:
@@ -94,7 +95,7 @@ class Explorer:
     def experiment_name(self, value: str):  # type: ignore
         """Setting experiment name updates the experiment paths as well."""
         self._experiment_name: str = value
-        self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
+        self._experiment_dir: Path = self._experiment_dir / self._experiment_name
         self._update_experiment_paths()
 
     @experiment_dir.setter

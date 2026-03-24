@@ -5,15 +5,16 @@ from pathlib import Path
 
 
 from python_on_whales import docker
-from settings import ROOT_DIR
 
 
 @dataclass
 class CompilerParams:
+    base_dockerfile_path: Path  # The path to the base dockerfile. The base dockerfile gives instruction on how to build the base image.
+    build_context: Path  # The absolute path to the build context. For Docker this should be containing sources and Dockerfiles.
     image_name: str = "pibase"
-    library_path: Path = Path("./code/libtorch")
-    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.pibase"
-    build_context: Path = ROOT_DIR / "docker"
+    library_path: Path = Path(
+        "./code/libtorch"
+    )  # This should be relative to the build context with a leading "./" 
 
 
 class Compiler(ABC):
@@ -40,7 +41,7 @@ class RPICompiler(Compiler):
         super().__init__(compiler_params)
         self.compiler_params = compiler_params
         self.image_name: str = compiler_params.image_name  # "cross"
-        self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
+        self.base_dockerfile_path: Path = Path(compiler_params.base_dockerfile_path)
         self.context_path: Path = Path(compiler_params.build_context)
         self.libtorch_path: Path = Path(compiler_params.library_path)
         if not self.is_setup():
@@ -54,7 +55,7 @@ class RPICompiler(Compiler):
         self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
         docker.build(
             self.compiler_params.build_context,
-            file=self.compiler_params.path_to_dockerfile,
+            file=self.compiler_params.base_dockerfile_path,
             tags=self.compiler_params.image_name,
         )
         self.logger.debug("Crosscompiler available now.")
@@ -95,7 +96,7 @@ class PicoCompiler(Compiler):
         docker.build(
             context_path=self.compiler_params.build_context,
             tags=self.compiler_params.image_name,
-            file=self.compiler_params.path_to_dockerfile,
+            file=self.compiler_params.base_dockerfile_path,
             build_args={
                 "CROSS_COMPILER_PATH": str(self.compiler_params.library_path),
             },

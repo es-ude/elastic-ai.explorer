@@ -22,8 +22,6 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )
 from elasticai.explorer.training.data import DatasetSpecification
-
-from settings import DOCKER_CONTEXT_DIR
 from torch.utils.data import DataLoader
 
 MetricFunction = Callable[[Host, "HWManager"], dict[str, dict]]
@@ -112,6 +110,7 @@ class HWManager(ABC):
 class RPiHWManager(HWManager):
     def __init__(self, target: RPiHost, compiler: Compiler):
         self.compiler = compiler
+        self.docker_build_context = self.compiler.compiler_params.build_context
         self.target = target
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.RPiHWManager"
@@ -124,8 +123,10 @@ class RPiHWManager(HWManager):
             super().prepare_measurement(source, metric)
             return
 
-        if source.is_relative_to(DOCKER_CONTEXT_DIR):
-            relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        if source.is_relative_to(self.docker_build_context):
+            relative_path = Path(
+                "/" + str(source.relative_to(self.docker_build_context))
+            )
         else:
             relative_path = Path("/" + str(source))
         path_to_executable = self.compiler.compile_code(relative_path)
@@ -190,6 +191,7 @@ class PicoHWManager(HWManager):
 
     def __init__(self, target: PicoHost, compiler: Compiler):
         self.compiler = compiler
+        self.docker_build_context = self.compiler.compiler_params.build_context
         self.target = target
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.PicoHWManager"
@@ -199,8 +201,13 @@ class PicoHWManager(HWManager):
 
     def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
 
-        if isinstance(source, Path) and source.is_relative_to(DOCKER_CONTEXT_DIR):
-            source = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        # If the source contains the docker path, then make it relative to the docker context.
+        if isinstance(source, Path) and source.is_relative_to(
+            self.docker_build_context
+        ):
+            source = Path("/" + str(source.relative_to(self.docker_build_context)))
+
+        # Else it assumes the path already was relative to docker context.
         elif isinstance(source, Path):
             source = Path("/" + str(source))
 
@@ -212,7 +219,7 @@ class PicoHWManager(HWManager):
         quantization_scheme: QuantizationScheme,
     ):
         super().prepare_dataset(dataset_spec, quantization_scheme)
-        target_dir = DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data"
+        target_dir = self.docker_build_context / "code/pico_crosscompiler/data"
         if not dataset_spec.deployable_dataset_path:
             raise ValueError(
                 "For deployment on Pico the DatasetSpecification must have deployable_dataset_path set."
@@ -226,7 +233,9 @@ class PicoHWManager(HWManager):
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
 
-        path_to_resolver = Path(str(DOCKER_CONTEXT_DIR) + f"{source}/resolver_ops.h")
+        path_to_resolver = Path(
+            str(self.docker_build_context) + f"{source}/resolver_ops.h"
+        )
         tflite_to_resolver.generate_resolver_h(
             path_to_model,
             path_to_resolver,
@@ -236,5 +245,5 @@ class PicoHWManager(HWManager):
     def prepare_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
-            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/model.cpp",
+            self.docker_build_context / "code/pico_crosscompiler/data/model.cpp",
         )

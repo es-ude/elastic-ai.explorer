@@ -18,7 +18,6 @@ from elasticai.explorer.generator.deployment.device_communication import (
     SerialParams,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
     PicoHWManager,
 )
 from elasticai.explorer.generator.model_compiler import tflite_to_resolver
@@ -28,7 +27,7 @@ from elasticai.explorer.generator.model_compiler.model_translator import (
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 from tests.integration_tests.samples import sample_MLP
 
 
@@ -39,7 +38,7 @@ class TestPicoGenerateAndCompile:
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
         generator_registry = GeneratorRegistry()
         generator_registry.register_generator(
@@ -52,9 +51,10 @@ class TestPicoGenerateAndCompile:
                 PicoCompiler,
             )
         )
-        self.pico_explorer = Explorer(generator_registry)
-        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
-            "tests/integration_tests/test_experiment"
+        self.pico_explorer = Explorer(
+            generator_registry,
+            ROOT_DIR / Path("tests/integration_tests"),
+            "test_experiment",
         )
         self.model_name = "model"
 

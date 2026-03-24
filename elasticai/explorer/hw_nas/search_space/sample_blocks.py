@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from enum import Enum
+from typing import Any
 from yaml.error import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
@@ -11,7 +12,6 @@ from elasticai.explorer.hw_nas.search_space.quantization_builder import (
     quantization_registry,
 )
 from elasticai.explorer.hw_nas.search_space.registry import composite_registry
-from settings import ROOT_DIR
 
 
 class RepeatType(Enum):
@@ -42,8 +42,8 @@ def parse_search_param(
     name: str,
     params: dict,
     key: str,
-    default_value: any = None,
-) -> any:
+    default_value: Any = None,
+) -> Any:
     if key not in params:
         if default_value is not None:
             return default_value

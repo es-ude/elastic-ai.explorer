@@ -6,7 +6,6 @@ from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
     RPiHWManager,
     Metric,
 )
@@ -22,7 +21,7 @@ from pathlib import Path
 
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 
 
 class TestDeploymentAndMeasurement:
@@ -33,7 +32,10 @@ class TestDeploymentAndMeasurement:
         ssh_params = SSHParams(
             hostname=config["RPI_HOSTNAME"], username=config["RPI_USERNAME"]
         )  # <-- Set the credentials of your RPi
-        compiler_params = CompilerParams()
+        compiler_params = CompilerParams(
+            base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
+            build_context=ROOT_DIR / "docker",
+        )
         generator_registry = GeneratorRegistry()
         generator_registry.register_generator(
             Generator(
@@ -45,9 +47,8 @@ class TestDeploymentAndMeasurement:
                 RPICompiler,
             )
         )
-        self.RPI5explorer = Explorer(generator_registry)
-        self.RPI5explorer.experiment_dir = ROOT_DIR / Path(
-            "tests/system_tests/test_experiment"
+        self.RPI5explorer = Explorer(
+            generator_registry, ROOT_DIR / Path("tests/system_tests"), "test_experiment"
         )
         self.RPI5explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.RPI5explorer.choose_target_hw(

@@ -15,7 +15,7 @@ from examples.example_helpers import (
     setup_mnist,
     setup_example_optimization_criteria,
 )
-from settings import ROOT_DIR
+from settings import EXPERIMENTS_DIR, ROOT_DIR
 
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 
@@ -71,11 +71,14 @@ if __name__ == "__main__":
     rpi_type = "rpi5"
 
     ssh_params = SSHParams(
-        hostname="transfair.local", username="robin"
+        hostname="<hostname>", username="<username>"
     )  # <-- connection details for your RPi
-    compiler_params = CompilerParams()  # <-- configure this only if necessary
+    compiler_params = CompilerParams(
+        base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
+        build_context=ROOT_DIR / "docker",
+    )  # <-- configure this only if necessary, the ROOT_DIR can also be set with environment variable PROJECT_ROOT.
     knowledge_repo = setup_generator_registry()
-    explorer = Explorer(knowledge_repo)
+    explorer = Explorer(knowledge_repo, experiments_dir=EXPERIMENTS_DIR)
 
     search_space = Path(
         ROOT_DIR / "examples/search_space_examples/pi_search_space.yaml"

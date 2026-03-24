@@ -30,7 +30,7 @@ from elasticai.explorer.generator.deployment.device_communication import (
 )
 from torchvision import transforms
 from elasticai.explorer.training.trainer import SupervisedTrainer
-from settings import ROOT_DIR
+from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
@@ -52,9 +52,8 @@ class TestHWNasSetupAndSearch:
                 RPICompiler,
             )
         )
-        self.RPI5explorer = Explorer(generator_registry)
-        self.RPI5explorer.experiment_dir = Path(
-            ROOT_DIR / "tests/integration_tests/test_experiment"
+        self.RPI5explorer = Explorer(
+            generator_registry, ROOT_DIR / "tests/integration_tests", "test_experiment"
         )
         self.model_name = "ts_model_0.pt"
 
@@ -118,7 +117,12 @@ class TestHWNasSetupAndSearch:
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(
             "rpi5",
-            compiler_params=CompilerParams(),
+            compiler_params=CompilerParams(
+                library_path=Path("./code/pico_crosscompiler"),
+                image_name="picobase",
+                build_context=DOCKER_CONTEXT_DIR,
+                base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
+            ),
             communication_params=SSHParams("", ""),
         )
         model = SampleMLP(28 * 28)
