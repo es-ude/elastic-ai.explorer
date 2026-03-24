@@ -7,6 +7,7 @@ from typing import Any
 import ai_edge_torch
 import numpy
 
+from sympy import im
 import torch
 from torch import Tensor, nn
 
@@ -19,14 +20,18 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 )
 import tensorflow as tf
 
+from elasticai.explorer.training.data import BaseDataset
+from elasticai.explorer.utils.data_utils import torch_to_tflite_sample
+from torch.utils.data import DataLoader
+
 
 class ModelTranslator(ABC):
     @abstractmethod
-    def compile(
+    def translate(
         self,
         model: nn.Module,
         output_path: Path,
-        input_sample: torch.Tensor,
+        sample: torch.Tensor,
         quantization_scheme: QuantizationScheme,
     ) -> Any:
         pass
@@ -35,14 +40,14 @@ class ModelTranslator(ABC):
 class TorchscriptModelTranslator(ModelTranslator):
     def __init__(self):
         self.logger = logging.getLogger(
-            "explorer.generator.model_compiler.model_compiler.TorchscriptModelCompiler"
+            "explorer.generator.model_translator.model_translator.TorchscriptModelTranslator"
         )
 
-    def compile(
+    def translate(
         self,
         model: nn.Module,
         output_path: Path,
-        input_sample: torch.Tensor,
+        sample: torch.Tensor,
         quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
         if not isinstance(quantization_scheme, FullPrecisionScheme):
@@ -71,7 +76,7 @@ class TorchscriptModelTranslator(ModelTranslator):
 class TFliteModelTranslator(ModelTranslator):
     def __init__(self):
         self.logger = logging.getLogger(
-            "explorer.generator.model_compiler.model_compiler.TFliteModelCompiler"
+            "explorer.generator.model_translator.model_translator.TFliteModelTranslator"
         )
 
     def _validate(self, torch_output, edge_output, atol=1e-2, rtol=1e-2):
@@ -82,30 +87,30 @@ class TFliteModelTranslator(ModelTranslator):
             rtol=rtol,
         ):
             self.logger.info(
-                "Inference result with Pytorch and TfLite was within tolerance"
+                "Inference result with Pytorch and TfLite was within tolerance."
             )
         else:
             self.logger.warning("Something wrong with Pytorch --> TfLite")
 
-    def _quantize(self, model: nn.Module, sample_input: tuple[Tensor]):
-        numpy_input = sample_input[0].cpu().numpy()
+    def _quantize(self, model: nn.Module, sample_input: tuple[Tensor, ...]):
 
-        def representative_dataset():
+        # This only repeats the same sample, because the converter does not accept different samples.
+        def representative_sample_generator():
             for _ in range(100):
-                yield [numpy_input]
+                yield list(sample_input)
 
         tfl_converter_flags = {
             "optimizations": [tf.lite.Optimize.DEFAULT],
-            "representative_dataset": representative_dataset,
+            "representative_dataset": representative_sample_generator,
             "target_spec": {"supported_ops": [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]},
             "inference_input_type": tf.int8,
             "inference_output_type": tf.int8,
         }
-        tfl_drq_model = convert(
+        edge_model = convert(
             model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
         )
 
-        return tfl_drq_model
+        return edge_model
 
     def _model_to_cpp(self, tflite_model_path: Path):
         process = subprocess.run(
@@ -131,32 +136,31 @@ class TFliteModelTranslator(ModelTranslator):
                 f"const unsigned int model_tflite_len = {output_lines[-1].split()[-1]}"
             )
 
-    def compile(
+    def translate(
         self,
         model: nn.Module,
         output_path: Path,
-        input_sample: torch.Tensor,
+        sample: torch.Tensor,
         quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ):
         self.logger.info("Generate tflite model from %s", model)
-        input_sample_nchw = input_sample.unsqueeze(1)
-        input_tuple_nchw = (input_sample_nchw,)
-        input_tuple_nhwc = (input_sample_nchw.permute(0, 2, 3, 1),)
+
+        tflite_samples = torch_to_tflite_sample(sample)
         model.eval()
-        torch_output = model(*input_tuple_nchw)
-        nhwc_model = to_channel_last_io(model, args=[0]).eval()
-        sample_tflite_input = input_tuple_nhwc
+        torch_output = model(sample)
+        tflite_shaped_model = to_channel_last_io(model, args=[0]).eval()
+
         if isinstance(quantization_scheme, FullPrecisionScheme):
             edge_model = ai_edge_torch.convert(
-                nhwc_model, sample_args=sample_tflite_input
+                tflite_shaped_model, sample_args=(tflite_samples,)
             )
-            edge_output = edge_model(*sample_tflite_input)
+            edge_output = edge_model(tflite_samples)
             self._validate(torch_output, edge_output)
         elif isinstance(quantization_scheme, PTQFullyQuantizedInt8Scheme):
-            edge_model = self._quantize(nhwc_model, sample_tflite_input)
+            edge_model = self._quantize(tflite_shaped_model, (tflite_samples,))
         else:
             err = NotImplementedError(
-                f"The quantization scheme -{quantization_scheme}- is not supported by the TFliteModelCompiler."
+                f"The quantization scheme -{quantization_scheme}- is not supported by the TFliteModelTranslator."
             )
             self.logger.error(err)
             raise err

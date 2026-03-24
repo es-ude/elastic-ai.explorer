@@ -18,7 +18,7 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 )
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import PicoModelBuilder
-from elasticai.explorer.generator.model_compiler.model_translator import (
+from elasticai.explorer.generator.model_translator.model_translator import (
     TFliteModelTranslator,
     TorchscriptModelTranslator,
 )
@@ -38,6 +38,7 @@ from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
 from torch import optim
 
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
+from torch.utils.data import DataLoader
 
 
 def setup_generator_registry() -> GeneratorRegistry:
@@ -148,7 +149,12 @@ def measure_on_device(
             test_metrics.get("accuracy")
         )
         model_name = "model_" + str(i) + model_suffix
-        explorer.generate_for_hw_platform(model, model_name, dataset_spec, quant_scheme)
+
+        sample_sample, _ = next(iter(dataset_spec.dataset))
+
+        explorer.generate_for_hw_platform(
+            model, model_name, sample_sample.unsqueeze(1), quant_scheme
+        )
 
         for metric in metric_to_source.keys():
             measure = explorer.run_measurement(metric, model_name)

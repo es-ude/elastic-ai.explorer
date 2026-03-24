@@ -11,7 +11,7 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.generator.model_compiler.model_translator import (
+from elasticai.explorer.generator.model_translator.model_translator import (
     TorchscriptModelTranslator,
 )
 
@@ -126,7 +126,7 @@ def run_lstm_search():
     validate(model, trainer.test_loader)
     generator = TorchscriptModelTranslator()
     data_sample = torch.randn((1, 1, 50), dtype=torch.float32, device=device)
-    generator.compile(model, ROOT_DIR / "experiments/lstm_model", data_sample)
+    generator.translate(model, ROOT_DIR / "experiments/lstm_model", data_sample)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
     PicoHWManager,
 )
-from elasticai.explorer.generator.model_compiler.model_translator import (
+from elasticai.explorer.generator.model_translator.model_translator import (
     TFliteModelTranslator,
 )
 from elasticai.explorer.generator.deployment.device_communication import (

@@ -17,7 +17,7 @@ from elasticai.explorer.generator.deployment.device_communication import (
     RPiHost,
     SerialHost,
 )
-from elasticai.explorer.generator.model_compiler import tflite_to_resolver
+from elasticai.explorer.generator.model_translator import tflite_to_resolver
 from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )

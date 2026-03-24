@@ -15,6 +15,8 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 )
 
 from elasticai.explorer.hw_nas.search_space.quantization_builder import (
+    FullPrecisionBuilder,
+    PTQFullyQuantizedInt8Builder,
     quantization_registry,
 )
 from elasticai.explorer.hw_nas.search_space.registry import (
@@ -145,6 +147,6 @@ class DefaultModelBuilder(ModelBuilder):
 class PicoModelBuilder(DefaultModelBuilder):
     def get_supported_quantization_schemes(self) -> dict[str, Any]:
         return {
-            PTQFullyQuantizedInt8Scheme.name(): PTQFullyQuantizedInt8Scheme,
-            FullPrecisionScheme.name(): FullPrecisionScheme,
+            PTQFullyQuantizedInt8Scheme.name(): PTQFullyQuantizedInt8Builder,
+            FullPrecisionScheme.name(): FullPrecisionBuilder,
         }

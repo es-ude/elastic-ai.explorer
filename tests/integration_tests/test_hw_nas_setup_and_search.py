@@ -21,7 +21,7 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
-from elasticai.explorer.generator.model_compiler.model_translator import (
+from elasticai.explorer.generator.model_translator.model_translator import (
     TorchscriptModelTranslator,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
@@ -127,8 +127,9 @@ class TestHWNasSetupAndSearch:
         )
         model = SampleMLP(28 * 28)
 
+        data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device="cpu")
         self.RPI5explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
+            model=model, model_name=self.model_name, data_sample=data_sample
         )
         assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (

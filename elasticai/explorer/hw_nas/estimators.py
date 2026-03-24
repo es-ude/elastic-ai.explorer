@@ -158,5 +158,5 @@ def get_quantization_info(
 
     if not (type(target_quantization_scheme) in optimal_schemes):
         logger.info(
-            f"The estimation is most optimal for {optimal_schemes_names} but this models target quantization is{target_quantization_scheme.name()}"
+            f"The estimation is most optimal for {optimal_schemes_names} but this models target quantization is {target_quantization_scheme.name()}."
         )

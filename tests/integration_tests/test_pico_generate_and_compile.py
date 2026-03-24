@@ -20,8 +20,8 @@ from elasticai.explorer.generator.deployment.device_communication import (
 from elasticai.explorer.generator.deployment.hw_manager import (
     PicoHWManager,
 )
-from elasticai.explorer.generator.model_compiler import tflite_to_resolver
-from elasticai.explorer.generator.model_compiler.model_translator import (
+from elasticai.explorer.generator.model_translator import tflite_to_resolver
+from elasticai.explorer.generator.model_translator.model_translator import (
     TFliteModelTranslator,
 )
 from torchvision import transforms
@@ -29,6 +29,7 @@ from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 from tests.integration_tests.samples import sample_MLP
+from tests.integration_tests.test_data import TimeSeriesDatasetExample
 
 
 class TestPicoGenerateAndCompile:
@@ -83,11 +84,17 @@ class TestPicoGenerateAndCompile:
             deployable_dataset_path=path_to_deployable_dataset,
         )
 
+        self.data_sample = torch.randn(
+            (1, 1, 28, 28), dtype=torch.float32, device="cpu"
+        )
+
     def test_generate_for_hw_platform(self):
         model = sample_MLP.SampleMLP(28 * 28)
 
         self.pico_explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
+            model=model,
+            model_name=self.model_name,
+            data_sample=self.data_sample,
         )
         assert (
             os.path.exists(self.pico_explorer.model_dir / (self.model_name + ".tflite"))
@@ -117,7 +124,7 @@ class TestPicoGenerateAndCompile:
     def test_tflite_to_resolver(self):
         model = sample_MLP.SampleMLP(28 * 28)
         self.pico_explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
+            model=model, model_name=self.model_name, data_sample=self.data_sample
         )
         sample_model_path = self.pico_explorer.model_dir / (self.model_name + ".tflite")
         tflite_to_resolver.generate_resolver_h(
@@ -128,13 +135,12 @@ class TestPicoGenerateAndCompile:
 
     def test_quantization(self):
         model = sample_MLP.SampleMLP(28 * 28)
-        model_compiler = TFliteModelTranslator()
-        data_sample = torch.randn((1, 28, 28), dtype=torch.float32)
+        model_translator = TFliteModelTranslator()
         output_path = self.pico_explorer.model_dir / self.model_name
-        model_compiler.compile(
+        model_translator.translate(
             model,
             output_path=output_path,
-            input_sample=data_sample,
+            sample=self.data_sample,
             quantization_scheme=PTQFullyQuantizedInt8Scheme(),
         )
         assert os.path.exists(output_path.with_suffix(".tflite"))

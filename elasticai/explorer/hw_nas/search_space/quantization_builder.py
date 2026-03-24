@@ -28,8 +28,8 @@ class QuantizationBuilder(ABC):
         return self.base_type()
 
 
-@register_quantization_scheme("fully_quantized_int8")
-class FullyQuantizedInt8Builder(QuantizationBuilder):
+@register_quantization_scheme("ptq_fully_quantized_int8")
+class PTQFullyQuantizedInt8Builder(QuantizationBuilder):
     base_type = PTQFullyQuantizedInt8Scheme
 
 
