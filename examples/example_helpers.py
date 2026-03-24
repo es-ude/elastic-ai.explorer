@@ -18,9 +18,9 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 )
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator.model_builder.model_builder import PicoModelBuilder
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TFliteModelCompiler,
-    TorchscriptModelCompiler,
+from elasticai.explorer.generator.model_compiler.model_translator import (
+    TFliteModelTranslator,
+    TorchscriptModelTranslator,
 )
 from elasticai.explorer.hw_nas.estimators import (
     TrainMetricsEstimator,
@@ -46,7 +46,7 @@ def setup_generator_registry() -> GeneratorRegistry:
         Generator(
             "pico",
             "Pico with RP2040 MCU and 2MB control memory",
-            TFliteModelCompiler,
+            TFliteModelTranslator,
             PicoHWManager,
             PicoHost,
             PicoCompiler,
@@ -57,7 +57,7 @@ def setup_generator_registry() -> GeneratorRegistry:
         Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            TorchscriptModelCompiler,
+            TorchscriptModelTranslator,
             RPiHWManager,
             RPiHost,
             RPICompiler,
@@ -68,7 +68,7 @@ def setup_generator_registry() -> GeneratorRegistry:
         Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            TorchscriptModelCompiler,
+            TorchscriptModelTranslator,
             RPiHWManager,
             RPiHost,
             RPICompiler,

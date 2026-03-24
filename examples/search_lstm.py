@@ -11,8 +11,8 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TorchscriptModelCompiler,
+from elasticai.explorer.generator.model_compiler.model_translator import (
+    TorchscriptModelTranslator,
 )
 
 from elasticai.explorer.training.data import DatasetSpecification, BaseDataset
@@ -124,7 +124,7 @@ def run_lstm_search():
     trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
     trainer.train(model, epochs=50, early_stopping=True)
     validate(model, trainer.test_loader)
-    generator = TorchscriptModelCompiler()
+    generator = TorchscriptModelTranslator()
     data_sample = torch.randn((1, 1, 50), dtype=torch.float32, device=device)
     generator.compile(model, ROOT_DIR / "experiments/lstm_model", data_sample)
 

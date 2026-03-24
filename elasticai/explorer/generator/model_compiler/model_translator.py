@@ -20,7 +20,7 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 import tensorflow as tf
 
 
-class ModelCompiler(ABC):
+class ModelTranslator(ABC):
     @abstractmethod
     def compile(
         self,
@@ -32,7 +32,7 @@ class ModelCompiler(ABC):
         pass
 
 
-class TorchscriptModelCompiler(ModelCompiler):
+class TorchscriptModelTranslator(ModelTranslator):
     def __init__(self):
         self.logger = logging.getLogger(
             "explorer.generator.model_compiler.model_compiler.TorchscriptModelCompiler"
@@ -68,7 +68,7 @@ class TorchscriptModelCompiler(ModelCompiler):
         return ts_model
 
 
-class TFliteModelCompiler(ModelCompiler):
+class TFliteModelTranslator(ModelTranslator):
     def __init__(self):
         self.logger = logging.getLogger(
             "explorer.generator.model_compiler.model_compiler.TFliteModelCompiler"

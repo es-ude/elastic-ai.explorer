@@ -22,8 +22,8 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     PicoHWManager,
 )
 from elasticai.explorer.generator.model_compiler import tflite_to_resolver
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TFliteModelCompiler,
+from elasticai.explorer.generator.model_compiler.model_translator import (
+    TFliteModelTranslator,
 )
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -46,7 +46,7 @@ class TestPicoGenerateAndCompile:
             Generator(
                 "pico",
                 "Pico mit RP2040",
-                TFliteModelCompiler,
+                TFliteModelTranslator,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,
@@ -128,7 +128,7 @@ class TestPicoGenerateAndCompile:
 
     def test_quantization(self):
         model = sample_MLP.SampleMLP(28 * 28)
-        model_compiler = TFliteModelCompiler()
+        model_compiler = TFliteModelTranslator()
         data_sample = torch.randn((1, 28, 28), dtype=torch.float32)
         output_path = self.pico_explorer.model_dir / self.model_name
         model_compiler.compile(

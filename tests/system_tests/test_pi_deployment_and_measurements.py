@@ -10,8 +10,8 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     RPiHWManager,
     Metric,
 )
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TorchscriptModelCompiler,
+from elasticai.explorer.generator.model_compiler.model_translator import (
+    TorchscriptModelTranslator,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
     RPiHost,
@@ -39,7 +39,7 @@ class TestDeploymentAndMeasurement:
             Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                TorchscriptModelCompiler,
+                TorchscriptModelTranslator,
                 RPiHWManager,
                 RPiHost,
                 RPICompiler,

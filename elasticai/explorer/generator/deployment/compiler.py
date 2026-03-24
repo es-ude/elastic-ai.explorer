@@ -10,22 +10,14 @@ from settings import ROOT_DIR
 
 @dataclass
 class CompilerParams:
-    image_name: str = "cross"
+    image_name: str = "pibase"
     library_path: Path = Path("./code/libtorch")
-    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.picross"
+    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.pibase"
     build_context: Path = ROOT_DIR / "docker"
 
 
-@dataclass
-class VivadoParams:
-    remote_working_dir: str
-    host: str
-    ssh_user: str = "vivado"
-    target_platform_name: str = ""
-
-
 class Compiler(ABC):
-    def __init__(self, compiler_params: CompilerParams | VivadoParams):
+    def __init__(self, compiler_params: CompilerParams):
         self.compiler_params = compiler_params
         logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
         self.logger = logging.getLogger(logger_name)

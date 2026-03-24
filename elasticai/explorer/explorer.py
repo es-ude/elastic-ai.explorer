@@ -4,10 +4,7 @@ from pathlib import Path
 from typing import Mapping, Optional, Any
 from torch import nn
 
-from elasticai.explorer.generator.deployment.compiler import (
-    VivadoParams,
-    CompilerParams,
-)
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer.generator.deployment.device_communication import (
     SSHParams,
     SerialParams,
@@ -33,7 +30,7 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
     MetricFunction,
 )
-from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
+from elasticai.explorer.generator.model_compiler.model_translator import ModelTranslator
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
 from elasticai.explorer.utils.logging_utils import (
@@ -45,8 +42,8 @@ from settings import MAIN_EXPERIMENT_DIR
 
 class Explorer:
     """
-    The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework. 
-    For more customization use the the HW-NAS and Deployment tools directly. 
+    The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework.
+    For more customization use the the HW-NAS and Deployment tools directly.
     """
 
     def __init__(
@@ -63,7 +60,7 @@ class Explorer:
         self.logger = logging.getLogger("explorer")
         self.target_hw_platform: Optional[Generator] = None
         self.generator_registry: GeneratorRegistry = generator_registry
-        self.model_compiler: Optional[ModelCompiler] = None
+        self.model_compiler: Optional[ModelTranslator] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
         self.model_builder: ModelBuilder = DefaultModelBuilder()
@@ -163,7 +160,7 @@ class Explorer:
     def choose_target_hw(
         self,
         target_platform_name: str,
-        compiler_params: VivadoParams | CompilerParams,
+        compiler_params: CompilerParams,
         communication_params: SSHParams | SerialParams,
     ):
         self.generator = self.generator_registry.fetch_hw_info(target_platform_name)
