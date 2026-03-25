@@ -2,9 +2,10 @@ import datetime
 import logging
 from pathlib import Path
 from typing import Mapping, Optional, Any
-from torch import nn
+from torch import nn, unsqueeze
+import torch
 
-from elasticai.explorer.generator.deployment.compiler import VivadoParams, DockerParams
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer.generator.deployment.device_communication import (
     SSHParams,
     SerialParams,
@@ -24,46 +25,50 @@ from elasticai.explorer.hw_nas.optimization_criteria import (
 )
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.hw_manager import (
     HWManager,
     Metric,
     MetricFunction,
 )
-from elasticai.explorer.generator.model_compiler.model_compiler import ModelCompiler
+from elasticai.explorer.generator.model_translator.model_translator import (
+    ModelTranslator,
+)
 from elasticai.explorer.training import data
 from elasticai.explorer.utils import data_utils
 from elasticai.explorer.utils.logging_utils import (
     dataclass_instance_to_toml,
     opt_crit_registry_to_toml,
 )
-from settings import MAIN_EXPERIMENT_DIR
 
 
 class Explorer:
     """
-    The explorer class manages the HW-NAS and the deployment on hardware.
+    The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework.
+    For more customization use the the HW-NAS and deployment tools directly.
     """
 
     def __init__(
         self,
-        knowledge_repository: KnowledgeRepository,
+        generator_registry: GeneratorRegistry,
+        experiments_dir: Path,
         experiment_name: Optional[str] = None,
     ):
         """
         Args:
-            knowledge_repository
+            generator_registry
+            experiments_dir (Path): Path to the main experiments directory in which individual experiments are saved.
             experiment_name (str, optional): The name of the current experiment. Defaults to timestamp at instantiation.
-              This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
+              This defines in which directory the experiment files are stored inside experiments_dir.
         """
         self.logger = logging.getLogger("explorer")
         self.target_hw_platform: Optional[Generator] = None
-        self.knowledge_repository: KnowledgeRepository = knowledge_repository
-        self.model_compiler: Optional[ModelCompiler] = None
+        self.generator_registry: GeneratorRegistry = generator_registry
+        self.model_translator: Optional[ModelTranslator] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
         self.model_builder: ModelBuilder = DefaultModelBuilder()
-
+        self._experiment_dir: Path = experiments_dir
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
         else:
@@ -93,7 +98,7 @@ class Explorer:
     def experiment_name(self, value: str):  # type: ignore
         """Setting experiment name updates the experiment paths as well."""
         self._experiment_name: str = value
-        self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
+        self._experiment_dir: Path = self._experiment_dir / self._experiment_name
         self._update_experiment_paths()
 
     @experiment_dir.setter
@@ -159,11 +164,11 @@ class Explorer:
     def choose_target_hw(
         self,
         target_platform_name: str,
-        compiler_params: VivadoParams | DockerParams,
+        compiler_params: CompilerParams,
         communication_params: SSHParams | SerialParams,
     ):
-        self.generator = self.knowledge_repository.fetch_hw_info(target_platform_name)
-        self.model_compiler = self.generator.model_compiler()
+        self.generator = self.generator_registry.fetch_hw_info(target_platform_name)
+        self.model_translator = self.generator.model_translator()
         self.hw_manager = self.generator.platform_manager(
             self.generator.communication_protocol(communication_params),
             self.generator.compiler(compiler_params),
@@ -223,19 +228,14 @@ class Explorer:
         self,
         model: nn.Module,
         model_name: str,
-        dataset_spec: data.DatasetSpecification,
+        data_sample: torch.Tensor, # One data sample with batch dimension (shape= (1,...))
         quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ) -> Any:
         model_path = self._model_dir / model_name
 
-        dataset = dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            transform=dataset_spec.transform,
-        )
-        sample_input, _ = next(iter(dataset))
-        if self.model_compiler:
-            return self.model_compiler.compile(
-                model, model_path, sample_input, quantization_scheme
+        if self.model_translator:
+            return self.model_translator.translate(
+                model, model_path, data_sample, quantization_scheme
             )
         else:
             self.logger.error(

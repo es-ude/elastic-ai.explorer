@@ -6,9 +6,9 @@ from elasticai.explorer.generator.deployment.device_communication import SSHHost
 from elasticai.explorer.generator.deployment.hw_manager import (
     CommandBuilder,
     RPiHWManager,
-    DOCKER_CONTEXT_DIR,
     Metric,
 )
+from settings import DOCKER_CONTEXT_DIR
 
 
 class TestPiHWManager:
@@ -29,17 +29,21 @@ class TestPiHWManager:
 
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
-        attr = {"compile_code.return_value": "."}
+        attr = {
+            "compile_code.return_value": ".",
+        }
         compiler.configure_mock(**attr)
+        compiler.compiler_params = MagicMock()
+        compiler.compiler_params.base_dockerfile_path = ""
 
-        self.hwmanager = RPiHWManager(target, compiler)
+        self.hw_manager = RPiHWManager(target, compiler)
         path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_latency"
-        self.hwmanager._register_metric_to_source(
+        self.hw_manager._register_metric_to_source(
             Metric.LATENCY, Path("measure_latency")
         )
 
         metric = Metric.LATENCY
-        result = self.hwmanager.measure_metric(metric, path_to_model=path)
+        result = self.hw_manager.measure_metric(metric, path_to_model=path)
         assert expected == result
 
     def test_run_accuracy_measurements(self):
@@ -52,11 +56,11 @@ class TestPiHWManager:
         target.configure_mock(**target_attr)
         compiler_attr = {"compile_code.return_value": "."}
         compiler.configure_mock(**compiler_attr)
-        self.hwmanager = RPiHWManager(target, compiler)
-        self.hwmanager._register_metric_to_source(
+        self.hw_manager = RPiHWManager(target, compiler)
+        self.hw_manager._register_metric_to_source(
             Metric.ACCURACY, Path("measure_accuracy")
         )
         path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_accuracy"
         metric = Metric.ACCURACY
-        result = self.hwmanager.measure_metric(metric, path_to_model=path)
+        result = self.hw_manager.measure_metric(metric, path_to_model=path)
         assert expected == result

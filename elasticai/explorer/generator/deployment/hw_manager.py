@@ -11,25 +11,18 @@ from typing import Callable, Dict
 
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
-    ENv5Host,
     Host,
     SSHHost,
     PicoHost,
     RPiHost,
     SerialHost,
 )
-from elasticai.explorer.generator.model_compiler import tflite_to_resolver
+from elasticai.explorer.generator.model_translator import tflite_to_resolver
 from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )
 from elasticai.explorer.training.data import DatasetSpecification
-
-from settings import DOCKER_CONTEXT_DIR
-from elasticai.creator.arithmetic import (
-    FxpArithmetic,
-    FxpParams,
-)
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 
 MetricFunction = Callable[[Host, "HWManager"], dict[str, dict]]
 
@@ -117,6 +110,7 @@ class HWManager(ABC):
 class RPiHWManager(HWManager):
     def __init__(self, target: RPiHost, compiler: Compiler):
         self.compiler = compiler
+        self.docker_build_context = self.compiler.compiler_params.build_context
         self.target = target
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.RPiHWManager"
@@ -129,8 +123,10 @@ class RPiHWManager(HWManager):
             super().prepare_measurement(source, metric)
             return
 
-        if source.is_relative_to(DOCKER_CONTEXT_DIR):
-            relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        if source.is_relative_to(self.docker_build_context):
+            relative_path = Path(
+                "/" + str(source.relative_to(self.docker_build_context))
+            )
         else:
             relative_path = Path("/" + str(source))
         path_to_executable = self.compiler.compile_code(relative_path)
@@ -146,7 +142,9 @@ class RPiHWManager(HWManager):
         if dataset_spec.deployable_dataset_path:
             dataset_dir = dataset_spec.deployable_dataset_path
         else:
-            dataset_dir = dataset_spec.dataset_location
+            raise Exception(
+                f"There is no deployable dataset path. Cannot prepare the dataset."
+            )
         archive_name = dataset_dir.with_suffix(".tar.gz")
         with tarfile.open(archive_name, "w:gz") as tar:
             tar.add(dataset_dir, arcname=dataset_dir.name)
@@ -193,6 +191,7 @@ class PicoHWManager(HWManager):
 
     def __init__(self, target: PicoHost, compiler: Compiler):
         self.compiler = compiler
+        self.docker_build_context = self.compiler.compiler_params.build_context
         self.target = target
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.PicoHWManager"
@@ -202,8 +201,13 @@ class PicoHWManager(HWManager):
 
     def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
 
-        if isinstance(source, Path) and source.is_relative_to(DOCKER_CONTEXT_DIR):
-            source = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        # If the source contains the docker path, then make it relative to the docker context.
+        if isinstance(source, Path) and source.is_relative_to(
+            self.docker_build_context
+        ):
+            source = Path("/" + str(source.relative_to(self.docker_build_context)))
+
+        # Else it assumes the path already was relative to docker context.
         elif isinstance(source, Path):
             source = Path("/" + str(source))
 
@@ -215,7 +219,7 @@ class PicoHWManager(HWManager):
         quantization_scheme: QuantizationScheme,
     ):
         super().prepare_dataset(dataset_spec, quantization_scheme)
-        target_dir = DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data"
+        target_dir = self.docker_build_context / "code/pico_crosscompiler/data"
         if not dataset_spec.deployable_dataset_path:
             raise ValueError(
                 "For deployment on Pico the DatasetSpecification must have deployable_dataset_path set."
@@ -229,7 +233,9 @@ class PicoHWManager(HWManager):
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
 
-        path_to_resolver = Path(str(DOCKER_CONTEXT_DIR) + f"{source}/resolver_ops.h")
+        path_to_resolver = Path(
+            str(self.docker_build_context) + f"{source}/resolver_ops.h"
+        )
         tflite_to_resolver.generate_resolver_h(
             path_to_model,
             path_to_resolver,
@@ -239,54 +245,5 @@ class PicoHWManager(HWManager):
     def prepare_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
-            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/model.cpp",
+            self.docker_build_context / "code/pico_crosscompiler/data/model.cpp",
         )
-
-
-class ENv5HWManager(HWManager):
-    def __init__(self, target: ENv5Host, compiler: Compiler):
-        self.compiler = compiler
-        self.target = target
-        self.logger = logging.getLogger(
-            "explorer.generator.deployment.hw_manager.ENv5HWManager"
-        )
-        self.logger.info("Initializing PI Hardware Manager...")
-        super().__init__(target, compiler)
-
-    def prepare_dataset(
-        self,
-        dataset_spec: DatasetSpecification,
-        quantization_scheme: QuantizationScheme,
-    ):
-        super().prepare_dataset(dataset_spec, quantization_scheme)
-        self.frac_bits = quantization_scheme.frac_bits
-        self.total_bits = quantization_scheme.total_bits
-        self.dataset_spec = dataset_spec
-        fxp_params = FxpParams(
-            total_bits=quantization_scheme.total_bits,
-            frac_bits=quantization_scheme.frac_bits,
-            signed=quantization_scheme.signed,
-        )
-        fxp_conf = FxpArithmetic(fxp_params)
-        self.dataset = self.dataset_spec.dataset_type(
-            dataset_spec.dataset_location,
-            dataset_spec.transform,
-            target_transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
-        )
-        _, test_subset, _ = random_split(
-            self.dataset,
-            dataset_spec.train_val_test_ratio,
-        )
-        self.batch_size = 64
-        self.test_loader = DataLoader(
-            test_subset, batch_size=self.batch_size, shuffle=dataset_spec.shuffle
-        )
-
-    def prepare_model(self, path_to_model: Path):
-        
-        self.path_to_executable = self.compiler.compile_code(
-            path_to_model, path_to_model.parent
-        )
-        
-        if self.path_to_executable:
-          self.target.flash(local_path=self.path_to_executable)

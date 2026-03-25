@@ -18,6 +18,16 @@ class Conv2dToLSTMAdapter(nn.Module):
         return [h * w, c]  # sequence_length, feature_dim
 
 
+class Conv1dToLSTM(nn.Module):
+    def forward(self, x):
+        return x.permute(0, 2, 1)
+
+    @staticmethod
+    def infer_output_shape(input_shape: int | list) -> int | list:
+        c, seq = input_shape
+        return [seq, c]
+
+
 class ToLinearAdapter(nn.Module):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

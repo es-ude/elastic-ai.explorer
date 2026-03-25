@@ -1,33 +1,30 @@
 input: [1, 28, 28]
 output: 10
-blocks:
-  - block: "1" #namefield muss noch rein
-    op_candidates: [ "linear" ]
-    depth: [1, 2]
-    activation: [ "sigmoid" , "relu"]
+quantization:
+  quant_candidates: ["ptq_fully_quantized_int8", "full_precision"]
+sequence:
+  - block: "1"
+    op_candidates: "linear"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: [ 1, 2 ]
     linear:
-      #überall range oder choices
+      activation: [ "sigmoid" , "relu"]
       width: [ 4, 5, 16 ]
-    conv2d:
-      kernel_size: [ 10]
-      stride: [ 1, 2 ]
-      out_channels: [ 10, 4 ]
+  - block:  "2"
+    op_candidates:  "lstm"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: [ 1, 2 ]
     lstm:
-      hidden_size: [ 10, 20, 50 ]
-      num_lstm_layers: [ 1]
-      bidirectional: [ False ]
-  - block:  "2" #namefield muss noch rein
-    op_candidates: [ "lstm","linear"]
-    depth: [1, 2]
-    activation: [ "identity"]
+      hidden_size: 1
+      num_lstm_layers: 1
+      bidirectional: False
+  - block: "2"
+    op_candidates: "linear"
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: 3
     linear:
-      #überall range oder choices
-      width: [8,16]
-    conv2d:
-      kernel_size: [1]
-      stride: [1]
-      out_channels: [10, 4]
-    lstm:
-      hidden_size: [1]
-      num_lstm_layers: [1]
-      bidirectional: [ False]
+      activation: ["relu", "tanh"]
+      width: 10

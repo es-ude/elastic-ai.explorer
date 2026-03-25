@@ -5,26 +5,22 @@ from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.deployment.compiler import (
-    ENv5Compiler,
     PicoCompiler,
     RPICompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
-    ENv5Host,
     PicoHost,
     RPiHost,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
-    ENv5HWManager,
     PicoHWManager,
     RPiHWManager,
 )
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.generator.model_builder.model_builder import CreatorModelBuilder
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    CreatorModelCompiler,
-    TFliteModelCompiler,
-    TorchscriptModelCompiler,
+from elasticai.explorer.generator.model_builder.model_builder import PicoModelBuilder
+from elasticai.explorer.generator.model_translator.model_translator import (
+    TFliteModelTranslator,
+    TorchscriptModelTranslator,
 )
 from elasticai.explorer.hw_nas.estimators import (
     TrainMetricsEstimator,
@@ -34,7 +30,7 @@ from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.generator_registry import GeneratorRegistry
 
 
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
@@ -42,65 +38,45 @@ from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
 from torch import optim
 
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
+from torch.utils.data import DataLoader
 
 
-def setup_knowledge_repository() -> KnowledgeRepository:
-    knowledge_repository = KnowledgeRepository()
-    knowledge_repository.register_hw_platform(
+def setup_generator_registry() -> GeneratorRegistry:
+    generator_registry = GeneratorRegistry()
+    generator_registry.register_generator(
         Generator(
             "pico",
             "Pico with RP2040 MCU and 2MB control memory",
-            TFliteModelCompiler,
+            TFliteModelTranslator,
             PicoHWManager,
             PicoHost,
             PicoCompiler,
+            PicoModelBuilder,
         )
     )
-    knowledge_repository.register_hw_platform(
+    generator_registry.register_generator(
         Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
-            TorchscriptModelCompiler,
+            TorchscriptModelTranslator,
             RPiHWManager,
             RPiHost,
             RPICompiler,
         )
     )
 
-    knowledge_repository.register_hw_platform(
+    generator_registry.register_generator(
         Generator(
             "rpi4",
             "Raspberry PI 4 with A72 processor and 4GB RAM",
-            TorchscriptModelCompiler,
+            TorchscriptModelTranslator,
             RPiHWManager,
             RPiHost,
             RPICompiler,
         )
     )
-    knowledge_repository.register_hw_platform(
-        Generator(
-            "env5_s50",
-            "Env5 with RP2040 and xc7s50ftgb196-2 FPGA",
-            CreatorModelCompiler,
-            ENv5HWManager,
-            ENv5Host,
-            ENv5Compiler,
-            CreatorModelBuilder,
-        )
-    )
-    knowledge_repository.register_hw_platform(
-        Generator(
-            "env5_s15",
-            "Env5 with RP2040 and xc7s15ftgb196-2 FPGA",
-            CreatorModelCompiler,
-            ENv5HWManager,
-            ENv5Host,
-            ENv5Compiler,
-            CreatorModelBuilder,
-        )
-    )
 
-    return knowledge_repository
+    return generator_registry
 
 
 def setup_example_optimization_criteria(
@@ -117,7 +93,7 @@ def setup_example_optimization_criteria(
             extra_metrics={"accuracy": accuracy_fn},
         ),
         metric_name="accuracy",
-        n_estimation_epochs=10,
+        n_estimation_epochs=3,
     )
     criteria.register_objective(estimator=accuracy_estimator, weight=100)
 
@@ -131,10 +107,8 @@ def setup_mnist(path_to_test_data: Path):
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
     dataset_spec = DatasetSpecification(
-        dataset_type=MNISTWrapper,
-        dataset_location=path_to_test_data,
+        dataset=MNISTWrapper(root=path_to_test_data, transform=transf),
         deployable_dataset_path=path_to_test_data,
-        transform=transf,
     )
     return dataset_spec
 
@@ -175,7 +149,12 @@ def measure_on_device(
             test_metrics.get("accuracy")
         )
         model_name = "model_" + str(i) + model_suffix
-        explorer.generate_for_hw_platform(model, model_name, dataset_spec, quant_scheme)
+
+        sample_sample, _ = next(iter(dataset_spec.dataset))
+
+        explorer.generate_for_hw_platform(
+            model, model_name, sample_sample.unsqueeze(1), quant_scheme
+        )
 
         for metric in metric_to_source.keys():
             measure = explorer.run_measurement(metric, model_name)

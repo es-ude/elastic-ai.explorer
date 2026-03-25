@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional, Callable
 
 import numpy as np
 import torch
@@ -12,8 +11,8 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TorchscriptModelCompiler,
+from elasticai.explorer.generator.model_translator.model_translator import (
+    TorchscriptModelTranslator,
 )
 
 from elasticai.explorer.training.data import DatasetSpecification, BaseDataset
@@ -24,15 +23,12 @@ from settings import ROOT_DIR
 class SineDataset(BaseDataset):
     def __init__(
         self,
-        root,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
         seq_length=50,
         total_samples=1000,
         *args,
         **kwargs,
     ):
-        super().__init__("", transform, target_transform, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         x = np.linspace(0, 100, total_samples + seq_length)
         noise_level = 0.1
         self.data = (
@@ -87,13 +83,10 @@ def run_lstm_search():
         ROOT_DIR / "examples/search_space_examples/lstm_search_space.yaml"
     )
     device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    max_search_trials, top_n_models = 2, 2
+    max_search_trials, top_n_models = 20, 20
     batch_size = 32
     data_spec = DatasetSpecification(
-        dataset_type=SineDataset,
-        dataset_location=Path(""),
-        transform=None,
-        target_transform=None,
+        dataset=SineDataset(),
         train_val_test_ratio=[0.7, 0.1, 0.2],
         shuffle=False,
         split_seed=42,
@@ -131,9 +124,9 @@ def run_lstm_search():
     trainer.configure_optimizer(torch.optim.Adam(model.parameters(), lr=0.01))
     trainer.train(model, epochs=50, early_stopping=True)
     validate(model, trainer.test_loader)
-    generator = TorchscriptModelCompiler()
+    generator = TorchscriptModelTranslator()
     data_sample = torch.randn((1, 1, 50), dtype=torch.float32, device=device)
-    generator.compile(model, ROOT_DIR / "experiments/lstm_model", data_sample)
+    generator.translate(model, ROOT_DIR / "experiments/lstm_model", data_sample)
 
 
 if __name__ == "__main__":

@@ -2,12 +2,16 @@ from abc import abstractmethod
 from logging import Logger
 import logging
 from numbers import Number
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import torch
 from fvcore.nn.jit_handles import get_shape
 from fvcore.nn import FlopCountAnalysis, parameter_count
 from torch.optim.adam import Adam
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
 from elasticai.explorer.training.trainer import Trainer
 
 
@@ -44,7 +48,9 @@ class Estimator:
         self.logger: Logger = logging.getLogger(logger_name)
 
     @abstractmethod
-    def estimate(self, model_sample) -> tuple[float | int, list[float | int]]:
+    def estimate(
+        self, model_sample, target_quantization_scheme: QuantizationScheme
+    ) -> tuple[float | int, list[float | int]]:
         """
         Returns:
             tuple[float|int, list[float|int]]: The final estimate and list of intermediate values.
@@ -60,8 +66,11 @@ class FLOPsEstimator(Estimator):
         self.data_sample = data_sample
 
     def estimate(
-        self, model_sample: torch.nn.Module
+        self,
+        model_sample: torch.nn.Module,
+        target_quantization_scheme: QuantizationScheme,
     ) -> tuple[float | int, list[float | int]]:
+        get_quantization_info(target_quantization_scheme, self.logger)
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
         flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(
             **handlers
@@ -79,8 +88,11 @@ class ParamEstimator(Estimator):
         self.logger: Logger = logging.getLogger()
 
     def estimate(
-        self, model_sample: torch.nn.Module
+        self,
+        model_sample: torch.nn.Module,
+        target_quantization_scheme: QuantizationScheme,
     ) -> tuple[float | int, list[float | int]]:
+        get_quantization_info(target_quantization_scheme, self.logger)
         param_count = parameter_count(model_sample)[""]
         return param_count, []
 
@@ -89,7 +101,7 @@ class TrainMetricsEstimator(Estimator):
     def __init__(
         self,
         trainer: Trainer,
-        metric_name: str | Literal["loss"] = "loss",
+        metric_name: str = "loss",
         n_estimation_epochs: int = 3,
     ) -> None:
 
@@ -100,8 +112,11 @@ class TrainMetricsEstimator(Estimator):
         self.n_estimation_epochs = n_estimation_epochs
 
     def estimate(
-        self, model_sample: torch.nn.Module
+        self,
+        model_sample: torch.nn.Module,
+        target_quantization_scheme: QuantizationScheme,
     ) -> tuple[float | int, list[float | int]]:
+        get_quantization_info(target_quantization_scheme, self.logger)
         optimizer = Adam(model_sample.parameters(), lr=1e-3)
         self.trainer.configure_optimizer(optimizer)
 
@@ -129,3 +144,19 @@ class TrainMetricsEstimator(Estimator):
 
         self.logger.info(f"Estimated {self.metric_name} is: {estimate_values[-1]:.2f}")
         return estimate_values[-1], estimate_values[:-1]
+
+
+def get_quantization_info(
+    target_quantization_scheme: QuantizationScheme,
+    logger,
+    optimal_schemes: list[type[QuantizationScheme]] = [FullPrecisionScheme],
+):
+
+    optimal_schemes_names = [
+        optimal_schemes.name() for optimal_schemes in optimal_schemes
+    ]
+
+    if not (type(target_quantization_scheme) in optimal_schemes):
+        logger.info(
+            f"The estimation is most optimal for {optimal_schemes_names} but this models target quantization is {target_quantization_scheme.name()}."
+        )

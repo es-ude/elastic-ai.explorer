@@ -1,50 +1,86 @@
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 import logging
-import math
+
 from torch import nn
-from typing import Any
-from elasticai.creator import nn as creator_nn
-from elasticai.creator.nn import fixed_point
+from typing import Any, Sequence
 import torch
 from elasticai.explorer.generator.reflection import Reflective
-from elasticai.explorer.hw_nas.search_space.construct_search_space import SearchSpace
-from elasticai.explorer.hw_nas.search_space.layer_adapter import ToLinearAdapter
-from elasticai.explorer.hw_nas.search_space.layer_builder import (
-    LSTMBuilder,
-    LayerBuilder,
-    parse_search_param,
-)
+
+from elasticai.explorer.hw_nas.search_space.layer_builder import layer_registry
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FixedPointInt8Scheme,
     FullPrecisionScheme,
+    PTQFullyQuantizedInt8Scheme,
     QuantizationScheme,
 )
-from elasticai.creator.nn.fixed_point.lstm.layer import (
-    FixedPointLSTMWithHardActivations,
+
+from elasticai.explorer.hw_nas.search_space.quantization_builder import (
+    FullPrecisionBuilder,
+    PTQFullyQuantizedInt8Builder,
+    quantization_registry,
 )
 from elasticai.explorer.hw_nas.search_space.registry import (
-    ACTIVATION_REGISTRY,
-    ADAPTER_REGISTRY,
+    activation_registry,
+    adapter_registry,
     DEFAULT_ACTIVATION,
     DEFAULT_ADAPTER,
-    LAYER_REGISTRY,
+    DEFAULT_QUANTIZATION,
+    layer_registry,
 )
+from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
+
+
+def insert_needed_adapters(input_shape, op, prev_operation, layers):
+    adapter_cls = adapter_registry.get((prev_operation, op))
+    if adapter_cls is None:
+        adapter_cls = adapter_registry.get(("*", op))
+    if adapter_cls is not None:
+        adapter = adapter_cls()
+        layers.append(adapter)
+        next_input_shape = adapter_cls.infer_output_shape(input_shape)
+        return layers, next_input_shape
+    return layers, input_shape
+
+
+def is_last_layer(block_index, layer_index, sample):
+    block_id, layers = next(reversed(sample.items()))
+    layer_id, layer = next(reversed(layers.items()))
+    return block_index == block_id and layer_id == layer_index
+
+
+def is_negative(value):
+    if isinstance(value, Sequence):
+        for val in value:
+            if val <= 0:
+                return True
+    else:
+        if value <= 0:
+            return True
+    return False
+
+
+class ShapeValueError(ValueError):
+    pass
 
 
 class ModelBuilder(Reflective, ABC):
     @abstractmethod
-    def build_from_trial(self, trial, searchspace: SearchSpace) -> Any:
+    def build_from_trial(
+        self, trial, search_space: dict
+    ) -> tuple[Any, QuantizationScheme]:
         pass
 
     def setup_registries(self, replace=False):
         if replace:
-            ACTIVATION_REGISTRY.clear()
-            ADAPTER_REGISTRY.clear()
-            LAYER_REGISTRY.clear()
+            activation_registry.clear()
+            adapter_registry.clear()
+            layer_registry.clear()
+            quantization_registry.clear()
 
-        ACTIVATION_REGISTRY.update(self.get_activation_mappings())
-        ADAPTER_REGISTRY.update(self.get_adapter_mappings())
-        LAYER_REGISTRY.update(self.get_layer_mappings())
+        activation_registry.update(self.get_activation_mappings())
+        adapter_registry.update(self.get_adapter_mappings())
+        layer_registry.update(self.get_layer_mappings())
+        quantization_registry.update(self.get_supported_quantization_schemes())
 
 
 class DefaultModelBuilder(ModelBuilder):
@@ -61,261 +97,57 @@ class DefaultModelBuilder(ModelBuilder):
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], type | None]:
         return DEFAULT_ADAPTER
 
-    def get_supported_quantization_schemes(self) -> list[type[QuantizationScheme]]:
-        return [FullPrecisionScheme]
+    def get_supported_quantization_schemes(self) -> dict[str, Any]:
+        return DEFAULT_QUANTIZATION
+
+    def construct_model(self, sample: OrderedDict, in_dim, out_dim):
+        layers = []
+        next_in_shape = in_dim
+        prev_op = None
+        for i, block in sample.items():
+            for layer_index, layer_params in block.items():
+                layers, next_in_shape = insert_needed_adapters(
+                    next_in_shape, layer_params["operation"], prev_op, layers
+                )
+                layer = layer_registry[layer_params["operation"]]()
+                if is_last_layer(i, layer_index, sample):
+                    build_layer, next_in_shape = layer.build(
+                        input_shape=next_in_shape,
+                        search_parameters=layer_params["params"],
+                        output_shape=out_dim,
+                    )
+                else:
+                    build_layer, next_in_shape = layer.build(
+                        input_shape=next_in_shape,
+                        search_parameters=layer_params["params"],
+                    )
+                layers.append(build_layer)
+                prev_op = layer_params["operation"]
+                if is_negative(next_in_shape):
+                    raise ShapeValueError("Shape must not be negative")
+
+        return nn.Sequential(*layers)
 
     def build_from_trial(
-        self, trial, searchspace: SearchSpace
+        self, trial, search_space: dict
     ) -> tuple[torch.nn.Module, QuantizationScheme]:
+        sampler = Sampler(trial)
+        sample = sampler.construct_sample(search_space)
+        quant_scheme = sampler.get_quantization_scheme(search_space)
         return (
-            nn.Sequential(*searchspace.create_model_layers(trial)),
-            searchspace.get_quantization_scheme(),
-        )
-
-
-class CreatorLinearBuilder(LayerBuilder):
-    base_type = fixed_point.Linear
-
-    def build(self, num_layers: int, is_last_block: bool) -> Any:
-        if isinstance(self.input_shape, int):
-            self.input_shape = self.input_shape
-        else:
-            self.input_shape = math.prod(self.input_shape)
-        if isinstance(self.output_shape, int):
-            self.output_shape = self.output_shape
-        else:
-            self.output_shape = math.prod(self.output_shape)
-        for i in range(num_layers):
-
-            width = parse_search_param(
-                self.trial,
-                f"layer_width_b{self.block_id}_l{i}",
-                self.search_params,
-                "width",
-            )
-            activation = parse_search_param(
-                self.trial,
-                f"activation_func_b{self.block_id}_l{i}",
-                self.block,
-                "activation",
-                "identity",
-            )
-
-            if is_last_block and i == num_layers - 1:
-                self.layers.append(
-                    fixed_point.Linear(
-                        self.input_shape,
-                        self.output_shape,
-                        total_bits=self.quantization_scheme.total_bits,
-                        frac_bits=self.quantization_scheme.frac_bits,
-                    )
+            nn.Sequential(
+                *self.construct_model(
+                    sample, search_space["input"], search_space["output"]
                 )
-                self.input_shape = self.output_shape
-            else:
-                self.layers.append(
-                    fixed_point.Linear(
-                        self.input_shape,
-                        width,
-                        total_bits=self.quantization_scheme.total_bits,
-                        frac_bits=self.quantization_scheme.frac_bits,
-                    )
-                )
-                self.input_shape = width
-            self.add_activation(activation)
-
-        return self.get_layers()
-
-    def add_activation(self, activation_name: str):
-        self.layers.append(
-            ACTIVATION_REGISTRY[activation_name].build(self.quantization_scheme)
+            ),
+            quant_scheme,
         )
 
 
-class CreatorConv1dBuilder(LayerBuilder):
-    base_type = fixed_point.Conv1d
-
-    def build(self, num_layers: int, is_last_block: bool):
-        if isinstance(self.input_shape, int):
-            self.input_shape = self.input_shape
-        else:
-            self.input_shape = math.prod(self.input_shape)
-        if isinstance(self.output_shape, int):
-            self.output_shape = self.output_shape
-        for i in range(num_layers):
-            out_channels = parse_search_param(
-                self.trial,
-                f"out_channels_b{self.block_id}_l{i}",
-                self.search_params,
-                "out_channels",
-                default_value=None,
-            )
-            kernel_size = parse_search_param(
-                self.trial,
-                f"kernel_size_b{self.block_id}_l{i}",
-                self.search_params,
-                "kernel_size",
-                default_value=None,
-            )
-            signal_length = parse_search_param(
-                self.trial,
-                f"signal_length_b{self.block_id}_l{i}",
-                self.search_params,
-                "signal_length",
-                default_value=None,
-            )
-
-            activation = parse_search_param(
-                self.trial,
-                f"activation_func_b{self.block_id}_l{i}",
-                self.block,
-                "activation",
-                default_value="relu",
-            )
-            self.layers.append(
-                fixed_point.Conv1d(
-                    total_bits=self.quantization_scheme.total_bits,
-                    frac_bits=self.quantization_scheme.frac_bits,
-                    in_channels=self.input_shape,
-                    out_channels=out_channels,
-                    signal_length=signal_length,
-                    kernel_size=kernel_size,
-                )
-            )
-            self.add_activation(activation)
-
-            self.input_shape = out_channels
-
-        return self.get_layers()
-
-    def add_activation(self, activation_name: str):
-        self.layers.append(
-            ACTIVATION_REGISTRY[activation_name].build(self.quantization_scheme)
-        )
-
-
-class ActivationBuilder(ABC):
-    @abstractmethod
-    def build(self, quantization_scheme: QuantizationScheme) -> Any:
-        pass
-
-
-class CreatorReluBuilder(ActivationBuilder):
-    def build(self, quantization_scheme: QuantizationScheme) -> Any:
-        return fixed_point.ReLU(
-            total_bits=quantization_scheme.total_bits, use_clock=False
-        )
-
-
-class CreatorSigmoidBuilder(ActivationBuilder):
-    def build(self, quantization_scheme: QuantizationScheme) -> Any:
-        return fixed_point.HardSigmoid(
-            total_bits=quantization_scheme.total_bits,
-            frac_bits=quantization_scheme.frac_bits,
-        )
-
-
-class CreatorTanhBuilder(ActivationBuilder):
-    def build(self, quantization_scheme: QuantizationScheme) -> Any:
-        return fixed_point.HardTanh(
-            total_bits=quantization_scheme.total_bits,
-            frac_bits=quantization_scheme.frac_bits,
-        )
-
-
-class CreatorLSTMBuilder(LayerBuilder):
-    base_type = FixedPointLSTMWithHardActivations
-
-    def build(self, num_layers: int, is_last_block: bool):
-        for i in range(num_layers):
-            hidden_size = parse_search_param(
-                self.trial,
-                f"hidden_size_b{self.block_id}_l{i}",
-                self.search_params,
-                "hidden_size",
-                default_value=None,
-            )
-            num_lstm_layers = parse_search_param(
-                self.trial,
-                f"num_lstm_layers_b{self.block_id}_l{i}",
-                self.search_params,
-                "num_lstm_layers",
-                default_value=None,
-            )
-            bidirectional = parse_search_param(
-                self.trial,
-                f"bidirectional_b{self.block_id}_l{i}",
-                self.search_params,
-                "bidirectional",
-                default_value=False,
-            )
-            dropout = parse_search_param(
-                self.trial,
-                f"dropout_b{self.block_id}_l{i}",
-                self.search_params,
-                key="dropout",
-                default_value=0.0,
-            )
-            if is_last_block and i == num_layers - 1:
-                hidden_size = self.output_shape
-                if bidirectional & ((self.output_shape % 2) != 0):
-                    raise NotImplementedError
-                elif bidirectional:
-                    hidden_size = self.output_shape / 2
-
-            self.layers.append(
-                FixedPointLSTMWithHardActivations(
-                    total_bits=self.quantization_scheme.total_bits,
-                    frac_bits=self.quantization_scheme.frac_bits,
-                    input_size=self.input_shape[-1],
-                    hidden_size=hidden_size,
-                    bias=True,
-                )
-            )
-            self.input_shape = [
-                self.input_shape[0],
-                hidden_size * 2 if bidirectional else hidden_size,
-            ]
-        return self.get_layers()
-
-
-class CreatorModelBuilder(ModelBuilder):
-    def __init__(self) -> None:
-        super().__init__()
-        self.logger = logging.getLogger(
-            "explorer.generator.model_builder.CreatorModelBuilder"
-        )
-        self.setup_registries(True)
-
-    def get_layer_mappings(self) -> dict[str, type[LayerBuilder]]:
+class PicoModelBuilder(DefaultModelBuilder):
+    def get_supported_quantization_schemes(self) -> dict[str, Any]:
         return {
-            "linear": CreatorLinearBuilder,
-            "conv1d": CreatorConv1dBuilder,
-            "lstm": LSTMBuilder,
+            PTQFullyQuantizedInt8Scheme.name(): PTQFullyQuantizedInt8Builder,
+            FullPrecisionScheme.name(): FullPrecisionBuilder,
         }
 
-    def get_activation_mappings(self) -> dict[str, Any]:
-        return {
-            "relu": CreatorReluBuilder(),
-            "sigmoid": CreatorSigmoidBuilder(),
-            "tanh": CreatorTanhBuilder(),
-        }
-
-    def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
-        return {
-            (None, "linear"): None,
-            ("conv1d", "linear"): ToLinearAdapter,
-            ("linear", "conv1d"): None,
-        }
-
-    def build_from_trial(
-        self, trial, searchspace: SearchSpace
-    ) -> tuple[torch.nn.Module, QuantizationScheme]:
-        model = creator_nn.Sequential(*searchspace.create_model_layers(trial=trial))
-        quant_scheme = searchspace.get_quantization_scheme()
-        self.validate_model(model, quant_scheme)
-        return model, quant_scheme
-
-    def get_supported_quantization_schemes(
-        self,
-    ) -> list[type[QuantizationScheme]]:
-        return [FixedPointInt8Scheme]

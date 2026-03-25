@@ -1,19 +1,21 @@
 import math
+import tomllib
 
 import pytest
+from torch import Tensor
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.knowledge_repository import KnowledgeRepository
+from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import (
-    DockerParams,
+    CompilerParams,
     PicoCompiler,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
     PicoHWManager,
 )
-from elasticai.explorer.generator.model_compiler.model_compiler import (
-    TFliteModelCompiler,
+from elasticai.explorer.generator.model_translator.model_translator import (
+    TFliteModelTranslator,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
     PicoHost,
@@ -26,33 +28,33 @@ from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from torchvision import transforms
 
-from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
-
 
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
-        serial_params = SerialParams(PICO_DEVICE_PATH)
-        compiler_params = DockerParams(
+        with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
+            config = tomllib.load(f)
+        serial_params = SerialParams(config["PICO_DEVICE_PATH"])
+        compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
             Generator(
                 "pico",
                 "Pico with RP2040 MCU and 2MB control memory",
-                TFliteModelCompiler,
+                TFliteModelTranslator,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,
             )
         )
-        self.pico_explorer = Explorer(knowledge_repository)
-        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
-            "tests/system_tests/test_experiment"
+        self.pico_explorer = Explorer(
+            generator_registry, ROOT_DIR / Path("tests/system_tests"), "test_experiment"
         )
+
         self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.model_name = "ts_model_0.tflite"
@@ -78,10 +80,8 @@ class TestPicoDeploymentAndMeasurement:
         )
 
         self.dataset_spec = data.DatasetSpecification(
-            dataset_type=data.MNISTWrapper,
-            dataset_location=path_to_dataset,
+            dataset=data.MNISTWrapper(root=path_to_dataset, transform=transf),
             deployable_dataset_path=path_to_deployable_dataset,
-            transform=transf,
         )
         self.pico_explorer.hw_setup_on_target(metric_to_source, self.dataset_spec)
 
@@ -106,3 +106,8 @@ class TestPicoDeploymentAndMeasurement:
             )
             == int
         )
+
+
+class TestPicoQuantization:
+
+    pass
