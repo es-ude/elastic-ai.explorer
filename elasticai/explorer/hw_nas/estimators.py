@@ -2,6 +2,7 @@ import logging
 from abc import abstractmethod
 from logging import Logger
 from numbers import Number
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -9,6 +10,8 @@ from fvcore.nn import FlopCountAnalysis, parameter_count
 from fvcore.nn.jit_handles import get_shape
 from torch.optim.adam import Adam
 
+from elasticai.explorer.platforms.deployment.hw_manager import HWManager, Metric
+from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.training.trainer import Trainer
 
 
@@ -88,6 +91,34 @@ class ParamEstimator(Estimator):
     ) -> tuple[float | int, list[float | int], list[dict]]:
         param_count = parameter_count(model_sample)[""]
         return param_count, [], []
+
+
+class LatencyEstimator(Estimator):
+    def __init__(
+        self,
+        hw_manager: HWManager,
+        generator: Generator,
+        model_output_path: Path,
+        data_sample: torch.Tensor,
+    ) -> None:
+        super().__init__(
+            metric_name="latency_estimate",
+            logger_name="explorer.LatencyEstimator",
+        )
+        self.hw_manager = hw_manager
+        self.generator = generator
+        self.model_output_path = model_output_path
+        self.data_sample = data_sample
+
+    def estimate(
+        self, model_sample: torch.nn.Module
+    ) -> tuple[float | int, list[float | int]]:
+        self.generator.generate(model_sample, self.model_output_path, self.data_sample)
+        self.hw_manager.deploy_model(self.model_output_path)
+        result = self.hw_manager.measure_metric(Metric.LATENCY, self.model_output_path)
+        latency = result[Metric.LATENCY.value]["value"]
+        self.logger.info("Estimated latency is: %d microseconds", latency)
+        return latency, []
 
 
 class TrainMetricsEstimator(Estimator):
