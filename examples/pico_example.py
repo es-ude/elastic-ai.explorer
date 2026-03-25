@@ -85,7 +85,7 @@ if __name__ == "__main__":
     retrain_epochs = 3
 
     serial_params = SerialParams(
-        device_path=Path("/media/robin/RPI-RP2")
+        device_path=Path("/media/<username>/RPI-RP2")
     )  # <-- Set the device path and rest only if necessary.
     compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
