@@ -112,7 +112,7 @@ def run_lstm_search():
     criteria_reg.register_objective(estimator=accuracy_estimator)
 
     search_space_cfg = yaml_to_dict(search_space)
-    top_models, _, _ = hw_nas.search(
+    top_models, _, _, _ = hw_nas.search(
         search_space_cfg,
         hw_nas.SearchStrategy.EVOLUTIONARY_SEARCH,
         criteria_reg,
