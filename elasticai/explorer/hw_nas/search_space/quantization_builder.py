@@ -1,10 +1,12 @@
 from abc import ABC
 from elasticai.explorer.hw_nas.search_space.quantization import (
+    CreatorFixedPointScheme,
     PTQFullyQuantizedInt8Scheme,
     FullPrecisionScheme,
     QuantizationScheme,
 )
 from elasticai.explorer.hw_nas.search_space.registry import quantization_registry
+from elasticai.explorer.hw_nas.search_space.sample_blocks import parse_search_param
 
 
 def register_quantization_scheme(name: str):
@@ -36,3 +38,37 @@ class PTQFullyQuantizedInt8Builder(QuantizationBuilder):
 @register_quantization_scheme("full_precision")
 class FullPrecisionBuilder(QuantizationBuilder):
     base_type = FullPrecisionScheme
+
+
+@register_quantization_scheme("creator_fixed_point")
+class CreatorFixedPointBuilder(QuantizationBuilder):
+    base_type = CreatorFixedPointScheme
+
+    def build(
+        self,
+    ) -> QuantizationScheme:
+        total_bits = parse_search_param(
+            self.trial,
+            f"total_bits",
+            self.search_params,
+            "total_bits",
+        )
+
+        frac_bits = parse_search_param(
+            self.trial,
+            f"frac_bits",
+            self.search_params,
+            "frac_bits",
+        )
+        signed = bool(
+            parse_search_param(
+                self.trial,
+                f"signed_quant",
+                self.search_params,
+                "signed",
+            )
+        )
+
+        return CreatorFixedPointScheme(
+            total_bits=total_bits, frac_bits=frac_bits, signed=signed
+        )

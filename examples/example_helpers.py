@@ -153,7 +153,7 @@ def measure_on_device(
         sample_sample, _ = next(iter(dataset_spec.dataset))
 
         explorer.generate_for_hw_platform(
-            model, model_name, sample_sample.unsqueeze(1), quant_scheme
+            model, model_name, sample_sample, quant_scheme
         )
 
         for metric in metric_to_source.keys():

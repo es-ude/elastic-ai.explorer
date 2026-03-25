@@ -100,7 +100,9 @@ class DefaultModelBuilder(ModelBuilder):
     def get_supported_quantization_schemes(self) -> dict[str, Any]:
         return DEFAULT_QUANTIZATION
 
-    def construct_model(self, sample: OrderedDict, in_dim, out_dim):
+    def construct_model(
+        self, sample: OrderedDict, in_dim, out_dim, quantization_scheme
+    ):
         layers = []
         next_in_shape = in_dim
         prev_op = None
@@ -115,18 +117,25 @@ class DefaultModelBuilder(ModelBuilder):
                         input_shape=next_in_shape,
                         search_parameters=layer_params["params"],
                         output_shape=out_dim,
+                        quantization_scheme=quantization_scheme,
                     )
                 else:
                     build_layer, next_in_shape = layer.build(
                         input_shape=next_in_shape,
                         search_parameters=layer_params["params"],
+                        quantization_scheme=quantization_scheme,
                     )
-                layers.append(build_layer)
+
+                if isinstance(build_layer, list):
+                    for layer in build_layer:
+                        layers.append(layer)
+                else:
+                    layers.append(build_layer)
                 prev_op = layer_params["operation"]
                 if is_negative(next_in_shape):
                     raise ShapeValueError("Shape must not be negative")
 
-        return nn.Sequential(*layers)
+        return layers
 
     def build_from_trial(
         self, trial, search_space: dict
@@ -134,14 +143,13 @@ class DefaultModelBuilder(ModelBuilder):
         sampler = Sampler(trial)
         sample = sampler.construct_sample(search_space)
         quant_scheme = sampler.get_quantization_scheme(search_space)
-        return (
-            nn.Sequential(
-                *self.construct_model(
-                    sample, search_space["input"], search_space["output"]
-                )
-            ),
-            quant_scheme,
+        model = nn.Sequential(
+            *self.construct_model(
+                sample, search_space["input"], search_space["output"], quant_scheme
+            )
         )
+        self.validate_model(model, quant_scheme)
+        return model, quant_scheme
 
 
 class PicoModelBuilder(DefaultModelBuilder):
@@ -150,4 +158,3 @@ class PicoModelBuilder(DefaultModelBuilder):
             PTQFullyQuantizedInt8Scheme.name(): PTQFullyQuantizedInt8Builder,
             FullPrecisionScheme.name(): FullPrecisionBuilder,
         }
-

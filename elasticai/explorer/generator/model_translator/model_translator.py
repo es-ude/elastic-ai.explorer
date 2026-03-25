@@ -14,6 +14,7 @@ from torch import Tensor, nn
 from ai_edge_torch import convert, to_channel_last_io
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
+    CreatorFixedPointScheme,
     PTQFullyQuantizedInt8Scheme,
     FullPrecisionScheme,
     QuantizationScheme,

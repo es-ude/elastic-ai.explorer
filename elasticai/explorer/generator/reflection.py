@@ -46,7 +46,7 @@ class Reflective(ABC):
         """Override if necessary"""
         sl = self.get_supported_layers()
         sa = self.get_supported_activations()
-        sqs = self.get_supported_quantization_schemes()
+        sqs = list(self.get_supported_quantization_schemes().items())
         for module in model.modules():
             if module is model:
                 continue

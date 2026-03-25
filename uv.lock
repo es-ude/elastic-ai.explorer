@@ -248,6 +248,23 @@ wheels = [
 ]
 
 [[package]]
+name = "cocotb"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "find-libpython" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/28/f1/40b6086c1bba60cc7c59ff40815b35a5c364711d1ee86c878a296b0a963b/cocotb-2.0.1.tar.gz", hash = "sha256:69887748412ff43e98f8579ad6c0da1f6ff19a94d0c3b4d6da472d8e86784e82", size = 318250, upload-time = "2025-11-15T12:45:24.01Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/19/fe5c3654a00579e468f5f91219b0c8527118d319946d0a242952a6150e56/cocotb-2.0.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:1b99e5eab7236993cab7b4ed6464a249ad32daca93a6aa2987d5048272d77315", size = 652639, upload-time = "2025-11-15T12:44:17.437Z" },
+    { url = "https://files.pythonhosted.org/packages/11/e6/08e99da944fc29651beb268c604428f608aad371b1aa91d7477b28b2a258/cocotb-2.0.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:cd45a2874c0a4fa11042259ab6a10d3226568c06ac27440101373cec54ae5789", size = 626644, upload-time = "2025-11-15T12:44:19.2Z" },
+    { url = "https://files.pythonhosted.org/packages/38/e5/34a369afe4b6e1c46d77c35c661f50865c63f766de83111cf594127137f5/cocotb-2.0.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:41e0244dce20ba3ef2830224f41f786ff5669fe14cec04db8ec92f9a8ac5b04f", size = 4550891, upload-time = "2025-11-15T12:44:20.818Z" },
+    { url = "https://files.pythonhosted.org/packages/21/f6/22d50efd9579112a74052bd629340452a9decd5c337ed49ccd45bee07a7e/cocotb-2.0.1-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f13862231a841ffdf44e67e4e4377006d51732c4713b39a30eb4c7322d9d5ac7", size = 4430055, upload-time = "2025-11-15T12:44:22.583Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/49/e6b80529830420103b42cdd247401d738edc4c10b0574ae7fbb4f566563b/cocotb-2.0.1-cp311-cp311-win32.whl", hash = "sha256:8437d4b39ecad5cddcda049b972878c8badc0b57a43dc94fb7cdecdf467b7427", size = 578959, upload-time = "2025-11-15T12:44:24.14Z" },
+    { url = "https://files.pythonhosted.org/packages/91/f0/222d8bf439f1ccc3f59ae9c760eb04fe56d970ee8c97237d35e3b5948e6c/cocotb-2.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:a042b8c5b4d70f873a652ba60f1f17a21ff621e243a02bffa4f11a037ca21af5", size = 621039, upload-time = "2025-11-15T12:44:26.532Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -381,6 +398,8 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "ai-edge-torch" },
+    { name = "elasticai-creator" },
+    { name = "elasticai-runtime-env5" },
     { name = "fabric" },
     { name = "fvcore" },
     { name = "iesude-data" },
@@ -411,6 +430,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ai-edge-torch", specifier = "==0.5.0" },
+    { name = "elasticai-creator", specifier = "==0.67.0" },
+    { name = "elasticai-runtime-env5", git = "https://github.com/es-ude/elastic-ai.runtime.enV5.git?rev=a9bc18749b1c1666828453a47c9c37f6f0aa2d61" },
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "fvcore", specifier = ">=0.1.5.post20221221" },
     { name = "iesude-data", git = "https://github.com/es-ude/data.git" },
@@ -440,6 +461,31 @@ dev = [
 ]
 
 [[package]]
+name = "elasticai-creator"
+version = "0.67.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "cocotb" },
+    { name = "numpy" },
+    { name = "pytest" },
+    { name = "tomlkit" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/eb/8f/718d135ffd6ad6b89b83f264ae77ca6706d35520e1de9dfb33ebd1eb10c9/elasticai_creator-0.67.0.tar.gz", hash = "sha256:211f80bbffe4a6d019d202a6057a86f25ddb26b8575c7962bb3450297fb18b84", size = 511077, upload-time = "2026-01-21T12:04:27.376Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/14/9aebba2a9c1bd281fa1a728a44f23f4c9c5a503792a55f207035a0f2825f/elasticai_creator-0.67.0-py3-none-any.whl", hash = "sha256:6665926ad977176aee8a8f9bc2a4b6eff4ad81baacca1f2eb16f11c4177e5350", size = 304248, upload-time = "2026-01-21T12:04:25.643Z" },
+]
+
+[[package]]
+name = "elasticai-runtime-env5"
+version = "0.1.0"
+source = { git = "https://github.com/es-ude/elastic-ai.runtime.enV5.git?rev=a9bc18749b1c1666828453a47c9c37f6f0aa2d61#a9bc18749b1c1666828453a47c9c37f6f0aa2d61" }
+dependencies = [
+    { name = "pyserial" },
+]
+
+[[package]]
 name = "fabric"
 version = "3.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -461,6 +507,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc5353e0b15fc1c563352101f30e24bf500207a54df9a/filelock-3.18.0.tar.gz", hash = "sha256:adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2", size = 18075, upload-time = "2025-03-14T07:11:40.47Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl", hash = "sha256:c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de", size = 16215, upload-time = "2025-03-14T07:11:39.145Z" },
+]
+
+[[package]]
+name = "find-libpython"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/60/951b7ca316ab3ec928ed788de5fcb30b4a0292704e50b872c8edf24c11fe/find_libpython-0.5.1.tar.gz", hash = "sha256:12a0fb39ff8dcc64ad0fd554b1bd142ea4a8c4c18e5da6043a547ce7b25559fe", size = 9402, upload-time = "2026-02-11T03:18:04.844Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/34/1f/1d6079f4f0540aaa368aa20d89d98eda42f081c397a822c547340e32d1e3/find_libpython-0.5.1-py3-none-any.whl", hash = "sha256:723a8cfe6fed255a1f58b53c62ed556fb340ec0d456e9863ebc01a5cc047607d", size = 9201, upload-time = "2026-02-11T03:18:03.263Z" },
 ]
 
 [[package]]
@@ -1476,11 +1531,11 @@ wheels = [
 
 [[package]]
 name = "pyserial"
-version = "3.5"
+version = "3.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1e/7d/ae3f0a63f41e4d2f6cb66a5b57197850f919f59e558159a4dd3a818f5082/pyserial-3.5.tar.gz", hash = "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb", size = 159125, upload-time = "2020-11-23T03:59:15.045Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/74/11b04703ec416717b247d789103277269d567db575d2fd88f25d9767fe3d/pyserial-3.4.tar.gz", hash = "sha256:6e2d401fdee0eab996cf734e67773a0143b932772ca8b42451440cfed942c627", size = 151657, upload-time = "2017-07-23T21:10:04.368Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0", size = 90585, upload-time = "2020-11-23T03:59:13.41Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/e4/2a744dd9e3be04a0c0907414e2a01a7c88bb3915cbe3c8cc06e209f59c30/pyserial-3.4-py2.py3-none-any.whl", hash = "sha256:e0770fadba80c31013896c7e6ef703f72e7834965954a78e71a3049488d4d7d8", size = 193717, upload-time = "2017-07-23T21:10:01.982Z" },
 ]
 
 [[package]]

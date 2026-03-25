@@ -18,12 +18,12 @@ dependencies = [
     "scipy>=1.16.1",
     "torchvision==0.21.0",
     "torch>=2.4.0",
-    "ai-edge-torch==0.5.0",
     "pandas>=2.2.3",
     "tensorflow==2.20.0",
     "iesude-data",
     "tflite==2.18.0",
-    "pyserial"
+    "pyserial",
+    "ai-edge-torch==0.5.0" # TODO make optional
 ]
 
 # Same as Black.
@@ -41,6 +41,9 @@ dev = [
     "pip<23"
 ]
 
+[project.optional-dependencies]
+creator_generator = ["elasticai-runtime-env5",
+    "elasticai-creator==0.67.0",]
 
 
 [tool.uv]
@@ -48,6 +51,8 @@ default-groups = ["dev"]
 override-dependencies = ["tf-nightly; sys_platform == 'never'",]
 [tool.uv.sources]
 iesude-data = { git = "https://github.com/es-ude/data.git" }
+elasticai-runtime-env5 = { git = "https://github.com/es-ude/elastic-ai.runtime.enV5.git", rev = "a9bc18749b1c1666828453a47c9c37f6f0aa2d61" }
+#elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", rev = }
 [tool.black]
 preview = true
 line-length = 88

@@ -29,11 +29,14 @@ class FullPrecisionScheme(QuantizationScheme):
         return f"full_precision"
 
 
-def tflite_quantize(
-    array, scaling: float = 0.012728233821690083, zeropoint: float = 95
-):
-    return (array / scaling) + zeropoint
+@dataclass(frozen=True)
+class CreatorFixedPointScheme(QuantizationScheme):
+    dtype: str = "int8"
+    total_bits: int = 8
+    frac_bits: int = 2
+    signed: bool = True
 
+    @staticmethod
+    def name() -> str:
+        return f"creator_fixed_point"
 
-def tflite_dequantize(array, scaling: float = 0.00390625, zeropoint: float = 128):
-    return scaling * (array.astype(numpy.float32) - zeropoint)

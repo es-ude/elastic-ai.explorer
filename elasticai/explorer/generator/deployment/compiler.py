@@ -14,11 +14,19 @@ class CompilerParams:
     image_name: str = "pibase"
     library_path: Path = Path(
         "./code/libtorch"
-    )  # This should be relative to the build context with a leading "./" 
+    )  # This should be relative to the build context with a leading "./"
+
+
+@dataclass
+class VivadoParams:
+    remote_working_dir: str
+    host: str
+    ssh_user: str = "vivado"
+    target_platform_name: str = ""
 
 
 class Compiler(ABC):
-    def __init__(self, compiler_params: CompilerParams):
+    def __init__(self, compiler_params: CompilerParams | VivadoParams):
         self.compiler_params = compiler_params
         logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
         self.logger = logging.getLogger(logger_name)
@@ -32,7 +40,7 @@ class Compiler(ABC):
         pass
 
     @abstractmethod
-    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path:
+    def compile_code(self, source: Path, output_dir: Path = Path("")) -> Path | None:
         pass
 
 

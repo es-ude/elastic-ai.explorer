@@ -5,7 +5,10 @@ from typing import Mapping, Optional, Any
 from torch import nn, unsqueeze
 import torch
 
-from elasticai.explorer.generator.deployment.compiler import CompilerParams
+from elasticai.explorer.generator.deployment.compiler import (
+    CompilerParams,
+    VivadoParams,
+)
 from elasticai.explorer.generator.deployment.device_communication import (
     SSHParams,
     SerialParams,
@@ -164,7 +167,7 @@ class Explorer:
     def choose_target_hw(
         self,
         target_platform_name: str,
-        compiler_params: CompilerParams,
+        compiler_params: CompilerParams | VivadoParams,
         communication_params: SSHParams | SerialParams,
     ):
         self.generator = self.generator_registry.fetch_hw_info(target_platform_name)
@@ -228,7 +231,7 @@ class Explorer:
         self,
         model: nn.Module,
         model_name: str,
-        data_sample: torch.Tensor, # One data sample with batch dimension (shape= (1,...))
+        data_sample: torch.Tensor,  # One data sample with batch dimension (shape= (1,...))
         quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
     ) -> Any:
         model_path = self._model_dir / model_name

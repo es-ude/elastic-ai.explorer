@@ -31,10 +31,10 @@ DEFAULT_ADAPTER = {
 }
 
 DEFAULT_ACTIVATION = {
-    "relu": nn.ReLU(),
-    "sigmoid": nn.Sigmoid(),
-    "identity": nn.Identity(),
-    "tanh": nn.Tanh(),
+    "relu": nn.ReLU,
+    "sigmoid": nn.Sigmoid,
+    "identity": nn.Identity,
+    "tanh": nn.Tanh,
 }
 
 DEFAULT_QUANTIZATION = {"FullPrecision": FullPrecisionScheme}
