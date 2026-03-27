@@ -5,7 +5,7 @@ import pytest
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import SimpleLSTM
-from elasticai.explorer.generator.model_builder.model_builder import DefaultModelBuilder
+from elasticai.explorer.hw_nas.search_space.build_model import DefaultModelBuilder
 
 from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     ToLinearAdapter,

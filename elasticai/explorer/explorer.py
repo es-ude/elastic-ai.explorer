@@ -11,7 +11,7 @@ from elasticai.explorer.generator.deployment.device_communication import (
     SerialParams,
 )
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.generator.model_builder.model_builder import (
+from elasticai.explorer.hw_nas.search_space.build_model import (
     ModelBuilder,
     DefaultModelBuilder,
 )
