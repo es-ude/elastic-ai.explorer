@@ -6,19 +6,21 @@ from torchvision.transforms import transforms
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams
-from elasticai.explorer.platforms.deployment.device_communication import SerialParams
-from elasticai.explorer.platforms.deployment.hw_manager import Metric
+
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
+from elasticai.explorer.generator.deployment.device_communication import SerialParams
+
+from elasticai.explorer.generator.deployment.hw_manager import Metric
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 
 from examples.example_helpers import (
     measure_on_device,
-    setup_knowledge_repository,
+    setup_generator_registry,
     setup_example_optimization_criteria,
 )
 
-from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
+from settings import DOCKER_CONTEXT_DIR, EXPERIMENTS_DIR, ROOT_DIR
 
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
@@ -50,7 +52,7 @@ def search_generate_measure_for_pico(
     )
     criteria = setup_example_optimization_criteria(dataset_spec, device)
 
-    top_models = explorer.search(
+    top_models, top_quant_scheme = explorer.search(
         search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
         hw_nas_parameters=HWNASParameters(
             max_search_trials=max_search_trials, top_n_models=top_n_models
@@ -62,7 +64,6 @@ def search_generate_measure_for_pico(
         Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
         Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
     }
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
     df = measure_on_device(
         explorer,
@@ -72,6 +73,7 @@ def search_generate_measure_for_pico(
         "cpu",
         dataset_spec,
         model_suffix=".tflite",
+        top_quantization_schemes=top_quant_scheme,
     )
     logger.info("Models:\n %s", df)
 
@@ -79,7 +81,7 @@ def search_generate_measure_for_pico(
 if __name__ == "__main__":
     ### Hyperparameters
     max_search_trials = 6
-    top_n_models = 4
+    top_n_models = 2
     retrain_epochs = 3
 
     serial_params = SerialParams(
@@ -89,11 +91,11 @@ if __name__ == "__main__":
         library_path=Path("./code/pico_crosscompiler"),
         image_name="picobase",
         build_context=DOCKER_CONTEXT_DIR,
-        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+        base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
     )  # <-- Configure this only if necessary.
 
-    knowledge_repo = setup_knowledge_repository()
-    explorer = Explorer(knowledge_repo)
+    knowledge_repo = setup_generator_registry()
+    explorer = Explorer(knowledge_repo, EXPERIMENTS_DIR)
     search_space = Path("examples/search_space_examples/pico_search_space.yaml")
     search_generate_measure_for_pico(
         explorer,

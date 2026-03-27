@@ -3,21 +3,19 @@ from pathlib import Path
 import torch
 
 
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.explorer import Explorer
-
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams
-from elasticai.explorer.platforms.deployment.device_communication import SSHParams
-
-from elasticai.explorer.platforms.deployment.hw_manager import Metric
+from elasticai.explorer.generator.deployment.device_communication import SSHParams
+from elasticai.explorer.generator.deployment.hw_manager import Metric
 
 from examples.example_helpers import (
     measure_on_device,
-    setup_knowledge_repository,
+    setup_generator_registry,
     setup_mnist,
     setup_example_optimization_criteria,
 )
-from settings import ROOT_DIR
+from settings import EXPERIMENTS_DIR, ROOT_DIR
 
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 
@@ -42,7 +40,7 @@ def search_generate_measure_for_pi(
     dataset_spec = setup_mnist(path_to_test_data)
     criteria_reg = setup_example_optimization_criteria(dataset_spec, device)
 
-    top_models = explorer.search(
+    top_models, top_quant_schemes = explorer.search(
         search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
         optimization_criteria=criteria_reg,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
@@ -51,10 +49,15 @@ def search_generate_measure_for_pi(
         Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
         Metric.LATENCY: Path("code/measure_latency.cpp"),
     }
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
     df = measure_on_device(
-        explorer, top_models, metric_to_source, retrain_epochs, device, dataset_spec
+        explorer,
+        top_models,
+        metric_to_source,
+        retrain_epochs,
+        device,
+        dataset_spec,
+        top_quantization_schemes=top_quant_schemes,
     )
 
     logger.info("Summary:\n %s", df)
@@ -70,9 +73,12 @@ if __name__ == "__main__":
     ssh_params = SSHParams(
         hostname="<hostname>", username="<username>"
     )  # <-- connection details for your RPi
-    compiler_params = CompilerParams()  # <-- configure this only if necessary
-    knowledge_repo = setup_knowledge_repository()
-    explorer = Explorer(knowledge_repo)
+    compiler_params = CompilerParams(
+        base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
+        build_context=ROOT_DIR / "docker",
+    )  # <-- configure this only if necessary, the ROOT_DIR can also be set with environment variable PROJECT_ROOT.
+    knowledge_repo = setup_generator_registry()
+    explorer = Explorer(knowledge_repo, experiments_dir=EXPERIMENTS_DIR)
 
     search_space = Path(
         ROOT_DIR / "examples/search_space_examples/pi_search_space.yaml"

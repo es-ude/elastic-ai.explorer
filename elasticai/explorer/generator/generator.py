@@ -1,0 +1,25 @@
+from elasticai.explorer.hw_nas.search_space.build_model import (
+    DefaultModelBuilder,
+    ModelBuilder,
+)
+from elasticai.explorer.generator.deployment.compiler import Compiler
+from elasticai.explorer.generator.deployment.device_communication import Host
+from elasticai.explorer.generator.deployment.hw_manager import HWManager
+from elasticai.explorer.generator.model_translator.model_translator import (
+    ModelTranslator,
+)
+
+
+from dataclasses import dataclass
+from typing import Type
+
+
+@dataclass
+class Generator:
+    hw_platform_name: str
+    info: str
+    model_translator: Type[ModelTranslator]
+    platform_manager: Type[HWManager]
+    communication_protocol: Type[Host]
+    compiler: Type[Compiler]
+    model_builder: Type[ModelBuilder] = DefaultModelBuilder

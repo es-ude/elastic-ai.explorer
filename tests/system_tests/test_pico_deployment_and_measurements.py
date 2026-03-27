@@ -2,18 +2,22 @@ import math
 import tomllib
 
 import pytest
+from torch import Tensor
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import (
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.generator.deployment.compiler import (
     CompilerParams,
     PicoCompiler,
 )
-from elasticai.explorer.platforms.deployment.hw_manager import (
+from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
     PicoHWManager,
 )
-from elasticai.explorer.platforms.generator.generator import PicoGenerator
-from elasticai.explorer.platforms.deployment.device_communication import (
+from elasticai.explorer.generator.model_translator.model_translator import (
+    TFliteModelTranslator,
+)
+from elasticai.explorer.generator.deployment.device_communication import (
     PicoHost,
     SerialParams,
 )
@@ -34,23 +38,23 @@ class TestPicoDeploymentAndMeasurement:
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
-            HWPlatform(
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
+            Generator(
                 "pico",
                 "Pico with RP2040 MCU and 2MB control memory",
-                PicoGenerator,
+                TFliteModelTranslator,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,
             )
         )
-        self.pico_explorer = Explorer(knowledge_repository)
-        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
-            "tests/system_tests/test_experiment"
+        self.pico_explorer = Explorer(
+            generator_registry, ROOT_DIR / Path("tests/system_tests"), "test_experiment"
         )
+
         self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.model_name = "ts_model_0.tflite"
@@ -102,3 +106,8 @@ class TestPicoDeploymentAndMeasurement:
             )
             == int
         )
+
+
+class TestPicoQuantization:
+
+    pass

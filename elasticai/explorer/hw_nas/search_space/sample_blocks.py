@@ -1,14 +1,17 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from enum import Enum
-import optuna
-import yaml
-from optuna.samplers import RandomSampler
+from typing import Any
 from yaml.error import YAMLError
 
-from elasticai.explorer.hw_nas.search_space.build_model import construct_model
-from elasticai.explorer.hw_nas.search_space.registry import COMPOSITE_REGISTRY
-from settings import ROOT_DIR
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    FullPrecisionScheme,
+    QuantizationScheme,
+)
+from elasticai.explorer.hw_nas.search_space.quantization_builder import (
+    quantization_registry,
+)
+from elasticai.explorer.hw_nas.search_space.registry import composite_registry
 
 
 class RepeatType(Enum):
@@ -31,7 +34,7 @@ FORCED_PARAMS = {
 
 
 def is_composite_op(op: str) -> bool:
-    return op in COMPOSITE_REGISTRY
+    return op in composite_registry
 
 
 def parse_search_param(
@@ -39,8 +42,8 @@ def parse_search_param(
     name: str,
     params: dict,
     key: str,
-    default_value: any = None,
-) -> any:
+    default_value: Any = None,
+) -> Any:
     if key not in params:
         if default_value is not None:
             return default_value
@@ -98,17 +101,17 @@ class Sampler:
             raise TypeError(f"Unsupported repeat type {repeat_type}")
 
     def construct_sample(self, search_space: dict):
+
         model = OrderedDict()
 
         if "default_op_params" in search_space:
             self.default_op_params = search_space["default_op_params"]
 
         if "composites" in search_space:
-            COMPOSITE_REGISTRY.update(search_space["composites"])
+            composite_registry.update(search_space["composites"])
 
         sequence = search_space["sequence"]
         total_blocks = len(sequence)
-
         for block_idx, block in enumerate(sequence):
             block_id = block["block"]
             repeat_cfg = block.get("type_repeat", {})
@@ -132,6 +135,24 @@ class Sampler:
             )
 
         return model
+
+    def get_quantization_scheme(self, search_space: dict) -> QuantizationScheme:
+        quant_scheme = QuantizationScheme
+        if "quantization" in search_space:
+            quant_cfg = search_space["quantization"]
+            quant_name = parse_search_param(
+                self.trial,
+                "quantization",
+                quant_cfg,
+                "quant_candidates",
+            )
+            quant_params = quant_cfg.get(quant_name, {})
+            quant_builder_cls = quantization_registry[quant_name]
+            quant_builder = quant_builder_cls(self.trial, quant_params)
+            quant_scheme = quant_builder.build()
+        else:
+            quant_scheme = FullPrecisionScheme()
+        return quant_scheme
 
 
 class LayerContext:
@@ -197,7 +218,7 @@ class Block:
             if op == "identity":
                 continue
             if is_composite_op(op):
-                composite_space = COMPOSITE_REGISTRY[op]
+                composite_space = composite_registry[op]
                 cache_key = (self.sampler.scope, op)
 
                 if self.repeat_block:

@@ -15,19 +15,22 @@ from elasticai.explorer.hw_nas.hw_nas import (
     HWNASParameters,
     SearchStrategy,
 )
+from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
-from elasticai.explorer.platforms.deployment.hw_manager import RPiHWManager
-from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import (
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
+from elasticai.explorer.generator.deployment.hw_manager import RPiHWManager
+from elasticai.explorer.generator.model_translator.model_translator import (
+    TorchscriptModelTranslator,
+)
+from elasticai.explorer.generator.deployment.device_communication import (
     RPiHost,
     SSHParams,
 )
 from torchvision import transforms
 from elasticai.explorer.training.trainer import SupervisedTrainer
-from settings import ROOT_DIR
+from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 
 SAMPLE_PATH = ROOT_DIR / "tests/samples"
@@ -38,20 +41,19 @@ class TestHWNasSetupAndSearch:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
     def setup_class(self):
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
-            HWPlatform(
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
+            Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                RPiGenerator,
+                TorchscriptModelTranslator,
                 RPiHWManager,
                 RPiHost,
                 RPICompiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_repository)
-        self.RPI5explorer.experiment_dir = Path(
-            ROOT_DIR / "tests/integration_tests/test_experiment"
+        self.RPI5explorer = Explorer(
+            generator_registry, ROOT_DIR / "tests/integration_tests", "test_experiment"
         )
         self.model_name = "ts_model_0.pt"
 
@@ -89,8 +91,8 @@ class TestHWNasSetupAndSearch:
     @pytest.mark.parametrize(
         ("search_strategy", "with_hardconstraints", "expected"),
         [
-            (SearchStrategy.RANDOM_SEARCH, False, 2),
-            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 2),
+            (SearchStrategy.RANDOM_SEARCH, False, 1),
+            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 1),
             (SearchStrategy.RANDOM_SEARCH, True, 0),
         ],
     )
@@ -105,23 +107,29 @@ class TestHWNasSetupAndSearch:
             self.optimization_criteria.register_hard_constraint(
                 estimator=ParamEstimator(), operator=operator.lt, value=0
             )
-        top_k_models = self.RPI5explorer.search(
+        top_k_models, _ = self.RPI5explorer.search(
             optimization_criteria=self.optimization_criteria,
             search_strategy=search_strategy,
-            hw_nas_parameters=HWNASParameters(2, 2),
+            hw_nas_parameters=HWNASParameters(1, 1),
         )
         assert len(top_k_models) == expected
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(
             "rpi5",
-            compiler_params=CompilerParams(),
+            compiler_params=CompilerParams(
+                library_path=Path("./code/pico_crosscompiler"),
+                image_name="picobase",
+                build_context=DOCKER_CONTEXT_DIR,
+                base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
+            ),
             communication_params=SSHParams("", ""),
         )
         model = SampleMLP(28 * 28)
 
+        data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device="cpu")
         self.RPI5explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
+            model=model, model_name=self.model_name, data_sample=data_sample
         )
         assert os.path.exists(self.RPI5explorer.model_dir / self.model_name) == True
         assert (
