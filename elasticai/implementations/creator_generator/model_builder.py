@@ -97,7 +97,7 @@ class CreatorLinearBuilder(LayerBuilder):
             self.quantization_scheme.frac_bits,
         )
 
-        return linear, output_shape
+        return linear, output_shape 
 
 
 class ActivationBuilder(ABC):
