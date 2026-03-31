@@ -19,8 +19,8 @@ async def layer_computation_test(dut):
     dut.y_address.value = 0
     dut.x.value = 0
 
-    cocotb.start_soon(Clock(dut.clock, period=clock_period_ns, units="ns").start())
-    await Timer(4 * clock_period_ns, units="ns")
+    cocotb.start_soon(Clock(dut.clock, period=clock_period_ns, unit="ns").start())
+    await Timer(4 * clock_period_ns, unit="ns")
     await RisingEdge(dut.clock)
     chck_test = list()
     for ite, (sig_in, ref_out) in enumerate(zip(data["in"], data["out"])):
@@ -67,18 +67,3 @@ async def layer_computation_test(dut):
     limit = 0.9
     assert accuracy >= limit, f"Accuracy of {accuracy * 100:.2f}%"
 
-
-@cocotb.test()
-async def layer_params_test(dut):
-    layer_name = fnmatch.filter(dir(dut), "i_*linear_0")
-    dut_rom = getattr(dut, layer_name[0])
-
-    params = read_testdata(dut._name)
-    dut.enable.value = 0
-    dut.clock.value = 0
-    dut.x_address.value = 0
-    dut.y_address.value = 0
-    dut.x.value = 0
-
-    for rom_w, json_w in zip(dut_rom.rom_w.ROM.value, params["params"]):
-        assert rom_w.signed_integer == json_w

@@ -34,9 +34,13 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
 )
 
-
-from elasticai.creator.nn.fixed_point import MathOperations
-from elasticai.explorer_plugins.creator_generator.experimental_deployment.deployment import CreatorModelTranslator, ENv5Compiler, ENv5HWManager, ENv5Host
+from elasticai.creator.nn.fixed_point import Linear, MathOperations, ReLU
+from elasticai.explorer_plugins.creator_generator.experimental_deployment.deployment import (
+    CreatorModelTranslator,
+    ENv5Compiler,
+    ENv5HWManager,
+    ENv5Host,
+)
 from elasticai.explorer_plugins.creator_generator.model_builder import (
     CreatorModelBuilder,
 )
@@ -175,48 +179,40 @@ def create_example_dataset_spec(quantization_scheme):
     )
 
 
-def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
-    correct = 0
-    total = 0
-    num_bytes_outputs = OUTPUT_DIM
-    if not hw_manager.test_loader:
-        raise TypeError("Testloader not defined.")
-    if (
-        not hw_manager.quantization_scheme
-        or type(hw_manager.quantization_scheme) is not CreatorFixedPointScheme
-    ):
-        raise TypeError("Quantization Scheme is not defined correctly.")
-    if not isinstance(host, SerialHost):
-        raise TypeError("Need Serialhost for this test.")
+def _run_accuracy_simulation(host: Host, hw_manager: HWManager):
 
-    for inputs_rational, target in hw_manager.test_loader:
+    assert type(hw_manager.quantization_scheme) is CreatorFixedPointScheme
 
-        data_bytearray = parse_fxp_tensor_to_bytearray(
-            inputs_rational,
-            hw_manager.quantization_scheme.total_bits,
-            hw_manager.quantization_scheme.frac_bits,
-        )
-        batch_results_bytes = []
-        for sample in data_bytearray:
-            result_bytes = host.send_data_bytes(
-                sample=sample,
-                num_bytes_outputs=num_bytes_outputs,
-            )
-            batch_results_bytes.append(result_bytes)
+    total_bits = hw_manager.quantization_scheme.total_bits
+    frac_bits = hw_manager.quantization_scheme.frac_bits
+    features_in = INPUT_DIM
+    features_out = OUTPUT_DIM
 
-        result = parse_bytearray_to_fxp_tensor(
-            batch_results_bytes,
-            hw_manager.quantization_scheme.total_bits,
-            hw_manager.quantization_scheme.frac_bits,
-            (BATCH_SIZE, num_bytes_outputs),
-        )
-        pred = result.argmax(dim=1)
-        correct += pred.eq(target).sum().item()
-        total += target.size(0)
+    file_name = f"TestLinearReLU_{total_bits}_{frac_bits}_{INPUT_DIM}x{OUTPUT_DIM}"
+    fxp = FxpArithmetic(
+        FxpParams(total_bits=total_bits, frac_bits=frac_bits, signed=True)
+    )
 
-    return {Metric.ACCURACY.value: {"value": 100.0 * correct / total, "unit": "%"}}
+    # TODO make this the correct current model
+    dut = Sequential(
+        Linear(
+            in_features=features_in,
+            out_features=features_out,
+            total_bits=total_bits,
+            frac_bits=frac_bits,
+        ),
+        ReLU(total_bits=total_bits),
+    )
 
-
+    os.environ["SIM_RESULT_FILE"] = (
+        "/home/robin/code/elastic-ai.explorer/tests/integration_tests/test_experiment/simulation/sim_results.json"
+    )
+    simulate_sequential_module(
+        dut=dut,
+        file_name=file_name,
+        fxp=fxp,
+        feat_in=features_in,
+    )
 
 
 def search_generate_measure_for_env5(
@@ -244,7 +240,7 @@ def search_generate_measure_for_env5(
     )
 
     metric_to_source = {
-        Metric.ACCURACY: _run_accuracy_test,
+        Metric.ACCURACY: _run_accuracy_simulation,
     }
     df = measure_on_device(
         explorer=explorer,

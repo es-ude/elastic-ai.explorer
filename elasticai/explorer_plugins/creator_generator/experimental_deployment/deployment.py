@@ -36,7 +36,7 @@ from elasticai.creator.arithmetic import (
 )
 
 from elasticai.explorer.training.data import DatasetSpecification
-from elasticai.implementations.creator_generator import synthesis_utils
+from elasticai.explorer_plugins.creator_generator.experimental_deployment import synthesis_utils
 import serial
 
 from elasticai.runtime.env5.usb import UserRemoteControl, get_env5_port
@@ -78,14 +78,6 @@ class CreatorModelTranslator(ModelTranslator):
             skeleton_version="v2",
         )
         firmware.save_to(destination)
-
-    def get_supported_layers(self) -> tuple[type] | None:
-        return (fixed_point.Linear,)
-
-    def get_supported_quantization_schemes(
-        self,
-    ) -> tuple[type[QuantizationScheme]] | None:
-        return (CreatorFixedPointScheme,)
 
 
 class ENv5Compiler(Compiler):

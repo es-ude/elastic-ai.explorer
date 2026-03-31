@@ -9,10 +9,13 @@ from elasticai.explorer.generator.deployment.compiler import (
     RPICompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
+    Host,
     PicoHost,
     RPiHost,
+    SerialHost,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
+    HWManager,
     PicoHWManager,
     RPiHWManager,
 )
@@ -28,7 +31,10 @@ from elasticai.explorer.hw_nas.estimators import (
 )
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
-from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    CreatorFixedPointScheme,
+    QuantizationScheme,
+)
 
 from elasticai.explorer.generator_registry import GeneratorRegistry
 
