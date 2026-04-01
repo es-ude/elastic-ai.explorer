@@ -6,8 +6,6 @@ import subprocess
 from typing import Any
 import ai_edge_torch
 import numpy
-
-from sympy import im
 import torch
 from torch import Tensor, nn
 
@@ -20,9 +18,9 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 )
 import tensorflow as tf
 
-from elasticai.explorer.training.data import BaseDataset
-from elasticai.explorer.utils.data_utils import torch_to_tflite_sample
-from torch.utils.data import DataLoader
+from elasticai.explorer.generator.deployment.generator_utils import (
+    torch_to_tflite_sample,
+)
 
 
 class ModelTranslator(ABC):

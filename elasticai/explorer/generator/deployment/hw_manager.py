@@ -182,6 +182,34 @@ class RPiHWManager(HWManager):
         command = builder.build()
         return command
 
+    def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> Dict:
+        results = super()._invoke_metric_source(metric, path_to_model)
+        if results:
+            return results
+        source = self._get_metric_source(metric)
+        out: str | None = None
+        if isinstance(source, Path):
+            src_path: Path = source
+            out: None | str = None
+            if self.compiler is not None:
+                compiled = self.compiler.compile_code(src_path, src_path.parent)
+            else:
+                compiled = src_path
+
+            if isinstance(self.target, SSHHost):
+                if compiled:
+                    self.target.put_file(local_path=compiled, remote_path=".")
+                    cmd = f"./{Path(compiled).name} {path_to_model.name}"
+                    out = self.target.run_command(cmd)
+            if out:
+                return json.loads(out)
+            else:
+                return {metric.value: {"value": -1, "unit": "Error"}}
+
+        err = TypeError(f"Unsupported source for metric {metric}. ")
+        self.logger.error(err)
+        raise err
+
 
 class CommandBuilder:
     def __init__(self, name_of_exec: str):
@@ -227,6 +255,10 @@ class PicoHWManager(HWManager):
                 shutil.copyfile(file, target_dir / file.name)
 
     def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> Dict:
+        results = super()._invoke_metric_source(metric, path_to_model)
+        if results:
+            return results
+        
         source = self._metric_to_source.get(metric)
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
@@ -238,7 +270,21 @@ class PicoHWManager(HWManager):
             path_to_model,
             path_to_resolver,
         )
-        return super()._invoke_metric_source(metric, path_to_model)
+        if isinstance(source, Path):
+            out: None | str = None
+            if isinstance(self.target, SerialHost):
+                path_to_executable = self.compiler.compile_code(source)
+                if path_to_executable:
+                    self.target.flash(local_path=path_to_executable)
+                    out = self.target.receive()
+            if out:
+                return json.loads(out)
+            else:
+                return {metric.value: {"value": -1, "unit": "Error"}}
+
+        err = TypeError(f"Unsupported source for metric {metric}. ")
+        self.logger.error(err)
+        raise err
 
     def prepare_model(self, path_to_model: Path):
         shutil.copyfile(

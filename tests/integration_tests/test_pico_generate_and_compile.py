@@ -26,7 +26,7 @@ from elasticai.explorer.generator.model_translator.model_translator import (
 )
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
+from elasticai.explorer.generator.deployment.generator_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 from tests.integration_tests.samples import sample_MLP
 from tests.integration_tests.test_data import TimeSeriesDatasetExample
