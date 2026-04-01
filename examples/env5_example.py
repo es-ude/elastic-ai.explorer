@@ -116,23 +116,6 @@ def setup_generator_registry():
     return generator_registry
 
 
-def create_example_dataset_spec(quantization_scheme):
-
-    fxp_params = FxpParams(
-        total_bits=quantization_scheme.total_bits,
-        frac_bits=quantization_scheme.frac_bits,
-        signed=quantization_scheme.signed,
-    )
-    fxp_conf = FxpArithmetic(fxp_params)
-
-    return DatasetSpecification(
-        dataset=SumDataset(
-            transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
-            target_transform=None,
-        )
-    )
-
-
 def _run_accuracy_simulation(host: Host, hw_manager: HWManager, path_to_model: Path):
 
     assert type(hw_manager.quantization_scheme) is CreatorFixedPointScheme
@@ -227,6 +210,7 @@ def _run_accuracy_deployed(
                 sample=sample,
                 num_bytes_outputs=num_bytes_outputs,
             )
+            print(result_bytes)
             batch_results_bytes.append(result_bytes)
 
         result = parse_bytearray_to_fxp_tensor(
@@ -257,7 +241,7 @@ def search_generate_measure_for_env5(
     explorer.generate_search_space(search_space_path)
     dataset_spec = DatasetSpecification(
         dataset=SumDataset(kwargs={"input_dim": INPUT_DIM, "size": 12000})
-    )  # For Deployment use create_example_dataset_spec(quantization_scheme)
+    )
     optimization_criteria = setup_example_optimization_criteria(
         dataset_spec, device, (1, INPUT_DIM)
     )

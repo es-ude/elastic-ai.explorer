@@ -40,6 +40,7 @@ def shape_to_prod(shape: int | Sequence | None):
     return None
 
 
+
 class CreatorLinearBuilder(LayerBuilder):
     base_type = fixed_point.Linear
 
@@ -152,8 +153,6 @@ class CreatorModelBuilder(DefaultModelBuilder):
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
         return {
             (None, "linear"): None,
-            ("conv1d", "linear"): ToLinearAdapter,
-            ("linear", "conv1d"): None,
         }
 
     def build_from_trial(
