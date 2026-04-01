@@ -50,7 +50,7 @@ class TorchscriptModelTranslator(ModelTranslator):
     ):
         if not isinstance(quantization_scheme, FullPrecisionScheme):
             err = NotImplementedError(
-                f"Only Full Precision is currently not supported and not {quantization_scheme}"
+                f"Only Full Precision is currently supported and not {quantization_scheme}"
             )
             self.logger.error(err)
             raise err
@@ -77,12 +77,12 @@ class TFliteModelTranslator(ModelTranslator):
             "explorer.generator.model_translator.model_translator.TFliteModelTranslator"
         )
 
-    def _validate(self, torch_output, edge_output, atol=1e-2, rtol=1e-2):
+    def _validate(self, torch_output, edge_output):
         if numpy.allclose(
             torch_output.detach().numpy(),
             edge_output,
-            atol=atol,
-            rtol=rtol,
+            atol=1e-2,
+            rtol=1e-2,
         ):
             self.logger.info(
                 "Inference result with Pytorch and TfLite was within tolerance."
@@ -110,7 +110,7 @@ class TFliteModelTranslator(ModelTranslator):
 
         return edge_model
 
-    def _model_to_cpp(self, tflite_model_path: Path):
+    def _tflite_to_cpp_array(self, tflite_model_path: Path):
         process = subprocess.run(
             ["xxd", "-i", str(tflite_model_path)], capture_output=True
         )
@@ -164,4 +164,4 @@ class TFliteModelTranslator(ModelTranslator):
             raise err
 
         edge_model.export(str(output_path.with_suffix(".tflite")))
-        self._model_to_cpp(output_path.with_suffix(".tflite"))
+        self._tflite_to_cpp_array(output_path.with_suffix(".tflite"))

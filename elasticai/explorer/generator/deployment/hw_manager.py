@@ -30,7 +30,6 @@ MetricFunction = Callable[[Host, "HWManager"], dict[str, dict]]
 class Metric(Enum):
     LATENCY = "Latency"
     ACCURACY = "Accuracy"
-    VERIFICATION = "Verification"
 
 
 class HWManager(ABC):

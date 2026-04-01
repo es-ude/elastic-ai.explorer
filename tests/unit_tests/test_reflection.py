@@ -1,12 +1,8 @@
-from numpy import dtype
 import pytest
-import torch
 import torch.nn as nn
 
 from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
-
-# --- Minimal stubs ---
 
 
 class DummyQuantScheme(QuantizationScheme):
@@ -21,7 +17,7 @@ class DummyLayerBuilder:
     base_type = nn.Linear
 
 
-class TestReflective(Reflective):
+class ReflectiveExample(Reflective):
     def get_activation_mappings(self):
         return {
             "relu": nn.ReLU(),
@@ -45,7 +41,7 @@ def test_simple_supported_model():
         nn.ReLU(),
     )
 
-    reflective = TestReflective()
+    reflective = ReflectiveExample()
     reflective.validate_model(model, DummyQuantScheme())
 
 
@@ -59,7 +55,7 @@ def test_deeply_nested_sequential_supported():
         )
     )
 
-    reflective = TestReflective()
+    reflective = ReflectiveExample()
     reflective.validate_model(model, DummyQuantScheme())
 
 
@@ -69,7 +65,7 @@ def test_unsupported_leaf_layer():
         nn.Sigmoid(),
     )
 
-    reflective = TestReflective()
+    reflective = ReflectiveExample()
 
     with pytest.raises(NotImplementedError, match="Sigmoid"):
         reflective.validate_model(model, DummyQuantScheme())
@@ -83,7 +79,7 @@ def test_unsupported_layer_inside_nested_sequential():
         )
     )
 
-    reflective = TestReflective()
+    reflective = ReflectiveExample()
 
     with pytest.raises(NotImplementedError, match="Sigmoid"):
         reflective.validate_model(model, DummyQuantScheme())
@@ -101,7 +97,7 @@ def test_unsupported_quantization_scheme():
         nn.Linear(10, 10),
     )
 
-    reflective = TestReflective()
+    reflective = ReflectiveExample()
 
     with pytest.raises(NotImplementedError, match="other"):
         reflective.validate_model(model, OtherQuantScheme())

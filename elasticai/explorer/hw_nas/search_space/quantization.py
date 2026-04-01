@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import numpy
 
+# TODO unify to only one quant scheme with all necessary parameters
 
 class QuantizationScheme(ABC):
     dtype: str
@@ -27,13 +27,3 @@ class FullPrecisionScheme(QuantizationScheme):
     @staticmethod
     def name() -> str:
         return f"full_precision"
-
-
-def tflite_quantize(
-    array, scaling: float = 0.012728233821690083, zeropoint: float = 95
-):
-    return (array / scaling) + zeropoint
-
-
-def tflite_dequantize(array, scaling: float = 0.00390625, zeropoint: float = 128):
-    return scaling * (array.astype(numpy.float32) - zeropoint)
