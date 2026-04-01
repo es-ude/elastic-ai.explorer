@@ -7,7 +7,7 @@ from pathlib import Path
 
 import shutil
 import tarfile
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
 
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
@@ -45,6 +45,18 @@ class HWManager(ABC):
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.HWManager"
         )
+
+    @staticmethod
+    def _create_relative_path(build_context: Path, source: Any) -> Path:
+        # If the source contains the docker path, then make it relative to the docker context.
+        if isinstance(source, Path) and source.is_relative_to(build_context):
+            source = Path("/" + str(source.relative_to(build_context)))
+
+        # Else it assumes the path already was relative to docker context.
+        elif isinstance(source, Path):
+            source = Path("/" + str(source))
+
+        return source
 
     def _register_metric_to_source(self, metric: Metric, source: Path | MetricFunction):
         self._metric_to_source.update({metric: source})
@@ -123,12 +135,7 @@ class RPiHWManager(HWManager):
             super().prepare_measurement(source, metric)
             return
 
-        if source.is_relative_to(self.docker_build_context):
-            relative_path = Path(
-                "/" + str(source.relative_to(self.docker_build_context))
-            )
-        else:
-            relative_path = Path("/" + str(source))
+        relative_path = self._create_relative_path(self.docker_build_context, source)
         path_to_executable = self.compiler.compile_code(relative_path)
         self._register_metric_to_source(metric, relative_path)
         self.target.put_file(path_to_executable, ".")
@@ -201,17 +208,8 @@ class PicoHWManager(HWManager):
 
     def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
 
-        # If the source contains the docker path, then make it relative to the docker context.
-        if isinstance(source, Path) and source.is_relative_to(
-            self.docker_build_context
-        ):
-            source = Path("/" + str(source.relative_to(self.docker_build_context)))
-
-        # Else it assumes the path already was relative to docker context.
-        elif isinstance(source, Path):
-            source = Path("/" + str(source))
-
-        super().prepare_measurement(source, metric)
+        relative_path = self._create_relative_path(self.docker_build_context, source)
+        super().prepare_measurement(relative_path, metric)
 
     def prepare_dataset(
         self,
