@@ -1,14 +1,12 @@
+from glob import glob
 import logging.config
 import os
 from pathlib import Path
-from elasticai.creator.nn import Sequential
 import torch
-from typing import Any, Callable
 
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.training.data import (
-    BaseDataset,
     DatasetSpecification,
 )
 from elasticai.creator.arithmetic import (
@@ -34,9 +32,15 @@ from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
 )
 
-
-from elasticai.creator.nn.fixed_point import MathOperations
-from elasticai.explorer_plugins.creator_generator.experimental_deployment.deployment import CreatorModelTranslator, ENv5Compiler, ENv5HWManager, ENv5Host
+from elasticai.creator.testing import run_cocotb_sim
+from elasticai.explorer.utils.data_utils import load_json
+from elasticai.explorer_plugins.creator_generator.experimental_deployment.deployment import (
+    CreatorEnv5ModelTranslator,
+    CreatorBaseModelTranslator,
+    ENv5Compiler,
+    ENv5HWManager,
+    ENv5Host,
+)
 from elasticai.explorer_plugins.creator_generator.model_builder import (
     CreatorModelBuilder,
 )
@@ -44,13 +48,22 @@ from elasticai.explorer_plugins.creator_generator.quantization_utils import (
     parse_bytearray_to_fxp_tensor,
     parse_fxp_tensor_to_bytearray,
 )
-from elasticai.explorer_plugins.creator_generator.simulation.simulation import (
-    simulate_sequential_module,
+
+
+from elasticai.explorer_plugins.creator_generator.simulation.dummy import (
+    DummyCompiler,
+    DummyHost,
+)
+from elasticai.explorer_plugins.creator_generator.simulation.simulation_utils import (
+    build_simulation_folder_and_test_data,
 )
 from examples.example_helpers import (
+    SumDataset,
     measure_on_device,
     setup_example_optimization_criteria,
 )
+from torch.utils.data import DataLoader
+
 from settings import EXPERIMENTS_DIR
 
 logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
@@ -59,7 +72,6 @@ logger = logging.getLogger("explorer.main")
 
 
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-BATCH_SIZE = 64
 INPUT_DIM = 6
 OUTPUT_DIM = 4
 
@@ -71,7 +83,7 @@ def setup_generator_registry():
         Generator(
             "env5_s50",
             "Env5 with RP2040 and xc7s50ftgb196-2 FPGA",
-            CreatorModelTranslator,
+            CreatorEnv5ModelTranslator,
             ENv5HWManager,
             ENv5Host,
             ENv5Compiler,
@@ -82,81 +94,26 @@ def setup_generator_registry():
         Generator(
             "env5_s15",
             "Env5 with RP2040 and xc7s15ftgb196-2 FPGA",
-            CreatorModelTranslator,
+            CreatorEnv5ModelTranslator,
             ENv5HWManager,
             ENv5Host,
             ENv5Compiler,
             CreatorModelBuilder,
         )
     )
+
+    generator_registry.register_generator(
+        Generator(
+            "env5_simulation",
+            "Cocotb/GHDL Simulation",
+            CreatorBaseModelTranslator,
+            ENv5HWManager,
+            DummyHost,
+            DummyCompiler,
+            CreatorModelBuilder,
+        )
+    )
     return generator_registry
-
-
-class NotAndDataset(BaseDataset):
-    def __init__(
-        self,
-        transform: Callable[..., Any] | None = None,
-        target_transform: Callable[..., Any] | None = None,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-
-        self.target_transform = target_transform
-        self.transform = transform
-        self.data = torch.randint(0, 2, (BATCH_SIZE * 25, INPUT_DIM))
-        summed = self.data.sum(dim=1)
-        self.targets = torch.empty(BATCH_SIZE * 25, dtype=torch.long)
-        self.targets[summed == 2] = 0
-        self.targets[summed < 2] = 1
-
-    def __getitem__(self, idx) -> Any:
-        data, target = self.data[idx], self.targets[idx]
-        if self.transform is not None:
-            data = self.transform(self.data[idx])
-
-        if self.target_transform is not None:
-            target = self.target_transform(self.targets[idx])
-        return data, target
-
-    def __len__(self) -> int:
-        return len(self.data)
-
-
-class SumDataset(BaseDataset):
-    def __init__(
-        self,
-        transform: Callable[..., Any] | None = None,
-        target_transform: Callable[..., Any] | None = None,
-        thresholds=[-0.5, 0.0, 0.5],
-        noise_std=0.0,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.data = torch.randn(BATCH_SIZE * 100, INPUT_DIM)
-        summed = self.data.sum(dim=1)
-        if noise_std > 0:
-            summed = summed + noise_std * torch.randn_like(summed)
-        self.target_transform = target_transform
-        self.transform = transform
-        self.targets = torch.empty(BATCH_SIZE * 100, dtype=torch.long)
-        self.targets[summed <= thresholds[0]] = 0
-        self.targets[(summed > thresholds[0]) & (summed <= thresholds[1])] = 1
-        self.targets[(summed > thresholds[1]) & (summed <= thresholds[2])] = 2
-        self.targets[summed > thresholds[2]] = 3
-
-    def __getitem__(self, idx) -> Any:
-        data, target = self.data[idx], self.targets[idx]
-        if self.transform is not None:
-            data = self.transform(self.data[idx])
-
-        if self.target_transform is not None:
-            target = self.target_transform(self.targets[idx])
-        return data, target
-
-    def __len__(self) -> int:
-        return len(self.data)
 
 
 def create_example_dataset_spec(quantization_scheme):
@@ -167,6 +124,7 @@ def create_example_dataset_spec(quantization_scheme):
         signed=quantization_scheme.signed,
     )
     fxp_conf = FxpArithmetic(fxp_params)
+
     return DatasetSpecification(
         dataset=SumDataset(
             transform=lambda x: fxp_conf.as_rational(fxp_conf.cut_as_integer(x)),
@@ -175,7 +133,74 @@ def create_example_dataset_spec(quantization_scheme):
     )
 
 
-def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
+def _run_accuracy_simulation(host: Host, hw_manager: HWManager, path_to_model: Path):
+
+    assert type(hw_manager.quantization_scheme) is CreatorFixedPointScheme
+
+    if not hw_manager.test_loader:
+        raise TypeError("Testloader not defined.")
+    if (
+        not hw_manager.quantization_scheme
+        or type(hw_manager.quantization_scheme) is not CreatorFixedPointScheme
+    ):
+        raise TypeError("Quantization Scheme is not defined correctly.")
+    if not isinstance(host, SerialHost):
+        raise TypeError("Need Serialhost for this test.")
+
+    fxp = FxpArithmetic(
+        FxpParams(
+            total_bits=hw_manager.quantization_scheme.total_bits,
+            frac_bits=hw_manager.quantization_scheme.frac_bits,
+            signed=True,
+        )
+    )
+
+    if not hw_manager.test_loader:
+        val_input = fxp.as_rational(
+            torch.randint(
+                low=-(2 ** (fxp.total_bits - 2)),
+                high=2 ** (fxp.total_bits - 2),
+                size=(20, INPUT_DIM),
+            )
+        )
+
+    else:
+        test_loader = DataLoader(
+            hw_manager.test_loader.dataset, batch_size=256, shuffle=False
+        )
+        val_input, target = next(iter(test_loader))
+
+    output_dir = build_simulation_folder_and_test_data(
+        build_dir=path_to_model / "srcs",
+        testdata={
+            "in": fxp.cut_as_integer(val_input).int().tolist(),
+            "target": target.int().tolist(),
+            "out_dim": OUTPUT_DIM,
+        },
+    )
+
+    file_name = f"sequential"
+    src_folders = [folder for folder in output_dir.iterdir() if folder.is_dir()]
+    src_files = [output_dir / f"{file_name}.vhd"]
+    for folder in src_folders:
+        src_files.extend(glob(str(output_dir / folder / "*.vhd")))
+
+    result_file = path_to_model / "sim_results.json"
+    os.environ["SIM_RESULT_FILE"] = str(result_file)
+    os.environ["TEST_DIR"] = str(output_dir)
+    run_cocotb_sim(
+        src_files=src_files,
+        top_module_name=file_name,
+        cocotb_test_module="elasticai.explorer_plugins.creator_generator.simulation.simulation",
+        waveform_save_dst=str(output_dir),
+    )
+    results = load_json(result_file)
+    return {Metric.ACCURACY.value: {"value": results["accuracy_percent"], "unit": "%"}}
+
+
+def _run_accuracy_deployed(
+    host: Host, hw_manager: HWManager, path_to_model: Path
+) -> dict[str, dict]:
     correct = 0
     total = 0
     num_bytes_outputs = OUTPUT_DIM
@@ -208,15 +233,13 @@ def _run_accuracy_test(host: Host, hw_manager: HWManager) -> dict[str, dict]:
             batch_results_bytes,
             hw_manager.quantization_scheme.total_bits,
             hw_manager.quantization_scheme.frac_bits,
-            (BATCH_SIZE, num_bytes_outputs),
+            (64, num_bytes_outputs),
         )
         pred = result.argmax(dim=1)
         correct += pred.eq(target).sum().item()
         total += target.size(0)
 
     return {Metric.ACCURACY.value: {"value": 100.0 * correct / total, "unit": "%"}}
-
-
 
 
 def search_generate_measure_for_env5(
@@ -230,10 +253,11 @@ def search_generate_measure_for_env5(
     top_n_models: int = 2,
 ):
 
-    quantization_scheme = CreatorFixedPointScheme()
     explorer.choose_target_hw(fpga_type, compiler_params, serial_params)
     explorer.generate_search_space(search_space_path)
-    dataset_spec = create_example_dataset_spec(quantization_scheme)
+    dataset_spec = DatasetSpecification(
+        dataset=SumDataset(kwargs={"input_dim": INPUT_DIM, "size": 12000})
+    )  # For Deployment use create_example_dataset_spec(quantization_scheme)
     optimization_criteria = setup_example_optimization_criteria(
         dataset_spec, device, (1, INPUT_DIM)
     )
@@ -244,7 +268,7 @@ def search_generate_measure_for_env5(
     )
 
     metric_to_source = {
-        Metric.ACCURACY: _run_accuracy_test,
+        Metric.ACCURACY: _run_accuracy_simulation,
     }
     df = measure_on_device(
         explorer=explorer,
@@ -260,10 +284,10 @@ def search_generate_measure_for_env5(
 
 
 if __name__ == "__main__":
-    max_search_trials = 2
-    top_n_models = 2
-    retrain_epochs = 2
-    hw_platform = "env5_s50"
+    max_search_trials = 3
+    top_n_models = 3
+    retrain_epochs = 15
+    hw_platform = "env5_simulation"
 
     compiler_params = VivadoParams(
         "/home/vivado/robin-build/", "65.108.38.237", "vivado", hw_platform

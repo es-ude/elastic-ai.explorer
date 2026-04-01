@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Callable, List
 import torch
 from torch import nn
 from torchvision.transforms import transforms
@@ -39,7 +39,11 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 from elasticai.explorer.generator_registry import GeneratorRegistry
 
 
-from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
+from elasticai.explorer.training.data import (
+    BaseDataset,
+    DatasetSpecification,
+    MNISTWrapper,
+)
 from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
 from torch import optim
 
@@ -174,3 +178,41 @@ def measure_on_device(
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",
     )
+
+
+class SumDataset(BaseDataset):
+    def __init__(
+        self,
+        transform: Callable[..., Any] | None = None,
+        target_transform: Callable[..., Any] | None = None,
+        thresholds=[-0.5, 0.0, 0.5],
+        noise_std=0.0,
+        *args,
+        **kwargs,
+    ):
+        super().__init__()
+        input_dim = kwargs.get("input_dim", 6)
+        size = kwargs.get("size", 12000)
+        self.data = torch.randn(size, input_dim)
+        summed = self.data.sum(dim=1)
+        if noise_std > 0:
+            summed = summed + noise_std * torch.randn_like(summed)
+        self.target_transform = target_transform
+        self.transform = transform
+        self.targets = torch.empty(size, dtype=torch.long)
+        self.targets[summed <= thresholds[0]] = 0
+        self.targets[(summed > thresholds[0]) & (summed <= thresholds[1])] = 1
+        self.targets[(summed > thresholds[1]) & (summed <= thresholds[2])] = 2
+        self.targets[summed > thresholds[2]] = 3
+
+    def __getitem__(self, idx) -> Any:
+        data, target = self.data[idx], self.targets[idx]
+        if self.transform is not None:
+            data = self.transform(self.data[idx])
+
+        if self.target_transform is not None:
+            target = self.target_transform(self.targets[idx])
+        return data, target
+
+    def __len__(self) -> int:
+        return len(self.data)

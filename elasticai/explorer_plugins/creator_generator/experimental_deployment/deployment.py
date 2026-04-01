@@ -36,17 +36,44 @@ from elasticai.creator.arithmetic import (
 )
 
 from elasticai.explorer.training.data import DatasetSpecification
-from elasticai.explorer_plugins.creator_generator.experimental_deployment import synthesis_utils
+from elasticai.explorer_plugins.creator_generator.experimental_deployment import (
+    synthesis_utils,
+)
 import serial
 
 from elasticai.runtime.env5.usb import UserRemoteControl, get_env5_port
 
 
-class CreatorModelTranslator(ModelTranslator):
+class CreatorBaseModelTranslator(ModelTranslator):
     def __init__(self) -> None:
         self.logger = logging.getLogger(
-            "explorer.generator.model_compiler.model_compiler.CreatorModelCompiler"
+            "explorer.generator.model_translator.model_translator.CreatorModelTranslator"
         )
+
+    def translate(
+        self,
+        model: nn.Module,
+        output_path: Path,
+        sample: torch.Tensor,
+        quantization_scheme: QuantizationScheme = CreatorFixedPointScheme(),
+    ):
+        self.destination = OnDiskPath(str(output_path), parent="")
+
+        if not isinstance(model, creator_nn.Sequential):
+            err = TypeError(
+                f"{type(model)} is not supported by the CreatorModelTranslator, best to build models with the CreatorModelBuilder!"
+            )
+            self.logger.error(err)
+            raise err
+
+        self.my_design = model.create_design("sequential")
+
+        self.my_design.save_to(self.destination.create_subpath("srcs"))
+
+
+class CreatorEnv5ModelTranslator(CreatorBaseModelTranslator):
+    def __init__(self) -> None:
+        super().__init__()
         self.skeleton_id = [2 for i in range(16)]
 
     def translate(
@@ -56,28 +83,17 @@ class CreatorModelTranslator(ModelTranslator):
         sample: torch.Tensor,
         quantization_scheme: QuantizationScheme = CreatorFixedPointScheme(),
     ):
-        destination = OnDiskPath(str(output_path), parent="")
+        super().translate(model, output_path, sample, quantization_scheme)
         features_in = len(sample)
         features_out = len(model(sample))
-        if not isinstance(model, creator_nn.Sequential):
-            err = TypeError(
-                f"{type(model)} is not supported by the CreatorModelTranslator, best to build models with the CreatorModelBuilder!"
-            )
-            self.logger.error(err)
-            raise err
-
-        my_design = model.create_design("myNetwork")
-
-        my_design.save_to(destination.create_subpath("srcs"))
-
         firmware = FirmwareENv5(
-            network=my_design,
+            network=self.my_design,
             x_num_values=features_in,
             y_num_values=features_out,
             id=self.skeleton_id,
             skeleton_version="v2",
         )
-        firmware.save_to(destination)
+        firmware.save_to(self.destination)
 
 
 class ENv5Compiler(Compiler):
@@ -210,12 +226,6 @@ class ENv5HWManager(HWManager):
         self.frac_bits = quantization_scheme.frac_bits
         self.total_bits = quantization_scheme.total_bits
         self.dataset_spec = dataset_spec
-        fxp_params = FxpParams(
-            total_bits=quantization_scheme.total_bits,
-            frac_bits=quantization_scheme.frac_bits,
-            signed=quantization_scheme.signed,
-        )
-        fxp_conf = FxpArithmetic(fxp_params)
         self.dataset = self.dataset_spec.dataset
         _, test_subset, _ = random_split(
             self.dataset,

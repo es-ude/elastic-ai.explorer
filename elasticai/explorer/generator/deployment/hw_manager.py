@@ -24,7 +24,7 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 from elasticai.explorer.training.data import DatasetSpecification
 from torch.utils.data import DataLoader
 
-MetricFunction = Callable[[Host, "HWManager"], dict[str, dict]]
+MetricFunction = Callable[[Host, "HWManager", Path | None], dict[str, dict]]
 
 
 class Metric(Enum):
@@ -61,7 +61,7 @@ class HWManager(ABC):
             raise Exception(f"No source code registered for Metric: {metric}")
 
         if callable(source):
-            result = source(self.target, self)
+            result = source(self.target, self, path_to_model)
             return result
 
         if isinstance(source, Path):
