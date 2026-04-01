@@ -1,6 +1,4 @@
-from glob import glob
 import logging.config
-import os
 from pathlib import Path
 import torch
 
@@ -8,10 +6,6 @@ from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.training.data import (
     DatasetSpecification,
-)
-from elasticai.creator.arithmetic import (
-    FxpArithmetic,
-    FxpParams,
 )
 
 
@@ -55,14 +49,13 @@ from elasticai.explorer_plugins.creator_generator.simulation.dummy import (
     DummyHost,
 )
 from elasticai.explorer_plugins.creator_generator.simulation.simulation_utils import (
-    build_simulation_folder_and_test_data,
+    _prep_simulation,
 )
 from examples.example_helpers import (
     SumDataset,
     measure_on_device,
     setup_example_optimization_criteria,
 )
-from torch.utils.data import DataLoader
 
 from settings import EXPERIMENTS_DIR
 
@@ -118,67 +111,44 @@ def setup_generator_registry():
 
 def _run_accuracy_simulation(host: Host, hw_manager: HWManager, path_to_model: Path):
 
-    assert type(hw_manager.quantization_scheme) is CreatorFixedPointScheme
-
-    if not hw_manager.test_loader:
-        raise TypeError("Testloader not defined.")
-    if (
-        not hw_manager.quantization_scheme
-        or type(hw_manager.quantization_scheme) is not CreatorFixedPointScheme
-    ):
-        raise TypeError("Quantization Scheme is not defined correctly.")
-    if not isinstance(host, SerialHost):
-        raise TypeError("Need Serialhost for this test.")
-
-    fxp = FxpArithmetic(
-        FxpParams(
-            total_bits=hw_manager.quantization_scheme.total_bits,
-            frac_bits=hw_manager.quantization_scheme.frac_bits,
-            signed=True,
-        )
+    src_files, file_name, output_dir, result_file = _prep_simulation(
+        host, hw_manager, path_to_model, INPUT_DIM, OUTPUT_DIM
     )
-
-    if not hw_manager.test_loader:
-        val_input = fxp.as_rational(
-            torch.randint(
-                low=-(2 ** (fxp.total_bits - 2)),
-                high=2 ** (fxp.total_bits - 2),
-                size=(20, INPUT_DIM),
-            )
+    results = {}
+    try:
+        run_cocotb_sim(
+            src_files=src_files,
+            top_module_name=file_name,
+            cocotb_test_module="elasticai.explorer_plugins.creator_generator.simulation.simulation",
+            waveform_save_dst=str(output_dir),
         )
+        results = load_json(result_file)
+    except:
+        print(f"Simulation failed for {path_to_model}!")
+        results["accuracy_percent"] = -1
 
-    else:
-        test_loader = DataLoader(
-            hw_manager.test_loader.dataset, batch_size=256, shuffle=False
-        )
-        val_input, target = next(iter(test_loader))
-
-    output_dir = build_simulation_folder_and_test_data(
-        build_dir=path_to_model / "srcs",
-        testdata={
-            "in": fxp.cut_as_integer(val_input).int().tolist(),
-            "target": target.int().tolist(),
-            "out_dim": OUTPUT_DIM,
-        },
-    )
-
-    file_name = f"sequential"
-    src_folders = [folder for folder in output_dir.iterdir() if folder.is_dir()]
-    src_files = [output_dir / f"{file_name}.vhd"]
-    for folder in src_folders:
-        src_files.extend(glob(str(output_dir / folder / "*.vhd")))
-
-    result_file = path_to_model / "sim_results.json"
-    os.environ["SIM_RESULT_FILE"] = str(result_file)
-    os.environ["TEST_DIR"] = str(output_dir)
-    run_cocotb_sim(
-        src_files=src_files,
-        top_module_name=file_name,
-        cocotb_test_module="elasticai.explorer_plugins.creator_generator.simulation.simulation",
-        waveform_save_dst=str(output_dir),
-    )
-    results = load_json(result_file)
     return {Metric.ACCURACY.value: {"value": results["accuracy_percent"], "unit": "%"}}
+
+
+def _run_latency_simulation(host: Host, hw_manager: HWManager, path_to_model: Path):
+
+    src_files, file_name, output_dir, result_file = _prep_simulation(
+        host, hw_manager, path_to_model, INPUT_DIM, OUTPUT_DIM
+    )
+    results = {}
+    try:
+        run_cocotb_sim(
+            src_files=src_files,
+            top_module_name=file_name,
+            cocotb_test_module="elasticai.explorer_plugins.creator_generator.simulation.simulation",
+            waveform_save_dst=str(output_dir),
+        )
+        results = load_json(result_file)
+    except:
+        print(f"Simulation failed for {path_to_model}!")
+        results["latency_ns"] = -1
+    results = load_json(result_file)
+    return {Metric.LATENCY.value: {"value": results["latency_ns"], "unit": "ns"}}
 
 
 def _run_accuracy_deployed(
@@ -253,6 +223,7 @@ def search_generate_measure_for_env5(
 
     metric_to_source = {
         Metric.ACCURACY: _run_accuracy_simulation,
+        # Metric.LATENCY: _run_latency_simulation,
     }
     df = measure_on_device(
         explorer=explorer,
@@ -268,8 +239,8 @@ def search_generate_measure_for_env5(
 
 
 if __name__ == "__main__":
-    max_search_trials = 3
-    top_n_models = 3
+    max_search_trials = 4
+    top_n_models = 4
     retrain_epochs = 15
     hw_platform = "env5_simulation"
 

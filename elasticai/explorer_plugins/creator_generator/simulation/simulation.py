@@ -13,10 +13,11 @@ from numpy import argmax
 from elasticai.explorer_plugins.creator_generator.simulation.simulation_utils import (
     read_testdata,
 )
+from cocotb.utils import get_sim_time
 
 
 @cocotb.test()
-async def accuracy_test(dut):
+async def accuracy_latency_test(dut):
 
     test_dir = Path(
         os.getenv(
@@ -40,6 +41,8 @@ async def accuracy_test(dut):
     await RisingEdge(dut.clock)
     iterations = 0
     correct = 0
+
+    start_time = get_sim_time(unit="ns")
     for ite, (sig_in, target) in enumerate(zip(data["in"], data["target"])):
         result = list()
 
@@ -62,11 +65,6 @@ async def accuracy_test(dut):
 
         dut.y_address.value = 0
 
-        print(f"\n--- Run {ite} ---")
-        print(f"Input: {sig_in}")
-        print(f"Result: {result}")
-        print(f"Target: {target}")
-
         # --- Do reset
         for _ in range(2):
             await RisingEdge(dut.clock)
@@ -77,7 +75,10 @@ async def accuracy_test(dut):
         if argmax(result) == target:
             correct += 1
         iterations += 1
+    end_time = get_sim_time(unit="ns")
 
+    total_latency = end_time - start_time
+    latency_per_sample = total_latency / iterations
     accuracy = correct / iterations
 
     result_path = Path(
@@ -89,5 +90,5 @@ async def accuracy_test(dut):
     result_path = Path(result_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     result_path.write_text(
-        json.dumps({"accuracy_percent": accuracy * 100})
+        json.dumps({"accuracy_percent": accuracy * 100, "latency_ns": latency_per_sample})
     )

@@ -12,16 +12,16 @@ sequence:
     op_candidates: ["linear"]
     type_repeat:
       repeat_type: "repeat_op"
-      depth: [1]
+      depth: 1
     linear:
       activation: [ "relu"]
-      width: [32, 64, 128]
+      width: [18 ,24, 48]
   - block:  "1" 
     op_candidates: ["linear"]
     type_repeat:
       repeat_type: "repeat_op"
-      depth: [1]
+      depth: 1
     linear:
       activation: [ "relu"]
-      width: [32, 64]
+      width: [18, 24, 48]
   
