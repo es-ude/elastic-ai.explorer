@@ -56,16 +56,16 @@ async def accuracy_test(dut):
             dut.y_address.value = idx
             for _ in range(2):
                 await RisingEdge(dut.clock)
-            result.append(dut.y.value.signed_integer)
+            result.append(dut.y.value.to_signed())
             for _ in range(2):
                 await RisingEdge(dut.clock)
 
         dut.y_address.value = 0
 
-        # print(f"\n--- Run {ite} ---")
-        # print(f"Input: {sig_in}")
-        # print(f"Result: {result}")
-        # print(f"Target: {target}")
+        print(f"\n--- Run {ite} ---")
+        print(f"Input: {sig_in}")
+        print(f"Result: {result}")
+        print(f"Target: {target}")
 
         # --- Do reset
         for _ in range(2):
@@ -89,5 +89,5 @@ async def accuracy_test(dut):
     result_path = Path(result_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     result_path.write_text(
-        json.dumps({"accuracy": accuracy, "accuracy_percent": accuracy * 100})
+        json.dumps({"accuracy_percent": accuracy * 100})
     )

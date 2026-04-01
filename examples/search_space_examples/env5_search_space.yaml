@@ -14,11 +14,5 @@ sequence:
     depth: [1]
     linear:
       activation: [ "relu"]
-      width: [12]
-  - block:  "2"
-    op_candidates: ["linear"]
-    activation: ["relu"]
-    depth: [2]
-    linear:
-      activation: [ "relu"]
-      width: [2,4]
+      width: [4]
+  

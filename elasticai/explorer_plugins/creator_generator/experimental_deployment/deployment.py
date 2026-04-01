@@ -246,4 +246,3 @@ class ENv5HWManager(HWManager):
             self.target.flash(local_path=self.path_to_executable)
 
 
-# TODO add simulation for latency and accuracy measurement
