@@ -44,22 +44,29 @@ class Reflective(ABC):
         self, model: torch.nn.Module, quantization_scheme: QuantizationScheme
     ):
         """Override if necessary"""
-        sl = self.get_supported_layers()
-        sa = self.get_supported_activations()
-        sqs = self.get_supported_quantization_schemes()
+        supported_layers = self.get_supported_layers()
+        supported_activations = self.get_supported_activations()
+        supported_quantization_schemes = self.get_supported_quantization_schemes()
+
+        # modules gives back all modules recursively
         for module in model.modules():
             if module is model:
                 continue
+
+            # skip any container like Sequential
+            if any(True for _ in module.children()):
+                continue
+
             module_type = type(module)
-            in_supported_layers = module_type in sl
-            in_supported_activations = module_type in sa
+            in_supported_layers = module_type in supported_layers
+            in_supported_activations = module_type in supported_activations
             if not in_supported_layers and not in_supported_activations:
                 raise NotImplementedError(
                     f"{type(module).__name__} is not supported by {self.__class__.__name__} "
                 )
 
-        if sqs is not None:
-            if type(quantization_scheme) not in sqs:
+        if supported_quantization_schemes is not None:
+            if type(quantization_scheme) not in supported_quantization_schemes:
                 raise NotImplementedError(
-                    f"{quantization_scheme}  is not supported by {self.__class__.__name__}"
+                    f"{quantization_scheme.name()}  is not supported by {self.__class__.__name__}"
                 )
