@@ -9,12 +9,10 @@ from elasticai.explorer.hw_nas.search_space.layer_adapter import (
     LSTMToConv2dAdapter,
     ToLinearAdapter,
 )
-from elasticai.explorer.hw_nas.search_space.quantization import FullPrecisionScheme
 
 adapter_registry = {}
 layer_registry = {}
 activation_registry = {}
-quantization_registry = {}
 composite_registry = {}
 
 DEFAULT_ADAPTER = {
@@ -37,4 +35,3 @@ DEFAULT_ACTIVATION = {
     "tanh": nn.Tanh(),
 }
 
-DEFAULT_QUANTIZATION = {"FullPrecision": FullPrecisionScheme}

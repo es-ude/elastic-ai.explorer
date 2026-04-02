@@ -2,7 +2,6 @@ import math
 import tomllib
 
 import pytest
-from torch import Tensor
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry

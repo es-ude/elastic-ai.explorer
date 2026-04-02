@@ -12,15 +12,11 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )
 
-from elasticai.explorer.hw_nas.search_space.quantization_builder import (
-    quantization_registry,
-)
 from elasticai.explorer.hw_nas.search_space.registry import (
     activation_registry,
     adapter_registry,
     DEFAULT_ACTIVATION,
     DEFAULT_ADAPTER,
-    DEFAULT_QUANTIZATION,
     layer_registry,
 )
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
@@ -71,12 +67,11 @@ class ModelBuilder(Reflective, ABC):
             activation_registry.clear()
             adapter_registry.clear()
             layer_registry.clear()
-            quantization_registry.clear()
 
         activation_registry.update(self.get_activation_mappings())
         adapter_registry.update(self.get_adapter_mappings())
         layer_registry.update(self.get_layer_mappings())
-        quantization_registry.update(self.get_supported_quantization_schemes())
+
 
 
 class DefaultModelBuilder(ModelBuilder):
@@ -93,8 +88,14 @@ class DefaultModelBuilder(ModelBuilder):
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], type | None]:
         return DEFAULT_ADAPTER
 
-    def get_supported_quantization_schemes(self) -> dict[str, Any]:
-        return DEFAULT_QUANTIZATION
+    def get_supported_quantization(self) -> dict[str, Any]:
+        return {
+            "dtype": "float32",
+            "total_bits": 32,
+            "frac_bits": 8,
+            "signed": True,
+            "training_type": "QAT",
+        }
 
     def construct_model(self, sample: OrderedDict, in_dim, out_dim):
         layers = []

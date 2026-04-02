@@ -5,20 +5,12 @@ from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 
 
-class DummyQuantScheme(QuantizationScheme):
-    dtype: str = ""
-
-    @staticmethod
-    def name() -> str:
-        return ""
-
-
 class DummyLayerBuilder:
     base_type = nn.Linear
 
 
 class ReflectiveExample(Reflective):
-    def get_activation_mappings(self):
+    def get_activation_mappings(self):  # type: ignore
         return {
             "relu": nn.ReLU(),
         }
@@ -26,10 +18,10 @@ class ReflectiveExample(Reflective):
     def get_adapter_mappings(self):
         return {}
 
-    def get_supported_quantization_schemes(self):
-        return {DummyQuantScheme: {}}
+    def get_supported_quantization(self):
+        return {"dtype": {"float32"}, "total_bits": lambda x: x <= 32}
 
-    def get_layer_mappings(self):
+    def get_layer_mappings(self):  # type:ignore
         return {
             "linear": DummyLayerBuilder,
         }
@@ -42,7 +34,7 @@ def test_simple_supported_model():
     )
 
     reflective = ReflectiveExample()
-    reflective.validate_model(model, DummyQuantScheme())
+    reflective.validate_model(model, QuantizationScheme())
 
 
 def test_deeply_nested_sequential_supported():
@@ -56,7 +48,7 @@ def test_deeply_nested_sequential_supported():
     )
 
     reflective = ReflectiveExample()
-    reflective.validate_model(model, DummyQuantScheme())
+    reflective.validate_model(model, QuantizationScheme())
 
 
 def test_unsupported_leaf_layer():
@@ -68,7 +60,7 @@ def test_unsupported_leaf_layer():
     reflective = ReflectiveExample()
 
     with pytest.raises(NotImplementedError, match="Sigmoid"):
-        reflective.validate_model(model, DummyQuantScheme())
+        reflective.validate_model(model, QuantizationScheme())
 
 
 def test_unsupported_layer_inside_nested_sequential():
@@ -82,22 +74,15 @@ def test_unsupported_layer_inside_nested_sequential():
     reflective = ReflectiveExample()
 
     with pytest.raises(NotImplementedError, match="Sigmoid"):
-        reflective.validate_model(model, DummyQuantScheme())
+        reflective.validate_model(model, QuantizationScheme())
 
 
 def test_unsupported_quantization_scheme():
-    class OtherQuantScheme(QuantizationScheme):
-        dtype: str = ""
-
-        @staticmethod
-        def name() -> str:
-            return "other"
-
     model = nn.Sequential(
         nn.Linear(10, 10),
     )
 
     reflective = ReflectiveExample()
 
-    with pytest.raises(NotImplementedError, match="other"):
-        reflective.validate_model(model, OtherQuantScheme())
+    with pytest.raises(NotImplementedError, match="total_bits=80"):
+        reflective.validate_model(model, QuantizationScheme(total_bits=80))

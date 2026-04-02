@@ -11,11 +11,7 @@ from torch import Tensor, nn
 
 from ai_edge_torch import convert, to_channel_last_io
 
-from elasticai.explorer.hw_nas.search_space.quantization import (
-    PTQFullyQuantizedInt8Scheme,
-    FullPrecisionScheme,
-    QuantizationScheme,
-)
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 import tensorflow as tf
 
 from elasticai.explorer.generator.deployment.generator_utils import (
@@ -46,11 +42,11 @@ class TorchscriptModelTranslator(ModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ):
-        if not isinstance(quantization_scheme, FullPrecisionScheme):
+        if not quantization_scheme.dtype == "float32":
             err = NotImplementedError(
-                f"Only Full Precision is currently supported and not {quantization_scheme}"
+                f"Only Full Precision is currently supported and not {quantization_scheme.dtype}"
             )
             self.logger.error(err)
             raise err
@@ -139,7 +135,7 @@ class TFliteModelTranslator(ModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ):
         self.logger.info("Generate tflite model from %s", model)
 
@@ -148,13 +144,13 @@ class TFliteModelTranslator(ModelTranslator):
         torch_output = model(sample)
         tflite_shaped_model = to_channel_last_io(model, args=[0]).eval()
 
-        if isinstance(quantization_scheme, FullPrecisionScheme):
+        if quantization_scheme.dtype == "float32":
             edge_model = ai_edge_torch.convert(
                 tflite_shaped_model, sample_args=(tflite_samples,)
             )
             edge_output = edge_model(tflite_samples)
             self._validate(torch_output, edge_output)
-        elif isinstance(quantization_scheme, PTQFullyQuantizedInt8Scheme):
+        elif quantization_scheme.dtype == "int8":
             edge_model = self._quantize(tflite_shaped_model, (tflite_samples,))
         else:
             err = NotImplementedError(

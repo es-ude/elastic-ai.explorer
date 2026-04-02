@@ -9,7 +9,6 @@ from fvcore.nn.jit_handles import get_shape
 from fvcore.nn import FlopCountAnalysis, parameter_count
 from torch.optim.adam import Adam
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FullPrecisionScheme,
     QuantizationScheme,
 )
 from elasticai.explorer.training.trainer import Trainer
@@ -149,14 +148,9 @@ class TrainMetricsEstimator(Estimator):
 def get_quantization_info(
     target_quantization_scheme: QuantizationScheme,
     logger,
-    optimal_schemes: list[type[QuantizationScheme]] = [FullPrecisionScheme],
+    optimal_schemes: list[str] = ["float32"],
 ):
-
-    optimal_schemes_names = [
-        optimal_schemes.name() for optimal_schemes in optimal_schemes
-    ]
-
     if not (type(target_quantization_scheme) in optimal_schemes):
         logger.info(
-            f"The estimation is most optimal for {optimal_schemes_names} but this models target quantization is {target_quantization_scheme.name()}."
+            f"The estimation is most optimal for {optimal_schemes} but this models target quantization is {target_quantization_scheme.name}."
         )

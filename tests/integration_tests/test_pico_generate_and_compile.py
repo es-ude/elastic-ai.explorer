@@ -5,9 +5,6 @@ import torch
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.hw_nas.search_space.quantization import (
-    PTQFullyQuantizedInt8Scheme,
-)
 from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import (
     CompilerParams,
@@ -25,11 +22,11 @@ from elasticai.explorer.generator.model_translator.model_translator import (
     TFliteModelTranslator,
 )
 from torchvision import transforms
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.generator.deployment.generator_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 from tests.integration_tests.samples import sample_MLP
-from tests.integration_tests.test_data import TimeSeriesDatasetExample
 
 
 class TestPicoGenerateAndCompile:
@@ -141,7 +138,9 @@ class TestPicoGenerateAndCompile:
             model,
             output_path=output_path,
             sample=self.data_sample,
-            quantization_scheme=PTQFullyQuantizedInt8Scheme(),
+            quantization_scheme=QuantizationScheme(
+                dtype="int8", total_bits=8, frac_bits=2, training_type="QAT"
+            ),
         )
         assert os.path.exists(output_path.with_suffix(".tflite"))
         assert os.path.exists(output_path.with_suffix(".cpp"))

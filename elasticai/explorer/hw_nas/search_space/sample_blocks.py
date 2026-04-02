@@ -5,12 +5,9 @@ from typing import Any
 from yaml.error import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FullPrecisionScheme,
     QuantizationScheme,
 )
-from elasticai.explorer.hw_nas.search_space.quantization_builder import (
-    quantization_registry,
-)
+
 from elasticai.explorer.hw_nas.search_space.registry import composite_registry
 
 
@@ -140,18 +137,10 @@ class Sampler:
         quant_scheme = QuantizationScheme
         if "quantization" in search_space:
             quant_cfg = search_space["quantization"]
-            quant_name = parse_search_param(
-                self.trial,
-                "quantization",
-                quant_cfg,
-                "quant_candidates",
-            )
-            quant_params = quant_cfg.get(quant_name, {})
-            quant_builder_cls = quantization_registry[quant_name]
-            quant_builder = quant_builder_cls(self.trial, quant_params)
+            quant_builder = QuantizationBuilder(self.trial, quant_cfg)
             quant_scheme = quant_builder.build()
         else:
-            quant_scheme = FullPrecisionScheme()
+            quant_scheme = QuantizationScheme()
         return quant_scheme
 
 
@@ -396,3 +385,29 @@ class VaryAllFactory(BlockFactory):
             VaryOp(block_id, block_cfg),
             VaryParams(block_id, block_cfg, sampler.default_op_params),
         )
+
+
+class QuantizationBuilder:
+    def __init__(self, trial, search_params: dict) -> None:
+        self.trial = trial
+        self.search_params = search_params
+        self.defaults = {
+            "dtype": "float32",
+            "total_bits": 32,
+            "frac_bits": 8,
+            "signed": True,
+            "training_type": "QAT",
+        }
+
+    def build(self) -> QuantizationScheme:
+        values = {}
+        for key, default in self.defaults.items():
+            value = parse_search_param(
+                trial=self.trial,
+                name=f"quant_{key}",
+                params=self.search_params,
+                key=key,
+                default_value=default,
+            )
+            values[key] = value
+        return QuantizationScheme(**values)
