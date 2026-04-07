@@ -223,7 +223,7 @@ def search_generate_measure_for_env5(
 
     metric_to_source = {
         Metric.ACCURACY: _run_accuracy_simulation,
-        # Metric.LATENCY: _run_latency_simulation,
+        Metric.LATENCY: _run_latency_simulation,
     }
     df = measure_on_device(
         explorer=explorer,
