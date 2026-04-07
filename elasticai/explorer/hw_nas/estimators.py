@@ -148,9 +148,9 @@ class TrainMetricsEstimator(Estimator):
 def get_quantization_info(
     target_quantization_scheme: QuantizationScheme,
     logger,
-    optimal_schemes: list[str] = ["float32"],
+    optimal_dtype: list[str] = ["float32"],
 ):
-    if not (type(target_quantization_scheme) in optimal_schemes):
+    if not (target_quantization_scheme.dtype in optimal_dtype):
         logger.info(
-            f"The estimation is most optimal for {optimal_schemes} but this models target quantization is {target_quantization_scheme}."
+            f"The estimation is most optimal for {optimal_dtype} but this models target quantization is {target_quantization_scheme}."
         )

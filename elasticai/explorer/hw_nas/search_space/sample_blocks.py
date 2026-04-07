@@ -393,15 +393,17 @@ class QuantizationBuilder:
         self.search_params = search_params
         self.defaults = {
             "dtype": "float32",
-            "total_bits": 32,
-            "frac_bits": 8,
-            "signed": True,
-            "training_type": "QAT",
+            "total_bits": None,
+            "frac_bits": None,
+            "signed": None,
+            "training_type": None,
         }
 
     def build(self) -> QuantizationScheme:
         values = {}
         for key, default in self.defaults.items():
+            if not self.search_params.get(key):
+                continue
             value = parse_search_param(
                 trial=self.trial,
                 name=f"quant_{key}",
@@ -409,6 +411,7 @@ class QuantizationBuilder:
                 key=key,
                 default_value=default,
             )
+    
             values[key] = value
         self.basic_checks(values=values)
         return QuantizationScheme(**values)

@@ -91,7 +91,7 @@ def sample_and_create_model(model_builder: ModelBuilder, trial, search_space: di
         model, quant_scheme = model_builder.build_from_trial(trial, search_space)
         return model, quant_scheme
 
-    except (ShapeValueError, NotImplementedError) as e:
+    except (ShapeValueError, NotImplementedError, ValueError) as e:
         print(traceback.format_exc())
         logger.warning(
             f"Failed to construct model due to exception: {e}. Pruning trial."
