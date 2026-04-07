@@ -34,7 +34,7 @@ def test_simple_supported_model():
     )
 
     reflective = ReflectiveExample()
-    reflective.validate_model(model, QuantizationScheme())
+    reflective.validate_model(model, QuantizationScheme(total_bits=32))
 
 
 def test_deeply_nested_sequential_supported():

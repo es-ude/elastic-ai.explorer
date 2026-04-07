@@ -410,4 +410,27 @@ class QuantizationBuilder:
                 default_value=default,
             )
             values[key] = value
+        self.basic_checks(values=values)
         return QuantizationScheme(**values)
+
+    def basic_checks(self, values: dict):
+        dtype = values.get("dtype")
+        total_bits = values.get("total_bits")
+        frac_bits = values.get("frac_bits")
+        if total_bits and frac_bits:
+            if total_bits < frac_bits:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) cannot be lower than the number of fractional bits ({frac_bits})"
+                )
+            if dtype == "int8" and total_bits != 8:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 8 for int8 dtype"
+                )
+            if dtype == "float32" and total_bits != 32:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 32 for float32 dtype"
+                )
+            if dtype == "float16" and total_bits != 16:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 16 for float16 dtype"
+                )

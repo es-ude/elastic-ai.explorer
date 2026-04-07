@@ -52,7 +52,7 @@ class Reflective(ABC):
             if module is model:
                 continue
 
-            # skip any non-leaf module like Sequential
+            # skip any non-leaf modules like Sequentials
             if any(True for _ in module.children()):
                 continue
 
@@ -69,7 +69,7 @@ class Reflective(ABC):
         if supported_quantization_parameters is not None:
             for field, allowed_values in supported_quantization_parameters.items():
                 value = getattr(quantization_scheme, field, None)
-                if allowed_values is None:
+                if value is None or allowed_values is None:
                     continue
 
                 if callable(allowed_values):
