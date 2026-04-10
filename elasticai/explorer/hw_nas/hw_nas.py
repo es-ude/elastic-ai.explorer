@@ -9,13 +9,13 @@ import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 
-from elasticai.explorer.generator.model_builder.model_builder import (
+from elasticai.explorer.hw_nas.search_space.build_model import (
     ModelBuilder,
 )
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
-from elasticai.explorer.generator.model_builder.model_builder import (
+from elasticai.explorer.hw_nas.search_space.build_model import (
     ShapeValueError,
 )
 from elasticai.explorer.hw_nas.search_space.quantization import (
@@ -91,7 +91,7 @@ def sample_and_create_model(model_builder: ModelBuilder, trial, search_space: di
         model, quant_scheme = model_builder.build_from_trial(trial, search_space)
         return model, quant_scheme
 
-    except (ShapeValueError, NotImplementedError) as e:
+    except (ShapeValueError, NotImplementedError, ValueError) as e:
         print(traceback.format_exc())
         logger.warning(
             f"Failed to construct model due to exception: {e}. Pruning trial."

@@ -13,7 +13,6 @@ from fabric import Connection
 from paramiko.ssh_exception import AuthenticationException
 
 
-
 @dataclass
 class SSHParams:
     hostname: str
@@ -139,6 +138,8 @@ class PicoHost(SerialHost):
         while not os.path.isdir(self.host_name):
             time.sleep(sleep_interval)
             time_passed = time_passed + sleep_interval
+            if time_passed > 32:
+                raise TimeoutError(f"{self.host_name} not found")
             if time_passed > self.timeout_s:
                 time.sleep(4)
                 self.logger.error("Timeout on Pico-Communication")

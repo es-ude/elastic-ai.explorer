@@ -13,10 +13,9 @@ When the default_op_params doesn't include the default search parameters of an o
 input: [1, 1313]          # The dimensions of an Input Sample without batch_size
 output: 2                 # The dimensions of the Output
 
-quantization:             # It possible to specify quantization schemes that will applied model-wide. 
-  quant_candidates: [...] # Which schemes are supported dependents on the Generator. 
-    quant_candidate_1:    # These can also be parametrized individually.
-      param_1: [...]
+quantization:             # It possible to specify quantization schemes that will applied model-wide. This is optional and will default to full precision (float32).
+  param_1: [...]
+  ...                     # This can be parametrized like the other operations.
 
 sequence:                 # The macro structure of the network consisting of multiple blocks (at least one)
   - block: "1"            # Each block needs to have a unique string identifier
@@ -82,10 +81,10 @@ If not, there are different options for the type:
 | repeat_vector           | times                               | None                                                  |
 | time_distributed_linear | width                               | batch_first, activation                               |
 
-| Supported Quantization  | Mandatory fields                    | Optional Fields                                       |
+| Block                   | Mandatory fields                    | Optional Fields and Defaults                          |
 |-------------------------|-------------------------------------|-------------------------------------------------------|
-| full_precision                 | None                       | None
-| ptq_fully_quantized_int8       | None                       | None
+| quantization            | None                                | dtype="float32", total_bits=None, frac_bits=None, signed=None, training_type=None
+
 
 ### Composite
 It's possible to combine Operations to a composite operation and reuse that in the rest of the search space. 
@@ -392,47 +391,3 @@ and the value specifies the class of the adapter.
 If the key contains None this signifies that the adapter should be added at the beginning
 or end of the model.
 If the adapter should be inserted every time an operation appears, the wildcard * can be used instead of a concrete name.
-
-# Adding new quantization schemes
-This works similarly to adding new operations. You implement a QuantizationScheme and corresponding QuantizationBuilder and register it with the @register_quantization_scheme("name_of_scheme") wrapper. For schemes with extra parameters the parse_search_param(...) helper function can be used. 
-
-```python 
-class QuantizationScheme(ABC):
-    dtype: str
-
-    @staticmethod
-    @abstractmethod
-    def name() -> str: ...
-
-
-@dataclass(frozen=True)
-class ExampleQuantizationScheme(QuantizationScheme):
-    dtype: str = "float16"
-    total_bits: int = 2
-    @staticmethod
-    def name() -> str:
-        return "example_quant_scheme"
-
-class QuantizationBuilder(ABC):
-    base_type: type[QuantizationScheme]
-
-    def __init__(self, trial, search_params: dict) -> None:
-        self.trial = trial
-        self.search_params = search_params
-
-    def build(self) -> QuantizationScheme:
-        return self.base_type()
-
-@register_quantization_scheme("example_quant_scheme")
-class ExampleQuantizationSchemeBuilder(QuantizationBuilder):
-    base_type = ExampleQuantizationScheme
-    def build(self) -> QuantizationScheme:
-        total_bits = parse_search_param(
-            self.trial,
-            f"total_bits",
-            self.search_params,
-            "total_bits",
-        )
-        return self.base_type(total_bits)
-
-```

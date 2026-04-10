@@ -50,7 +50,7 @@ class LayerBuilder(ABC):
             )
 
         if activation is not None:
-            return nn.Sequential(layer, activation_registry[activation]()), shape
+            return nn.Sequential(layer, activation_registry[activation]), shape
         return layer, shape
 
     @abstractmethod

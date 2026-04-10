@@ -2,7 +2,6 @@ import math
 import tomllib
 
 import pytest
-from torch import Tensor
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
@@ -24,7 +23,7 @@ from elasticai.explorer.generator.deployment.device_communication import (
 from pathlib import Path
 
 from elasticai.explorer.training import data
-from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
+from elasticai.explorer.generator.deployment.generator_utils import setup_mnist_for_cpp
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from torchvision import transforms
 

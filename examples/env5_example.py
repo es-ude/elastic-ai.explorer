@@ -10,9 +10,6 @@ from elasticai.explorer.training.data import (
 
 
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
-from elasticai.explorer.hw_nas.search_space.quantization import (
-    CreatorFixedPointScheme,
-)
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.deployment.compiler import VivadoParams
@@ -159,9 +156,11 @@ def _run_accuracy_deployed(
     num_bytes_outputs = OUTPUT_DIM
     if not hw_manager.test_loader:
         raise TypeError("Testloader not defined.")
+
     if (
         not hw_manager.quantization_scheme
-        or type(hw_manager.quantization_scheme) is not CreatorFixedPointScheme
+        or not hw_manager.quantization_scheme.total_bits
+        or not hw_manager.quantization_scheme.frac_bits
     ):
         raise TypeError("Quantization Scheme is not defined correctly.")
     if not isinstance(host, SerialHost):

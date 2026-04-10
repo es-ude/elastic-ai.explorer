@@ -235,3 +235,4 @@ build_test
 resolver_ops.h
 
 docker/code/pico_crosscompiler/data/mnist_features.h
+elasticai/implementations/creator_generator/model_builder.py

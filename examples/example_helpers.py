@@ -9,13 +9,10 @@ from elasticai.explorer.generator.deployment.compiler import (
     RPICompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
-    Host,
     PicoHost,
     RPiHost,
-    SerialHost,
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
-    HWManager,
     PicoHWManager,
     RPiHWManager,
 )
@@ -32,7 +29,6 @@ from elasticai.explorer.hw_nas.estimators import (
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    CreatorFixedPointScheme,
     QuantizationScheme,
 )
 
@@ -48,7 +44,6 @@ from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
 from torch import optim
 
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
-from torch.utils.data import DataLoader
 
 
 def setup_generator_registry() -> GeneratorRegistry:

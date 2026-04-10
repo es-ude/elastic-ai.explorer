@@ -14,13 +14,12 @@ from elasticai.explorer.generator.deployment.device_communication import (
     SerialParams,
 )
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.generator.model_builder.model_builder import (
+from elasticai.explorer.hw_nas.search_space.build_model import (
     ModelBuilder,
     DefaultModelBuilder,
 )
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FullPrecisionScheme,
     QuantizationScheme,
 )
 from elasticai.explorer.hw_nas.optimization_criteria import (
@@ -188,7 +187,7 @@ class Explorer:
         self,
         metric_to_source: Mapping[Metric, Path | MetricFunction],
         data_spec: data.DatasetSpecification,
-        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ):
         """
         Args:
@@ -231,8 +230,8 @@ class Explorer:
         self,
         model: nn.Module,
         model_name: str,
-        data_sample: torch.Tensor,  # One data sample with batch dimension (shape= (1,...))
-        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
+        data_sample: torch.Tensor, # One data sample with batch dimension (shape= (1,...))
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ) -> Any:
         model_path = self._model_dir / model_name
 

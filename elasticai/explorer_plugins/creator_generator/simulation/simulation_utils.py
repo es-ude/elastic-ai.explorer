@@ -10,7 +10,6 @@ from elasticai.explorer.generator.deployment.device_communication import (
     SerialHost,
 )
 from elasticai.explorer.generator.deployment.hw_manager import HWManager
-from elasticai.explorer.hw_nas.search_space.quantization import CreatorFixedPointScheme
 
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from torch.utils.data import DataLoader
@@ -54,15 +53,16 @@ def _prep_simulation(
     input_dim: int,
     output_dim: int,
 ):
-    assert type(hw_manager.quantization_scheme) is CreatorFixedPointScheme
 
     if not hw_manager.test_loader:
         raise TypeError("Testloader not defined.")
     if (
         not hw_manager.quantization_scheme
-        or type(hw_manager.quantization_scheme) is not CreatorFixedPointScheme
+        or not hw_manager.quantization_scheme.total_bits
+        or not hw_manager.quantization_scheme.frac_bits
     ):
         raise TypeError("Quantization Scheme is not defined correctly.")
+
     if not isinstance(host, SerialHost):
         raise TypeError("Need Serialhost for this test.")
 

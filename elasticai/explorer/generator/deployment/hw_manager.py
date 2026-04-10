@@ -7,7 +7,7 @@ from pathlib import Path
 
 import shutil
 import tarfile
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
 
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
@@ -30,7 +30,6 @@ MetricFunction = Callable[[Host, "HWManager", Path | None], dict[str, dict]]
 class Metric(Enum):
     LATENCY = "Latency"
     ACCURACY = "Accuracy"
-    VERIFICATION = "Verification"
 
 
 class HWManager(ABC):
@@ -45,6 +44,18 @@ class HWManager(ABC):
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.HWManager"
         )
+
+    @staticmethod
+    def _create_relative_path(build_context: Path, source: Any) -> Path:
+        # If the source contains the docker path, then make it relative to the docker context.
+        if isinstance(source, Path) and source.is_relative_to(build_context):
+            source = Path("/" + str(source.relative_to(build_context)))
+
+        # Else it assumes the path already was relative to docker context.
+        elif isinstance(source, Path):
+            source = Path("/" + str(source))
+
+        return source
 
     def _register_metric_to_source(self, metric: Metric, source: Path | MetricFunction):
         self._metric_to_source.update({metric: source})
@@ -123,12 +134,7 @@ class RPiHWManager(HWManager):
             super().prepare_measurement(source, metric)
             return
 
-        if source.is_relative_to(self.docker_build_context):
-            relative_path = Path(
-                "/" + str(source.relative_to(self.docker_build_context))
-            )
-        else:
-            relative_path = Path("/" + str(source))
+        relative_path = self._create_relative_path(self.docker_build_context, source)
         path_to_executable = self.compiler.compile_code(relative_path)
         self._register_metric_to_source(metric, relative_path)
         self.target.put_file(path_to_executable, ".")
@@ -175,6 +181,34 @@ class RPiHWManager(HWManager):
         command = builder.build()
         return command
 
+    def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> Dict:
+        results = super()._invoke_metric_source(metric, path_to_model)
+        if results:
+            return results
+        source = self._get_metric_source(metric)
+        out: str | None = None
+        if isinstance(source, Path):
+            src_path: Path = source
+            out: None | str = None
+            if self.compiler is not None:
+                compiled = self.compiler.compile_code(src_path, src_path.parent)
+            else:
+                compiled = src_path
+
+            if isinstance(self.target, SSHHost):
+                if compiled:
+                    self.target.put_file(local_path=compiled, remote_path=".")
+                    cmd = f"./{Path(compiled).name} {path_to_model.name}"
+                    out = self.target.run_command(cmd)
+            if out:
+                return json.loads(out)
+            else:
+                return {metric.value: {"value": -1, "unit": "Error"}}
+
+        err = TypeError(f"Unsupported source for metric {metric}. ")
+        self.logger.error(err)
+        raise err
+
 
 class CommandBuilder:
     def __init__(self, name_of_exec: str):
@@ -201,17 +235,8 @@ class PicoHWManager(HWManager):
 
     def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
 
-        # If the source contains the docker path, then make it relative to the docker context.
-        if isinstance(source, Path) and source.is_relative_to(
-            self.docker_build_context
-        ):
-            source = Path("/" + str(source.relative_to(self.docker_build_context)))
-
-        # Else it assumes the path already was relative to docker context.
-        elif isinstance(source, Path):
-            source = Path("/" + str(source))
-
-        super().prepare_measurement(source, metric)
+        relative_path = self._create_relative_path(self.docker_build_context, source)
+        super().prepare_measurement(relative_path, metric)
 
     def prepare_dataset(
         self,
@@ -229,6 +254,10 @@ class PicoHWManager(HWManager):
                 shutil.copyfile(file, target_dir / file.name)
 
     def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> Dict:
+        results = super()._invoke_metric_source(metric, path_to_model)
+        if results:
+            return results
+        
         source = self._metric_to_source.get(metric)
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
@@ -240,7 +269,21 @@ class PicoHWManager(HWManager):
             path_to_model,
             path_to_resolver,
         )
-        return super()._invoke_metric_source(metric, path_to_model)
+        if isinstance(source, Path):
+            out: None | str = None
+            if isinstance(self.target, SerialHost):
+                path_to_executable = self.compiler.compile_code(source)
+                if path_to_executable:
+                    self.target.flash(local_path=path_to_executable)
+                    out = self.target.receive()
+            if out:
+                return json.loads(out)
+            else:
+                return {metric.value: {"value": -1, "unit": "Error"}}
+
+        err = TypeError(f"Unsupported source for metric {metric}. ")
+        self.logger.error(err)
+        raise err
 
     def prepare_model(self, path_to_model: Path):
         shutil.copyfile(

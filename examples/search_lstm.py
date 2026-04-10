@@ -5,7 +5,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 
-from elasticai.explorer.generator.model_builder.model_builder import DefaultModelBuilder
+from elasticai.explorer.hw_nas.search_space.build_model import DefaultModelBuilder
 from elasticai.explorer.hw_nas import hw_nas
 
 from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator

@@ -18,11 +18,7 @@ from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LayerBuilder,
 )
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    CreatorFixedPointScheme,
     QuantizationScheme,
-)
-from elasticai.explorer.hw_nas.search_space.quantization_builder import (
-    CreatorFixedPointBuilder,
 )
 from elasticai.explorer.hw_nas.search_space.registry import (
     activation_registry,
@@ -40,7 +36,6 @@ def shape_to_prod(shape: int | Sequence | None):
     return None
 
 
-
 class CreatorLinearBuilder(LayerBuilder):
     base_type = fixed_point.Linear
 
@@ -49,7 +44,7 @@ class CreatorLinearBuilder(LayerBuilder):
         input_shape,
         search_parameters: dict,
         output_shape=None,
-        quantization_scheme=CreatorFixedPointScheme,
+        quantization_scheme=Any,
     ) -> Any:
         self.quantization_scheme = quantization_scheme
         activation_builder = search_parameters.get("activation", None)
@@ -98,24 +93,30 @@ class CreatorLinearBuilder(LayerBuilder):
             self.quantization_scheme.frac_bits,
         )
 
-        return linear, output_shape 
+        return linear, output_shape
 
 
 class ActivationBuilder(ABC):
+    base_type: Any
+
     @abstractmethod
-    def build(self, quantization_scheme: CreatorFixedPointScheme) -> Any:
+    def build(self, quantization_scheme: Any) -> Any:
         pass
 
 
 class CreatorReluBuilder(ActivationBuilder):
-    def build(self, quantization_scheme: CreatorFixedPointScheme) -> Any:
+    base_type: Any = fixed_point.ReLU
+
+    def build(self, quantization_scheme: Any) -> Any:
         return fixed_point.ReLU(
             total_bits=quantization_scheme.total_bits, use_clock=False
         )
 
 
 class CreatorSigmoidBuilder(ActivationBuilder):
-    def build(self, quantization_scheme: CreatorFixedPointScheme) -> Any:
+    base_type: Any = fixed_point.HardSigmoid
+
+    def build(self, quantization_scheme: Any) -> Any:
         return fixed_point.HardSigmoid(
             total_bits=quantization_scheme.total_bits,
             frac_bits=quantization_scheme.frac_bits,
@@ -123,7 +124,9 @@ class CreatorSigmoidBuilder(ActivationBuilder):
 
 
 class CreatorTanhBuilder(ActivationBuilder):
-    def build(self, quantization_scheme: CreatorFixedPointScheme) -> Any:
+    base_type: Any = fixed_point.HardTanh
+
+    def build(self, quantization_scheme: Any) -> Any:
         return fixed_point.HardTanh(
             total_bits=quantization_scheme.total_bits,
             frac_bits=quantization_scheme.frac_bits,
@@ -150,6 +153,12 @@ class CreatorModelBuilder(DefaultModelBuilder):
             "tanh": CreatorTanhBuilder(),
         }
 
+    def get_supported_activations(self) -> list[type]:
+        supported_activations = []
+        for name, activation in self.get_activation_mappings().items():
+            supported_activations.append(activation.base_type)
+        return supported_activations
+
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
         return {
             (None, "linear"): None,
@@ -162,7 +171,7 @@ class CreatorModelBuilder(DefaultModelBuilder):
         sampler = Sampler(trial)
         sample = sampler.construct_sample(search_space)
         quant_scheme = sampler.get_quantization_scheme(search_space)
-        layers = self.construct_model(
+        layers = self.construct_layers(
             sample, search_space["input"], search_space["output"], quant_scheme
         )
         model = creator_nn.Sequential(*layers)
@@ -173,28 +182,14 @@ class CreatorModelBuilder(DefaultModelBuilder):
     def get_supported_quantization_schemes(
         self,
     ) -> dict[str, Any]:
-        return {CreatorFixedPointScheme.name(): CreatorFixedPointBuilder}
+        return {
+            "frac_bits": lambda x: 0 <= x <= 32,
+            "total_bits": lambda x: 0 <= x <= 32,
+        }
 
-    def validate_model(
-        self, model: torch.nn.Module, quantization_scheme: QuantizationScheme
-    ):
-        """Override if necessary"""
-        sl = self.get_supported_layers()
-        sa = [fixed_point.ReLU, fixed_point.Tanh, fixed_point.Sigmoid]
-        sqs = [CreatorFixedPointScheme]
-        for module in model.modules():
-            if module is model:
-                continue
-            module_type = type(module)
-            in_supported_layers = module_type in sl
-            in_supported_activations = module_type in sa
-            if not in_supported_layers and not in_supported_activations:
-                raise NotImplementedError(
-                    f"{type(module).__name__} is not supported by {self.__class__.__name__} "
-                )
-
-        if sqs is not None:
-            if type(quantization_scheme) not in sqs:
-                raise NotImplementedError(
-                    f"{quantization_scheme}  is not supported by {self.__class__.__name__}"
-                )
+    def _validate_quantization(self, quantization_scheme: QuantizationScheme):
+        super()._validate_quantization(quantization_scheme)
+        if not (quantization_scheme.frac_bits and quantization_scheme.total_bits):
+            TypeError(
+                "ENv5 only Supports Quantization with specified total and fractional bits."
+            )

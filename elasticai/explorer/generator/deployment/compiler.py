@@ -48,7 +48,7 @@ class RPICompiler(Compiler):
     def __init__(self, compiler_params: CompilerParams):
         super().__init__(compiler_params)
         self.compiler_params = compiler_params
-        self.image_name: str = compiler_params.image_name  # "cross"
+        self.image_name: str = compiler_params.image_name
         self.base_dockerfile_path: Path = Path(compiler_params.base_dockerfile_path)
         self.context_path: Path = Path(compiler_params.build_context)
         self.libtorch_path: Path = Path(compiler_params.library_path)

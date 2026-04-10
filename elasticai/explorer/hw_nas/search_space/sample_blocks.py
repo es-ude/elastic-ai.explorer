@@ -5,12 +5,9 @@ from typing import Any
 from yaml.error import YAMLError
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    FullPrecisionScheme,
     QuantizationScheme,
 )
-from elasticai.explorer.hw_nas.search_space.quantization_builder import (
-    quantization_registry,
-)
+
 from elasticai.explorer.hw_nas.search_space.registry import composite_registry
 
 
@@ -140,18 +137,10 @@ class Sampler:
         quant_scheme = QuantizationScheme
         if "quantization" in search_space:
             quant_cfg = search_space["quantization"]
-            quant_name = parse_search_param(
-                self.trial,
-                "quantization",
-                quant_cfg,
-                "quant_candidates",
-            )
-            quant_params = quant_cfg.get(quant_name, {})
-            quant_builder_cls = quantization_registry[quant_name]
-            quant_builder = quant_builder_cls(self.trial, quant_params)
+            quant_builder = QuantizationBuilder(self.trial, quant_cfg)
             quant_scheme = quant_builder.build()
         else:
-            quant_scheme = FullPrecisionScheme()
+            quant_scheme = QuantizationScheme()
         return quant_scheme
 
 
@@ -396,3 +385,55 @@ class VaryAllFactory(BlockFactory):
             VaryOp(block_id, block_cfg),
             VaryParams(block_id, block_cfg, sampler.default_op_params),
         )
+
+
+class QuantizationBuilder:
+    def __init__(self, trial, search_params: dict) -> None:
+        self.trial = trial
+        self.search_params = search_params
+        self.defaults = {
+            "dtype": "float32",
+            "total_bits": None,
+            "frac_bits": None,
+            "signed": None,
+            "training_type": None,
+        }
+
+    def build(self) -> QuantizationScheme:
+        values = {}
+        for key, default in self.defaults.items():
+            if not self.search_params.get(key):
+                continue
+            value = parse_search_param(
+                trial=self.trial,
+                name=f"quant_{key}",
+                params=self.search_params,
+                key=key,
+                default_value=default,
+            )
+    
+            values[key] = value
+        self.basic_checks(values=values)
+        return QuantizationScheme(**values)
+
+    def basic_checks(self, values: dict):
+        dtype = values.get("dtype")
+        total_bits = values.get("total_bits")
+        frac_bits = values.get("frac_bits")
+        if total_bits and frac_bits:
+            if total_bits < frac_bits:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) cannot be lower than the number of fractional bits ({frac_bits})"
+                )
+            if dtype == "int8" and total_bits != 8:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 8 for int8 dtype"
+                )
+            if dtype == "float32" and total_bits != 32:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 32 for float32 dtype"
+                )
+            if dtype == "float16" and total_bits != 16:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 16 for float16 dtype"
+                )

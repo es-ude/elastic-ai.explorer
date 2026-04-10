@@ -20,7 +20,7 @@ from torchvision.transforms import transforms
 from pathlib import Path
 
 from elasticai.explorer.training import data
-from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
+from elasticai.explorer.generator.deployment.generator_utils import setup_mnist_for_cpp
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 
 

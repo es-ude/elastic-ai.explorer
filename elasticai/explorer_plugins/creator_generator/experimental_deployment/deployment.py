@@ -24,16 +24,10 @@ from elasticai.explorer.generator.model_translator.model_translator import (
 
 
 from elasticai.explorer.hw_nas.search_space.quantization import (
-    CreatorFixedPointScheme,
     QuantizationScheme,
 )
 from torch.utils.data import DataLoader, random_split
 
-# TODO make these creator imports optional
-from elasticai.creator.arithmetic import (
-    FxpArithmetic,
-    FxpParams,
-)
 
 from elasticai.explorer.training.data import DatasetSpecification
 from elasticai.explorer_plugins.creator_generator.experimental_deployment import (
@@ -55,7 +49,7 @@ class CreatorBaseModelTranslator(ModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = CreatorFixedPointScheme(),
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ):
         self.destination = OnDiskPath(str(output_path), parent="")
 
@@ -81,7 +75,7 @@ class CreatorEnv5ModelTranslator(CreatorBaseModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = CreatorFixedPointScheme(),
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ):
         super().translate(model, output_path, sample, quantization_scheme)
         features_in = len(sample)
@@ -218,8 +212,10 @@ class ENv5HWManager(HWManager):
         quantization_scheme: QuantizationScheme,
     ):
         super().prepare_dataset(dataset_spec, quantization_scheme)
-        if type(quantization_scheme) is not CreatorFixedPointScheme:
-            err = TypeError("Env5 only Supports CreatorFixedPointScheme")
+        if not quantization_scheme.frac_bits or not quantization_scheme.total_bits:
+            err = TypeError(
+                "ENv5 only Supports Quantization with specified total and fractional bits."
+            )
             self.logger.error(err)
             raise err
 
@@ -244,5 +240,3 @@ class ENv5HWManager(HWManager):
 
         if self.path_to_executable:
             self.target.flash(local_path=self.path_to_executable)
-
-

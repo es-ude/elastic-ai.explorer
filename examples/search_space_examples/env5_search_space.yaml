@@ -1,11 +1,9 @@
 input: [1, 6]
 output: 4
 quantization:
-  quant_candidates: ["creator_fixed_point"]
-  creator_fixed_point:
-        total_bits: [8]
-        frac_bits: [2]
-        signed: [1]
+  total_bits: [8]
+  frac_bits: [2]
+  signed: [1]
 
 sequence:
   - block:  "1" 

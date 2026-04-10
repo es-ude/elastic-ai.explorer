@@ -6,24 +6,17 @@ import subprocess
 from typing import Any
 import ai_edge_torch
 import numpy
-
-from sympy import im
 import torch
 from torch import Tensor, nn
 
 from ai_edge_torch import convert, to_channel_last_io
 
-from elasticai.explorer.hw_nas.search_space.quantization import (
-    CreatorFixedPointScheme,
-    PTQFullyQuantizedInt8Scheme,
-    FullPrecisionScheme,
-    QuantizationScheme,
-)
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 import tensorflow as tf
 
-from elasticai.explorer.training.data import BaseDataset
-from elasticai.explorer.utils.data_utils import torch_to_tflite_sample
-from torch.utils.data import DataLoader
+from elasticai.explorer.generator.deployment.generator_utils import (
+    torch_to_tflite_sample,
+)
 
 
 class ModelTranslator(ABC):
@@ -49,11 +42,11 @@ class TorchscriptModelTranslator(ModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ):
-        if not isinstance(quantization_scheme, FullPrecisionScheme):
+        if not quantization_scheme.dtype == "float32":
             err = NotImplementedError(
-                f"Only Full Precision is currently not supported and not {quantization_scheme}"
+                f"Only Full Precision is currently supported and not {quantization_scheme.dtype}"
             )
             self.logger.error(err)
             raise err
@@ -80,12 +73,12 @@ class TFliteModelTranslator(ModelTranslator):
             "explorer.generator.model_translator.model_translator.TFliteModelTranslator"
         )
 
-    def _validate(self, torch_output, edge_output, atol=1e-2, rtol=1e-2):
+    def _validate(self, torch_output, edge_output):
         if numpy.allclose(
             torch_output.detach().numpy(),
             edge_output,
-            atol=atol,
-            rtol=rtol,
+            atol=1e-2,
+            rtol=1e-2,
         ):
             self.logger.info(
                 "Inference result with Pytorch and TfLite was within tolerance."
@@ -113,7 +106,7 @@ class TFliteModelTranslator(ModelTranslator):
 
         return edge_model
 
-    def _model_to_cpp(self, tflite_model_path: Path):
+    def _tflite_to_cpp_array(self, tflite_model_path: Path):
         process = subprocess.run(
             ["xxd", "-i", str(tflite_model_path)], capture_output=True
         )
@@ -142,7 +135,7 @@ class TFliteModelTranslator(ModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = FullPrecisionScheme(),
+        quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ):
         self.logger.info("Generate tflite model from %s", model)
 
@@ -151,13 +144,13 @@ class TFliteModelTranslator(ModelTranslator):
         torch_output = model(sample)
         tflite_shaped_model = to_channel_last_io(model, args=[0]).eval()
 
-        if isinstance(quantization_scheme, FullPrecisionScheme):
+        if quantization_scheme.dtype == "float32":
             edge_model = ai_edge_torch.convert(
                 tflite_shaped_model, sample_args=(tflite_samples,)
             )
             edge_output = edge_model(tflite_samples)
             self._validate(torch_output, edge_output)
-        elif isinstance(quantization_scheme, PTQFullyQuantizedInt8Scheme):
+        elif quantization_scheme.dtype == "int8":
             edge_model = self._quantize(tflite_shaped_model, (tflite_samples,))
         else:
             err = NotImplementedError(
@@ -167,4 +160,4 @@ class TFliteModelTranslator(ModelTranslator):
             raise err
 
         edge_model.export(str(output_path.with_suffix(".tflite")))
-        self._model_to_cpp(output_path.with_suffix(".tflite"))
+        self._tflite_to_cpp_array(output_path.with_suffix(".tflite"))

@@ -1,6 +1,6 @@
 # Elastic-Ai.Explorer
 HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms, automated deployment and testing.
-Currently supported are the **Raspberry Pi 4/5** and the **Raspberry Pi Pico**. 
+Currently supported are the **Raspberry Pi 4/5** and the **Raspberry Pi Pico**. Additionally the **Elastic Node v5** is supported in simulation and deployment (experimental). 
 
 This project is still in active development and has no official release yet.
 
@@ -60,6 +60,10 @@ After this you can use the System Tests by creating your own system_test_setting
 There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably `/media/RPI-RP2`). Additionally, it can be necessary to add the user to dialout and tty group at the serial port (default is `/dev/ttyACM0`) in order to communicate over the serial connection.
 
 After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
+
+## Set up for ENv5/FPGA Simulation
+To simulate the deployment of neural networks on the ENv5 and the builtin Spartan 7 FPGA, we use cocotb and GHDL. GHDL>=5.1.1 has to be installed manually, since it isn't a python package (https://github.com/ghdl/ghdl?tab=readme-ov-file#getting-ghdl).
+
 
 ## Examples 
 For the full workflow from HW-NAS to on-device measurements, see the examples folder.
