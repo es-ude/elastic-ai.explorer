@@ -52,7 +52,7 @@ def search_generate_measure_for_pico(
     )
     criteria = setup_example_optimization_criteria(dataset_spec, device)
 
-    top_models, top_quant_scheme = explorer.search(
+    top_models, top_quant_schemes = explorer.search(
         search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
         hw_nas_parameters=HWNASParameters(
             max_search_trials=max_search_trials, top_n_models=top_n_models
@@ -73,7 +73,7 @@ def search_generate_measure_for_pico(
         "cpu",
         dataset_spec,
         model_suffix=".tflite",
-        top_quantization_schemes=top_quant_scheme,
+        top_quantization_schemes=top_quant_schemes,
     )
     logger.info("Models:\n %s", df)
 

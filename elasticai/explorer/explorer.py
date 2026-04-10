@@ -44,7 +44,7 @@ from elasticai.explorer.utils.logging_utils import (
 class Explorer:
     """
     The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework.
-    For more customization use the the HW-NAS and deployment tools directly.
+    For more customization use the HW-NAS and deployment tools directly.
     """
 
     def __init__(
@@ -117,7 +117,7 @@ class Explorer:
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
-    ) -> tuple[list[Any], list[QuantizationScheme]]:
+    ) -> tuple[list[Any], list[QuantizationScheme | None]]:
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials searching for top %d models. ",
