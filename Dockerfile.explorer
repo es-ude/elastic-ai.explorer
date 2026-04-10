@@ -1,3 +1,5 @@
+# Dockerfile for a basic image that runs the Explorer. Can be used for simple setup on windows.
+# Run image with -v /var/run/docker.sock:/var/run/docker.sock to enable creating Images from inside docker necessary for cross-compilation.
 FROM ubuntu:24.04
 
 RUN apt-get update && \
@@ -7,11 +9,9 @@ RUN apt-get update && \
     apt-get update && apt-get install -y docker-buildx
 WORKDIR /elastic-ai.explorer
 
-# Create venv
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install uv inside venv
 RUN pip install uv
 
 COPY . .
