@@ -27,7 +27,7 @@ If you don't need dev dependencies add:
  --no-dev
  ```
 
-For Windows for easy setup on Windows use the Dockerfile.explorer to create an image:
+For easy setup on Windows use the Dockerfile.explorer to create an image:
 ```
  docker build -t explorer -f Dockerfile.explorer . 
  ```
