@@ -1,7 +1,5 @@
 input: [1, 28, 28]
 output: 10
-quantization:
-  dtype : ["float32"]
 sequence:
   - block: "1"
     op_candidates: "conv-act-pool"

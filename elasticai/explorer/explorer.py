@@ -184,7 +184,7 @@ class Explorer:
         self,
         metric_to_source: Mapping[Metric, Path | MetricFunction],
         data_spec: data.DatasetSpecification,
-        quantization_scheme: QuantizationScheme = QuantizationScheme(),
+        quantization_scheme: QuantizationScheme | None = None,
     ):
         """
         Args:
@@ -227,7 +227,7 @@ class Explorer:
         self,
         model: nn.Module,
         model_name: str,
-        data_sample: torch.Tensor, # One data sample with batch dimension (shape= (1,...))
+        data_sample: torch.Tensor,  # One data sample with batch dimension (shape= (1,...))
         quantization_scheme: QuantizationScheme = QuantizationScheme(),
     ) -> Any:
         model_path = self._model_dir / model_name

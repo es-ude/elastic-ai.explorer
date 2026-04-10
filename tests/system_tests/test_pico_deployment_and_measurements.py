@@ -105,8 +105,3 @@ class TestPicoDeploymentAndMeasurement:
             )
             == int
         )
-
-
-class TestPicoQuantization:
-
-    pass

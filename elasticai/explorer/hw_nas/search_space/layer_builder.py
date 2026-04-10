@@ -26,7 +26,7 @@ def register_layer(name: str):
 
 
 class LayerBuilder(ABC):
-    base_type: type | None = None
+    build_return_types: list[type] | None = None
 
     def build(self, input_shape, search_parameters: dict, output_shape=None):
         activation = search_parameters.get("activation", None)
@@ -52,6 +52,7 @@ class LayerBuilder(ABC):
 
 @register_layer("linear")
 class LinearLayer(LayerBuilder):
+    build_return_types = [nn.Linear]
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         linear = nn.Linear(input_shape, output_shape)
@@ -63,7 +64,6 @@ class LinearLayer(LayerBuilder):
 
 
 class ConvLayer(LayerBuilder):
-
     conv_class: type[nn.Module] = None
     layer_type: str = None
 
@@ -97,6 +97,8 @@ class ConvLayer(LayerBuilder):
 
 @register_layer("conv2d")
 class Conv2dLayer(ConvLayer):
+    build_return_types = [nn.Conv2d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conv_class = nn.Conv2d
@@ -105,6 +107,8 @@ class Conv2dLayer(ConvLayer):
 
 @register_layer("conv1d")
 class Conv1dLayer(ConvLayer):
+    build_return_types = [nn.Conv1d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conv_class = nn.Conv1d
@@ -113,6 +117,8 @@ class Conv1dLayer(ConvLayer):
 
 @register_layer("lstm")
 class LSTMLayer(LayerBuilder):
+    build_return_types = [SimpleLSTM]
+
     def create_layer(
         self, input_shape, hidden_size, bidirectional, search_parameters: dict
     ):
@@ -154,6 +160,7 @@ class LSTMLayer(LayerBuilder):
 
 
 class PoolLayer(LayerBuilder):
+
     layer_map = {}
     param_keys = {"kernel_size": None, "stride": 1, "padding": 0}
 
@@ -186,6 +193,8 @@ class PoolLayer(LayerBuilder):
 
 @register_layer("maxpool")
 class MaxPoolLayer(PoolLayer):
+    build_return_types = [nn.Identity, nn.MaxPool1d, nn.MaxPool2d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -194,6 +203,8 @@ class MaxPoolLayer(PoolLayer):
 
 @register_layer("avgpool")
 class AvgPoolLayer(PoolLayer):
+    build_return_types = [nn.Identity, nn.AvgPool1d, nn.AvgPool2d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.layer_map = {"1d": nn.AvgPool1d, "2d": nn.AvgPool2d}
@@ -201,6 +212,8 @@ class AvgPoolLayer(PoolLayer):
 
 @register_layer("batch_norm")
 class BatchNormLayer(LayerBuilder):
+    build_return_types = [nn.BatchNorm1d, nn.BatchNorm2d]
+
     def build_layer(self, input_shape, search_parameters: dict):
         num_features = (
             input_shape[0] if isinstance(input_shape, (list, tuple)) else input_shape
@@ -220,6 +233,7 @@ class BatchNormLayer(LayerBuilder):
 
 @register_layer("dropout")
 class DropoutLayer(LayerBuilder):
+    build_return_types = [nn.Dropout, nn.Dropout2d]
     param_keys = ["p"]
     layer_map = {"1d": nn.Dropout, "2d": nn.Dropout2d}
 
@@ -232,6 +246,8 @@ class DropoutLayer(LayerBuilder):
 
 @register_layer("activation")
 class ActivationLayer(LayerBuilder):
+    build_return_types = []
+
     def build_layer(self, input_shape, search_parameters: dict):
         return activation_registry[search_parameters.get("op", "identity")], input_shape
 
@@ -241,6 +257,8 @@ class ActivationLayer(LayerBuilder):
 
 @register_layer("layer_norm")
 class LayerNorm(LayerBuilder):
+    build_return_types = [nn.LayerNorm]
+
     def build_layer(self, input_shape, search_parameters: dict):
         return nn.LayerNorm(input_shape), input_shape
 
@@ -250,6 +268,8 @@ class LayerNorm(LayerBuilder):
 
 @register_layer("gaussian_dropout")
 class GaussianDropoutLayer(LayerBuilder):
+    build_return_types = [GaussianDropout]
+
     def build_layer(self, input_shape, search_parameters: dict):
         return GaussianDropout(search_parameters.get("p", 0.5)), input_shape
 
@@ -259,6 +279,8 @@ class GaussianDropoutLayer(LayerBuilder):
 
 @register_layer("repeat_vector")
 class RepeatVectorLayer(LayerBuilder):
+    build_return_types = [RepeatVector]
+
     def build_layer(self, input_shape, search_parameters: dict):
         times = search_parameters["times"]
         input_shape.append(times)
@@ -270,6 +292,8 @@ class RepeatVectorLayer(LayerBuilder):
 
 @register_layer("time_distributed_linear")
 class TimeDistributedLinear(LayerBuilder):
+    build_return_types = [TimeDistributed]
+
     def build_layer(self, input_shape, search_parameters: dict):
         batch_first = search_parameters.get("batch_first", True)
 

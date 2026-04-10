@@ -15,8 +15,8 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 from elasticai.explorer.hw_nas.search_space.registry import (
     activation_registry,
     adapter_registry,
-    DEFAULT_ACTIVATION,
-    DEFAULT_ADAPTER,
+    DEFAULT_ACTIVATION_REGISTRY,
+    DEFAULT_ADAPTER_REGISTRY,
     layer_registry,
 )
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
@@ -59,7 +59,7 @@ class ModelBuilder(Reflective, ABC):
     @abstractmethod
     def build_from_trial(
         self, trial, search_space: dict
-    ) -> tuple[Any, QuantizationScheme]:
+    ) -> tuple[Any, QuantizationScheme | None]:
         pass
 
     def setup_registries(self, replace=False):
@@ -73,7 +73,6 @@ class ModelBuilder(Reflective, ABC):
         layer_registry.update(self.get_layer_mappings())
 
 
-
 class DefaultModelBuilder(ModelBuilder):
     def __init__(self) -> None:
         super().__init__()
@@ -83,19 +82,13 @@ class DefaultModelBuilder(ModelBuilder):
         self.setup_registries()
 
     def get_activation_mappings(self) -> dict[str, Any]:
-        return DEFAULT_ACTIVATION
+        return DEFAULT_ACTIVATION_REGISTRY
 
     def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], type | None]:
-        return DEFAULT_ADAPTER
+        return DEFAULT_ADAPTER_REGISTRY
 
     def get_supported_quantization(self) -> dict[str, Any]:
-        return {
-            "dtype": "float32",
-            "total_bits": 32,
-            "frac_bits": 8,
-            "signed": True,
-            "training_type": "QAT",
-        }
+        return {}
 
     def construct_model(self, sample: OrderedDict, in_dim, out_dim):
         layers = []
@@ -127,7 +120,7 @@ class DefaultModelBuilder(ModelBuilder):
 
     def build_from_trial(
         self, trial, search_space: dict
-    ) -> tuple[torch.nn.Module, QuantizationScheme]:
+    ) -> tuple[torch.nn.Module, QuantizationScheme | None]:
         sampler = Sampler(trial)
         sample = sampler.construct_sample(search_space)
         quant_scheme = sampler.get_quantization_scheme(search_space)

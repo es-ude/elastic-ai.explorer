@@ -6,17 +6,14 @@ This section describes the Syntax of the yaml file to describe the search space.
 
 ### Search space Structure
 
-Each search space definition needs to specify an input dimension, an output dimension and a sequence of blocks. Optionally, options for model-wide quantization schemes can be specified, if this isn't included it will default to Full-Precision (Float32). 
+Each search space definition needs to specify an input dimension, an output dimension and a sequence of blocks. Optionally, a model-wide quantization schemes can be specified.
 Optionally, a section describing the default search parameters for primitive operations and a section for defining custom composite operations can be added.
 When the default_op_params doesn't include the default search parameters of an operation, the search parameters have to be defined in the block where they are used.
 ```yaml
 input: [1, 1313]          # The dimensions of an Input Sample without batch_size
 output: 2                 # The dimensions of the Output
-
-quantization:             # It possible to specify quantization schemes that will applied model-wide. This is optional and will default to full precision (float32).
-  param_1: [...]
-  ...                     # This can be parametrized like the other operations.
-
+quantization:             # Here a Quantization Scheme can be specified. For more information see below.
+  ...
 sequence:                 # The macro structure of the network consisting of multiple blocks (at least one)
   - block: "1"            # Each block needs to have a unique string identifier
       ...               
@@ -81,9 +78,6 @@ If not, there are different options for the type:
 | repeat_vector           | times                               | None                                                  |
 | time_distributed_linear | width                               | batch_first, activation                               |
 
-| Block                   | Mandatory fields                    | Optional Fields and Defaults                          |
-|-------------------------|-------------------------------------|-------------------------------------------------------|
-| quantization            | None                                | dtype="float32", total_bits=None, frac_bits=None, signed=None, training_type=None
 
 
 ### Composite
@@ -145,6 +139,26 @@ In the case below either this block will be a 1d Convolution block or will not a
           type: "repeat_op"
           depth: [  2, 6, 7 ]
    ```
+
+
+### Quantization
+There is the option to also specify a model-wide Quantization Scheme. This works like the parameterization of a operation. The given parameters can also be sampled. 
+
+Example:
+```
+input: ...
+output: ...
+
+quantization:                  
+  dtype: ["float32", "int8"]
+  total_bits: [16,32]
+  frac_bits": [2,8]
+  signed": True
+
+Sequence:
+...
+```
+
 ## Complete Search Space Yaml Example
 ```yaml 
 input: [1, 1313]

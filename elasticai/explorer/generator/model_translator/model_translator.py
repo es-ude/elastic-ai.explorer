@@ -20,6 +20,7 @@ from elasticai.explorer.generator.deployment.generator_utils import (
 
 
 class ModelTranslator(ABC):
+
     @abstractmethod
     def translate(
         self,
@@ -32,6 +33,7 @@ class ModelTranslator(ABC):
 
 
 class TorchscriptModelTranslator(ModelTranslator):
+
     def __init__(self):
         self.logger = logging.getLogger(
             "explorer.generator.model_translator.model_translator.TorchscriptModelTranslator"
@@ -42,14 +44,9 @@ class TorchscriptModelTranslator(ModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = QuantizationScheme(),
+        quantization_scheme: QuantizationScheme | None = None,
     ):
-        if not quantization_scheme.dtype == "float32":
-            err = NotImplementedError(
-                f"Only Full Precision is currently supported and not {quantization_scheme.dtype}"
-            )
-            self.logger.error(err)
-            raise err
+
         self.logger.info("Generate torchscript model from %s", model)
         model.eval()
 
@@ -86,20 +83,40 @@ class TFliteModelTranslator(ModelTranslator):
         else:
             self.logger.warning("Something wrong with Pytorch --> TfLite")
 
-    def _quantize(self, model: nn.Module, sample_input: tuple[Tensor, ...]):
+    def _quantize(
+        self,
+        model: nn.Module,
+        sample_input: tuple[Tensor, ...],
+        quantization_scheme: QuantizationScheme,
+    ):
 
         # This only repeats the same sample, because the converter does not accept different samples.
         def representative_sample_generator():
             for _ in range(100):
                 yield list(sample_input)
 
-        tfl_converter_flags = {
-            "optimizations": [tf.lite.Optimize.DEFAULT],
-            "representative_dataset": representative_sample_generator,
-            "target_spec": {"supported_ops": [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]},
-            "inference_input_type": tf.int8,
-            "inference_output_type": tf.int8,
-        }
+        if quantization_scheme.dtype == "int8":
+            tfl_converter_flags = {
+                "optimizations": [tf.lite.Optimize.DEFAULT],
+                "representative_dataset": representative_sample_generator,
+                "target_spec": {"supported_ops": [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]},
+                "inference_input_type": tf.int8,
+                "inference_output_type": tf.int8,
+            }
+        elif quantization_scheme.dtype == "float16":
+            tfl_converter_flags = {
+                "optimizations": [tf.lite.Optimize.DEFAULT],
+                "representative_dataset": representative_sample_generator,
+                "target_spec": {"supported_types": [tf.float16]},
+                "inference_input_type": tf.float16,
+                "inference_output_type": tf.float16,
+            }
+        else:
+            err = NotImplementedError(
+                f"The quantization scheme -{quantization_scheme}- is not supported by the TFliteModelTranslator."
+            )
+            self.logger.error(err)
+            raise err
         edge_model = convert(
             model, sample_input, _ai_edge_converter_flags=tfl_converter_flags
         )
@@ -135,7 +152,7 @@ class TFliteModelTranslator(ModelTranslator):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme = QuantizationScheme(),
+        quantization_scheme: QuantizationScheme | None = None,
     ):
         self.logger.info("Generate tflite model from %s", model)
 
@@ -144,20 +161,15 @@ class TFliteModelTranslator(ModelTranslator):
         torch_output = model(sample)
         tflite_shaped_model = to_channel_last_io(model, args=[0]).eval()
 
-        if quantization_scheme.dtype == "float32":
-            edge_model = ai_edge_torch.convert(
-                tflite_shaped_model, sample_args=(tflite_samples,)
+        edge_model = ai_edge_torch.convert(
+            tflite_shaped_model, sample_args=(tflite_samples,)
+        )
+        edge_output = edge_model(tflite_samples)
+        self._validate(torch_output, edge_output)
+        if quantization_scheme:
+            edge_model = self._quantize(
+                tflite_shaped_model, (tflite_samples,), quantization_scheme
             )
-            edge_output = edge_model(tflite_samples)
-            self._validate(torch_output, edge_output)
-        elif quantization_scheme.dtype == "int8":
-            edge_model = self._quantize(tflite_shaped_model, (tflite_samples,))
-        else:
-            err = NotImplementedError(
-                f"The quantization scheme -{quantization_scheme}- is not supported by the TFliteModelTranslator."
-            )
-            self.logger.error(err)
-            raise err
 
         edge_model.export(str(output_path.with_suffix(".tflite")))
         self._tflite_to_cpp_array(output_path.with_suffix(".tflite"))

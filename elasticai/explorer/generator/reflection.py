@@ -5,6 +5,10 @@ from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LayerBuilder,
 )
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
+from elasticai.explorer.hw_nas.search_space.registry import (
+    activation_registry,
+    layer_registry,
+)
 
 
 class Reflective(ABC):
@@ -32,14 +36,14 @@ class Reflective(ABC):
 
     def get_supported_layers(self) -> list[type]:
         supported_layers = []
-        for layer_name, layer_builder in self.get_layer_mappings().items():
-            base_type = layer_builder.base_type
-            supported_layers.append(base_type)
+        for layer_name, layer_builder in layer_registry.items():
+            builder_return_types = layer_builder.build_return_types
+            supported_layers.extend(builder_return_types)
         return supported_layers
 
     def get_supported_activations(self) -> list[type]:
         supported_activations = []
-        for name, activation in self.get_activation_mappings().items():
+        for name, activation in activation_registry.items():
             supported_activations.append(type(activation))
         return supported_activations
 
@@ -84,7 +88,11 @@ class Reflective(ABC):
                             f"Allowed: {allowed_values}"
                         )
 
-    def validate_model(self, model: nn.Module, quantization_scheme: QuantizationScheme):
+    def validate_model(
+        self, model: nn.Module, quantization_scheme: QuantizationScheme | None = None
+    ) -> bool:
         """Override if necessary"""
         self._validate_model(model)
-        self._validate_quantization(quantization_scheme)
+        if quantization_scheme:
+            self._validate_quantization(quantization_scheme)
+        return True

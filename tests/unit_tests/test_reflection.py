@@ -2,11 +2,13 @@ import pytest
 import torch.nn as nn
 
 from elasticai.explorer.generator.reflection import Reflective
+from elasticai.explorer.hw_nas.search_space.build_model import DefaultModelBuilder
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
+from elasticai.explorer.hw_nas.search_space.registry import layer_registry
 
 
 class DummyLayerBuilder:
-    base_type = nn.Linear
+    build_return_types = [nn.Linear]
 
 
 class ReflectiveExample(Reflective):
@@ -15,11 +17,16 @@ class ReflectiveExample(Reflective):
             "relu": nn.ReLU(),
         }
 
+    def get_layer_mappings(self):  # type:ignore
+        return {
+            "linear": DummyLayerBuilder,
+        }
+
     def get_adapter_mappings(self):
         return {}
 
     def get_supported_quantization(self):
-        return {"dtype": {"float32"}, "total_bits": lambda x: x <= 32}
+        return {"dtype": {"int8"}, "total_bits": lambda x: x <= 32}
 
     def get_layer_mappings(self):  # type:ignore
         return {
@@ -34,21 +41,32 @@ def test_simple_supported_model():
     )
 
     reflective = ReflectiveExample()
-    reflective.validate_model(model, QuantizationScheme(total_bits=32))
+    assert reflective.validate_model(model, QuantizationScheme(total_bits=32))
 
 
 def test_deeply_nested_sequential_supported():
     model = nn.Sequential(
+        nn.Linear(10, 10),
         nn.Sequential(
             nn.Sequential(
                 nn.Linear(10, 10),
                 nn.ReLU(),
             )
-        )
+        ),
     )
 
     reflective = ReflectiveExample()
-    reflective.validate_model(model, QuantizationScheme())
+    assert reflective.validate_model(model, QuantizationScheme())
+
+
+def test_no_quant_scheme():
+    model = nn.Sequential(
+        nn.Linear(10, 10),
+    )
+
+    reflective = ReflectiveExample()
+
+    assert reflective.validate_model(model, None)
 
 
 def test_unsupported_leaf_layer():
@@ -86,3 +104,23 @@ def test_unsupported_quantization_scheme():
 
     with pytest.raises(NotImplementedError, match="total_bits=80"):
         reflective.validate_model(model, QuantizationScheme(total_bits=80))
+
+
+class L1Builder:
+    build_return_types = [nn.L1Loss]
+
+
+
+
+def test_non_overwrite():
+    class DummyBuilder(DefaultModelBuilder):
+        def get_layer_mappings(self):  # type:ignore
+            return {"L1Loss": L1Builder}
+
+    model_builder = DummyBuilder()
+    model = nn.Sequential(
+        nn.Linear(10, 10),
+    )
+    assert model_builder.validate_model(model, None)
+    assert nn.L1Loss in model_builder.get_supported_layers()
+    assert nn.Linear in model_builder.get_supported_layers()

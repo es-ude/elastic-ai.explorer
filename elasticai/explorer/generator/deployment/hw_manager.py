@@ -74,38 +74,12 @@ class HWManager(ABC):
         if callable(source):
             result = source(self.target, self)
             return result
-
-        if isinstance(source, Path):
-            src_path: Path = source
-            out: None | str = None
-            if self.compiler is not None:
-                compiled = self.compiler.compile_code(src_path, src_path.parent)
-            else:
-                compiled = src_path
-
-            if isinstance(self.target, SSHHost):
-                if compiled:
-                    self.target.put_file(local_path=compiled, remote_path=".")
-                    cmd = f"./{Path(compiled).name} {path_to_model.name}"
-                    out = self.target.run_command(cmd)
-            elif isinstance(self.target, SerialHost):
-                path_to_executable = self.compiler.compile_code(source)
-                if path_to_executable:
-                    self.target.flash(local_path=path_to_executable)
-                    out = self.target.receive()
-            if out:
-                return json.loads(out)
-            else:
-                return {metric.value: {"value": -1, "unit": "Error"}}
-
-        err = TypeError(f"Unsupported source for metric {metric}. ")
-        self.logger.error(err)
-        raise err
+        return {}
 
     def prepare_dataset(
         self,
         dataset_spec: DatasetSpecification,
-        quantization_scheme: QuantizationScheme,
+        quantization_scheme: QuantizationScheme | None,
     ):
         self.dataset_spec = dataset_spec
         self.quantization_scheme = quantization_scheme
@@ -142,7 +116,7 @@ class RPiHWManager(HWManager):
     def prepare_dataset(
         self,
         dataset_spec: DatasetSpecification,
-        quantization_scheme: QuantizationScheme,
+        quantization_scheme: QuantizationScheme | None,
     ):
         super().prepare_dataset(dataset_spec, quantization_scheme)
         if dataset_spec.deployable_dataset_path:
@@ -200,6 +174,13 @@ class RPiHWManager(HWManager):
                     self.target.put_file(local_path=compiled, remote_path=".")
                     cmd = f"./{Path(compiled).name} {path_to_model.name}"
                     out = self.target.run_command(cmd)
+            else:
+                err = TypeError(
+                    f"Only SSHHost is supported and not {self.target.__class__.__name__}"
+                )
+                self.logger.error(err)
+                raise err
+
             if out:
                 return json.loads(out)
             else:
@@ -241,7 +222,7 @@ class PicoHWManager(HWManager):
     def prepare_dataset(
         self,
         dataset_spec: DatasetSpecification,
-        quantization_scheme: QuantizationScheme,
+        quantization_scheme: QuantizationScheme | None,
     ):
         super().prepare_dataset(dataset_spec, quantization_scheme)
         target_dir = self.docker_build_context / "code/pico_crosscompiler/data"
@@ -257,7 +238,7 @@ class PicoHWManager(HWManager):
         results = super()._invoke_metric_source(metric, path_to_model)
         if results:
             return results
-        
+
         source = self._metric_to_source.get(metric)
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
@@ -276,6 +257,12 @@ class PicoHWManager(HWManager):
                 if path_to_executable:
                     self.target.flash(local_path=path_to_executable)
                     out = self.target.receive()
+            else:
+                err = TypeError(
+                    f"Only SerialHost is supported and not {self.target.__class__.__name__}"
+                )
+                self.logger.error(err)
+                raise err
             if out:
                 return json.loads(out)
             else:

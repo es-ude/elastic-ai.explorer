@@ -138,9 +138,7 @@ class TestPicoGenerateAndCompile:
             model,
             output_path=output_path,
             sample=self.data_sample,
-            quantization_scheme=QuantizationScheme(
-                dtype="int8", total_bits=8, frac_bits=2, training_type="QAT"
-            ),
+            quantization_scheme=QuantizationScheme(dtype="int8"),
         )
         assert os.path.exists(output_path.with_suffix(".tflite"))
         assert os.path.exists(output_path.with_suffix(".cpp"))

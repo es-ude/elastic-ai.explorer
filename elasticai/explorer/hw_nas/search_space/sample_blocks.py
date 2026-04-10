@@ -8,7 +8,7 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )
 
-from elasticai.explorer.hw_nas.search_space.registry import composite_registry
+from elasticai.explorer.hw_nas.search_space.registry import COMPOSITE_REGISTRY
 
 
 class RepeatType(Enum):
@@ -31,7 +31,7 @@ FORCED_PARAMS = {
 
 
 def is_composite_op(op: str) -> bool:
-    return op in composite_registry
+    return op in COMPOSITE_REGISTRY
 
 
 def parse_search_param(
@@ -105,7 +105,7 @@ class Sampler:
             self.default_op_params = search_space["default_op_params"]
 
         if "composites" in search_space:
-            composite_registry.update(search_space["composites"])
+            COMPOSITE_REGISTRY.update(search_space["composites"])
 
         sequence = search_space["sequence"]
         total_blocks = len(sequence)
@@ -133,15 +133,15 @@ class Sampler:
 
         return model
 
-    def get_quantization_scheme(self, search_space: dict) -> QuantizationScheme:
+    def get_quantization_scheme(self, search_space: dict) -> QuantizationScheme | None:
         quant_scheme = QuantizationScheme
         if "quantization" in search_space:
             quant_cfg = search_space["quantization"]
             quant_builder = QuantizationBuilder(self.trial, quant_cfg)
             quant_scheme = quant_builder.build()
-        else:
-            quant_scheme = QuantizationScheme()
-        return quant_scheme
+            return quant_scheme
+
+        return None
 
 
 class LayerContext:
@@ -207,7 +207,7 @@ class Block:
             if op == "identity":
                 continue
             if is_composite_op(op):
-                composite_space = composite_registry[op]
+                composite_space = COMPOSITE_REGISTRY[op]
                 cache_key = (self.sampler.scope, op)
 
                 if self.repeat_block:
@@ -396,7 +396,6 @@ class QuantizationBuilder:
             "total_bits": None,
             "frac_bits": None,
             "signed": None,
-            "training_type": None,
         }
 
     def build(self) -> QuantizationScheme:
@@ -411,7 +410,7 @@ class QuantizationBuilder:
                 key=key,
                 default_value=default,
             )
-    
+
             values[key] = value
         self.basic_checks(values=values)
         return QuantizationScheme(**values)

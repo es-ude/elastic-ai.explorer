@@ -121,7 +121,7 @@ def measure_on_device(
     retrain_device: str,
     dataset_spec: DatasetSpecification,
     model_suffix: str = ".pt",
-    top_quantization_schemes: list[QuantizationScheme] = [],
+    top_quantization_schemes: list[QuantizationScheme| None] = [],
 ):
 
     metrics_to_measurements = {"accuracy after retrain in %": []}
