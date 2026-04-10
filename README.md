@@ -27,6 +27,16 @@ If you don't need dev dependencies add:
  --no-dev
  ```
 
+For Windows for easy setup on Windows use the Dockerfile.explorer to create an image:
+```
+ docker build -t explorer -f Dockerfile.explorer . 
+ ```
+If used for cross-compilation, run the Image with "-v /var/run/docker.sock:/var/run/docker.sock" argument to allow for creating docker images from the container.
+
+```
+docker run -v /var/run/docker.sock:/var/run/docker.sock
+ ```
+
 # Setup for Deployment and System Tests:
  To compile for deployment on hardware you need to install:
 
@@ -60,6 +70,8 @@ After this you can use the System Tests by creating your own system_test_setting
 There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably `/media/RPI-RP2`). Additionally, it can be necessary to add the user to dialout and tty group at the serial port (default is `/dev/ttyACM0`) in order to communicate over the serial connection.
 
 After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
+
+
 
 ## Examples 
 For the full workflow from HW-NAS to on-device measurements, see the examples folder.
