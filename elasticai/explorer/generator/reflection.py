@@ -8,10 +8,30 @@ from elasticai.explorer.hw_nas.search_space.quantization import QuantizationSche
 from elasticai.explorer.hw_nas.search_space.registry import (
     activation_registry,
     layer_registry,
+    adapter_registry,
 )
 
 
 class Reflective(ABC):
+    def __init__(self, replace_registries=False) -> None:
+        """
+        Args:
+            replace_registries (bool, optional): If replace_registries is true, it replaces the registered layers, adapters and
+            activations with the given overwritten mappings. Else it updates the registries with the given mappings.
+            Defaults to False.
+        """
+        self._setup_registries(replace_registries)
+
+    def _setup_registries(self, replace_registries=False):
+        if replace_registries:
+            activation_registry.clear()
+            adapter_registry.clear()
+            layer_registry.clear()
+
+        activation_registry.update(self.get_activation_mappings())
+        adapter_registry.update(self.get_adapter_mappings())
+        layer_registry.update(self.get_layer_mappings())
+
     @abstractmethod
     def get_activation_mappings(self) -> dict[str, nn.Module]:
         pass
@@ -25,8 +45,8 @@ class Reflective(ABC):
         self,
     ) -> dict[str, Any]:
         """
-        Return dictionary with the key of the quantization parameter (dtype, total_bits)
-        and the corresponding allowed values as set or boolean lambda function (e.g. int8, float32). Unspecified parameters are ignored.
+        Return dictionary with the key of the quantization parameter (e.g. dtype, total_bits)
+        and the corresponding allowed values as set or boolean lambda function (e.g. int8). Unspecified parameters are ignored.
         """
         pass
 

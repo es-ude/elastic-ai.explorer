@@ -48,7 +48,7 @@ class Estimator:
 
     @abstractmethod
     def estimate(
-        self, model_sample, target_quantization_scheme: QuantizationScheme
+        self, model_sample, target_quantization_scheme: QuantizationScheme | None
     ) -> tuple[float | int, list[float | int]]:
         """
         Returns:
@@ -67,7 +67,7 @@ class FLOPsEstimator(Estimator):
     def estimate(
         self,
         model_sample: torch.nn.Module,
-        target_quantization_scheme: QuantizationScheme,
+        target_quantization_scheme: QuantizationScheme | None,
     ) -> tuple[float | int, list[float | int]]:
         get_quantization_info(target_quantization_scheme, self.logger)
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
@@ -89,7 +89,7 @@ class ParamEstimator(Estimator):
     def estimate(
         self,
         model_sample: torch.nn.Module,
-        target_quantization_scheme: QuantizationScheme,
+        target_quantization_scheme: QuantizationScheme | None,
     ) -> tuple[float | int, list[float | int]]:
         get_quantization_info(target_quantization_scheme, self.logger)
         param_count = parameter_count(model_sample)[""]
@@ -113,8 +113,9 @@ class TrainMetricsEstimator(Estimator):
     def estimate(
         self,
         model_sample: torch.nn.Module,
-        target_quantization_scheme: QuantizationScheme,
+        target_quantization_scheme: QuantizationScheme | None,
     ) -> tuple[float | int, list[float | int]]:
+
         get_quantization_info(target_quantization_scheme, self.logger)
         optimizer = Adam(model_sample.parameters(), lr=1e-3)
         self.trainer.configure_optimizer(optimizer)
@@ -146,11 +147,13 @@ class TrainMetricsEstimator(Estimator):
 
 
 def get_quantization_info(
-    target_quantization_scheme: QuantizationScheme,
+    target_quantization_scheme: QuantizationScheme | None,
     logger,
-    optimal_dtype: list[str] = ["float32"],
+    optimal_dtype: list[str] = [],
 ):
-    if not (target_quantization_scheme.dtype in optimal_dtype):
+    if target_quantization_scheme and not (
+        target_quantization_scheme.dtype in optimal_dtype
+    ):
         logger.info(
             f"The estimation is most optimal for {optimal_dtype} but this models target quantization is {target_quantization_scheme}."
         )

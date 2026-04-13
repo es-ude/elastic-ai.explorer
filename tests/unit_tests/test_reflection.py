@@ -4,7 +4,6 @@ import torch.nn as nn
 from elasticai.explorer.generator.reflection import Reflective
 from elasticai.explorer.hw_nas.search_space.build_model import DefaultModelBuilder
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
-from elasticai.explorer.hw_nas.search_space.registry import layer_registry
 
 
 class DummyLayerBuilder:
@@ -12,6 +11,7 @@ class DummyLayerBuilder:
 
 
 class ReflectiveExample(Reflective):
+
     def get_activation_mappings(self):  # type: ignore
         return {
             "relu": nn.ReLU(),
@@ -19,7 +19,7 @@ class ReflectiveExample(Reflective):
 
     def get_layer_mappings(self):  # type:ignore
         return {
-            "linear": DummyLayerBuilder,
+            "linear_test": DummyLayerBuilder,
         }
 
     def get_adapter_mappings(self):
@@ -27,11 +27,6 @@ class ReflectiveExample(Reflective):
 
     def get_supported_quantization(self):
         return {"dtype": {"int8"}, "total_bits": lambda x: x <= 32}
-
-    def get_layer_mappings(self):  # type:ignore
-        return {
-            "linear": DummyLayerBuilder,
-        }
 
 
 def test_simple_supported_model():
@@ -72,12 +67,12 @@ def test_no_quant_scheme():
 def test_unsupported_leaf_layer():
     model = nn.Sequential(
         nn.Linear(10, 10),
-        nn.Sigmoid(),
+        nn.L1Loss(),
     )
 
     reflective = ReflectiveExample()
 
-    with pytest.raises(NotImplementedError, match="Sigmoid"):
+    with pytest.raises(NotImplementedError, match="L1Loss"):
         reflective.validate_model(model, QuantizationScheme())
 
 
@@ -85,13 +80,13 @@ def test_unsupported_layer_inside_nested_sequential():
     model = nn.Sequential(
         nn.Sequential(
             nn.Linear(10, 10),
-            nn.Sigmoid(),
+            nn.L1Loss(),
         )
     )
 
     reflective = ReflectiveExample()
 
-    with pytest.raises(NotImplementedError, match="Sigmoid"):
+    with pytest.raises(NotImplementedError, match="L1Loss"):
         reflective.validate_model(model, QuantizationScheme())
 
 
@@ -110,6 +105,13 @@ class L1Builder:
     build_return_types = [nn.L1Loss]
 
 
+def test_overwrite():
+    model = nn.Sequential(
+        nn.Sigmoid(),
+    )
+    reflective = ReflectiveExample(replace_registries=True)
+    with pytest.raises(NotImplementedError, match="Sigmoid"):
+        reflective.validate_model(model)
 
 
 def test_non_overwrite():
@@ -117,10 +119,12 @@ def test_non_overwrite():
         def get_layer_mappings(self):  # type:ignore
             return {"L1Loss": L1Builder}
 
-    model_builder = DummyBuilder()
+    model_builder = DummyBuilder(replace_registries=False)
     model = nn.Sequential(
         nn.Linear(10, 10),
     )
     assert model_builder.validate_model(model, None)
     assert nn.L1Loss in model_builder.get_supported_layers()
-    assert nn.Linear in model_builder.get_supported_layers()
+    assert (
+        nn.Linear in model_builder.get_supported_layers()
+    )  # nn.Linear is from the default layers that should not be overwritten

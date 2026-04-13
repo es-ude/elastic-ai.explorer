@@ -12,7 +12,7 @@ When the default_op_params doesn't include the default search parameters of an o
 ```yaml
 input: [1, 1313]          # The dimensions of an Input Sample without batch_size
 output: 2                 # The dimensions of the Output
-quantization:             # Here a Quantization Scheme can be specified. For more information see below.
+quantization:             # Optionally, a Quantization Scheme can be specified. For more information see Quantization section below.
   ...
 sequence:                 # The macro structure of the network consisting of multiple blocks (at least one)
   - block: "1"            # Each block needs to have a unique string identifier
@@ -150,9 +150,9 @@ input: ...
 output: ...
 
 quantization:                  
-  dtype: ["float32", "int8"]
-  total_bits: [16,32]
-  frac_bits": [2,8]
+  dtype: ["float32", "int8"]    # String: The general datatype of the model
+  total_bits: [16,32]           # Optional, int:  The total number of bits used. 
+  frac_bits": [2,8]             # 
   signed": True
 
 Sequence:
@@ -384,7 +384,7 @@ class ToLinearAdapter(nn.Module):
             return input_shape
 ```
 
-After adding and adapter in this way it must be registered in [registry.py](registry.py)
+After adding an adapter in this way it must be registered in [registry.py](registry.py)
 ```python 
 DEFAULT_ADAPTER = {
     ("conv2d", "lstm"): Conv2dToLSTMAdapter,

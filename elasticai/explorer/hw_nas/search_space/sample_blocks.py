@@ -396,6 +396,8 @@ class QuantizationBuilder:
             "total_bits": None,
             "frac_bits": None,
             "signed": None,
+            "scale": None,
+            "zero_point": None,
         }
 
     def build(self) -> QuantizationScheme:

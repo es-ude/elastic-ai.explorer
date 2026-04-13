@@ -13,11 +13,9 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
 )
 
 from elasticai.explorer.hw_nas.search_space.registry import (
-    activation_registry,
     adapter_registry,
     DEFAULT_ACTIVATION_REGISTRY,
     DEFAULT_ADAPTER_REGISTRY,
-    layer_registry,
 )
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
@@ -56,30 +54,22 @@ class ShapeValueError(ValueError):
 
 
 class ModelBuilder(Reflective, ABC):
+    def __init__(self, replace_registries: bool = False) -> None:
+        super().__init__(replace_registries=replace_registries)
+
     @abstractmethod
     def build_from_trial(
         self, trial, search_space: dict
     ) -> tuple[Any, QuantizationScheme | None]:
         pass
 
-    def setup_registries(self, replace=False):
-        if replace:
-            activation_registry.clear()
-            adapter_registry.clear()
-            layer_registry.clear()
-
-        activation_registry.update(self.get_activation_mappings())
-        adapter_registry.update(self.get_adapter_mappings())
-        layer_registry.update(self.get_layer_mappings())
-
 
 class DefaultModelBuilder(ModelBuilder):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, replace_registries: bool = False) -> None:
+        super().__init__(replace_registries=replace_registries)
         self.logger = logging.getLogger(
             "explorer.generator.model_builder.TorchModelBuilder"
         )
-        self.setup_registries()
 
     def get_activation_mappings(self) -> dict[str, Any]:
         return DEFAULT_ACTIVATION_REGISTRY
