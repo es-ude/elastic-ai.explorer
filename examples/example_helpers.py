@@ -4,8 +4,8 @@ import torch
 from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.pico_generator.PicoCompiler import PicoCompiler
 from elasticai.explorer.generator.deployment.compiler import (
-    PicoCompiler,
     RPICompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
@@ -121,7 +121,7 @@ def measure_on_device(
     retrain_device: str,
     dataset_spec: DatasetSpecification,
     model_suffix: str = ".pt",
-    top_quantization_schemes: list[QuantizationScheme| None] = [],
+    top_quantization_schemes: list[QuantizationScheme | None] = [],
 ):
 
     metrics_to_measurements = {"accuracy after retrain in %": []}

@@ -4,11 +4,11 @@ from pathlib import Path
 import torch
 
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.pico_generator.PicoCompiler import PicoCompiler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import (
     CompilerParams,
-    PicoCompiler,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
     PicoHost,
