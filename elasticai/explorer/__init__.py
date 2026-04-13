@@ -6,10 +6,6 @@ from elasticai.explorer.utils.stats import compute_kendall
 from .explorer import Explorer
 from .generator.deployment.device_communication import SerialHost, SSHHost
 from .generator.deployment.compiler import Compiler
-from .generator.deployment.generator_utils import (
-    setup_mnist_for_cpp,
-    torch_to_tflite_sample,
-)
 from .generator.deployment.hw_manager import HWManager
 from .hw_nas.estimators import (
     Estimator,
@@ -36,8 +32,6 @@ __all__ = [
     "SerialHost",
     "SSHHost",
     "Compiler",
-    "setup_mnist_for_cpp",
-    "torch_to_tflite_sample",
     "HWManager",
     "Estimator",
     "FLOPsEstimator",

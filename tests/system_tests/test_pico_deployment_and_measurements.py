@@ -3,6 +3,8 @@ import tomllib
 
 import pytest
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.pico_generator.PicoHWManager import PicoHWManager
+from elasticai.explorer_plugins.pico_generator.PicoHost import PicoHost
 from elasticai.explorer_plugins.pico_generator.PicoCompiler import PicoCompiler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
@@ -11,19 +13,19 @@ from elasticai.explorer.generator.deployment.compiler import (
 )
 from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
-    PicoHWManager,
 )
-from elasticai.explorer.generator.model_translator.model_translator import (
+from elasticai.explorer_plugins.pico_generator.TFliteModelTranslator import (
     TFliteModelTranslator,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
-    PicoHost,
     SerialParams,
 )
 from pathlib import Path
 
 from elasticai.explorer.training import data
-from elasticai.explorer.generator.deployment.generator_utils import setup_mnist_for_cpp
+from elasticai.explorer_plugins.pico_generator.generator_utils import (
+    setup_mnist_for_cpp,
+)
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 from torchvision import transforms
 

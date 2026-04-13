@@ -4,8 +4,10 @@ version = "1.0.0"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
 authors = [{ name = "Department Intelligent Embedded Systems - University Duisburg Essen" }]
 readme = "README.md"
-license = { file = "LICENSE" }
-
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
 requires-python = ">=3.11,<3.12"
 
 dependencies = [

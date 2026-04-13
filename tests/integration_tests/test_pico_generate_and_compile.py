@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.pico_generator.PicoHost import PicoHost
 from elasticai.explorer_plugins.pico_generator.PicoCompiler import PicoCompiler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
@@ -11,20 +12,21 @@ from elasticai.explorer.generator.deployment.compiler import (
     CompilerParams,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
-    PicoHost,
     SerialParams,
 )
-from elasticai.explorer.generator.deployment.hw_manager import (
+from elasticai.explorer_plugins.pico_generator.PicoHWManager import (
     PicoHWManager,
 )
-from elasticai.explorer.generator.model_translator import tflite_to_resolver
-from elasticai.explorer.generator.model_translator.model_translator import (
+from elasticai.explorer_plugins.pico_generator import tflite_to_resolver
+from elasticai.explorer_plugins.pico_generator.TFliteModelTranslator import (
     TFliteModelTranslator,
 )
 from torchvision import transforms
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.generator.deployment.generator_utils import setup_mnist_for_cpp
+from elasticai.explorer_plugins.pico_generator.generator_utils import (
+    setup_mnist_for_cpp,
+)
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 from tests.integration_tests.samples import sample_MLP
 

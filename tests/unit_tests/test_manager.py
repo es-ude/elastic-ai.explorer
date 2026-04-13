@@ -1,11 +1,11 @@
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
-from elasticai.explorer.generator.deployment.compiler import RPICompiler
+from elasticai.explorer_plugins.rpi_generator.RPiHWManager import RPiHWManager
+from elasticai.explorer_plugins.rpi_generator.RPICompiler import RPICompiler
 from elasticai.explorer.generator.deployment.device_communication import SSHHost
 from elasticai.explorer.generator.deployment.hw_manager import (
     CommandBuilder,
-    RPiHWManager,
     Metric,
 )
 from settings import DOCKER_CONTEXT_DIR

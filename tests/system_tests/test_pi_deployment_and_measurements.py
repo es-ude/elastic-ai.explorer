@@ -2,25 +2,28 @@ import tomllib
 
 import pytest
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.rpi_generator.RPiHWManager import RPiHWManager
+from elasticai.explorer_plugins.rpi_generator.RPiHost import RPiHost
+from elasticai.explorer_plugins.rpi_generator.RPICompiler import RPICompiler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
-from elasticai.explorer.generator.deployment.compiler import CompilerParams, RPICompiler
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer.generator.deployment.hw_manager import (
-    RPiHWManager,
     Metric,
 )
-from elasticai.explorer.generator.model_translator.model_translator import (
+from elasticai.explorer_plugins.rpi_generator.TorchscriptModelTranslator import (
     TorchscriptModelTranslator,
 )
 from elasticai.explorer.generator.deployment.device_communication import (
-    RPiHost,
     SSHParams,
 )
 from torchvision.transforms import transforms
 from pathlib import Path
 
 from elasticai.explorer.training import data
-from elasticai.explorer.generator.deployment.generator_utils import setup_mnist_for_cpp
+from elasticai.explorer_plugins.pico_generator.generator_utils import (
+    setup_mnist_for_cpp,
+)
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 
 

@@ -4,23 +4,25 @@ import torch
 from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.rpi_generator.RPiHWManager import RPiHWManager
+from elasticai.explorer_plugins.rpi_generator.TorchscriptModelTranslator import (
+    TorchscriptModelTranslator,
+)
+from elasticai.explorer_plugins.rpi_generator.RPiHost import RPiHost
 from elasticai.explorer_plugins.pico_generator.PicoCompiler import PicoCompiler
-from elasticai.explorer.generator.deployment.compiler import (
+from elasticai.explorer_plugins.rpi_generator.RPICompiler import (
     RPICompiler,
 )
-from elasticai.explorer.generator.deployment.device_communication import (
+from elasticai.explorer_plugins.pico_generator.PicoHost import (
     PicoHost,
-    RPiHost,
 )
-from elasticai.explorer.generator.deployment.hw_manager import (
+from elasticai.explorer_plugins.pico_generator.PicoHWManager import (
     PicoHWManager,
-    RPiHWManager,
 )
 from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer.generator.model_builder.model_builder import PicoModelBuilder
-from elasticai.explorer.generator.model_translator.model_translator import (
+from elasticai.explorer_plugins.pico_generator.model_builder import PicoModelBuilder
+from elasticai.explorer_plugins.pico_generator.TFliteModelTranslator import (
     TFliteModelTranslator,
-    TorchscriptModelTranslator,
 )
 from elasticai.explorer.hw_nas.estimators import (
     TrainMetricsEstimator,
