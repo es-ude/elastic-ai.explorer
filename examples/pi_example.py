@@ -65,13 +65,13 @@ def search_generate_measure_for_pi(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 2
+    max_search_trials = 6
     top_n_models = 2
     retrain_epochs = 3
     rpi_type = "rpi5"
 
     ssh_params = SSHParams(
-        hostname="transfair.local", username="robin"
+        hostname="<hostname>", username="<username>"
     )  # <-- connection details for your RPi
     compiler_params = CompilerParams(
         base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
