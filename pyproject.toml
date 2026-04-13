@@ -1,6 +1,6 @@
 [project]
 name = "elastic-ai.explorer"
-version = "1.0.0"
+version = "1.0.1"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
 authors = [{ name = "Department Intelligent Embedded Systems - University Duisburg Essen" }]
 readme = "README.md"

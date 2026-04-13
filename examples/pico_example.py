@@ -12,7 +12,7 @@ from elasticai.explorer.generator.deployment.device_communication import SerialP
 
 from elasticai.explorer.generator.deployment.hw_manager import Metric
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer_plugins.pico_generator.generator_utils import setup_mnist_for_cpp
+from elasticai.explorer_plugins.pico_generator.utils import setup_mnist_for_cpp
 
 from examples.example_helpers import (
     measure_on_device,

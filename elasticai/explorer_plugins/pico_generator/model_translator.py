@@ -2,7 +2,7 @@ from elasticai.explorer.generator.model_translator.model_translator import (
     ModelTranslator,
 )
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
-from elasticai.explorer_plugins.pico_generator.generator_utils import (
+from elasticai.explorer_plugins.pico_generator.utils import (
     torch_to_tflite_sample,
 )
 

@@ -6,7 +6,7 @@ import torch
 
 import operator
 from elasticai.explorer_plugins.rpi_generator.RPiHost import RPiHost
-from elasticai.explorer_plugins.rpi_generator.RPICompiler import RPICompiler
+from elasticai.explorer_plugins.rpi_generator.compiler import RPICompiler
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.estimators import (
     FLOPsEstimator,
@@ -22,8 +22,8 @@ from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.generator.deployment.compiler import CompilerParams
-from elasticai.explorer_plugins.rpi_generator.RPiHWManager import RPiHWManager
-from elasticai.explorer_plugins.rpi_generator.TorchscriptModelTranslator import (
+from elasticai.explorer_plugins.rpi_generator.hw_manager import RPiHWManager
+from elasticai.explorer_plugins.rpi_generator.model_translator import (
     TorchscriptModelTranslator,
 )
 from elasticai.explorer.generator.deployment.device_communication import (

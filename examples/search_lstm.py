@@ -11,7 +11,7 @@ from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer_plugins.rpi_generator.TorchscriptModelTranslator import (
+from elasticai.explorer_plugins.rpi_generator.model_translator import (
     TorchscriptModelTranslator,
 )
 

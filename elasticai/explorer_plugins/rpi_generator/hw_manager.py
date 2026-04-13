@@ -8,7 +8,6 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 )
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.training.data import DatasetSpecification
-from elasticai.explorer_plugins.rpi_generator.RPiHost import RPiHost
 
 
 import json
@@ -17,6 +16,8 @@ import os
 import tarfile
 from pathlib import Path
 from typing import Callable, Dict
+
+from elasticai.explorer_plugins.rpi_generator.host import RPiHost
 
 
 class RPiHWManager(HWManager):
