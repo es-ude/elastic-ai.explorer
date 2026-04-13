@@ -2,8 +2,8 @@ import tomllib
 
 import pytest
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.rpi_generator.host import RPiHost
 from elasticai.explorer_plugins.rpi_generator.hw_manager import RPiHWManager
-from elasticai.explorer_plugins.rpi_generator.RPiHost import RPiHost
 from elasticai.explorer_plugins.rpi_generator.compiler import RPICompiler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry

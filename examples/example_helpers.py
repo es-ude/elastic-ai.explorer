@@ -4,11 +4,11 @@ import torch
 from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer_plugins.rpi_generator.host import RPiHost
 from elasticai.explorer_plugins.rpi_generator.hw_manager import RPiHWManager
 from elasticai.explorer_plugins.rpi_generator.model_translator import (
     TorchscriptModelTranslator,
 )
-from elasticai.explorer_plugins.rpi_generator.RPiHost import RPiHost
 from elasticai.explorer_plugins.pico_generator.compiler import PicoCompiler
 from elasticai.explorer_plugins.rpi_generator.compiler import (
     RPICompiler,
@@ -40,7 +40,6 @@ from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
 from torch import optim
 
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
-from torch.utils.data import DataLoader
 
 
 def setup_generator_registry() -> GeneratorRegistry:
