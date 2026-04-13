@@ -3,9 +3,8 @@ from dataclasses import dataclass
 import logging
 from pathlib import Path
 from typing import Any
-
-import serial
 from fabric import Connection
+import serial
 
 
 @dataclass
