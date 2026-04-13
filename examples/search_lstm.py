@@ -110,7 +110,7 @@ def run_lstm_search():
         hw_nas.SearchStrategy.EVOLUTIONARY_SEARCH,
         criteria_reg,
         hw_nas_parameters=hw_nas.HWNASParameters(max_search_trials, top_n_models),
-        model_builder_type=DefaultModelBuilder(),
+        model_builder_type=DefaultModelBuilder,
     )
     model = top_models[0]
     print(model)
