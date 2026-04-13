@@ -21,7 +21,6 @@ from elasticai.explorer.hw_nas.search_space.build_model import (
 from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )
-from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
 logger = logging.getLogger("explorer.nas")
 intermediate_metrics_template = "{metric_name}_intermediates"
@@ -103,12 +102,12 @@ def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
     optimization_criteria: OptimizationCriteria,
-    model_builder: ModelBuilder,
+    model_builder_type: type[ModelBuilder],
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
         model, quant_scheme = sample_and_create_model(
-            model_builder, trial, search_space_cfg
+            model_builder_type(), trial, search_space_cfg
         )
         score = _evaluate_constraints(trial, model, optimization_criteria, quant_scheme)
         logger.info(f"Trial {trial.number} has a final score of {score:.2f}")
@@ -123,8 +122,8 @@ def search(
     search_strategy: SearchStrategy,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
-    model_builder: ModelBuilder,
-) -> tuple[list[Any], list[dict[str, Any]], list[Any], list[QuantizationScheme]]:
+    model_builder_type: type[ModelBuilder],
+) -> tuple[list[Any], list[dict[str, Any]], list[Any], list[QuantizationScheme | None]]:
     """
     Returns: top-models, model-parameters, metrics
     """
@@ -163,7 +162,7 @@ def search(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
             optimization_criteria=optimization_criteria,
-            model_builder=model_builder,
+            model_builder_type=model_builder_type,
         ),
         n_trials=n_trials,
         callbacks=callbacks,
@@ -186,12 +185,12 @@ def search(
     top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
-    top_k_quant_scheme: list[QuantizationScheme] = []
+    top_k_quant_scheme: list[QuantizationScheme | None] = []
 
     metric_names = [
         estimator.metric_name for estimator in optimization_criteria.get_estimators()
     ]
-
+    model_builder = model_builder_type()
     for frozen_trial in top_k_frozen_trials:
         model, quant_scheme = model_builder.build_from_trial(
             frozen_trial, search_space_cfg

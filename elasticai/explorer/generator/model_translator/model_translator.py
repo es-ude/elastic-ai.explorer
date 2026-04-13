@@ -27,7 +27,7 @@ class ModelTranslator(ABC):
         model: nn.Module,
         output_path: Path,
         sample: torch.Tensor,
-        quantization_scheme: QuantizationScheme,
+        quantization_scheme: QuantizationScheme | None = None,
     ) -> Any:
         pass
 
@@ -160,16 +160,16 @@ class TFliteModelTranslator(ModelTranslator):
         model.eval()
         torch_output = model(sample)
         tflite_shaped_model = to_channel_last_io(model, args=[0]).eval()
-
-        edge_model = ai_edge_torch.convert(
-            tflite_shaped_model, sample_args=(tflite_samples,)
-        )
-        edge_output = edge_model(tflite_samples)
-        self._validate(torch_output, edge_output)
         if quantization_scheme:
             edge_model = self._quantize(
                 tflite_shaped_model, (tflite_samples,), quantization_scheme
             )
+        else:
+            edge_model = ai_edge_torch.convert(
+                tflite_shaped_model, sample_args=(tflite_samples,)
+            )
+            edge_output = edge_model(tflite_samples)
+            self._validate(torch_output, edge_output)
 
         edge_model.export(str(output_path.with_suffix(".tflite")))
         self._tflite_to_cpp_array(output_path.with_suffix(".tflite"))

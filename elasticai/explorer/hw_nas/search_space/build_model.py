@@ -54,8 +54,8 @@ class ShapeValueError(ValueError):
 
 
 class ModelBuilder(Reflective, ABC):
-    def __init__(self, replace_registries: bool = False) -> None:
-        super().__init__(replace_registries=replace_registries)
+    def __init__(self) -> None:
+        super().__init__()
 
     @abstractmethod
     def build_from_trial(
@@ -65,8 +65,8 @@ class ModelBuilder(Reflective, ABC):
 
 
 class DefaultModelBuilder(ModelBuilder):
-    def __init__(self, replace_registries: bool = False) -> None:
-        super().__init__(replace_registries=replace_registries)
+    def __init__(self) -> None:
+        super().__init__()
         self.logger = logging.getLogger(
             "explorer.generator.model_builder.TorchModelBuilder"
         )

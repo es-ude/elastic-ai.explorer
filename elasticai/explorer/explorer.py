@@ -43,7 +43,7 @@ from elasticai.explorer.utils.logging_utils import (
 
 class Explorer:
     """
-    The explorer class manages the HW-NAS and the deployment on hardware. It acts as a experiment framework.
+    The explorer class manages the HW-NAS and the deployment on hardware. It acts as an experiment framework.
     For more customization use the HW-NAS and deployment tools directly.
     """
 
@@ -66,7 +66,7 @@ class Explorer:
         self.model_translator: Optional[ModelTranslator] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
-        self.model_builder: ModelBuilder = DefaultModelBuilder()
+        self.model_builder_type: type[ModelBuilder] = DefaultModelBuilder
         self._experiment_dir: Path = experiments_dir
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
@@ -130,7 +130,7 @@ class Explorer:
                 search_strategy=search_strategy,
                 hw_nas_parameters=hw_nas_parameters,
                 optimization_criteria=optimization_criteria,
-                model_builder=self.model_builder,
+                model_builder_type=self.model_builder_type,
             )
         else:
             self.logger.error(
@@ -173,7 +173,7 @@ class Explorer:
             self.generator.compiler(compiler_params),
         )
 
-        self.model_builder = self.generator.model_builder()
+        self.model_builder_type = self.generator.model_builder
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, Generator:\n%s",
             target_platform_name,
@@ -228,7 +228,7 @@ class Explorer:
         model: nn.Module,
         model_name: str,
         data_sample: torch.Tensor,  # One data sample with batch dimension (shape= (1,...))
-        quantization_scheme: QuantizationScheme = QuantizationScheme(),
+        quantization_scheme: QuantizationScheme | None = None,
     ) -> Any:
         model_path = self._model_dir / model_name
 

@@ -101,25 +101,15 @@ def test_unsupported_quantization_scheme():
         reflective.validate_model(model, QuantizationScheme(total_bits=80))
 
 
-class L1Builder:
-    build_return_types = [nn.L1Loss]
-
-
-def test_overwrite():
-    model = nn.Sequential(
-        nn.Sigmoid(),
-    )
-    reflective = ReflectiveExample(replace_registries=True)
-    with pytest.raises(NotImplementedError, match="Sigmoid"):
-        reflective.validate_model(model)
-
-
 def test_non_overwrite():
+    class L1Builder:
+        build_return_types = [nn.L1Loss]
+
     class DummyBuilder(DefaultModelBuilder):
         def get_layer_mappings(self):  # type:ignore
             return {"L1Loss": L1Builder}
 
-    model_builder = DummyBuilder(replace_registries=False)
+    model_builder = DummyBuilder()
     model = nn.Sequential(
         nn.Linear(10, 10),
     )
