@@ -3,7 +3,7 @@ revision = 3
 requires-python = "==3.11.*"
 
 [manifest]
-overrides = [{ name = "tf-nightly", marker = "sys_platform == 'never'" }]
+excludes = ["tf-nightly"]
 
 [[package]]
 name = "absl-py"
@@ -39,7 +39,6 @@ dependencies = [
     { name = "ai-edge-litert" },
     { name = "immutabledict" },
     { name = "numpy" },
-    { name = "tf-nightly", marker = "sys_platform == 'never'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/fb/f9513feb6226f6ad1d633b4eeadd290dfb2ad1823c6fbe1996c25d2e8291/ai_edge_quantizer-0.2.1-py3-none-any.whl", hash = "sha256:4797ab5ac2a5e012b65512b9d57ae425b9a04481744343d75bb0241e7f5a2dbd", size = 186974, upload-time = "2025-05-20T15:24:21.103Z" },
@@ -60,7 +59,6 @@ dependencies = [
     { name = "safetensors" },
     { name = "scipy" },
     { name = "tabulate" },
-    { name = "tf-nightly", marker = "sys_platform == 'never'" },
     { name = "torch" },
     { name = "torch-xla2", extra = ["odml"] },
     { name = "transformers" },
@@ -377,7 +375,7 @@ wheels = [
 
 [[package]]
 name = "elasticai-explorer"
-version = "1.0.1"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "fabric" },
@@ -810,25 +808,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c2/83/a306d6bb025ae448188d8201341215b19058f41f19b05505d5c4fe2568ae/keras-3.11.2.tar.gz", hash = "sha256:b78a4af616cbe119e88fa973d2b0443b70c7f74dd3ee888e5026f0b7e78a2801", size = 1065362, upload-time = "2025-08-11T21:05:13.887Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/49/795d20e41a1cece7fe92dd80ae2cab3372cc0d1502bf3b277434d87da3a9/keras-3.11.2-py3-none-any.whl", hash = "sha256:539354b1870dce22e063118c99c766c3244030285b5100b4a6f8840145436bf0", size = 1408406, upload-time = "2025-08-11T21:05:12.132Z" },
-]
-
-[[package]]
-name = "keras-nightly"
-version = "3.12.0.dev2025081303"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "absl-py" },
-    { name = "h5py" },
-    { name = "ml-dtypes" },
-    { name = "namex" },
-    { name = "numpy" },
-    { name = "optree" },
-    { name = "packaging" },
-    { name = "rich" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/66/19/d64307f4b216e0e75df0d40231396f611807815ad8629f43c1bc8688b4d7/keras_nightly-3.12.0.dev2025081303.tar.gz", hash = "sha256:2a2d07efb6a1e5a7557aa000b703aad3165fe9d24b7d3c79d33c2bd185381567", size = 1069591, upload-time = "2025-08-13T03:58:53.716Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/82/1b93bc27ca92a0026b204531d4d1e0fb6e45349c3c374b3abd1ec7bae572/keras_nightly-3.12.0.dev2025081303-py3-none-any.whl", hash = "sha256:08130af4a764e8477ad58f5a16bf1bf920f6e50c5f20357588747e563624a5d3", size = 1412978, upload-time = "2025-08-13T03:58:51.018Z" },
 ]
 
 [[package]]
@@ -1791,26 +1770,6 @@ wheels = [
 ]
 
 [[package]]
-name = "tb-nightly"
-version = "2.20.0a20250717"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "absl-py" },
-    { name = "grpcio" },
-    { name = "markdown" },
-    { name = "numpy" },
-    { name = "packaging" },
-    { name = "pillow" },
-    { name = "protobuf" },
-    { name = "setuptools" },
-    { name = "tensorboard-data-server" },
-    { name = "werkzeug" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/a1/eee8c62bc69a9e2751f7f1c6d541f3c9257371979ad49b27822d38d0f364/tb_nightly-2.20.0a20250717-py3-none-any.whl", hash = "sha256:3a2e0a75258baba5ffff993ac8f4a0aae4dc8b382bae42ec2660dc3af73505fc", size = 5525762, upload-time = "2025-07-17T11:13:45.025Z" },
-]
-
-[[package]]
 name = "tensorboard"
 version = "2.20.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1881,34 +1840,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ca/6c/3d75c196ac07ac8749600b60b03f4f6094d54e132c4d94ebac6ee0e0add0/termcolor-3.1.0.tar.gz", hash = "sha256:6a6dd7fbee581909eeec6a756cff1d7f7c376063b14e4a298dc4980309e55970", size = 14324, upload-time = "2025-04-30T11:37:53.791Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4f/bd/de8d508070629b6d84a30d01d57e4a65c69aa7f5abe7560b8fad3b50ea59/termcolor-3.1.0-py3-none-any.whl", hash = "sha256:591dd26b5c2ce03b9e43f391264626557873ce1d379019786f99b0c2bee140aa", size = 7684, upload-time = "2025-04-30T11:37:52.382Z" },
-]
-
-[[package]]
-name = "tf-nightly"
-version = "2.21.0.dev20251126"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "absl-py" },
-    { name = "astunparse" },
-    { name = "flatbuffers" },
-    { name = "gast" },
-    { name = "google-pasta" },
-    { name = "grpcio" },
-    { name = "h5py" },
-    { name = "keras-nightly" },
-    { name = "libclang" },
-    { name = "ml-dtypes" },
-    { name = "numpy" },
-    { name = "opt-einsum" },
-    { name = "packaging" },
-    { name = "protobuf" },
-    { name = "requests" },
-    { name = "setuptools" },
-    { name = "six" },
-    { name = "tb-nightly" },
-    { name = "termcolor" },
-    { name = "typing-extensions" },
-    { name = "wrapt" },
 ]
 
 [[package]]

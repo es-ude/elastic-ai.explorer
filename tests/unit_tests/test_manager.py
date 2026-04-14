@@ -1,8 +1,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
-from elasticai.explorer_plugins.rpi_generator.hw_manager import RPiHWManager
-from elasticai.explorer_plugins.rpi_generator.compiler import RPICompiler
+from elasticai.explorer_impl.rpi_generator.hw_manager import RPiHWManager
+from elasticai.explorer_impl.rpi_generator.compiler import RPICompiler
 from elasticai.explorer.generator.deployment.device_communication import SSHHost
 from elasticai.explorer.generator.deployment.hw_manager import (
     CommandBuilder,

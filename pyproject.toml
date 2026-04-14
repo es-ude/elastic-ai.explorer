@@ -1,6 +1,6 @@
 [project]
 name = "elasticai.explorer"
-version = "1.0.0"
+version = "1.0.1"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
 authors = [{ name = "Department Intelligent Embedded Systems - University Duisburg Essen" }]
 readme = "README.md"
@@ -46,7 +46,7 @@ pico_generator = [
 
 [tool.uv]
 default-groups = ["dev"]
-override-dependencies = ["tf-nightly; sys_platform == 'never'",]
+exclude-dependencies = ["tf-nightly"]
 [tool.black]
 preview = true
 line-length = 88
@@ -87,5 +87,5 @@ package-dir = {"" = "."}
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["elasticai.explorer*", "elasticai.explorer_plugins*"]
+include = ["elasticai.explorer*", "elasticai.explorer_impl*"]
 namespaces = true

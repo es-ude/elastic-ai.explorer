@@ -2,7 +2,7 @@
 HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms, automated deployment and testing.
 Currently supported are the **Raspberry Pi 4/5** and the **Raspberry Pi Pico**. 
 
-This project is still in active development and has no official release yet.
+This project is still in active development and has no official release yet. As stated above three platforms (RPi4/5, RPi Pico) are already supported. The implementations of the corresponding generator classes are located in elasticai.explorer-impl.
 
 # Install Dependencies
 Recommended:
@@ -10,33 +10,44 @@ Use **UV** as a Package Manager (https://docs.astral.sh/uv/configuration/install
 
 Then Run following command in project root. 
 
-For Linux Users run:
+## Linux and Mac
+Run:
 
 ```
- uv sync --all-groups
+uv sync
  ```
-For Mac:
+
+If you don't need dev dependencies:
 
 ```
- uv sync --no-group nomac
+uv sync --no-dev
  ```
 
-If you don't need dev dependencies add:
-
-```
- --no-dev
- ```
-
+## Windows
+#### TODO check compatibility without Pico-Generator
 For easy setup on Windows use the Dockerfile.explorer to create an image:
 ```
- docker build -t explorer -f Dockerfile.explorer . 
+docker build -t explorer -f Dockerfile.explorer . 
  ```
-If used for cross-compilation, run the Image with "-v /var/run/docker.sock:/var/run/docker.sock" argument to allow for creating docker images from the container.
+If used for cross-compilation with docker, run the Image with "-v /var/run/docker.sock:/var/run/docker.sock" argument to allow for creating sibling docker images.
 
 ```
 docker run -v /var/run/docker.sock:/var/run/docker.sock
  ```
 
+## Pico-Generator Dependencies
+If you want to use the pico-generator, install the additional dependencies with:
+
+```
+uv sync --extra pico-generator
+ ```
+
+When using the Pico-Generator in an other Project and you do not want to allow pre-releases, add:
+```
+[tool.uv]
+exclude-dependencies = ["tf-nightly"]
+...
+```
 # Setup for Deployment and System Tests:
  To compile for deployment on hardware you need to install:
 
@@ -63,11 +74,13 @@ To use the Explorer to deploy models on your Raspberry Pi, we recommend using Bo
 Then install libtorch on your Pi under `/code/libtorch` directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be `docker/code/libtorch`) in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
 
 Ensure a `data` directory exists on the Raspberry Pi user's home directory.
+More information on how to use the Pico-Generator implementation is found here 
 
 After this you can use the System Tests by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pi_example.py) by adding your RPi's credentials to the SSHParams. 
 
 ## Set up your Raspberry Pi Pico for Deployment
 There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably `/media/RPI-RP2`). Additionally, it can be necessary to add the user to dialout and tty group at the serial port (default is `/dev/ttyACM0`) in order to communicate over the serial connection.
+Importantly, do not forget to install the additional dependencies for the pico-generator as explained in [Pico-Generator Dependencies](#Pico-Generator-Dependencies).
 
 After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
 
@@ -83,3 +96,6 @@ For test deployment and hardware-specific search, create your own Generator with
 # Search Space Specification
 To learn how to specify your own search space for a HW-NAS in YAML format or to learn how to extend the supported operations in code
 see the [search space specification](elasticai/explorer/hw_nas/search_space/README.md).
+
+# Generator Implementations
+More information on how to use the generators and build your own Generator can be found here in [Generator](elasticai/explorer/generator/README.md).

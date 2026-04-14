@@ -7,8 +7,8 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 )
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.training.data import DatasetSpecification
-from elasticai.explorer_plugins.pico_generator import tflite_to_resolver
-from elasticai.explorer_plugins.pico_generator.host import PicoHost
+from elasticai.explorer_impl.pico_generator import tflite_to_resolver
+from elasticai.explorer_impl.pico_generator.host import PicoHost
 
 
 import json

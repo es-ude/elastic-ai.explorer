@@ -17,7 +17,7 @@ import tarfile
 from pathlib import Path
 from typing import Callable, Dict
 
-from elasticai.explorer_plugins.rpi_generator.host import RPiHost
+from elasticai.explorer_impl.rpi_generator.host import RPiHost
 
 
 class RPiHWManager(HWManager):
