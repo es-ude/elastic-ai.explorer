@@ -1,12 +1,11 @@
-from abc import ABC, abstractmethod
 from collections import OrderedDict
 import logging
 
 from torch import nn
 from typing import Any, Sequence
 import torch
-from elasticai.explorer.generator.reflection import Reflective
 
+from elasticai.explorer.generator.model_builder import ModelBuilder
 from elasticai.explorer.hw_nas.search_space.layer_builder import layer_registry
 from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
@@ -51,17 +50,6 @@ def is_negative(value):
 
 class ShapeValueError(ValueError):
     pass
-
-
-class ModelBuilder(Reflective, ABC):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @abstractmethod
-    def build_from_trial(
-        self, trial, search_space: dict
-    ) -> tuple[Any, QuantizationScheme | None]:
-        pass
 
 
 class DefaultModelBuilder(ModelBuilder):

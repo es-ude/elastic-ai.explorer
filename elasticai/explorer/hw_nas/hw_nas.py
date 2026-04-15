@@ -9,7 +9,7 @@ import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
 
-from elasticai.explorer.hw_nas.search_space.build_model import (
+from elasticai.explorer.generator.model_builder import (
     ModelBuilder,
 )
 from elasticai.explorer.hw_nas.optimization_criteria import (

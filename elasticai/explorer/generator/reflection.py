@@ -45,7 +45,7 @@ class Reflective(ABC):
         self,
     ) -> dict[str, Any]:
         """
-        Return dictionary with the key of the quantization parameter (e.g. dtype, total_bits)
+        Return dictionary with the key of the quantization parameter (dtype, total_bits, frac_bits, scale, zero_point)
         and the corresponding allowed values as set or boolean lambda function (e.g. int8). Unspecified parameters are ignored.
         """
         pass

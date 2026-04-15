@@ -1,6 +1,6 @@
+from elasticai.explorer.generator.model_builder import ModelBuilder
 from elasticai.explorer.hw_nas.search_space.build_model import (
     DefaultModelBuilder,
-    ModelBuilder,
 )
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import Host

@@ -5,5 +5,5 @@ from typing import Any
 class PicoModelBuilder(DefaultModelBuilder):
     def get_supported_quantization(self) -> dict[str, Any]:
         return {
-            "dtype": {"int8", "float32"},
+            "dtype": {"int8"},
         }

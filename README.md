@@ -58,7 +58,7 @@ exclude-dependencies = ["tf-nightly"]
 - The Docker Engine (https://docs.docker.com/engine/install/)
 - And the Docker-Buildx-Plugin (https://github.com/docker/buildx)
 
->First Deployment with Docker for each platform is slow because the necessary Docker-Images have to be created, after that the Docker-Images can be reused and deployment is much faster. 
+>First Deployment with Docker for each platform is slow because the necessary Docker-Images have to be created, after that the Docker-Images can be reused and deployment is much faster. To speed up the setup significantly you can also download the base images [here](https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
 
 ### Troubleshooting
 
@@ -71,10 +71,10 @@ Follow the steps in the Docker documentation: [How do I use Docker SDKs with Doc
 ## Set up your Raspberry Pi 4/5 for Deployment
 To use the Explorer to deploy models on your Raspberry Pi, we recommend using Bookworm 64-Bit as an OS. You also need to enable ssh connections on your RPi and make one initial connection between your host PC and the RPi. Make sure to add you public SSH key to the Raspberry Pi under `~/.ssh/authorized_keys`.
 
-Then install libtorch on your Pi under `/code/libtorch` directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be `docker/code/libtorch`) in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
+Then install libtorch on your Pi under `/code/libtorch` directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be `docker/code/libtorch`). You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 [here](https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
 
 Ensure a `data` directory exists on the Raspberry Pi user's home directory.
-More information on how to use the Pico-Generator implementation is found here 
+More information on how to use the Pico-Generator implementation is found [here](elasticai/explorer_impl/rpi_generator/README.md).
 
 After this you can use the System Tests by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pi_example.py) by adding your RPi's credentials to the SSHParams. 
 
@@ -83,6 +83,8 @@ There should be no setup on device necessary, just connect the Pico with your ho
 Importantly, do not forget to install the additional dependencies for the pico-generator as explained in [Pico-Generator Dependencies](#Pico-Generator-Dependencies).
 
 After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
+
+To use the deployment pipeline for the Pico, it relies on a docker based cross-compiler. As an example, you can use the pico_crosscompiler from `docker/code/pico_crosscompiler` and the dockerfiles picobase and picocross under `docker`. Adapt this to your use case and set it in CompilerParams. More on this [here](elasticai/explorer_impl/pico_generator/README.md).
 
 
 
