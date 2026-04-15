@@ -9,8 +9,8 @@ from pathlib import Path
 
 class PicoCompiler(Compiler):
 
-    def __init__(self, compiler_params: CompilerParams):
-        super().__init__(compiler_params)
+    def __init__(self, compiler_params: CompilerParams, **kwargs):
+        super().__init__(compiler_params, **kwargs)
         self.compiler_params = compiler_params
         if not self.is_setup():
             self.setup()

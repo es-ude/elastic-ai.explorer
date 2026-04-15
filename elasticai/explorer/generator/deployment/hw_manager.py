@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 from elasticai.explorer.generator.deployment.compiler import Compiler
 from elasticai.explorer.generator.deployment.device_communication import (
@@ -58,6 +58,7 @@ class HWManager(ABC):
         self._register_metric_to_source(metric, source)
 
     def _invoke_metric_source(self, metric: Metric, path_to_model: Path) -> dict:
+        """ Override if other sources as MetricFunction are expected """
         source = self._get_metric_source(metric)
         if not source:
             raise Exception(f"No source code registered for Metric: {metric}")
@@ -79,7 +80,7 @@ class HWManager(ABC):
     def prepare_model(self, path_to_model: Path):
         pass
 
-    def measure_metric(self, metric: Metric, path_to_model: Path) -> Dict:
+    def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         return self._invoke_metric_source(metric, path_to_model)
 
 
