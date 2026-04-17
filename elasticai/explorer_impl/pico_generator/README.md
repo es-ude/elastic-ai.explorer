@@ -96,7 +96,7 @@ quantization:
 
 ## Using ModelTranslator individually 
 The ModelTranslator can also be used individually to translate a torch model and its weight to tflite-model and c++-array in a ".cpp" file. 
-The ModelTranslator uses ai_edge_torch (now torch-litert) to convert the model. The converter is still a Beta release and may return broken models or models that differ in inference results. In practice most simple torch models are converted correctly. 
+The ModelTranslator uses ai_edge_torch (now torch-litert) to convert the model. The converter is still a Beta release and may return broken models or models that differ in inference results. In that case a warning is given. In practice most simple torch models are converted correctly. 
 It is also able to do Post Training Quantization (PTQ). 
 
 Example:
@@ -106,9 +106,3 @@ scheme = QuantizationScheme(dtype="int8") # <-- or dtype="float16"
 tflite_translator = TFliteModelTranslator()
 tflite_translator.translate(model = your_model, output_path= Path("path/to/some/output-dir"), sample=example_data_sample, quantization_scheme = scheme) # quantization_scheme=None results in a full precision model
 ```
-
-
-
-
-
-
