@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 from pathlib import Path
 
@@ -7,17 +7,17 @@ from pathlib import Path
 @dataclass
 class CompilerParams:
     base_dockerfile_path: Path  # The path to the base dockerfile. The base dockerfile gives instruction on how to build the base image.
+    cross_dockerfile_path: Path 
     build_context: Path  # The absolute path to the build context. For Docker this should be containing sources and Dockerfiles.
-    image_name: str = "pibase"
+    base_image_name: str = "pibase"
     library_path: Path = Path(
         "./code/libtorch"
     )  # This should be relative to the build context with a leading "./"
-
+    additional_params: dict = field(default_factory=lambda: {})
 
 class Compiler(ABC):
-    def __init__(self, compiler_params: CompilerParams, **kwargs):
+    def __init__(self, compiler_params: CompilerParams):
         self.compiler_params = compiler_params
-        self.kwargs = kwargs
         logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
         self.logger = logging.getLogger(logger_name)
 

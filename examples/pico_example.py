@@ -35,8 +35,9 @@ def search_generate_measure_for_pico(
     retrain_epochs: int = 4,
     max_search_trials: int = 2,
     top_n_models: int = 2,
+    target: str = "pico",
 ):
-    explorer.choose_target_hw("pico", compiler_params, serial_params)
+    explorer.choose_target_hw(target, compiler_params, serial_params)
     explorer.generate_search_space(search_space)
 
     transf = transforms.Compose(
@@ -84,15 +85,25 @@ if __name__ == "__main__":
     top_n_models = 2
     retrain_epochs = 3
 
-    serial_params = SerialParams(
-        device_path=Path("/media/<username>/RPI-RP2")
-    )  # <-- Set the device path and rest only if necessary.
+    # additional device specifics, changes are necessary
+    target_platform_name = "pico"  # <-- or pico2
+    base_dockerfile = "docker/Dockerfile.picobase"
+    cross_dockerfile = "docker/Dockerfile.picocross"
+    usb_device_path = Path(
+        "/media/<username>/RPI-RP2"
+    )  # <-- add your username and for pico2 this should be "/media/<username>/RP2350" instead
+    image_name = (
+        "picobase"  # <-- for pico2 use "pico2base" to create a separate base image
+    )
+    serial_params = SerialParams(device_path=usb_device_path)
     compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
-        image_name="picobase",
+        cross_dockerfile_path=ROOT_DIR / cross_dockerfile,
+        base_image_name=image_name,
         build_context=DOCKER_CONTEXT_DIR,
-        base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
-    )  # <-- Configure this only if necessary.
+        base_dockerfile_path=ROOT_DIR / base_dockerfile,
+        additional_params= {"platform_type": "rp2040"}, # <-- for pico2 set this to "rp2350"
+    )
 
     knowledge_repo = setup_generator_registry()
     explorer = Explorer(knowledge_repo, EXPERIMENTS_DIR)
@@ -105,4 +116,5 @@ if __name__ == "__main__":
         retrain_epochs=retrain_epochs,
         max_search_trials=max_search_trials,
         top_n_models=top_n_models,
+        target=target_platform_name,
     )

@@ -78,11 +78,13 @@ More information on how to use the Pico-Generator implementation is found [here]
 
 After this you can use the System Tests by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pi_example.py) by adding your RPi's credentials to the SSHParams. 
 
-## Set up your Raspberry Pi Pico for Deployment
-There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably `/media/RPI-RP2`). Additionally, it can be necessary to add the user to dialout and tty group at the serial port (default is `/dev/ttyACM0`) in order to communicate over the serial connection.
+## Set up your Raspberry Pi Pico / Pico2 for Deployment
+There should be no setup on device necessary, just connect the Pico with your host PC and find the correct device path (on Linux probably `/media/RPI-RP2` for Pico or `/media/RP2350` for Pico2). Additionally, it can be necessary to add the user to dialout and tty group at the serial port (default is `/dev/ttyACM0`) in order to communicate over the serial connection.
 Importantly, do not forget to install the additional dependencies for the pico-generator as explained in [Pico-Generator Dependencies](#Pico-Generator-Dependencies).
 
 After this you can use the System Tests for Pico by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pico_example.py) by adding your device path and serial port to the SerialParams. 
+
+To change the Compiler from the Pico to the Pico2 simply add `additional_params= {"platform_type": "rp2350"}` to your CompilerParams and create a new base image (give it a new name like "pico2base" in CompilerParams). 
 
 To use the deployment pipeline for the Pico, it relies on a docker based cross-compiler. As an example, you can use the pico_crosscompiler from `docker/code/pico_crosscompiler` and the dockerfiles picobase and picocross under `docker`. Adapt this to your use case and set it in CompilerParams. More on this [here](elasticai/explorer_impl/pico_generator/README.md).
 

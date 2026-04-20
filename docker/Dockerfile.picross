@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=cross
+ARG BASE_IMAGE=picobase
 FROM ${BASE_IMAGE}:latest AS builder
 
 ARG HOST_LIBTORCH_PATH="./code/libtorch"

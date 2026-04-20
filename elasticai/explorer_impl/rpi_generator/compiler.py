@@ -11,7 +11,7 @@ class RPICompiler(Compiler):
     def __init__(self, compiler_params: CompilerParams, **kwargs):
         super().__init__(compiler_params, **kwargs)
         self.compiler_params = compiler_params
-        self.image_name: str = compiler_params.image_name
+        self.image_name: str = compiler_params.base_image_name
         self.base_dockerfile_path: Path = Path(compiler_params.base_dockerfile_path)
         self.context_path: Path = Path(compiler_params.build_context)
         self.libtorch_path: Path = Path(compiler_params.library_path)
@@ -27,7 +27,7 @@ class RPICompiler(Compiler):
         docker.build(
             self.compiler_params.build_context,
             file=self.compiler_params.base_dockerfile_path,
-            tags=self.compiler_params.image_name,
+            tags=self.compiler_params.base_image_name,
         )
         self.logger.debug("Crosscompiler available now.")
 
@@ -35,10 +35,10 @@ class RPICompiler(Compiler):
         context_path = self.compiler_params.build_context
         docker.build(
             context_path,
-            file=context_path / "Dockerfile.picross",
+            file=self.compiler_params.cross_dockerfile_path,
             output={"type": "local", "dest": str(context_path / "bin")},
             build_args={
-                "BASE_IMAGE": self.compiler_params.image_name,
+                "BASE_IMAGE": self.compiler_params.base_image_name,
                 "NAME_OF_EXECUTABLE": source.stem,
                 "PROGRAM_CODE": str(source),
                 "HOST_LIBTORCH_PATH": str(self.compiler_params.library_path),

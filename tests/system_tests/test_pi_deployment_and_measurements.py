@@ -37,6 +37,7 @@ class TestDeploymentAndMeasurement:
         )  # <-- Set the credentials of your RPi
         compiler_params = CompilerParams(
             base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
+            cross_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picross",
             build_context=ROOT_DIR / "docker",
         )
         generator_registry = GeneratorRegistry()

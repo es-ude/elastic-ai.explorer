@@ -120,9 +120,10 @@ class TestHWNasSetupAndSearch:
             "rpi5",
             compiler_params=CompilerParams(
                 library_path=Path("./code/pico_crosscompiler"),
-                image_name="picobase",
+                base_image_name="picobase",
                 build_context=DOCKER_CONTEXT_DIR,
                 base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
+                cross_dockerfile_path=ROOT_DIR/  "docker/Dockerfile.picocross"
             ),
             communication_params=SSHParams("", ""),
         )

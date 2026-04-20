@@ -57,6 +57,16 @@ def setup_generator_registry() -> GeneratorRegistry:
     )
     generator_registry.register_generator(
         Generator(
+            "pico2",
+            "pico2 with RP2350 MCU and 4MB control memory",
+            TFliteModelTranslator,
+            PicoHWManager,
+            PicoHost,
+            PicoCompiler,
+        )
+    )
+    generator_registry.register_generator(
+        Generator(
             "rpi5",
             "Raspberry PI 5 with A76 processor and 8GB RAM",
             TorchscriptModelTranslator,

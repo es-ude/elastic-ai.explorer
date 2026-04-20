@@ -36,9 +36,11 @@ class TestPicoGenerateAndCompile:
         self.serial_params = SerialParams(device_path=Path(""))
         self.compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
-            image_name="picobase",
+            base_image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
+            cross_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picocross",
             base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
+            additional_params= {"platform_type": "rp2040"},
         )  # <-- Configure this only if necessary.
         generator_registry = GeneratorRegistry()
         generator_registry.register_generator(

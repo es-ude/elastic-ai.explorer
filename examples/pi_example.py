@@ -65,16 +65,17 @@ def search_generate_measure_for_pi(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 6
+    max_search_trials = 2
     top_n_models = 2
     retrain_epochs = 3
     rpi_type = "rpi5"
 
     ssh_params = SSHParams(
-        hostname="<hostname>", username="<username>"
+        hostname="transfair.local", username="robin"
     )  # <-- connection details for your RPi
     compiler_params = CompilerParams(
         base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
+        cross_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picross",
         build_context=ROOT_DIR / "docker",
     )  # <-- configure this only if necessary, the ROOT_DIR can also be set with environment variable PROJECT_ROOT.
     knowledge_repo = setup_generator_registry()
