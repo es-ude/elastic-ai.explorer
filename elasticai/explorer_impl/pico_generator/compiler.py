@@ -27,7 +27,7 @@ class PicoCompiler(Compiler):
             tags=self.compiler_params.base_image_name,
             file=self.compiler_params.base_dockerfile_path,
             build_args={
-                "CROSS_COMPILER_PATH": str(self.compiler_params.library_path),
+                "CROSS_COMPILER_PATH": str(self.compiler_params.library_path.as_posix()),
                 "PICO_TYPE": self.compiler_params.additional_params.get("platform_type", "rp2040"),
             },
         )
