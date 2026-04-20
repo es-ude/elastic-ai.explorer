@@ -29,7 +29,7 @@ from torch.utils.data import DataLoader, random_split
 
 
 from elasticai.explorer.training.data import DatasetSpecification
-from elasticai.explorer_impl.creator_generator.experimental_deployment import (
+from elasticai.explorer_impl.creator_generator.deployment import (
     synthesis_utils,
 )
 import serial

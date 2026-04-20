@@ -25,7 +25,7 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 
 from elasticai.creator.testing import run_cocotb_sim
 from elasticai.explorer.utils.data_utils import load_json
-from elasticai.explorer_impl.creator_generator.experimental_deployment.deployment import (
+from elasticai.explorer_impl.creator_generator.deployment.deployment import (
     CreatorEnv5ModelTranslator,
     CreatorBaseModelTranslator,
     ENv5Compiler,
