@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from typing import Any
 
 from torch import nn as nn
 
@@ -27,11 +28,22 @@ def register_layer(name: str):
 
 class LayerBuilder(ABC):
     build_return_types: list[type] | None = None
+    quantization_scheme: Any | None = None
 
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build(
+        self,
+        input_shape,
+        search_parameters: dict,
+        output_shape=None,
+        quantization_scheme: Any = None,
+    ):
+        self.quantization_scheme = quantization_scheme
         activation = search_parameters.get("activation", None)
         if output_shape is None:
-            layer, shape = self.build_layer(input_shape, search_parameters)
+            layer, shape = self.build_layer(
+                input_shape,
+                search_parameters,
+            )
         else:
             layer, shape = self.get_last_layer(
                 input_shape, search_parameters, output_shape
@@ -42,11 +54,20 @@ class LayerBuilder(ABC):
         return layer, shape
 
     @abstractmethod
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+    ) -> tuple[Any, Any]:
         pass
 
     @abstractmethod
-    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+    def get_last_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+        output_shape,
+    ) -> tuple[Any, Any]:
         pass
 
 
@@ -54,11 +75,20 @@ class LayerBuilder(ABC):
 class LinearLayer(LayerBuilder):
     build_return_types = [nn.Linear]
 
-    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+    def get_last_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+        output_shape,
+    ):
         linear = nn.Linear(input_shape, output_shape)
         return linear, output_shape
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+    ):
         linear = nn.Linear(input_shape, search_parameters["width"])
         return linear, search_parameters["width"]
 

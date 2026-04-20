@@ -1,0 +1,25 @@
+input: [1, 6]
+output: 4
+quantization:
+  total_bits: [8]
+  frac_bits: [2]
+  signed: [1]
+
+sequence:
+  - block:  "1" 
+    op_candidates: ["linear"]
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: 1
+    linear:
+      activation: [ "relu"]
+      width: [18 ,24, 48]
+  - block:  "1" 
+    op_candidates: ["linear"]
+    type_repeat:
+      repeat_type: "repeat_op"
+      depth: 1
+    linear:
+      activation: [ "relu"]
+      width: [18, 24, 48]
+  

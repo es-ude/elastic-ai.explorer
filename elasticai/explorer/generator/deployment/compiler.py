@@ -15,8 +15,15 @@ class CompilerParams:
     )  # This should be relative to the build context with a leading "./"
     additional_params: dict = field(default_factory=lambda: {})
 
+@dataclass
+class VivadoParams:
+    remote_working_dir: str
+    host: str
+    ssh_user: str = "vivado"
+    target_platform_name: str = ""
+
 class Compiler(ABC):
-    def __init__(self, compiler_params: CompilerParams):
+    def __init__(self, compiler_params: CompilerParams | VivadoParams):
         self.compiler_params = compiler_params
         logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
         self.logger = logging.getLogger(logger_name)

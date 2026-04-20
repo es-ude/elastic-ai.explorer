@@ -68,7 +68,9 @@ class DefaultModelBuilder(ModelBuilder):
     def get_supported_quantization(self) -> dict[str, Any]:
         return {}
 
-    def construct_model(self, sample: OrderedDict, in_dim, out_dim):
+    def construct_layers(
+        self, sample: OrderedDict, in_dim, out_dim, quant_scheme=None
+    ):
         layers = []
         next_in_shape = in_dim
         prev_op = None
@@ -83,18 +85,24 @@ class DefaultModelBuilder(ModelBuilder):
                         input_shape=next_in_shape,
                         search_parameters=layer_params["params"],
                         output_shape=out_dim,
+                        quantization_scheme=quant_scheme,
                     )
                 else:
                     build_layer, next_in_shape = layer.build(
                         input_shape=next_in_shape,
                         search_parameters=layer_params["params"],
+                        quantization_scheme=quant_scheme,
                     )
-                layers.append(build_layer)
+                if type(build_layer) == list:
+                    for layer in build_layer:
+                        layers.append(layer)
+                else:
+                    layers.append(build_layer)
                 prev_op = layer_params["operation"]
                 if is_negative(next_in_shape):
                     raise ShapeValueError("Shape must not be negative")
 
-        return nn.Sequential(*layers)
+        return layers
 
     def build_from_trial(
         self, trial, search_space: dict
@@ -104,8 +112,11 @@ class DefaultModelBuilder(ModelBuilder):
         quant_scheme = sampler.get_quantization_scheme(search_space)
         return (
             nn.Sequential(
-                *self.construct_model(
-                    sample, search_space["input"], search_space["output"]
+                *self.construct_layers(
+                    sample,
+                    search_space["input"],
+                    search_space["output"],
+                    quant_scheme=quant_scheme,
                 )
             ),
             quant_scheme,
