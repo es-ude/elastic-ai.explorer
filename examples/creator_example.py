@@ -241,11 +241,11 @@ if __name__ == "__main__":
     max_search_trials = 4
     top_n_models = 4
     retrain_epochs = 15
-    hw_platform = "env5_simulation"
+    hw_platform = "env5_simulation" # <-- for on-device example use env5_s15 or env5_s50, depending on your enV5's FPGA version 
 
     compiler_params = VivadoParams(
-        "/home/vivado/robin-build/", "65.108.38.237", "vivado", hw_platform
-    )
+        "/home/vivado/<username>-build/", "<Server-IP-Address>", "vivado", "<hardware_platform>"
+    ) # <-- for on-device example fill in the Hetzner Server Details, if access has been granted
 
     serial_params = SerialParams(
         device_path=Path("RPI-RP2"), serial_port="/dev/ttyACM0", baud_rate=9600
@@ -253,7 +253,7 @@ if __name__ == "__main__":
 
     generator_registry = setup_generator_registry()
     explorer = Explorer(generator_registry, experiments_dir=EXPERIMENTS_DIR)
-    search_space = Path("examples/search_space_examples/env5_search_space.yaml")
+    search_space = Path("examples/search_space_examples/creator_search_space.yaml")
     search_generate_measure_for_env5(
         explorer,
         hw_platform,

@@ -8,7 +8,6 @@ import elasticai.creator.nn as creator_nn
 from elasticai.creator.file_generation.on_disk_path import OnDiskPath
 from elasticai.creator.vhdl.system_integrations.firmware_env5 import FirmwareENv5
 
-from elasticai.creator.nn import fixed_point
 from torch import nn
 import torch
 

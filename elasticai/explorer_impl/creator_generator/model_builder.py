@@ -13,7 +13,6 @@ from elasticai.creator.nn import fixed_point
 import torch
 
 
-from elasticai.explorer.hw_nas.search_space.layer_adapter import ToLinearAdapter
 from elasticai.explorer.hw_nas.search_space.layer_builder import (
     LayerBuilder,
 )

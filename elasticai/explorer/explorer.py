@@ -2,7 +2,7 @@ import datetime
 import logging
 from pathlib import Path
 from typing import Mapping, Optional, Any
-from torch import nn, unsqueeze
+from torch import nn
 import torch
 
 from elasticai.explorer.generator.deployment.compiler import (

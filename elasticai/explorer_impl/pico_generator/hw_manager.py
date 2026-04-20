@@ -1,4 +1,4 @@
-from elasticai.explorer.generator.deployment.compiler import Compiler
+from elasticai.explorer.generator.deployment.compiler import Compiler, CompilerParams
 from elasticai.explorer.generator.deployment.device_communication import SerialHost
 from elasticai.explorer.generator.deployment.hw_manager import (
     HWManager,
@@ -22,12 +22,16 @@ class PicoHWManager(HWManager):
 
     def __init__(self, target: PicoHost, compiler: Compiler):
         self.compiler = compiler
-        self.docker_build_context = self.compiler.compiler_params.build_context
         self.target = target
         self.logger = logging.getLogger(
             "explorer.generator.deployment.hw_manager.PicoHWManager"
         )
         self.logger.info("Initializing Pico Hardware Manager...")
+        if type(self.compiler.compiler_params) != CompilerParams: 
+            err = ValueError(f"Only CompilerParams are supported with this HWManager and not {type(self.compiler.compiler_params)}.")
+            self.logger.error(err)
+            raise err
+        self.docker_build_context = self.compiler.compiler_params.build_context
         super().__init__(target, compiler)
 
     def prepare_measurement(self, source: Path | MetricFunction, metric: Metric):
