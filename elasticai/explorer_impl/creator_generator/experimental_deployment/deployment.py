@@ -171,10 +171,10 @@ class ENv5Host(SerialHost):
         skeleton_id_on_device = bytearray(self._urc._enV5RCP.read_skeleton_id())
 
         if skeleton_id_on_device == skeleton_id_as_bytearray:
-            self.logger.info("The byte stream has been written correctly to the ENv5.")
+            self.logger.info("The byte stream has been written correctly to the enV5.")
         else:
             self.logger.warning(
-                f"The byte stream hasn't been written correctly to the ENv5. Verification bytes are not equal: {skeleton_id_on_device} != {skeleton_id_as_bytearray}!"
+                f"The byte stream hasn't been written correctly to the enV5. Verification bytes are not equal: {skeleton_id_on_device} != {skeleton_id_as_bytearray}!"
             )
 
     def send_data_bytes(self, sample: bytearray, num_bytes_outputs: int) -> bytearray:

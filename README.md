@@ -55,7 +55,7 @@ If you want to use the creator-generator, install the additional dependencies wi
 uv sync --extra creator-generator
  ```
 
-To simulate the deployment of neural networks on the ENv5 and the builtin Spartan 7 FPGA, we use cocotb and GHDL. GHDL>=5.1.1 has to be installed manually, since it isn't a python package (https://github.com/ghdl/ghdl?tab=readme-ov-file#getting-ghdl).
+To simulate the deployment of neural networks on the enV5 and the builtin Spartan 7 FPGA, we use cocotb and GHDL. GHDL>=5.1.1 has to be installed manually, since it isn't a python package (https://github.com/ghdl/ghdl?tab=readme-ov-file#getting-ghdl).
 
 # Setup for Deployment and System Tests:
  To compile for deployment on hardware you need to install:
@@ -97,10 +97,10 @@ To change the Compiler from the Pico to the Pico2 simply add `additional_params=
 
 To use the deployment pipeline for the Pico, it relies on a docker based cross-compiler. As an example, you can use the pico_crosscompiler from `docker/code/pico_crosscompiler` and the dockerfiles picobase and picocross under `docker`. Adapt this to your use case and set it in CompilerParams. More on this [here](elasticai/explorer_impl/pico_generator/README.md).
 
-## Set up your ENv5 for Deployment
-In the current version the Deployment Pipeline on the ENv5 is not completely stable. If you still want to try the deployment, you have to flash your ENv5 with the HardwareTestUsbProtocol.uf2 from the [elastic-ai.runtime.enV5](https://github.com/es-ude/elastic-ai.runtime.enV5). Build the HardwareTestUsbProtocol with cmake manually or use devenv with preconfigured build tasks, for more on this see the runtime [Readme](https://github.com/es-ude/elastic-ai.runtime.enV5).
+## Set up your enV5 for Deployment
+In the current version the Deployment Pipeline on the enV5 is not completely stable. If you still want to try the deployment, you have to flash your enV5 with the HardwareTestUsbProtocol.uf2 from the [elastic-ai.runtime.enV5](https://github.com/es-ude/elastic-ai.runtime.enV5). Build the HardwareTestUsbProtocol with cmake manually or use devenv with preconfigured build tasks, for more on this see the runtime [Readme](https://github.com/es-ude/elastic-ai.runtime.enV5).
 
-The ENv5 uses a RP2040 MCU (same as RPi Pico) for loading models and data on the FPGA, therefore the general setup of SerialParams is the same. An exception is the baud rate (baud_rate=9600), for more on this see the `env5_example.py`. 
+The enV5 uses a RP2040 MCU (same as RPi Pico) for loading models and data on the FPGA, therefore the general setup of SerialParams is the same. An exception is the baud rate (baud_rate=9600), for more on this see the `enV5_example.py`. 
 
 
 ## Examples 
