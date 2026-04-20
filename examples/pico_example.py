@@ -5,6 +5,8 @@ import torch
 from torchvision.transforms import transforms
 
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 
 from elasticai.explorer.generator.deployment.compiler import CompilerParams
@@ -12,11 +14,15 @@ from elasticai.explorer.generator.deployment.device_communication import SerialP
 
 from elasticai.explorer.generator.deployment.hw_manager import Metric
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
+from elasticai.explorer_impl.pico_generator.compiler import PicoCompiler
+from elasticai.explorer_impl.pico_generator.host import PicoHost
+from elasticai.explorer_impl.pico_generator.hw_manager import PicoHWManager
+from elasticai.explorer_impl.pico_generator.model_builder import PicoModelBuilder
+from elasticai.explorer_impl.pico_generator.model_translator import TFliteModelTranslator
 from elasticai.explorer_impl.pico_generator.utils import setup_mnist_for_cpp
 
 from examples.example_helpers import (
     measure_on_device,
-    setup_generator_registry,
     setup_example_optimization_criteria,
 )
 
@@ -26,6 +32,30 @@ logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=Fa
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
+def setup_generator_registry() -> GeneratorRegistry:
+    generator_registry = GeneratorRegistry()
+    generator_registry.register_generator(
+        Generator(
+            "pico",
+            "Pico with RP2040 MCU and 2MB control memory",
+            TFliteModelTranslator,
+            PicoHWManager,
+            PicoHost,
+            PicoCompiler,
+            PicoModelBuilder,
+        )
+    )
+    generator_registry.register_generator(
+        Generator(
+            "pico2",
+            "pico2 with RP2350 MCU and 4MB control memory",
+            TFliteModelTranslator,
+            PicoHWManager,
+            PicoHost,
+            PicoCompiler,
+        )
+    )  
+    return generator_registry
 
 def search_generate_measure_for_pico(
     explorer: Explorer,

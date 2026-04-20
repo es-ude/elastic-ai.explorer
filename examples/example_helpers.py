@@ -4,26 +4,6 @@ import torch
 from torch import nn
 from torchvision.transforms import transforms
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer_impl.rpi_generator.host import RPiHost
-from elasticai.explorer_impl.rpi_generator.hw_manager import RPiHWManager
-from elasticai.explorer_impl.rpi_generator.model_translator import (
-    TorchscriptModelTranslator,
-)
-from elasticai.explorer_impl.pico_generator.compiler import PicoCompiler
-from elasticai.explorer_impl.rpi_generator.compiler import (
-    RPICompiler,
-)
-from elasticai.explorer_impl.pico_generator.host import (
-    PicoHost,
-)
-from elasticai.explorer_impl.pico_generator.hw_manager import (
-    PicoHWManager,
-)
-from elasticai.explorer.generator.generator import Generator
-from elasticai.explorer_impl.pico_generator.model_builder import PicoModelBuilder
-from elasticai.explorer_impl.pico_generator.model_translator import (
-    TFliteModelTranslator,
-)
 from elasticai.explorer.hw_nas.estimators import (
     TrainMetricsEstimator,
     FLOPsEstimator,
@@ -34,7 +14,6 @@ from elasticai.explorer.hw_nas.search_space.quantization import (
     QuantizationScheme,
 )
 
-from elasticai.explorer.generator_registry import GeneratorRegistry
 
 
 from elasticai.explorer.training.data import (
@@ -48,52 +27,7 @@ from torch import optim
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 
 
-def setup_generator_registry() -> GeneratorRegistry:
-    generator_registry = GeneratorRegistry()
-    generator_registry.register_generator(
-        Generator(
-            "pico",
-            "Pico with RP2040 MCU and 2MB control memory",
-            TFliteModelTranslator,
-            PicoHWManager,
-            PicoHost,
-            PicoCompiler,
-            PicoModelBuilder,
-        )
-    )
-    generator_registry.register_generator(
-        Generator(
-            "pico2",
-            "pico2 with RP2350 MCU and 4MB control memory",
-            TFliteModelTranslator,
-            PicoHWManager,
-            PicoHost,
-            PicoCompiler,
-        )
-    )
-    generator_registry.register_generator(
-        Generator(
-            "rpi5",
-            "Raspberry PI 5 with A76 processor and 8GB RAM",
-            TorchscriptModelTranslator,
-            RPiHWManager,
-            RPiHost,
-            RPICompiler,
-        )
-    )
 
-    generator_registry.register_generator(
-        Generator(
-            "rpi4",
-            "Raspberry PI 4 with A72 processor and 4GB RAM",
-            TorchscriptModelTranslator,
-            RPiHWManager,
-            RPiHost,
-            RPICompiler,
-        )
-    )
-
-    return generator_registry
 
 
 def setup_example_optimization_criteria(

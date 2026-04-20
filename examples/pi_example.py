@@ -4,14 +4,19 @@ import torch
 
 
 from elasticai.explorer.generator.deployment.compiler import CompilerParams
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.deployment.device_communication import SSHParams
 from elasticai.explorer.generator.deployment.hw_manager import Metric
 
+from elasticai.explorer_impl.rpi_generator.compiler import RPICompiler
+from elasticai.explorer_impl.rpi_generator.host import RPiHost
+from elasticai.explorer_impl.rpi_generator.hw_manager import RPiHWManager
+from elasticai.explorer_impl.rpi_generator.model_translator import TorchscriptModelTranslator
 from examples.example_helpers import (
     measure_on_device,
-    setup_generator_registry,
     setup_mnist,
     setup_example_optimization_criteria,
 )
@@ -22,6 +27,32 @@ logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=Fa
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
+
+def setup_generator_registry() -> GeneratorRegistry:
+    generator_registry = GeneratorRegistry()
+    generator_registry.register_generator(
+        Generator(
+            "rpi5",
+            "Raspberry PI 5 with A76 processor and 8GB RAM",
+            TorchscriptModelTranslator,
+            RPiHWManager,
+            RPiHost,
+            RPICompiler,
+        )
+    )
+
+    generator_registry.register_generator(
+        Generator(
+            "rpi4",
+            "Raspberry PI 4 with A72 processor and 4GB RAM",
+            TorchscriptModelTranslator,
+            RPiHWManager,
+            RPiHost,
+            RPICompiler,
+        )
+    )
+
+    return generator_registry
 
 def search_generate_measure_for_pi(
     explorer: Explorer,
