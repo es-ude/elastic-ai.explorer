@@ -26,7 +26,7 @@ class RPICompiler(Compiler):
         self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
         docker.build(
             self.compiler_params.build_context,
-            file=self.compiler_params.base_dockerfile_path,
+            file=self.compiler_params.base_dockerfile_path.as_posix(),
             tags=self.compiler_params.base_image_name,
         )
         self.logger.debug("Crosscompiler available now.")
@@ -40,8 +40,8 @@ class RPICompiler(Compiler):
             build_args={
                 "BASE_IMAGE": self.compiler_params.base_image_name,
                 "NAME_OF_EXECUTABLE": source.stem,
-                "PROGRAM_CODE": str(source),
-                "HOST_LIBTORCH_PATH": str(self.compiler_params.library_path),
+                "PROGRAM_CODE": str(source.as_posix()),
+                "HOST_LIBTORCH_PATH": str(self.compiler_params.library_path.as_posix()),
             },
         )
         path_to_executable = context_path / "bin" / source.stem

@@ -5,6 +5,14 @@ It is recommended to use the explorer.Explorer class to use the Generator. A ext
 
 However, the following is a brief explanation of the usage and implementation. 
 
+## Windows Support 
+To communicate over ssh in Windows it is best to use powershell. Additionally, the powershell has to be run in admin-mode or the correct permissions for ssh communication has to be given to the standard shell. Also a connection without password has to be enabled.
+Create a public key, then to add register your public key there are multiple options. \
+One option:
+```
+type c:\users\<my_name>\.ssh\id_rsa.pub | ssh <username>@<hostname> "cat >> ~/.ssh/authorized_keys"
+```
+
 ## Adding new measurement scripts
 To adapt the hardware metrics that are measured to your specific task you can add new c++-scripts that can be run on the RPi. Examples for measuring accuracy and latency for models doing MNIST image classification model are found in the [docker folder](../../../docker). 
 

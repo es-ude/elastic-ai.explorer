@@ -49,8 +49,8 @@ class PicoCompiler(Compiler):
             build_args={
                 "BASE_IMAGE": self.compiler_params.base_image_name,
                 "SOURCE_NAME": source.stem,
-                "PATH_TO_SOURCE": str(source),
-                "CROSS_COMPILER_PATH": str(self.compiler_params.library_path),
+                "PATH_TO_SOURCE": str(source.as_posix()),
+                "CROSS_COMPILER_PATH": str(self.compiler_params.library_path.as_posix()),
                 "PICO_TYPE": self.compiler_params.additional_params.get("platform_type", "rp2040"),
             },
         )
