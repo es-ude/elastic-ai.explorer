@@ -105,6 +105,7 @@ class RPiHWManager(HWManager):
             if isinstance(self.target, SSHHost):
                 if compiled:
                     self.target.put_file(local_path=compiled, remote_path=".")
+                    self.target.run_command(f"chmod +x ./{Path(compiled).name}")
                     cmd = f"./{Path(compiled).name} {path_to_model.name}"
                     out = self.target.run_command(cmd)
             else:
