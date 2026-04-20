@@ -25,27 +25,27 @@ from elasticai.explorer.generator.deployment.hw_manager import (
 
 from elasticai.creator.testing import run_cocotb_sim
 from elasticai.explorer.utils.data_utils import load_json
-from elasticai.explorer_plugins.creator_generator.experimental_deployment.deployment import (
+from elasticai.explorer_impl.creator_generator.experimental_deployment.deployment import (
     CreatorEnv5ModelTranslator,
     CreatorBaseModelTranslator,
     ENv5Compiler,
     ENv5HWManager,
     ENv5Host,
 )
-from elasticai.explorer_plugins.creator_generator.model_builder import (
+from elasticai.explorer_impl.creator_generator.model_builder import (
     CreatorModelBuilder,
 )
-from elasticai.explorer_plugins.creator_generator.quantization_utils import (
+from elasticai.explorer_impl.creator_generator.quantization_utils import (
     parse_bytearray_to_fxp_tensor,
     parse_fxp_tensor_to_bytearray,
 )
 
 
-from elasticai.explorer_plugins.creator_generator.simulation.dummy import (
+from elasticai.explorer_impl.creator_generator.simulation.dummy import (
     DummyCompiler,
     DummyHost,
 )
-from elasticai.explorer_plugins.creator_generator.simulation.simulation_utils import (
+from elasticai.explorer_impl.creator_generator.simulation.simulation_utils import (
     _prep_simulation,
 )
 from examples.example_helpers import (

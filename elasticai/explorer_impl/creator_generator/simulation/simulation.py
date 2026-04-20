@@ -10,7 +10,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, FallingEdge, Timer
 from numpy import argmax
 
-from elasticai.explorer_plugins.creator_generator.simulation.simulation_utils import (
+from elasticai.explorer_impl.creator_generator.simulation.simulation_utils import (
     read_testdata,
 )
 from cocotb.utils import get_sim_time
