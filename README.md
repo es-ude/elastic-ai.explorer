@@ -24,7 +24,6 @@ uv sync --no-dev
  ```
 
 ## Windows
-#### TODO check compatibility without Pico-Generator
 For easy setup on Windows use the Dockerfile.explorer to create an image:
 ```
 docker build -t explorer -f Dockerfile.explorer . 

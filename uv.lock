@@ -421,6 +421,8 @@ dependencies = [
     { name = "pyserial" },
     { name = "python-on-whales" },
     { name = "scipy" },
+    { name = "tensorflow" },
+    { name = "tflite" },
     { name = "torch" },
     { name = "torchvision" },
 ]
@@ -433,8 +435,6 @@ creator-generator = [
 pico-generator = [
     { name = "ai-edge-torch" },
     { name = "jax", extra = ["cuda12"] },
-    { name = "tensorflow" },
-    { name = "tflite" },
 ]
 
 [package.dev-dependencies]
@@ -463,8 +463,8 @@ requires-dist = [
     { name = "pyserial" },
     { name = "python-on-whales", specifier = ">=0.75.1" },
     { name = "scipy", specifier = ">=1.16.1" },
-    { name = "tensorflow", marker = "extra == 'pico-generator'", specifier = "==2.20.0" },
-    { name = "tflite", marker = "extra == 'pico-generator'", specifier = "==2.18.0" },
+    { name = "tensorflow", specifier = "==2.20.0" },
+    { name = "tflite", specifier = "==2.18.0" },
     { name = "torch", specifier = ">=2.4.0" },
     { name = "torchvision", specifier = "==0.21.0" },
 ]

@@ -1,6 +1,6 @@
 [project]
 name = "elasticai.explorer"
-version = "1.0.0"
+version = "1.0.1"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
 authors = [{ name = "Department Intelligent Embedded Systems - University Duisburg Essen" }]
 readme = "README.md"
@@ -21,7 +21,9 @@ dependencies = [
     "scipy>=1.16.1",
     "torchvision==0.21.0",
     "torch>=2.4.0",
-    "pyserial"
+    "pyserial",
+    "tensorflow==2.20.0",
+    "tflite==2.18.0",
 ]
 
 [dependency-groups]
@@ -38,8 +40,6 @@ dev = [
 [project.optional-dependencies]
 pico_generator = [
         "ai-edge-torch==0.5.0",
-        "tensorflow==2.20.0",
-        "tflite==2.18.0",
         "jax[cuda12]"
 ]
 creator_generator = [
