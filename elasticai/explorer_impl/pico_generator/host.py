@@ -12,8 +12,18 @@ import os
 import shutil
 import time
 from pathlib import Path
-
-
+import platform
+if platform.system() == "Windows":
+    import win32api 
+    def find_pico_drive():
+        drives = win32api.GetLogicalDriveStrings().split('\000')[:-1]
+        for drive in drives:
+            try:
+                if os.path.exists(os.path.join(drive, "INFO_UF2.TXT")):
+                    return drive
+            except Exception:
+                pass
+        return None
 class PicoHost(SerialHost):
     def __init__(self, params: SerialParams):
         super().__init__(params=params)
@@ -22,6 +32,9 @@ class PicoHost(SerialHost):
         )
 
     def flash(self, local_path: Path):
+        drive = None
+        if platform.system() == "Windows":
+            drive = find_pico_drive()
         time_passed = 0
         sleep_interval = 0.5
         self.logger.info("Wait for pico to deploy...")
@@ -34,11 +47,16 @@ class PicoHost(SerialHost):
                 time.sleep(4)
                 self.logger.error("Timeout on Pico-Communication")
                 self.logger.info("Manual Reboot necessary")
-
-        shutil.copyfile(
-            local_path,
-            Path(self.host_name) / Path(local_path).name,
-        )
+        if drive:
+            shutil.copyfile(
+                local_path,
+                Path(drive) / Path(local_path).name,
+            )
+        else: 
+            shutil.copyfile(
+                local_path,
+                Path(self.host_name) / Path(local_path).name,
+            )
 
     def send_data_bytes(self, sample: bytearray, num_bytes_outputs: int) -> bytearray:
         with self._get_connection() as ser:
