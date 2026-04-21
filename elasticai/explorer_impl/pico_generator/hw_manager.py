@@ -27,7 +27,7 @@ class PicoHWManager(HWManager):
             "explorer.generator.deployment.hw_manager.PicoHWManager"
         )
         self.logger.info("Initializing Pico Hardware Manager...")
-        if type(self.compiler.compiler_params) != CompilerParams: 
+        if not isinstance(self.compiler.compiler_params, CompilerParams): 
             err = ValueError(f"Only CompilerParams are supported with this HWManager and not {type(self.compiler.compiler_params)}.")
             self.logger.error(err)
             raise err

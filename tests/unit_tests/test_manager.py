@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
 from elasticai.explorer_impl.rpi_generator.hw_manager import RPiHWManager
 from elasticai.explorer_impl.rpi_generator.compiler import RPICompiler
 from elasticai.explorer.generator.deployment.device_communication import SSHHost
@@ -33,8 +34,10 @@ class TestPiHWManager:
             "compile_code.return_value": ".",
         }
         compiler.configure_mock(**attr)
-        compiler.compiler_params = MagicMock()
+        compiler.compiler_params = MagicMock(spec=CompilerParams)
         compiler.compiler_params.base_dockerfile_path = ""
+        compiler.compiler_params.build_context = ""
+
 
         self.hw_manager = RPiHWManager(target, compiler)
         path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_latency"
@@ -56,6 +59,9 @@ class TestPiHWManager:
         target.configure_mock(**target_attr)
         compiler_attr = {"compile_code.return_value": "."}
         compiler.configure_mock(**compiler_attr)
+        compiler.compiler_params = MagicMock(spec=CompilerParams)
+        compiler.compiler_params.base_dockerfile_path = ""
+        compiler.compiler_params.build_context = ""
         self.hw_manager = RPiHWManager(target, compiler)
         self.hw_manager._register_metric_to_source(
             Metric.ACCURACY, Path("measure_accuracy")
