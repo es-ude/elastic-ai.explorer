@@ -6,7 +6,7 @@ The general setup is explained in the top-level [README.md](../../../README.md) 
 It is recommended to use the explorer.Explorer class to use the Generator. A extensive example of this is found in creator_example.py. 
 
 # Simulation
-This rely on the feature to register callables (functionals) to metrics in metric_to_source. These are Called MetricFunctions with the type `Callable[[Host, "HWManager", Path | None], dict[str, dict]]`
+This rely on the feature to register callables to metrics in metric_to_source. These are Called MetricFunctions with the type `Callable[[Host, "HWManager", Path | None], dict[str, dict]]`
 
 Example:
 ```python
