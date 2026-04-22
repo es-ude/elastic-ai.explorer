@@ -4,12 +4,13 @@ import torch
 
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.training.data import (
     DatasetSpecification,
 )
 
 
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
+from optuna.samplers import RandomSampler
 
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.generator.deployment.compiler import VivadoParams
@@ -215,13 +216,15 @@ def search_generate_measure_for_env5(
         dataset_spec, device, (1, INPUT_DIM)
     )
     top_models, top_quantization_schemes = explorer.search(
-        search_strategy=SearchStrategy.RANDOM_SEARCH,
+        sampler=RandomSampler(),
         optimization_criteria=optimization_criteria,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
     )
 
     metric_to_source = {
-        Metric.ACCURACY: _run_accuracy_simulation, # For an example of measuring directly on the env5 add _run_accuracy_deployed.
+        Metric.ACCURACY: (
+            _run_accuracy_simulation
+        ),  # For an example of measuring directly on the env5 add _run_accuracy_deployed.
         Metric.LATENCY: _run_latency_simulation,
     }
     df = measure_on_device(
@@ -241,11 +244,14 @@ if __name__ == "__main__":
     max_search_trials = 4
     top_n_models = 4
     retrain_epochs = 15
-    hw_platform = "env5_simulation" # <-- for on-device example use env5_s15 or env5_s50, depending on your enV5's FPGA version 
+    hw_platform = "env5_simulation"  # <-- for on-device example use env5_s15 or env5_s50, depending on your enV5's FPGA version
 
     compiler_params = VivadoParams(
-        "/home/vivado/<username>-build/", "<Server-IP-Address>", "vivado", "<hardware_platform>"
-    ) # <-- for on-device example fill in the Hetzner Server Details, if access has been granted
+        "/home/vivado/<username>-build/",
+        "<Server-IP-Address>",
+        "vivado",
+        "<hardware_platform>",
+    )  # <-- for on-device example fill in the Hetzner Server Details, if access has been granted
 
     serial_params = SerialParams(
         device_path=Path("RPI-RP2"), serial_port="/dev/ttyACM0", baud_rate=9600

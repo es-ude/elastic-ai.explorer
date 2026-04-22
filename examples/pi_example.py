@@ -15,7 +15,9 @@ from elasticai.explorer.generator.deployment.hw_manager import Metric
 from elasticai.explorer_impl.rpi_generator.compiler import RPICompiler
 from elasticai.explorer_impl.rpi_generator.host import RPiHost
 from elasticai.explorer_impl.rpi_generator.hw_manager import RPiHWManager
-from elasticai.explorer_impl.rpi_generator.model_translator import TorchscriptModelTranslator
+from elasticai.explorer_impl.rpi_generator.model_translator import (
+    TorchscriptModelTranslator,
+)
 from examples.example_helpers import (
     measure_on_device,
     setup_mnist,
@@ -54,6 +56,7 @@ def setup_generator_registry() -> GeneratorRegistry:
     )
 
     return generator_registry
+
 
 def search_generate_measure_for_pi(
     explorer: Explorer,
@@ -103,7 +106,7 @@ if __name__ == "__main__":
     rpi_type = "rpi5"
 
     ssh_params = SSHParams(
-        hostname="transfair.local", username="robin"
+        hostname="<hostname>", username="<username>"
     )  # <-- connection details for your RPi
     compiler_params = CompilerParams(
         base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",

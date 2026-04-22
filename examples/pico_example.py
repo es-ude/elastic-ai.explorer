@@ -129,8 +129,8 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 1
-    top_n_models = 1
+    max_search_trials = 6
+    top_n_models = 2
     retrain_epochs = 3
 
     # additional device specifics, changes are necessary
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     base_dockerfile = "docker/Dockerfile.picobase"
     cross_dockerfile = "docker/Dockerfile.picocross"
     usb_device_path = Path(
-        "/media/robin/RPI-RP2"
+        "/media/<username>/RPI-RP2"
     )  # <-- add your username and for pico2 this should be "/media/<username>/RP2350" instead
     image_name = (
         "picobase"  # <-- for pico2 use "pico2base" to create a separate base image
