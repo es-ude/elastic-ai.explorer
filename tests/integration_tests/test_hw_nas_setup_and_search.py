@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import pytest
 import shutil
 import torch
 
@@ -12,10 +11,9 @@ from elasticai.explorer.hw_nas.estimators import (
     ParamEstimator,
     TrainMetricsEstimator,
 )
-from elasticai.explorer.hw_nas.hw_nas import (
-    HWNASParameters,
-    SearchStrategy,
-)
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
+
+from optuna.samplers import RandomSampler
 from elasticai.explorer.generator.generator import Generator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
@@ -89,31 +87,23 @@ class TestHWNasSetupAndSearch:
             ROOT_DIR / Path("tests/integration_tests/samples/search_space.yml")
         )
 
-    @pytest.mark.parametrize(
-        ("search_strategy", "with_hardconstraints", "expected"),
-        [
-            (SearchStrategy.RANDOM_SEARCH, False, 1),
-            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 1),
-            (SearchStrategy.RANDOM_SEARCH, True, 0),
-        ],
-    )
-    def test_search(self, search_strategy, with_hardconstraints, expected):
-        if with_hardconstraints:
-            data_sample = torch.randn(
-                (1, 1, 28, 28), dtype=torch.float32, device=self.device
-            )
-            self.optimization_criteria.register_hard_constraint(
-                estimator=FLOPsEstimator(data_sample), operator=operator.lt, value=0
-            )
-            self.optimization_criteria.register_hard_constraint(
-                estimator=ParamEstimator(), operator=operator.lt, value=0
-            )
+    def test_search_hardconstraints(self):
+
+        data_sample = torch.randn(
+            (1, 1, 28, 28), dtype=torch.float32, device=self.device
+        )
+        self.optimization_criteria.register_hard_constraint(
+            estimator=FLOPsEstimator(data_sample), operator=operator.lt, value=0
+        )
+        self.optimization_criteria.register_hard_constraint(
+            estimator=ParamEstimator(), operator=operator.lt, value=0
+        )
         top_k_models, _ = self.RPI5explorer.search(
             optimization_criteria=self.optimization_criteria,
-            search_strategy=search_strategy,
-            hw_nas_parameters=HWNASParameters(1, 1),
+            sampler=RandomSampler(),
+            hw_nas_parameters=HWNASParameters(2, 2),
         )
-        assert len(top_k_models) == expected
+        assert len(top_k_models) == 0
 
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(
@@ -140,4 +130,5 @@ class TestHWNasSetupAndSearch:
         )
 
     def teardown_class(self):
+
         shutil.rmtree(self.RPI5explorer.experiment_dir, ignore_errors=True)

@@ -4,10 +4,10 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
+from optuna.samplers import RandomSampler
 
 from elasticai.explorer.hw_nas.search_space.build_model import DefaultModelBuilder
 from elasticai.explorer.hw_nas import hw_nas
-
 from elasticai.explorer.hw_nas.estimators import TrainMetricsEstimator
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
@@ -107,7 +107,7 @@ def run_lstm_search():
     search_space_cfg = yaml_to_dict(search_space)
     top_models, _, _, _ = hw_nas.search(
         search_space_cfg,
-        hw_nas.SearchStrategy.EVOLUTIONARY_SEARCH,
+        RandomSampler(),
         criteria_reg,
         hw_nas_parameters=hw_nas.HWNASParameters(max_search_trials, top_n_models),
         model_builder_type=DefaultModelBuilder,

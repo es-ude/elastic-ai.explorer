@@ -3,11 +3,11 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Callable
 from functools import partial
-from enum import Enum
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
+from optuna.samplers import BaseSampler
 
 from elasticai.explorer.generator.model_builder import (
     ModelBuilder,
@@ -32,10 +32,6 @@ class HWNASParameters:
     top_n_models: int = 2
     count_only_completed_trials: bool = False
 
-
-class SearchStrategy(Enum):
-    RANDOM_SEARCH = "random"
-    EVOLUTIONARY_SEARCH = "evolution"
 
 
 def _evaluate_constraints(
@@ -119,7 +115,7 @@ def objective_wrapper(
 
 def search(
     search_space_cfg: dict,
-    search_strategy: SearchStrategy,
+    sampler: BaseSampler,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
     model_builder_type: type[ModelBuilder],
@@ -127,17 +123,6 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-
-    match search_strategy:
-        case SearchStrategy.RANDOM_SEARCH:
-            sampler = optuna.samplers.RandomSampler()
-        case SearchStrategy.EVOLUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(
-                population_size=20,
-                mutation_prob=0.1,
-            )
-        case _:
-            sampler = optuna.samplers.RandomSampler()
 
     study = optuna.create_study(
         sampler=sampler,
