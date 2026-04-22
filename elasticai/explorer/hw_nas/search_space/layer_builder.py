@@ -80,6 +80,7 @@ class LinearLayer(LayerBuilder):
         input_shape,
         search_parameters: dict,
         output_shape,
+        
     ):
         linear = nn.Linear(input_shape, output_shape)
         return linear, output_shape
@@ -100,7 +101,7 @@ class ConvLayer(LayerBuilder):
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         return self.build_layer(input_shape, search_parameters)
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
 
         stride = search_parameters.get("stride", 1)
         padding = search_parameters.get("padding", 0)
@@ -168,7 +169,7 @@ class LSTMLayer(LayerBuilder):
         ]
         return lstm, input_shape
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None):
         bidirectional: bool = search_parameters.get("bidirectional", False)
         hidden_size = search_parameters["hidden_size"]
         return self.create_layer(
@@ -194,7 +195,7 @@ class PoolLayer(LayerBuilder):
     layer_map = {}
     param_keys = {"kernel_size": None, "stride": 1, "padding": 0}
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         if isinstance(input_shape, int):
             return nn.Identity(), input_shape
         ndim = 2 if len(input_shape) == 3 else 1
@@ -244,7 +245,7 @@ class AvgPoolLayer(PoolLayer):
 class BatchNormLayer(LayerBuilder):
     build_return_types = [nn.BatchNorm1d, nn.BatchNorm2d]
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         num_features = (
             input_shape[0] if isinstance(input_shape, (list, tuple)) else input_shape
         )
@@ -267,7 +268,7 @@ class DropoutLayer(LayerBuilder):
     param_keys = ["p"]
     layer_map = {"1d": nn.Dropout, "2d": nn.Dropout2d}
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         return nn.Dropout(search_parameters.get("p", 0.5)), input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
@@ -278,7 +279,7 @@ class DropoutLayer(LayerBuilder):
 class ActivationLayer(LayerBuilder):
     build_return_types = []
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None):
         return activation_registry[search_parameters.get("op", "identity")], input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
@@ -289,7 +290,7 @@ class ActivationLayer(LayerBuilder):
 class LayerNorm(LayerBuilder):
     build_return_types = [nn.LayerNorm]
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None):
         return nn.LayerNorm(input_shape), input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
@@ -300,7 +301,7 @@ class LayerNorm(LayerBuilder):
 class GaussianDropoutLayer(LayerBuilder):
     build_return_types = [GaussianDropout]
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict, quantization_scheme: Any = None,):
         return GaussianDropout(search_parameters.get("p", 0.5)), input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
@@ -311,7 +312,7 @@ class GaussianDropoutLayer(LayerBuilder):
 class RepeatVectorLayer(LayerBuilder):
     build_return_types = [RepeatVector]
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict, quantization_scheme: Any = None,):
         times = search_parameters["times"]
         input_shape.append(times)
         return RepeatVector(times), input_shape
@@ -324,7 +325,7 @@ class RepeatVectorLayer(LayerBuilder):
 class TimeDistributedLinear(LayerBuilder):
     build_return_types = [TimeDistributed]
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         batch_first = search_parameters.get("batch_first", True)
 
         output_sample_shape = [input_shape[0], search_parameters["width"]]
