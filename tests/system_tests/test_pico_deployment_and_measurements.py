@@ -24,10 +24,10 @@ from pathlib import Path
 
 from elasticai.explorer.training import data
 from elasticai.explorer_impl.pico_generator.utils import (
-    setup_mnist_for_cpp,
+    prepare_image_dataset_for_cpp,
 )
 from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
-from torchvision import transforms
+from torchvision import datasets, transforms
 
 
 class TestPicoDeploymentAndMeasurement:
@@ -74,10 +74,16 @@ class TestPicoDeploymentAndMeasurement:
         path_to_dataset = ROOT_DIR / "data/mnist"
         path_to_deployable_dataset = ROOT_DIR / "data/cpp-mnist"
 
-        setup_mnist_for_cpp(
-            root_dir_mnist=path_to_dataset,
-            root_dir_cpp_mnist=path_to_deployable_dataset,
-            transf=transf,
+        dataset = datasets.MNIST(
+            root=path_to_dataset, train=False, download=True, transform=transf
+        )
+
+        prepare_image_dataset_for_cpp(
+            dataset,
+            output_dir=path_to_deployable_dataset,
+            num_samples=256,
+            dtype="float",
+            flatten=True,
         )
 
         self.dataset_spec = data.DatasetSpecification(

@@ -2,6 +2,7 @@ import logging.config
 from pathlib import Path
 
 import torch
+from torchvision import datasets
 from torchvision.transforms import transforms
 
 from elasticai.explorer.explorer import Explorer
@@ -18,8 +19,12 @@ from elasticai.explorer_impl.pico_generator.compiler import PicoCompiler
 from elasticai.explorer_impl.pico_generator.host import PicoHost
 from elasticai.explorer_impl.pico_generator.hw_manager import PicoHWManager
 from elasticai.explorer_impl.pico_generator.model_builder import PicoModelBuilder
-from elasticai.explorer_impl.pico_generator.model_translator import TFliteModelTranslator
-from elasticai.explorer_impl.pico_generator.utils import setup_mnist_for_cpp
+from elasticai.explorer_impl.pico_generator.model_translator import (
+    TFliteModelTranslator,
+)
+from elasticai.explorer_impl.pico_generator.utils import (
+    prepare_image_dataset_for_cpp,
+)
 
 from examples.example_helpers import (
     measure_on_device,
@@ -31,6 +36,7 @@ from settings import DOCKER_CONTEXT_DIR, EXPERIMENTS_DIR, ROOT_DIR
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
 
 def setup_generator_registry() -> GeneratorRegistry:
     generator_registry = GeneratorRegistry()
@@ -54,8 +60,9 @@ def setup_generator_registry() -> GeneratorRegistry:
             PicoHost,
             PicoCompiler,
         )
-    )  
+    )
     return generator_registry
+
 
 def search_generate_measure_for_pico(
     explorer: Explorer,
@@ -75,7 +82,18 @@ def search_generate_measure_for_pico(
     )
     path_to_dataset = ROOT_DIR / Path("data/mnist")
     root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
-    setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
+
+    dataset = datasets.MNIST(
+        root=path_to_dataset, train=False, download=True, transform=transf
+    )
+
+    prepare_image_dataset_for_cpp(
+        dataset,
+        output_dir=root_dir_cpp_mnist,
+        num_samples=256,
+        dtype="float",
+        flatten=True,
+    )
 
     dataset_spec = DatasetSpecification(
         dataset=MNISTWrapper(root=path_to_dataset, transform=transf),
@@ -111,8 +129,8 @@ def search_generate_measure_for_pico(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 6
-    top_n_models = 2
+    max_search_trials = 1
+    top_n_models = 1
     retrain_epochs = 3
 
     # additional device specifics, changes are necessary
@@ -120,7 +138,7 @@ if __name__ == "__main__":
     base_dockerfile = "docker/Dockerfile.picobase"
     cross_dockerfile = "docker/Dockerfile.picocross"
     usb_device_path = Path(
-        "/media/<username>/RPI-RP2"
+        "/media/robin/RPI-RP2"
     )  # <-- add your username and for pico2 this should be "/media/<username>/RP2350" instead
     image_name = (
         "picobase"  # <-- for pico2 use "pico2base" to create a separate base image
@@ -132,7 +150,9 @@ if __name__ == "__main__":
         base_image_name=image_name,
         build_context=DOCKER_CONTEXT_DIR,
         base_dockerfile_path=ROOT_DIR / base_dockerfile,
-        additional_params= {"platform_type": "rp2040"}, # <-- for pico2 set this to "rp2350"
+        additional_params={
+            "platform_type": "rp2040"
+        },  # <-- for pico2 set this to "rp2350"
     )
 
     knowledge_repo = setup_generator_registry()

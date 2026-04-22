@@ -31,6 +31,8 @@ metrics/
 docker/code/pico_crosscompiler/data/mnist_labels.h
 docker/code/pico_crosscompiler/data/mnist_features.h
 docker/code/pico_crosscompiler/data/mnist_images.h
+docker/code/pico_crosscompiler/data/labels.h
+docker/code/pico_crosscompiler/data/features.h
 # Tests
 tests/data
 #bin 

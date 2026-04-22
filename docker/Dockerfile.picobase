@@ -28,20 +28,20 @@ const unsigned char model_tflite[] = {1};
 const unsigned int model_tflite_len = 1;
 EOF
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_features.h
-#ifndef MNIST_FEATURES_H
-#define MNIST_TEST_FEATURES_H
-const float mnist_images[1][1] = {
+RUN cat <<'EOF' > /code/pico_crosscompiler/data/features.h
+#ifndef FEATURES_H
+#define TEST_FEATURES_H
+const float features[1][1] = {
     {1.0f},
 };
 #endif
 EOF
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_labels.h
-#ifndef MNIST_LABELS_H
-#define MNIST_LABELS_H
-const int mnist_labels[1] = {7};
-#endif // MNIST_LABELS_H
+RUN cat <<'EOF' > /code/pico_crosscompiler/data/labels.h
+#ifndef LABELS_H
+#define LABELS_H
+const int labels[1] = {7};
+#endif // LABELS_H
 EOF
 
 RUN mkdir -p $PICO_SDK_PATH

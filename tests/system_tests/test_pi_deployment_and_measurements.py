@@ -21,9 +21,6 @@ from torchvision.transforms import transforms
 from pathlib import Path
 
 from elasticai.explorer.training import data
-from elasticai.explorer_impl.pico_generator.utils import (
-    setup_mnist_for_cpp,
-)
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 
 
@@ -63,8 +60,7 @@ class TestDeploymentAndMeasurement:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
-        root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
-        setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
+        root_dir_cpp_mnist = ROOT_DIR / Path("data/mnist")
         metric_to_source = {
             Metric.ACCURACY: Path(
                 "code/measure_accuracy_mnist.cpp"

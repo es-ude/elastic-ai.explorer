@@ -21,11 +21,11 @@ from elasticai.explorer_impl.pico_generator import tflite_to_resolver
 from elasticai.explorer_impl.pico_generator.model_translator import (
     TFliteModelTranslator,
 )
-from torchvision import transforms
+from torchvision import datasets, transforms
 from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer_impl.pico_generator.utils import (
-    setup_mnist_for_cpp,
+    prepare_image_dataset_for_cpp,
 )
 from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 from tests.integration_tests.samples import sample_MLP
@@ -40,7 +40,7 @@ class TestPicoGenerateAndCompile:
             build_context=DOCKER_CONTEXT_DIR,
             cross_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picocross",
             base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
-            additional_params= {"platform_type": "rp2040"},
+            additional_params={"platform_type": "rp2040"},
         )  # <-- Configure this only if necessary.
         generator_registry = GeneratorRegistry()
         generator_registry.register_generator(
@@ -69,10 +69,16 @@ class TestPicoGenerateAndCompile:
         path_to_dataset = ROOT_DIR / "data/mnist"
         path_to_deployable_dataset = ROOT_DIR / "data/cpp-mnist"
 
-        setup_mnist_for_cpp(
-            root_dir_mnist=path_to_dataset,
-            root_dir_cpp_mnist=path_to_deployable_dataset,
-            transf=transf,
+        dataset = datasets.MNIST(
+            root=path_to_dataset, train=False, download=True, transform=transf
+        )
+
+        prepare_image_dataset_for_cpp(
+            dataset,
+            output_dir=path_to_deployable_dataset,
+            num_samples=256,
+            dtype="float",
+            flatten=True,
         )
 
         self.dataset_spec = DatasetSpecification(
