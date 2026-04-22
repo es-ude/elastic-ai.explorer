@@ -30,3 +30,6 @@ compiler_params = VivadoParams(
 ```
 
 An example for a MetricFunction for measurements on device is the `_run_accuracy_deployed function` in `creator_example.py`. 
+
+# Limitations on model architectures
+Currently only single layered models give stable results, the layers of the creator.fixed_point package cannot learn functions probably when chained together.

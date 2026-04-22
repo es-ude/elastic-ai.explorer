@@ -38,7 +38,7 @@ class TFliteModelTranslator(ModelTranslator):
             )
         else:
             
-            self.logger.warning(f"Something wrong with Pytorch --> TfLite, absolute difference between inference results is: \n {abs(torch_output.detach().numpy())-edge_output}")
+            self.logger.warning(f"Something wrong with Pytorch --> TfLite.")
 
     def _quantize(
         self,
