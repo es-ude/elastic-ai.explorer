@@ -6,28 +6,30 @@ This section describes the Syntax of the yaml file to describe the search space.
 
 ### Search space Structure
 
-Each search space definition needs to specify an input dimension, an output dimension and a sequence of blocks.
+Each search space definition needs to specify an input dimension, an output dimension and a sequence of blocks. Optionally, a model-wide quantization schemes can be specified.
 Optionally, a section describing the default search parameters for primitive operations and a section for defining custom composite operations can be added.
 When the default_op_params doesn't include the default search parameters of an operation, the search parameters have to be defined in the block where they are used.
 ```yaml
-input: [1, 1313]        # The dimensions of an Input Sample without batch_size
-output: 2               # The dimensions of the Output
-
-sequence:               # The macro structure of the network consisting of multiple blocks (at least one)
-  - block: "1"          # Each block needs to have a unique string identifier
+input: [1, 1313]          # The dimensions of an Input Sample without batch_size
+output: 2                 # The dimensions of the Output
+quantization:             # Optionally, a Quantization Scheme can be specified. For more information see Quantization section below.
+  ...
+sequence:                 # The macro structure of the network consisting of multiple blocks (at least one)
+  - block: "1"            # Each block needs to have a unique string identifier
       ...               
   - block: "2"
       ...
-default_op_params:      # It is possible to specify the default search parameters for each primitive operation in this section of the yaml as a dictionary.
-                        # If an operation is used somewhere and it is not specified here, it will have to be specified in the block directly.
-    primitive_op_1:     # Supported primitive operations can be seen in Table 1. The naming must correspond.
-      param_1: [...]    # Valid parameters differ for each primitive operation and can be seen further down
+default_op_params:        # It is possible to specify the default search parameters for each primitive operation in this section of the yaml as a dictionary.
+                          # If an operation is used somewhere and it is not specified here, it will have to be specified in the block directly.
+    primitive_op_1:       # Supported primitive operations can be seen in Table 1. The naming must correspond.
+      param_1: [...]      # Valid parameters differ for each primitive operation and can be seen further down
       param_2: [...]
     primitive_op_2:
       param_1: [..]
-      
 
 ```
+
+
 Each block has a unique name, a rule of how to repeat the block, the candidate operations and optionally, for each operation possible parameter configurations.
 The type_repeat block can be omitted if the block should only be repeated once and does not reference a different block.
 If not, there are different options for the type:
@@ -37,18 +39,15 @@ If not, there are different options for the type:
     ...
 - block: "2"
   type_repeat:
-    type: "repeat_op" #Possible: "repeat_op", "repeat_params", "vary_all", "repeat_block", "mirror_block"
-    depth: [ 2, 3] #Only for repeat_op, repeat_params, vary_all
-    ref_block: "1" #Only for repeat_block, mirror_block
+    type: "repeat_op" # Possible: "repeat_op", "repeat_params", "vary_all", "repeat_block", "mirror_block"
+    depth: [ 2, 3] # Only for repeat_op, repeat_params, vary_all
+    ref_block: "1" # Only for repeat_block, mirror_block
   op_candidates: ["operation_1, operation_2"]  #All the operations the nas should try in this block
   operation_1:
       param_1: [...]
       param_2: [...]
   operation_2:
       ...
-  
-  
-  
 
 ```
 
@@ -78,6 +77,8 @@ If not, there are different options for the type:
 | layer_norm              | None                                | None                                                  |
 | repeat_vector           | times                               | None                                                  |
 | time_distributed_linear | width                               | batch_first, activation                               |
+
+
 
 ### Composite
 It's possible to combine Operations to a composite operation and reuse that in the rest of the search space. 
@@ -138,6 +139,26 @@ In the case below either this block will be a 1d Convolution block or will not a
           type: "repeat_op"
           depth: [  2, 6, 7 ]
    ```
+
+
+### Quantization
+There is the option to also specify a model-wide Quantization Scheme. This works like the parameterization of a operation. The given parameters can also be sampled. 
+
+Example:
+```
+input: ...
+output: ...
+
+quantization:                  
+  dtype: ["float32", "int8"]    # String: The general datatype of the model
+  total_bits: [16,32]           # Optional, int:  The total number of bits used. 
+  frac_bits": [2,8]             # 
+  signed": True
+
+Sequence:
+...
+```
+
 ## Complete Search Space Yaml Example
 ```yaml 
 input: [1, 1313]
@@ -363,9 +384,9 @@ class ToLinearAdapter(nn.Module):
             return input_shape
 ```
 
-After adding and adapter in this way it must be registered in [registry.py](registry.py)
+After adding an adapter in this way it must be registered in [registry.py](registry.py)
 ```python 
-ADAPTER_REGISTRY = {
+DEFAULT_ADAPTER = {
     ("conv2d", "lstm"): Conv2dToLSTMAdapter,
     ("linear", "conv2d"): LinearToConv2dAdapter,
     ("linear", "lstm"): LinearToLstmAdapter,

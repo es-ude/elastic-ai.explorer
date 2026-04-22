@@ -18,7 +18,7 @@ sequence:
       hidden_size: 1
       num_lstm_layers: 1
       bidirectional: False
-  - block: "3"
+  - block: "2"
     op_candidates: "linear"
     type_repeat:
       repeat_type: "repeat_op"

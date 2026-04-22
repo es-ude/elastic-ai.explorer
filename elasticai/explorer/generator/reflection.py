@@ -1,0 +1,118 @@
+from abc import ABC, abstractmethod
+from typing import Any
+from torch import nn
+from elasticai.explorer.hw_nas.search_space.layer_builder import (
+    LayerBuilder,
+)
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
+from elasticai.explorer.hw_nas.search_space.registry import (
+    activation_registry,
+    layer_registry,
+    adapter_registry,
+)
+
+
+class Reflective(ABC):
+    def __init__(self, replace_registries=False) -> None:
+        """
+        Args:
+            replace_registries (bool, optional): If replace_registries is true, it replaces the registered layers, adapters and
+            activations with the given overwritten mappings. Else it updates the registries with the given mappings.
+            Defaults to False.
+        """
+        self._setup_registries(replace_registries)
+
+    def _setup_registries(self, replace_registries=False):
+        if replace_registries:
+            activation_registry.clear()
+            adapter_registry.clear()
+            layer_registry.clear()
+
+        activation_registry.update(self.get_activation_mappings())
+        adapter_registry.update(self.get_adapter_mappings())
+        layer_registry.update(self.get_layer_mappings())
+
+    @abstractmethod
+    def get_activation_mappings(self) -> dict[str, nn.Module]:
+        pass
+
+    @abstractmethod
+    def get_adapter_mappings(self) -> dict[tuple[str | None, str | None], None | type]:
+        pass
+
+    @abstractmethod
+    def get_supported_quantization(
+        self,
+    ) -> dict[str, Any]:
+        """
+        Return dictionary with the key of the quantization parameter (dtype, total_bits, frac_bits, scale, zero_point)
+        and the corresponding allowed values as set or boolean lambda function (e.g. int8). Unspecified parameters are ignored.
+        """
+        pass
+
+    def get_layer_mappings(self) -> dict[str, type[LayerBuilder]]:
+        """Override if necessary. Empty dict means all base layer builders are allowed."""
+        return {}
+
+    def get_supported_layers(self) -> list[type]:
+        supported_layers = []
+        for layer_name, layer_builder in layer_registry.items():
+            builder_return_types = layer_builder.build_return_types
+            supported_layers.extend(builder_return_types)
+        return supported_layers
+
+    def get_supported_activations(self) -> list[type]:
+        supported_activations = []
+        for name, activation in activation_registry.items():
+            supported_activations.append(type(activation))
+        return supported_activations
+
+    def _validate_model(self, model: nn.Module):
+        """Override if necessary"""
+        supported_layers = self.get_supported_layers()
+        supported_activations = self.get_supported_activations()
+
+        for module in model.modules():
+            if module is model:
+                continue
+
+            # skip any non-leaf modules like Sequentials
+            if any(True for _ in module.children()):
+                continue
+
+            module_type = type(module)
+            in_supported_layers = module_type in supported_layers
+            in_supported_activations = module_type in supported_activations
+            if not in_supported_layers and not in_supported_activations:
+                raise NotImplementedError(
+                    f"{type(module).__name__} is not supported by {self.__class__.__name__} "
+                )
+
+    def _validate_quantization(self, quantization_scheme: QuantizationScheme):
+        supported_quantization_parameters = self.get_supported_quantization()
+        if supported_quantization_parameters is not None:
+            for field, allowed_values in supported_quantization_parameters.items():
+                value = getattr(quantization_scheme, field, None)
+                if value is None or allowed_values is None:
+                    continue
+
+                if callable(allowed_values):
+                    if not allowed_values(value):
+                        raise NotImplementedError(
+                            f"{field}={value} is not supported by {self.__class__.__name__}. "
+                        )
+                elif isinstance(allowed_values, set):
+                    if value not in allowed_values:
+                        raise NotImplementedError(
+                            f"{field}={value} is not supported by {self.__class__.__name__}. "
+                            f"Allowed: {allowed_values}"
+                        )
+
+    def validate_model(
+        self, model: nn.Module, quantization_scheme: QuantizationScheme | None = None
+    ) -> bool:
+        """Override if necessary"""
+        self._validate_model(model)
+        if quantization_scheme:
+            self._validate_quantization(quantization_scheme)
+        return True

@@ -2,27 +2,66 @@ import logging.config
 from pathlib import Path
 
 import torch
+from torchvision import datasets
 from torchvision.transforms import transforms
 
+from optuna.samplers import NSGAIISampler
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams
-from elasticai.explorer.platforms.deployment.device_communication import SerialParams
-from elasticai.explorer.platforms.deployment.hw_manager import Metric
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
+from elasticai.explorer.generator.deployment.device_communication import SerialParams
+
+from elasticai.explorer.generator.deployment.hw_manager import Metric
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
+from elasticai.explorer_impl.pico_generator.compiler import PicoCompiler
+from elasticai.explorer_impl.pico_generator.host import PicoHost
+from elasticai.explorer_impl.pico_generator.hw_manager import PicoHWManager
+from elasticai.explorer_impl.pico_generator.model_builder import PicoModelBuilder
+from elasticai.explorer_impl.pico_generator.model_translator import (
+    TFliteModelTranslator,
+)
+from elasticai.explorer_impl.pico_generator.utils import (
+    prepare_image_dataset_for_cpp,
+)
 
 from examples.example_helpers import (
     measure_on_device,
-    setup_knowledge_repository,
     setup_example_optimization_criteria,
 )
 
-from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
+from settings import DOCKER_CONTEXT_DIR, EXPERIMENTS_DIR, ROOT_DIR
 
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+
+def setup_generator_registry() -> GeneratorRegistry:
+    generator_registry = GeneratorRegistry()
+    generator_registry.register_generator(
+        Generator(
+            "pico",
+            "Pico with RP2040 MCU and 2MB control memory",
+            TFliteModelTranslator,
+            PicoHWManager,
+            PicoHost,
+            PicoCompiler,
+            PicoModelBuilder,
+        )
+    )
+    generator_registry.register_generator(
+        Generator(
+            "pico2",
+            "pico2 with RP2350 MCU and 4MB control memory",
+            TFliteModelTranslator,
+            PicoHWManager,
+            PicoHost,
+            PicoCompiler,
+        )
+    )
+    return generator_registry
 
 
 def search_generate_measure_for_pico(
@@ -33,8 +72,9 @@ def search_generate_measure_for_pico(
     retrain_epochs: int = 4,
     max_search_trials: int = 2,
     top_n_models: int = 2,
+    target: str = "pico",
 ):
-    explorer.choose_target_hw("pico", compiler_params, serial_params)
+    explorer.choose_target_hw(target, compiler_params, serial_params)
     explorer.generate_search_space(search_space)
 
     transf = transforms.Compose(
@@ -42,7 +82,18 @@ def search_generate_measure_for_pico(
     )
     path_to_dataset = ROOT_DIR / Path("data/mnist")
     root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
-    setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
+
+    dataset = datasets.MNIST(
+        root=path_to_dataset, train=False, download=True, transform=transf
+    )
+
+    prepare_image_dataset_for_cpp(
+        dataset,
+        output_dir=root_dir_cpp_mnist,
+        num_samples=256,
+        dtype="float",
+        flatten=True,
+    )
 
     dataset_spec = DatasetSpecification(
         dataset=MNISTWrapper(root=path_to_dataset, transform=transf),
@@ -50,8 +101,8 @@ def search_generate_measure_for_pico(
     )
     criteria = setup_example_optimization_criteria(dataset_spec, device)
 
-    top_models = explorer.search(
-        search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
+    top_models, top_quant_schemes = explorer.search(
+        sampler=NSGAIISampler(),
         hw_nas_parameters=HWNASParameters(
             max_search_trials=max_search_trials, top_n_models=top_n_models
         ),
@@ -62,7 +113,6 @@ def search_generate_measure_for_pico(
         Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
         Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
     }
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
     df = measure_on_device(
         explorer,
@@ -72,6 +122,7 @@ def search_generate_measure_for_pico(
         "cpu",
         dataset_spec,
         model_suffix=".tflite",
+        top_quantization_schemes=top_quant_schemes,
     )
     logger.info("Models:\n %s", df)
 
@@ -79,21 +130,33 @@ def search_generate_measure_for_pico(
 if __name__ == "__main__":
     ### Hyperparameters
     max_search_trials = 6
-    top_n_models = 4
+    top_n_models = 2
     retrain_epochs = 3
 
-    serial_params = SerialParams(
-        device_path=Path("/media/<username>/RPI-RP2")
-    )  # <-- Set the device path and rest only if necessary.
+    # additional device specifics, changes are necessary
+    target_platform_name = "pico"  # <-- or pico2
+    base_dockerfile = "docker/Dockerfile.picobase"
+    cross_dockerfile = "docker/Dockerfile.picocross"
+    usb_device_path = Path(
+        "/media/<username>/RPI-RP2"
+    )  # <-- add your username and for pico2 this should be "/media/<username>/RP2350" instead
+    image_name = (
+        "picobase"  # <-- for pico2 use "pico2base" to create a separate base image
+    )
+    serial_params = SerialParams(device_path=usb_device_path)
     compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
-        image_name="picobase",
+        cross_dockerfile_path=ROOT_DIR / cross_dockerfile,
+        base_image_name=image_name,
         build_context=DOCKER_CONTEXT_DIR,
-        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
-    )  # <-- Configure this only if necessary.
+        base_dockerfile_path=ROOT_DIR / base_dockerfile,
+        additional_params={
+            "platform_type": "rp2040"
+        },  # <-- for pico2 set this to "rp2350"
+    )
 
-    knowledge_repo = setup_knowledge_repository()
-    explorer = Explorer(knowledge_repo)
+    knowledge_repo = setup_generator_registry()
+    explorer = Explorer(knowledge_repo, EXPERIMENTS_DIR)
     search_space = Path("examples/search_space_examples/pico_search_space.yaml")
     search_generate_measure_for_pico(
         explorer,
@@ -103,4 +166,5 @@ if __name__ == "__main__":
         retrain_epochs=retrain_epochs,
         max_search_trials=max_search_trials,
         top_n_models=top_n_models,
+        target=target_platform_name,
     )

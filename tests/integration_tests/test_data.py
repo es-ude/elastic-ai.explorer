@@ -8,27 +8,19 @@ from elasticai.explorer.training.data import (
     DatasetSpecification,
     MultivariateTimeseriesDataset,
 )
-import torch
-
-from elasticai.explorer.training.download import DownloadableSciebo
 from elasticai.explorer.training.trainer import SupervisedTrainer
 
 from tests.integration_tests.samples.sample_MLP import SampleMLP
-from iesude.data.archives import PlainFile
 
 
-class TimeSeriesDatasetExample(MultivariateTimeseriesDataset, DownloadableSciebo):
+class TimeSeriesDatasetExample(MultivariateTimeseriesDataset):
     def __init__(
         self,
         root: Union[str, Path],
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
     ):
-        download_path = root
         super().__init__(
-            download_path=download_path,
-            file_path_in_sciebo_datasets="test_dataset.csv",
-            file_type=PlainFile,
             root=str(root),
             transform=transform,
             target_transform=target_transform,
@@ -67,15 +59,9 @@ class TestData:
             dataset_spec=dataset_spec,
             batch_size=2,
         )
-        mlp_trainer.configure_optimizer(optim.Adam(model.parameters(), lr=1e-3)),
+        mlp_trainer.configure_optimizer(optim.Adam(model.parameters(), lr=1e-3))
         mlp_trainer.train(model, epochs=2)
 
         metrics, loss = mlp_trainer.validate(model)
         assert metrics["accuracy"] >= 0
         assert loss >= 0
-
-    def teardown_method(self):
-        try:
-            os.remove(self.sample_dir / "test_dataset.csv")
-        except:
-            pass

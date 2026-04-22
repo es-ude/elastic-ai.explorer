@@ -2,27 +2,60 @@ import logging.config
 from pathlib import Path
 import torch
 
+from optuna.samplers import NSGAIISampler
 
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.explorer import Explorer
+from elasticai.explorer.generator.deployment.device_communication import SSHParams
+from elasticai.explorer.generator.deployment.hw_manager import Metric
 
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams
-from elasticai.explorer.platforms.deployment.device_communication import SSHParams
-
-from elasticai.explorer.platforms.deployment.hw_manager import Metric
-
+from elasticai.explorer_impl.rpi_generator.compiler import RPICompiler
+from elasticai.explorer_impl.rpi_generator.host import RPiHost
+from elasticai.explorer_impl.rpi_generator.hw_manager import RPiHWManager
+from elasticai.explorer_impl.rpi_generator.model_translator import (
+    TorchscriptModelTranslator,
+)
 from examples.example_helpers import (
     measure_on_device,
-    setup_knowledge_repository,
     setup_mnist,
     setup_example_optimization_criteria,
 )
-from settings import ROOT_DIR
+from settings import EXPERIMENTS_DIR, ROOT_DIR
 
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+
+def setup_generator_registry() -> GeneratorRegistry:
+    generator_registry = GeneratorRegistry()
+    generator_registry.register_generator(
+        Generator(
+            "rpi5",
+            "Raspberry PI 5 with A76 processor and 8GB RAM",
+            TorchscriptModelTranslator,
+            RPiHWManager,
+            RPiHost,
+            RPICompiler,
+        )
+    )
+
+    generator_registry.register_generator(
+        Generator(
+            "rpi4",
+            "Raspberry PI 4 with A72 processor and 4GB RAM",
+            TorchscriptModelTranslator,
+            RPiHWManager,
+            RPiHost,
+            RPICompiler,
+        )
+    )
+
+    return generator_registry
 
 
 def search_generate_measure_for_pi(
@@ -42,8 +75,8 @@ def search_generate_measure_for_pi(
     dataset_spec = setup_mnist(path_to_test_data)
     criteria_reg = setup_example_optimization_criteria(dataset_spec, device)
 
-    top_models = explorer.search(
-        search_strategy=SearchStrategy.EVOLUTIONARY_SEARCH,
+    top_models, top_quant_schemes = explorer.search(
+        sampler=NSGAIISampler(),
         optimization_criteria=criteria_reg,
         hw_nas_parameters=HWNASParameters(max_search_trials, top_n_models),
     )
@@ -51,10 +84,15 @@ def search_generate_measure_for_pi(
         Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),
         Metric.LATENCY: Path("code/measure_latency.cpp"),
     }
-    explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
     df = measure_on_device(
-        explorer, top_models, metric_to_source, retrain_epochs, device, dataset_spec
+        explorer,
+        top_models,
+        metric_to_source,
+        retrain_epochs,
+        device,
+        dataset_spec,
+        top_quantization_schemes=top_quant_schemes,
     )
 
     logger.info("Summary:\n %s", df)
@@ -62,7 +100,7 @@ def search_generate_measure_for_pi(
 
 if __name__ == "__main__":
     ### Hyperparameters
-    max_search_trials = 6
+    max_search_trials = 2
     top_n_models = 2
     retrain_epochs = 3
     rpi_type = "rpi5"
@@ -70,9 +108,13 @@ if __name__ == "__main__":
     ssh_params = SSHParams(
         hostname="<hostname>", username="<username>"
     )  # <-- connection details for your RPi
-    compiler_params = CompilerParams()  # <-- configure this only if necessary
-    knowledge_repo = setup_knowledge_repository()
-    explorer = Explorer(knowledge_repo)
+    compiler_params = CompilerParams(
+        base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
+        cross_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picross",
+        build_context=ROOT_DIR / "docker",
+    )  # <-- configure this only if necessary, the ROOT_DIR can also be set with environment variable PROJECT_ROOT.
+    knowledge_repo = setup_generator_registry()
+    explorer = Explorer(knowledge_repo, experiments_dir=EXPERIMENTS_DIR)
 
     search_space = Path(
         ROOT_DIR / "examples/search_space_examples/pi_search_space.yaml"

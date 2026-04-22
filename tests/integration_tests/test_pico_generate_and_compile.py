@@ -1,53 +1,62 @@
 import os
 from pathlib import Path
 
+import torch
+
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import (
+from elasticai.explorer_impl.pico_generator.host import PicoHost
+from elasticai.explorer_impl.pico_generator.compiler import PicoCompiler
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.generator.deployment.compiler import (
     CompilerParams,
-    PicoCompiler,
 )
-from elasticai.explorer.platforms.deployment.device_communication import (
-    PicoHost,
+from elasticai.explorer.generator.deployment.device_communication import (
     SerialParams,
 )
-from elasticai.explorer.platforms.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
+from elasticai.explorer_impl.pico_generator.hw_manager import (
     PicoHWManager,
 )
-from elasticai.explorer.platforms.generator import tflite_to_resolver
-from elasticai.explorer.platforms.generator.generator import PicoGenerator
-from torchvision import transforms
+from elasticai.explorer_impl.pico_generator import tflite_to_resolver
+from elasticai.explorer_impl.pico_generator.model_translator import (
+    TFliteModelTranslator,
+)
+from torchvision import datasets, transforms
+from elasticai.explorer.hw_nas.search_space.quantization import QuantizationScheme
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
-from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from elasticai.explorer_impl.pico_generator.utils import (
+    prepare_image_dataset_for_cpp,
+)
+from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 from tests.integration_tests.samples import sample_MLP
-from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 
 
 class TestPicoGenerateAndCompile:
     def setup_method(self):
-        self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
+        self.serial_params = SerialParams(device_path=Path(""))
         self.compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
-            image_name="picobase",
+            base_image_name="picobase",
             build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            cross_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picocross",
+            base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picobase",
+            additional_params={"platform_type": "rp2040"},
         )  # <-- Configure this only if necessary.
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
-            HWPlatform(
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
+            Generator(
                 "pico",
                 "Pico mit RP2040",
-                PicoGenerator,
+                TFliteModelTranslator,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,
             )
         )
-        self.pico_explorer = Explorer(knowledge_repository)
-        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
-            "tests/integration_tests/test_experiment"
+        self.pico_explorer = Explorer(
+            generator_registry,
+            ROOT_DIR / Path("tests/integration_tests"),
+            "test_experiment",
         )
         self.model_name = "model"
 
@@ -60,10 +69,16 @@ class TestPicoGenerateAndCompile:
         path_to_dataset = ROOT_DIR / "data/mnist"
         path_to_deployable_dataset = ROOT_DIR / "data/cpp-mnist"
 
-        setup_mnist_for_cpp(
-            root_dir_mnist=path_to_dataset,
-            root_dir_cpp_mnist=path_to_deployable_dataset,
-            transf=transf,
+        dataset = datasets.MNIST(
+            root=path_to_dataset, train=False, download=True, transform=transf
+        )
+
+        prepare_image_dataset_for_cpp(
+            dataset,
+            output_dir=path_to_deployable_dataset,
+            num_samples=256,
+            dtype="float",
+            flatten=True,
         )
 
         self.dataset_spec = DatasetSpecification(
@@ -76,11 +91,17 @@ class TestPicoGenerateAndCompile:
             deployable_dataset_path=path_to_deployable_dataset,
         )
 
+        self.data_sample = torch.randn(
+            (1, 1, 28, 28), dtype=torch.float32, device="cpu"
+        )
+
     def test_generate_for_hw_platform(self):
         model = sample_MLP.SampleMLP(28 * 28)
 
         self.pico_explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
+            model=model,
+            model_name=self.model_name,
+            data_sample=self.data_sample,
         )
         assert (
             os.path.exists(self.pico_explorer.model_dir / (self.model_name + ".tflite"))
@@ -110,16 +131,27 @@ class TestPicoGenerateAndCompile:
     def test_tflite_to_resolver(self):
         model = sample_MLP.SampleMLP(28 * 28)
         self.pico_explorer.generate_for_hw_platform(
-            model=model, model_name=self.model_name, dataset_spec=self.dataset_spec
+            model=model, model_name=self.model_name, data_sample=self.data_sample
         )
         sample_model_path = self.pico_explorer.model_dir / (self.model_name + ".tflite")
         tflite_to_resolver.generate_resolver_h(
             sample_model_path, self.pico_explorer.experiment_dir / "resolver_ops.h"
         )
 
-        assert (
-            os.path.exists(self.pico_explorer.experiment_dir / "resolver_ops.h") == True
+        assert os.path.exists(self.pico_explorer.experiment_dir / "resolver_ops.h")
+
+    def test_quantization(self):
+        model = sample_MLP.SampleMLP(28 * 28)
+        model_translator = TFliteModelTranslator()
+        output_path = self.pico_explorer.model_dir / self.model_name
+        model_translator.translate(
+            model,
+            output_path=output_path,
+            sample=self.data_sample,
+            quantization_scheme=QuantizationScheme(dtype="int8"),
         )
+        assert os.path.exists(output_path.with_suffix(".tflite"))
+        assert os.path.exists(output_path.with_suffix(".cpp"))
 
     def teardown_method(self):
 

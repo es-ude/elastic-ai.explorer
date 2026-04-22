@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from enum import Enum
-import optuna
-import yaml
-from optuna.samplers import RandomSampler
+from typing import Any
 from yaml.error import YAMLError
 
-from elasticai.explorer.hw_nas.search_space.build_model import construct_model
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    QuantizationScheme,
+)
+
 from elasticai.explorer.hw_nas.search_space.registry import COMPOSITE_REGISTRY
-from settings import ROOT_DIR
 
 
 class RepeatType(Enum):
@@ -39,8 +39,8 @@ def parse_search_param(
     name: str,
     params: dict,
     key: str,
-    default_value: any = None,
-) -> any:
+    default_value: Any = None,
+) -> Any:
     if key not in params:
         if default_value is not None:
             return default_value
@@ -98,6 +98,7 @@ class Sampler:
             raise TypeError(f"Unsupported repeat type {repeat_type}")
 
     def construct_sample(self, search_space: dict):
+
         model = OrderedDict()
 
         if "default_op_params" in search_space:
@@ -108,7 +109,6 @@ class Sampler:
 
         sequence = search_space["sequence"]
         total_blocks = len(sequence)
-
         for block_idx, block in enumerate(sequence):
             block_id = block["block"]
             repeat_cfg = block.get("type_repeat", {})
@@ -132,6 +132,16 @@ class Sampler:
             )
 
         return model
+
+    def get_quantization_scheme(self, search_space: dict) -> QuantizationScheme | None:
+        quant_scheme = QuantizationScheme
+        if "quantization" in search_space:
+            quant_cfg = search_space["quantization"]
+            quant_builder = QuantizationBuilder(self.trial, quant_cfg)
+            quant_scheme = quant_builder.build()
+            return quant_scheme
+
+        return None
 
 
 class LayerContext:
@@ -375,3 +385,56 @@ class VaryAllFactory(BlockFactory):
             VaryOp(block_id, block_cfg),
             VaryParams(block_id, block_cfg, sampler.default_op_params),
         )
+
+
+class QuantizationBuilder:
+    def __init__(self, trial, search_params: dict) -> None:
+        self.trial = trial
+        self.search_params = search_params
+        self.defaults = {
+            "dtype": "float32",
+            "total_bits": None,
+            "frac_bits": None,
+            "signed": None,
+            "scale": None,
+            "zero_point": None,
+        }
+
+    def build(self) -> QuantizationScheme:
+        values = {}
+        for key, default in self.defaults.items():
+            if not self.search_params.get(key):
+                continue
+            value = parse_search_param(
+                trial=self.trial,
+                name=f"quant_{key}",
+                params=self.search_params,
+                key=key,
+                default_value=default,
+            )
+
+            values[key] = value
+        self.basic_checks(values=values)
+        return QuantizationScheme(**values)
+
+    def basic_checks(self, values: dict):
+        dtype = values.get("dtype")
+        total_bits = values.get("total_bits")
+        frac_bits = values.get("frac_bits")
+        if total_bits and frac_bits:
+            if total_bits < frac_bits:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) cannot be lower than the number of fractional bits ({frac_bits})"
+                )
+            if dtype == "int8" and total_bits != 8:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 8 for int8 dtype"
+                )
+            if dtype == "float32" and total_bits != 32:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 32 for float32 dtype"
+                )
+            if dtype == "float16" and total_bits != 16:
+                raise ValueError(
+                    f"The number of total bits ({total_bits}) has to be 16 for float16 dtype"
+                )

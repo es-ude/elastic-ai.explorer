@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from typing import Any
 
 from torch import nn as nn
 
@@ -8,67 +9,99 @@ from elasticai.explorer.hw_nas.search_space.architecture_components import (
     RepeatVector,
     TimeDistributed,
 )
-from elasticai.explorer.hw_nas.search_space.registry import activation_mapping
+from elasticai.explorer.hw_nas.search_space.registry import (
+    activation_registry,
+    layer_registry,
+)
 from elasticai.explorer.hw_nas.search_space.utils import calculate_output_shape
-
-LAYER_REGISTRY = {}
 
 
 def register_layer(name: str):
     """Decorator to register new layer types."""
 
     def wrapper(cls):
-        LAYER_REGISTRY[name] = cls
+        layer_registry[name] = cls
         return cls
 
     return wrapper
 
 
 class LayerBuilder(ABC):
+    build_return_types: list[type] | None = None
+    quantization_scheme: Any | None = None
 
-    def build(self, input_shape, search_parameters: dict, output_shape=None):
+    def build(
+        self,
+        input_shape,
+        search_parameters: dict,
+        output_shape=None,
+        quantization_scheme: Any = None,
+    ):
+        self.quantization_scheme = quantization_scheme
         activation = search_parameters.get("activation", None)
         if output_shape is None:
-            layer, shape = self.build_layer(input_shape, search_parameters)
+            layer, shape = self.build_layer(
+                input_shape,
+                search_parameters,
+            )
         else:
             layer, shape = self.get_last_layer(
                 input_shape, search_parameters, output_shape
             )
 
         if activation is not None:
-            return nn.Sequential(layer, activation_mapping[activation]), shape
+            return nn.Sequential(layer, activation_registry[activation]), shape
         return layer, shape
 
     @abstractmethod
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+    ) -> tuple[Any, Any]:
         pass
 
     @abstractmethod
-    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+    def get_last_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+        output_shape,
+    ) -> tuple[Any, Any]:
         pass
 
 
 @register_layer("linear")
 class LinearLayer(LayerBuilder):
+    build_return_types = [nn.Linear]
 
-    def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
+    def get_last_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+        output_shape,
+        
+    ):
         linear = nn.Linear(input_shape, output_shape)
         return linear, output_shape
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(
+        self,
+        input_shape,
+        search_parameters: dict,
+    ):
         linear = nn.Linear(input_shape, search_parameters["width"])
         return linear, search_parameters["width"]
 
 
 class ConvLayer(LayerBuilder):
-
     conv_class: type[nn.Module] = None
     layer_type: str = None
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         return self.build_layer(input_shape, search_parameters)
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
 
         stride = search_parameters.get("stride", 1)
         padding = search_parameters.get("padding", 0)
@@ -95,6 +128,8 @@ class ConvLayer(LayerBuilder):
 
 @register_layer("conv2d")
 class Conv2dLayer(ConvLayer):
+    build_return_types = [nn.Conv2d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conv_class = nn.Conv2d
@@ -103,6 +138,8 @@ class Conv2dLayer(ConvLayer):
 
 @register_layer("conv1d")
 class Conv1dLayer(ConvLayer):
+    build_return_types = [nn.Conv1d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.conv_class = nn.Conv1d
@@ -111,6 +148,8 @@ class Conv1dLayer(ConvLayer):
 
 @register_layer("lstm")
 class LSTMLayer(LayerBuilder):
+    build_return_types = [SimpleLSTM]
+
     def create_layer(
         self, input_shape, hidden_size, bidirectional, search_parameters: dict
     ):
@@ -130,7 +169,7 @@ class LSTMLayer(LayerBuilder):
         ]
         return lstm, input_shape
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None):
         bidirectional: bool = search_parameters.get("bidirectional", False)
         hidden_size = search_parameters["hidden_size"]
         return self.create_layer(
@@ -152,10 +191,11 @@ class LSTMLayer(LayerBuilder):
 
 
 class PoolLayer(LayerBuilder):
+
     layer_map = {}
     param_keys = {"kernel_size": None, "stride": 1, "padding": 0}
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         if isinstance(input_shape, int):
             return nn.Identity(), input_shape
         ndim = 2 if len(input_shape) == 3 else 1
@@ -184,6 +224,8 @@ class PoolLayer(LayerBuilder):
 
 @register_layer("maxpool")
 class MaxPoolLayer(PoolLayer):
+    build_return_types = [nn.Identity, nn.MaxPool1d, nn.MaxPool2d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -192,6 +234,8 @@ class MaxPoolLayer(PoolLayer):
 
 @register_layer("avgpool")
 class AvgPoolLayer(PoolLayer):
+    build_return_types = [nn.Identity, nn.AvgPool1d, nn.AvgPool2d]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.layer_map = {"1d": nn.AvgPool1d, "2d": nn.AvgPool2d}
@@ -199,7 +243,9 @@ class AvgPoolLayer(PoolLayer):
 
 @register_layer("batch_norm")
 class BatchNormLayer(LayerBuilder):
-    def build_layer(self, input_shape, search_parameters: dict):
+    build_return_types = [nn.BatchNorm1d, nn.BatchNorm2d]
+
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         num_features = (
             input_shape[0] if isinstance(input_shape, (list, tuple)) else input_shape
         )
@@ -218,10 +264,11 @@ class BatchNormLayer(LayerBuilder):
 
 @register_layer("dropout")
 class DropoutLayer(LayerBuilder):
+    build_return_types = [nn.Dropout, nn.Dropout2d]
     param_keys = ["p"]
     layer_map = {"1d": nn.Dropout, "2d": nn.Dropout2d}
 
-    def build_layer(self, input_shape, search_parameters: dict):
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         return nn.Dropout(search_parameters.get("p", 0.5)), input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
@@ -230,8 +277,10 @@ class DropoutLayer(LayerBuilder):
 
 @register_layer("activation")
 class ActivationLayer(LayerBuilder):
-    def build_layer(self, input_shape, search_parameters: dict):
-        return activation_mapping[search_parameters.get("op", "identity")], input_shape
+    build_return_types = []
+
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None):
+        return activation_registry[search_parameters.get("op", "identity")], input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         return self.build_layer(input_shape, search_parameters)
@@ -239,7 +288,9 @@ class ActivationLayer(LayerBuilder):
 
 @register_layer("layer_norm")
 class LayerNorm(LayerBuilder):
-    def build_layer(self, input_shape, search_parameters: dict):
+    build_return_types = [nn.LayerNorm]
+
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None):
         return nn.LayerNorm(input_shape), input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
@@ -248,7 +299,9 @@ class LayerNorm(LayerBuilder):
 
 @register_layer("gaussian_dropout")
 class GaussianDropoutLayer(LayerBuilder):
-    def build_layer(self, input_shape, search_parameters: dict):
+    build_return_types = [GaussianDropout]
+
+    def build_layer(self, input_shape, search_parameters: dict, quantization_scheme: Any = None,):
         return GaussianDropout(search_parameters.get("p", 0.5)), input_shape
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
@@ -257,7 +310,9 @@ class GaussianDropoutLayer(LayerBuilder):
 
 @register_layer("repeat_vector")
 class RepeatVectorLayer(LayerBuilder):
-    def build_layer(self, input_shape, search_parameters: dict):
+    build_return_types = [RepeatVector]
+
+    def build_layer(self, input_shape, search_parameters: dict, quantization_scheme: Any = None,):
         times = search_parameters["times"]
         input_shape.append(times)
         return RepeatVector(times), input_shape
@@ -268,14 +323,16 @@ class RepeatVectorLayer(LayerBuilder):
 
 @register_layer("time_distributed_linear")
 class TimeDistributedLinear(LayerBuilder):
-    def build_layer(self, input_shape, search_parameters: dict):
+    build_return_types = [TimeDistributed]
+
+    def build_layer(self, input_shape, search_parameters: dict,  quantization_scheme: Any = None,):
         batch_first = search_parameters.get("batch_first", True)
 
         output_sample_shape = [input_shape[0], search_parameters["width"]]
 
         module = nn.Sequential(
             nn.Linear(input_shape[-1], output_sample_shape[-1]),
-            activation_mapping[search_parameters.get("activation", "identity")],
+            activation_registry[search_parameters.get("activation", "identity")],
         )
 
         return TimeDistributed(module, batch_first=batch_first), output_sample_shape
@@ -285,7 +342,7 @@ class TimeDistributedLinear(LayerBuilder):
         output_sample_shape = output_shape
         module = nn.Sequential(
             nn.Linear(input_shape[-1], output_sample_shape[-1]),
-            activation_mapping[search_parameters.get("activation", "identity")],
+            activation_registry[search_parameters.get("activation", "identity")],
         )
 
         return TimeDistributed(module, batch_first=batch_first), output_sample_shape

@@ -2,24 +2,26 @@ import tomllib
 
 import pytest
 from elasticai.explorer.explorer import Explorer
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
-from elasticai.explorer.platforms.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
-    RPiHWManager,
+from elasticai.explorer_impl.rpi_generator.host import RPiHost
+from elasticai.explorer_impl.rpi_generator.hw_manager import RPiHWManager
+from elasticai.explorer_impl.rpi_generator.compiler import RPICompiler
+from elasticai.explorer.generator.generator import Generator
+from elasticai.explorer.generator_registry import GeneratorRegistry
+from elasticai.explorer.generator.deployment.compiler import CompilerParams
+from elasticai.explorer.generator.deployment.hw_manager import (
     Metric,
 )
-from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import (
-    RPiHost,
+from elasticai.explorer_impl.rpi_generator.model_translator import (
+    TorchscriptModelTranslator,
+)
+from elasticai.explorer.generator.deployment.device_communication import (
     SSHParams,
 )
 from torchvision.transforms import transforms
 from pathlib import Path
 
 from elasticai.explorer.training import data
-from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from settings import ROOT_DIR, DOCKER_CONTEXT_DIR
 
 
 class TestDeploymentAndMeasurement:
@@ -30,21 +32,24 @@ class TestDeploymentAndMeasurement:
         ssh_params = SSHParams(
             hostname=config["RPI_HOSTNAME"], username=config["RPI_USERNAME"]
         )  # <-- Set the credentials of your RPi
-        compiler_params = CompilerParams()
-        knowledge_repository = KnowledgeRepository()
-        knowledge_repository.register_hw_platform(
-            HWPlatform(
+        compiler_params = CompilerParams(
+            base_dockerfile_path=ROOT_DIR / "docker/Dockerfile.pibase",
+            cross_dockerfile_path=ROOT_DIR / "docker/Dockerfile.picross",
+            build_context=ROOT_DIR / "docker",
+        )
+        generator_registry = GeneratorRegistry()
+        generator_registry.register_generator(
+            Generator(
                 "rpi5",
                 "Raspberry PI 5 with A76 processor and 8GB RAM",
-                RPiGenerator,
+                TorchscriptModelTranslator,
                 RPiHWManager,
                 RPiHost,
                 RPICompiler,
             )
         )
-        self.RPI5explorer = Explorer(knowledge_repository)
-        self.RPI5explorer.experiment_dir = ROOT_DIR / Path(
-            "tests/system_tests/test_experiment"
+        self.RPI5explorer = Explorer(
+            generator_registry, ROOT_DIR / Path("tests/system_tests"), "test_experiment"
         )
         self.RPI5explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
         self.RPI5explorer.choose_target_hw(
@@ -55,8 +60,7 @@ class TestDeploymentAndMeasurement:
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
         path_to_dataset = Path(ROOT_DIR / "data/mnist")
-        root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
-        setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
+        root_dir_cpp_mnist = ROOT_DIR / Path("data/mnist")
         metric_to_source = {
             Metric.ACCURACY: Path(
                 "code/measure_accuracy_mnist.cpp"

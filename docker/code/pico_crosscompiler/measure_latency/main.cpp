@@ -8,8 +8,8 @@
 #include "pico/time.h"
 #include "pico/bootrom.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-#include "mnist_features.h"
-#include "mnist_labels.h"
+#include "features.h"
+#include "labels.h"
 
 #include "model.h"
 #include "tflite_interpreter.h"
@@ -56,7 +56,7 @@ int runInference(int dataset_size, float *inputBuffer)
     {
 
         int result = interpreter->runInference(inputBuffer, outputBuffer);
-        if (mnist_labels[sample_index] == result)
+        if (labels[sample_index] == result)
         {
             correct++;
         }

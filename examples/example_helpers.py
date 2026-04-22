@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import Any, Callable, List
 import torch
 from torch import nn
 from torchvision.transforms import transforms
@@ -10,76 +10,43 @@ from elasticai.explorer.hw_nas.estimators import (
 )
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from math import log10
-from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
-from elasticai.explorer.platforms.deployment.compiler import PicoCompiler, RPICompiler
-from elasticai.explorer.platforms.deployment.device_communication import (
-    PicoHost,
-    RPiHost,
+from elasticai.explorer.hw_nas.search_space.quantization import (
+    QuantizationScheme,
 )
-from elasticai.explorer.platforms.deployment.hw_manager import (
-    Metric,
-    PicoHWManager,
-    RPiHWManager,
+
+
+
+from elasticai.explorer.training.data import (
+    BaseDataset,
+    DatasetSpecification,
+    MNISTWrapper,
 )
-from elasticai.explorer.platforms.generator.generator import PicoGenerator, RPiGenerator
-from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
 from torch import optim
 
 from elasticai.explorer.utils.data_to_csv import build_search_space_measurements_file
 
 
-def setup_knowledge_repository() -> KnowledgeRepository:
-    knowledge_repository = KnowledgeRepository()
-    knowledge_repository.register_hw_platform(
-        HWPlatform(
-            "pico",
-            "Pico with RP2040 MCU and 2MB control memory",
-            PicoGenerator,
-            PicoHWManager,
-            PicoHost,
-            PicoCompiler,
-        )
-    )
-    knowledge_repository.register_hw_platform(
-        HWPlatform(
-            "rpi5",
-            "Raspberry PI 5 with A76 processor and 8GB RAM",
-            RPiGenerator,
-            RPiHWManager,
-            RPiHost,
-            RPICompiler,
-        )
-    )
-
-    knowledge_repository.register_hw_platform(
-        HWPlatform(
-            "rpi4",
-            "Raspberry PI 4 with A72 processor and 4GB RAM",
-            RPiGenerator,
-            RPiHWManager,
-            RPiHost,
-            RPICompiler,
-        )
-    )
-
-    return knowledge_repository
 
 
-def setup_example_optimization_criteria(dataset_spec, device) -> OptimizationCriteria:
+
+def setup_example_optimization_criteria(
+    dataset_spec, device, sample_shape=(1, 1, 28, 28)
+) -> OptimizationCriteria:
     criteria = OptimizationCriteria()
-    data_sample = torch.randn((1, 1, 28, 28), dtype=torch.float32, device=device)
+    data_sample = torch.randn(sample_shape, dtype=torch.float32, device=device)
     flops_estimator = FLOPsEstimator(data_sample)
     accuracy_estimator = TrainMetricsEstimator(
         SupervisedTrainer(
             device,
             dataset_spec,
             batch_size=64,
+            extra_metrics={"accuracy": accuracy_fn},
         ),
         metric_name="accuracy",
         n_estimation_epochs=3,
     )
-    criteria.register_objective(estimator=accuracy_estimator)
+    criteria.register_objective(estimator=accuracy_estimator, weight=100)
 
     criteria.register_objective(estimator=flops_estimator, transform=log10, weight=-2.0)
 
@@ -100,21 +67,27 @@ def setup_mnist(path_to_test_data: Path):
 def measure_on_device(
     explorer: Explorer,
     top_models: List,
-    metric_to_source: dict[Metric, Path],
+    metric_to_source: Any,
     retrain_epochs: int,
-    device: str,
+    retrain_device: str,
     dataset_spec: DatasetSpecification,
     model_suffix: str = ".pt",
+    top_quantization_schemes: list[QuantizationScheme | None] = [],
 ):
 
     metrics_to_measurements = {"accuracy after retrain in %": []}
     for metric, _ in metric_to_source.items():
         metrics_to_measurements.update({metric.value + " on device": []})
 
-    for i, model in enumerate(top_models):
-
+    previous_quant_scheme = None
+    for i, (model, quant_scheme) in enumerate(
+        zip(top_models, top_quantization_schemes)
+    ):
+        if i == 0 or previous_quant_scheme != quant_scheme:
+            explorer.hw_setup_on_target(metric_to_source, dataset_spec, quant_scheme)
+        previous_quant_scheme = quant_scheme
         trainer = SupervisedTrainer(
-            device=device,
+            device=retrain_device,
             dataset_spec=dataset_spec,
             loss_fn=nn.CrossEntropyLoss(),
             batch_size=64,
@@ -127,7 +100,12 @@ def measure_on_device(
             test_metrics.get("accuracy")
         )
         model_name = "model_" + str(i) + model_suffix
-        explorer.generate_for_hw_platform(model, model_name, dataset_spec)
+
+        sample_sample, _ = next(iter(dataset_spec.dataset))
+
+        explorer.generate_for_hw_platform(
+            model, model_name, sample_sample.unsqueeze(1), quant_scheme
+        )
 
         for metric in metric_to_source.keys():
             measure = explorer.run_measurement(metric, model_name)
@@ -141,3 +119,41 @@ def measure_on_device(
         explorer.model_dir / "models.json",
         explorer.experiment_dir / "experiment_data.csv",
     )
+
+
+class SumDataset(BaseDataset):
+    def __init__(
+        self,
+        transform: Callable[..., Any] | None = None,
+        target_transform: Callable[..., Any] | None = None,
+        thresholds=[-0.5, 0.0, 0.5],
+        noise_std=0.0,
+        *args,
+        **kwargs,
+    ):
+        super().__init__()
+        input_dim = kwargs.get("input_dim", 6)
+        size = kwargs.get("size", 12000)
+        self.data = torch.randn(size, input_dim)
+        summed = self.data.sum(dim=1)
+        if noise_std > 0:
+            summed = summed + noise_std * torch.randn_like(summed)
+        self.target_transform = target_transform
+        self.transform = transform
+        self.targets = torch.empty(size, dtype=torch.long)
+        self.targets[summed <= thresholds[0]] = 0
+        self.targets[(summed > thresholds[0]) & (summed <= thresholds[1])] = 1
+        self.targets[(summed > thresholds[1]) & (summed <= thresholds[2])] = 2
+        self.targets[summed > thresholds[2]] = 3
+
+    def __getitem__(self, idx) -> Any:
+        data, target = self.data[idx], self.targets[idx]
+        if self.transform is not None:
+            data = self.transform(self.data[idx])
+
+        if self.target_transform is not None:
+            target = self.target_transform(self.targets[idx])
+        return data, target
+
+    def __len__(self) -> int:
+        return len(self.data)

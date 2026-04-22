@@ -5,8 +5,9 @@ ENV PICO_SDK_PATH=/code/pico_crosscompiler/third_party/pico-sdk
 ENV TFLITE_PATH=/code/pico_crosscompiler/third_party/pico-tflmicro
 ENV BIN_DIR=/tmp/bin
 
-
+ARG PICO_TYPE
 ARG CROSS_COMPILER_PATH
+
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -27,20 +28,20 @@ const unsigned char model_tflite[] = {1};
 const unsigned int model_tflite_len = 1;
 EOF
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_features.h
-#ifndef MNIST_FEATURES_H
-#define MNIST_TEST_FEATURES_H
-const float mnist_images[1][1] = {
+RUN cat <<'EOF' > /code/pico_crosscompiler/data/features.h
+#ifndef FEATURES_H
+#define TEST_FEATURES_H
+const float features[1][1] = {
     {1.0f},
 };
 #endif
 EOF
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_labels.h
-#ifndef MNIST_LABELS_H
-#define MNIST_LABELS_H
-const int mnist_labels[1] = {7};
-#endif // MNIST_LABELS_H
+RUN cat <<'EOF' > /code/pico_crosscompiler/data/labels.h
+#ifndef LABELS_H
+#define LABELS_H
+const int labels[1] = {7};
+#endif // LABELS_H
 EOF
 
 RUN mkdir -p $PICO_SDK_PATH
@@ -54,5 +55,5 @@ RUN git clone -b main https://github.com/raspberrypi/pico-tflmicro.git $TFLITE_P
 
 RUN mkdir -p /code/build && mkdir -p $BIN_DIR
 WORKDIR /code/build
-RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ../pico_crosscompiler
+RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH -DPICO_PLATFORM=${PICO_TYPE} ../pico_crosscompiler
 RUN make -j$(nproc)

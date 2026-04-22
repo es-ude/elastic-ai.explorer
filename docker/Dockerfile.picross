@@ -1,11 +1,11 @@
-ARG BASE_IMAGE=cross
+ARG BASE_IMAGE=picobase
 FROM ${BASE_IMAGE}:latest AS builder
 
 ARG HOST_LIBTORCH_PATH="./code/libtorch"
 ARG PROGRAM_CODE
 ARG NAME_OF_EXECUTABLE
 
-COPY ./$PROGRAM_CODE /code/
+COPY .$PROGRAM_CODE /code/
 COPY ./code/CMakeLists.txt /code/
 ADD  $HOST_LIBTORCH_PATH /code/libtorch
 
