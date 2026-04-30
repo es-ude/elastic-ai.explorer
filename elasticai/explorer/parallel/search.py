@@ -31,11 +31,10 @@ def _bind_criteria_to_device(
 
     for estimator in local_criteria.get_estimators():
         if isinstance(estimator, FLOPsEstimator):
-            estimator.data_sample = estimator.data_sample.to(model_device)
+            estimator.data_sample = estimator.data_sample.to(device)
 
         if isinstance(estimator, TrainMetricsEstimator):
             estimator.trainer.device = device
-            model_device = device
 
     return local_criteria
 
