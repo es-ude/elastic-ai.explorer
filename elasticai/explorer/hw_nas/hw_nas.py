@@ -1,20 +1,20 @@
+import logging
 import traceback
 from dataclasses import dataclass
-import logging
-from typing import Any, Callable
-from functools import partial
 from enum import Enum
+from functools import partial
+from typing import Any, Callable
 
 import optuna
-from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
+from optuna.trial import FrozenTrial, TrialState
 
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
 from elasticai.explorer.hw_nas.search_space.build_model import (
-    construct_model,
     ShapeValueError,
+    construct_model,
 )
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
@@ -97,7 +97,6 @@ def objective_wrapper(
     search_space_cfg: dict[str, Any],
     optimization_criteria: OptimizationCriteria,
 ) -> float:
-
     def objective(trial: optuna.Trial) -> float:
         model = sample_and_create_model(trial, search_space_cfg)
         score = _evaluate_constraints(trial, model, optimization_criteria)
@@ -108,16 +107,9 @@ def objective_wrapper(
     return objective(trial)
 
 
-def search(
-    search_space_cfg: dict,
+def create_sampler(
     search_strategy: SearchStrategy,
-    optimization_criteria: OptimizationCriteria,
-    hw_nas_parameters: HWNASParameters,
-) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
-    """
-    Returns: top-models, model-parameters, metrics
-    """
-
+) -> optuna.samplers.BaseSampler:
     match search_strategy:
         case SearchStrategy.RANDOM_SEARCH:
             sampler = optuna.samplers.RandomSampler()
@@ -128,12 +120,12 @@ def search(
             )
         case _:
             sampler = optuna.samplers.RandomSampler()
+    return sampler
 
-    study = optuna.create_study(
-        sampler=sampler,
-        direction="maximize",
-    )
 
+def create_trial_callbacks(
+    hw_nas_parameters: HWNASParameters,
+) -> tuple[int | None, list]:
     if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
         callbacks = [
@@ -147,23 +139,20 @@ def search(
             MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)
         ]
 
-    study.optimize(
-        partial(
-            objective_wrapper,
-            search_space_cfg=search_space_cfg,
-            optimization_criteria=optimization_criteria,
-        ),
-        n_trials=n_trials,
-        callbacks=callbacks,
-        show_progress_bar=True,
-        gc_after_trial=True,
-    )
+    return n_trials, callbacks
 
+
+def collect_top_k_results(
+    study: optuna.Study,
+    hw_nas_parameters: HWNASParameters,
+    optimization_criteria: OptimizationCriteria,
+    search_space_cfg: dict,
+) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
-    eval: Callable[[FrozenTrial], float] = lambda trial: (
+    trial_score: Callable[[FrozenTrial], float] = lambda trial: (
         trial.value if trial.value is not None else float("-inf")
     )
-    test_results.sort(key=eval, reverse=True)
+    test_results.sort(key=trial_score, reverse=True)
 
     top_k_frozen_trials = test_results[: hw_nas_parameters.top_n_models]
 
@@ -179,12 +168,11 @@ def search(
     ]
 
     for frozen_trial in top_k_frozen_trials:
-
         top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
             {
-                "score": eval(frozen_trial),
+                "score": trial_score(frozen_trial),
             }
         )
         for metric_name in metric_names:
@@ -195,4 +183,44 @@ def search(
             top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
                 intermediates_key
             ]
+    return top_k_models, top_k_params, top_k_metrics
+
+
+def search(
+    search_space_cfg: dict,
+    search_strategy: SearchStrategy,
+    optimization_criteria: OptimizationCriteria,
+    hw_nas_parameters: HWNASParameters,
+) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
+    """
+    Returns: top-models, model-parameters, metrics
+    """
+
+    sampler = create_sampler(search_strategy=search_strategy)
+
+    study = optuna.create_study(
+        sampler=sampler,
+        direction="maximize",
+    )
+
+    n_trials, callbacks = create_trial_callbacks(hw_nas_parameters=hw_nas_parameters)
+
+    study.optimize(
+        partial(
+            objective_wrapper,
+            search_space_cfg=search_space_cfg,
+            optimization_criteria=optimization_criteria,
+        ),
+        n_trials=n_trials,
+        callbacks=callbacks,
+        show_progress_bar=True,
+        gc_after_trial=True,
+    )
+
+    top_k_models, top_k_params, top_k_metrics = collect_top_k_results(
+        study=study,
+        hw_nas_parameters=hw_nas_parameters,
+        optimization_criteria=optimization_criteria,
+        search_space_cfg=search_space_cfg,
+    )
     return top_k_models, top_k_params, top_k_metrics
