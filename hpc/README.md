@@ -1,16 +1,19 @@
-# HPC Apptainer Scripts
+# HPC Apptainer Example
 
-This folder contains the scripts for running the parallel search inside an
-Apptainer container on an HPC system.
+This directory contains an example setup for running `elastic-ai.explorer` on an
+HPC system with SLURM, Apptainer, and NVIDIA GPUs.
+
+The files are not a generic HPC interface or a reusable deployment tool. They
+document one concrete setup and are intended as a starting point for adapting the
+explorer to a local HPC environment.
 
 ## Files
 
-- `run_container.def` defines the Apptainer image. It starts from an NVIDIA CUDA
-  runtime image, copies the project files into `/app`, installs `uv`, and creates
-  the project environment.
-- `run_parallized_search.sh` is a SLURM job script. It prepares a workspace,
-  makes the dataset available, and starts the Apptainer container with the
-  parameters needed for the parallel search.
+- `run_container.def` is an example Apptainer definition for packaging the
+  project and one experiment entry point into a container image.
+- `run_parallized_search.sh` is an example SLURM job script. It uses local HPC
+  conventions such as workspaces, dataset locations, and GPU allocation settings.
+
 
 ## Build the Container
 

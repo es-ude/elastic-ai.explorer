@@ -4,11 +4,11 @@ from types import SimpleNamespace
 import pytest
 from optuna.samplers import RandomSampler
 
-from elasticai.explorer.parallel.optuna_runner import (
+from elasticai.explorer.parallel._multiprocessing_backend import (
+    _assign_workers_to_devices,
     _load_or_build_sampler,
     _sampler_checkpoint,
     _save_sampler_callback,
-    assign_workers_to_devices,
 )
 
 
@@ -18,7 +18,7 @@ def _builder(worker_idx: int) -> RandomSampler:
 
 def test_load_or_build_sampler_no_checkpoint_dir():
     sampler = _load_or_build_sampler(
-        sampler_builder=_builder,
+        create_sampler_fn=_builder,
         worker_idx=3,
         checkpoint_dir=None,
     )
@@ -35,7 +35,7 @@ def test_load_or_build_sampler_loads_existing(tmp_path):
         pickle.dump(saved, f)
 
     loaded = _load_or_build_sampler(
-        sampler_builder=_builder,
+        create_sampler_fn=_builder,
         worker_idx=3,
         checkpoint_dir=tmp_path,
     )
@@ -75,7 +75,7 @@ def test_assign_workers_to_devices_valid(
     devices: list[str],
     expected: list[str],
 ):
-    assert assign_workers_to_devices(n_workers=n_workers, devices=devices) == expected
+    assert _assign_workers_to_devices(n_workers=n_workers, devices=devices) == expected
 
 
 @pytest.mark.parametrize(
@@ -94,4 +94,4 @@ def test_assign_workers_to_devices_invalid(
     devices: list[str],
 ):
     with pytest.raises(ValueError):
-        assign_workers_to_devices(n_workers=n_workers, devices=devices)
+        _assign_workers_to_devices(n_workers=n_workers, devices=devices)

@@ -1,10 +1,12 @@
 import copy
 import logging
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
-from optuna.samplers import BaseSampler
+import optuna
+from optuna.trial import TrialState
 
 from elasticai.explorer.hw_nas.estimators import FLOPsEstimator, TrainMetricsEstimator
 from elasticai.explorer.hw_nas.hw_nas import (
@@ -15,11 +17,15 @@ from elasticai.explorer.hw_nas.hw_nas import (
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
-from elasticai.explorer.parallel.optuna_runner import (
-    run_parallel_optuna_search,
+from elasticai.explorer.parallel._multiprocessing_backend import (
+    CreateSamplerFn,
+    OptimizationObjective,
+    SearchSpaceConfig,
+    StudyDirection,
+    _run_optuna_multiprocessing_search,
 )
 
-logger = logging.getLogger("explorer.nas")
+_logger = logging.getLogger("explorer.nas")
 
 
 def _bind_criteria_to_device(
@@ -39,14 +45,62 @@ def _bind_criteria_to_device(
     return local_criteria
 
 
-def parallelized_objective_wrapper(trial, search_space_cfg, device, criteria):
+def objective_on_device(trial, search_space_cfg, device, criteria):
     local_criteria = _bind_criteria_to_device(criteria, device)
     return objective_wrapper(trial, search_space_cfg, local_criteria)
 
 
+def is_duplicated_trial(trial: optuna.Trial) -> bool:
+    states_to_consider = (
+        TrialState.RUNNING,
+        TrialState.COMPLETE,
+    )
+    trials_to_consider = trial.study.get_trials(
+        deepcopy=False, states=states_to_consider
+    )
+
+    for t in trials_to_consider:
+        if t.number == trial.number:
+            continue
+        if t.params == trial.params:
+            return True
+
+    return False
+
+
+def run_optuna_search_in_parallel(
+    search_space_cfg: SearchSpaceConfig,
+    create_sampler_fn: CreateSamplerFn,
+    optimization_objective: OptimizationObjective,
+    study_name: str,
+    journal_file: str,
+    direction: StudyDirection | None = None,
+    directions: Sequence[StudyDirection] | None = None,
+    n_workers: int = 1,
+    devices: list[str] | None = None,
+    max_search_trials: int | None = None,
+    count_only_completed_trials: bool = False,
+    sampler_checkpoint_dir: Path | None = None,
+) -> optuna.Study:
+    return _run_optuna_multiprocessing_search(
+        search_space_cfg=search_space_cfg,
+        create_sampler_fn=create_sampler_fn,
+        optimization_objective=optimization_objective,
+        study_name=study_name,
+        journal_file=journal_file,
+        direction=direction,
+        directions=directions,
+        n_workers=n_workers,
+        devices=devices,
+        max_search_trials=max_search_trials,
+        count_only_completed_trials=count_only_completed_trials,
+        sampler_checkpoint_dir=sampler_checkpoint_dir,
+    )
+
+
 def search_in_parallel(
-    search_space_cfg: dict,
-    sampler_builder: Callable[[int], BaseSampler],
+    search_space_cfg: SearchSpaceConfig,
+    create_sampler_fn: CreateSamplerFn,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
     study_name: str,
@@ -56,12 +110,12 @@ def search_in_parallel(
     sampler_checkpoint_dir: Path | None = None,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     optimization_objective = partial(
-        parallelized_objective_wrapper, criteria=optimization_criteria
+        objective_on_device, criteria=optimization_criteria
     )
 
-    study = run_parallel_optuna_search(
+    study = run_optuna_search_in_parallel(
         search_space_cfg=search_space_cfg,
-        sampler_builder=sampler_builder,
+        create_sampler_fn=create_sampler_fn,
         study_name=study_name,
         journal_file=journal_file,
         optimization_objective=optimization_objective,
