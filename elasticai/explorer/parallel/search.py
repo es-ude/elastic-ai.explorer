@@ -28,76 +28,6 @@ from elasticai.explorer.parallel._multiprocessing_backend import (
 _logger = logging.getLogger("explorer.nas")
 
 
-def _bind_criteria_to_device(
-    criteria: OptimizationCriteria,
-    device: str,
-) -> OptimizationCriteria:
-    # bind criteria to the local worker
-    local_criteria = copy.deepcopy(criteria)
-
-    for estimator in local_criteria.get_estimators():
-        if isinstance(estimator, FLOPsEstimator):
-            estimator.data_sample = estimator.data_sample.to(device)
-
-        if isinstance(estimator, TrainMetricsEstimator):
-            estimator.trainer.device = device
-
-    return local_criteria
-
-
-def objective_on_device(trial, search_space_cfg, device, criteria):
-    local_criteria = _bind_criteria_to_device(criteria, device)
-    return objective_wrapper(trial, search_space_cfg, local_criteria)
-
-
-def is_duplicated_trial(trial: optuna.Trial) -> bool:
-    states_to_consider = (
-        TrialState.RUNNING,
-        TrialState.COMPLETE,
-    )
-    trials_to_consider = trial.study.get_trials(
-        deepcopy=False, states=states_to_consider
-    )
-
-    for t in trials_to_consider:
-        if t.number == trial.number:
-            continue
-        if t.params == trial.params:
-            return True
-
-    return False
-
-
-def run_optuna_search_in_parallel(
-    search_space_cfg: SearchSpaceConfig,
-    create_sampler_fn: CreateSamplerFn,
-    optimization_objective: OptimizationObjective,
-    study_name: str,
-    journal_file: str,
-    direction: StudyDirection | None = None,
-    directions: Sequence[StudyDirection] | None = None,
-    n_workers: int = 1,
-    devices: list[str] | None = None,
-    max_search_trials: int | None = None,
-    count_only_completed_trials: bool = False,
-    sampler_checkpoint_dir: Path | None = None,
-) -> optuna.Study:
-    return _run_optuna_multiprocessing_search(
-        search_space_cfg=search_space_cfg,
-        create_sampler_fn=create_sampler_fn,
-        optimization_objective=optimization_objective,
-        study_name=study_name,
-        journal_file=journal_file,
-        direction=direction,
-        directions=directions,
-        n_workers=n_workers,
-        devices=devices,
-        max_search_trials=max_search_trials,
-        count_only_completed_trials=count_only_completed_trials,
-        sampler_checkpoint_dir=sampler_checkpoint_dir,
-    )
-
-
 def search_in_parallel(
     search_space_cfg: SearchSpaceConfig,
     create_sampler_fn: CreateSamplerFn,
@@ -135,3 +65,73 @@ def search_in_parallel(
     )
 
     return top_k_models, top_k_params, top_k_metrics
+
+
+def run_optuna_search_in_parallel(
+    search_space_cfg: SearchSpaceConfig,
+    create_sampler_fn: CreateSamplerFn,
+    optimization_objective: OptimizationObjective,
+    study_name: str,
+    journal_file: str,
+    direction: StudyDirection | None = None,
+    directions: Sequence[StudyDirection] | None = None,
+    n_workers: int = 1,
+    devices: list[str] | None = None,
+    max_search_trials: int | None = None,
+    count_only_completed_trials: bool = False,
+    sampler_checkpoint_dir: Path | None = None,
+) -> optuna.Study:
+    return _run_optuna_multiprocessing_search(
+        search_space_cfg=search_space_cfg,
+        create_sampler_fn=create_sampler_fn,
+        optimization_objective=optimization_objective,
+        study_name=study_name,
+        journal_file=journal_file,
+        direction=direction,
+        directions=directions,
+        n_workers=n_workers,
+        devices=devices,
+        max_search_trials=max_search_trials,
+        count_only_completed_trials=count_only_completed_trials,
+        sampler_checkpoint_dir=sampler_checkpoint_dir,
+    )
+
+
+def is_duplicated_trial(trial: optuna.Trial) -> bool:
+    states_to_consider = (
+        TrialState.RUNNING,
+        TrialState.COMPLETE,
+    )
+    trials_to_consider = trial.study.get_trials(
+        deepcopy=False, states=states_to_consider
+    )
+
+    for t in trials_to_consider:
+        if t.number == trial.number:
+            continue
+        if t.params == trial.params:
+            return True
+
+    return False
+
+
+def objective_on_device(trial, search_space_cfg, device, criteria):
+    local_criteria = _bind_criteria_to_device(criteria, device)
+    return objective_wrapper(trial, search_space_cfg, local_criteria)
+
+
+def _bind_criteria_to_device(
+    criteria: OptimizationCriteria,
+    device: str,
+) -> OptimizationCriteria:
+    # bind criteria to the local worker
+    local_criteria = copy.deepcopy(criteria)
+
+    for estimator in local_criteria.get_estimators():
+        if isinstance(estimator, FLOPsEstimator):
+            estimator.data_sample = estimator.data_sample.to(device)
+
+        if isinstance(estimator, TrainMetricsEstimator):
+            estimator.trainer.device = device
+
+    return local_criteria
