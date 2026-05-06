@@ -120,10 +120,10 @@ def _run_worker_pool(
     multiprocessing_config: MultiprocessingConfig,
     callbacks: list[Callable],
 ) -> None:
-    _validate_pickable_by_test_dump(
+    _ensure_pickable(
         obj=optuna_search_config.optimization_objective, label="optimization objective"
     )
-    _validate_pickable_by_test_dump(
+    _ensure_pickable(
         obj=optuna_search_config.create_sampler_fn, label="sampler builder"
     )
 
@@ -240,7 +240,7 @@ def _save_sampler_callback(checkpoint_path: Path) -> Callable:
     return callback
 
 
-def _validate_pickable_by_test_dump(
+def _ensure_pickable(
     obj: Any,
     label: str,
 ) -> None:
