@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Literal, TypeAlias
+from typing import Any
 
 import optuna
 from optuna.samplers import BaseSampler
@@ -15,75 +15,56 @@ from optuna.storages.journal import JournalFileBackend
 from optuna.study import MaxTrialsCallback
 from optuna.trial import TrialState
 
+from elasticai.explorer.parallel.config import (
+    CreateSamplerFn,
+    MultiprocessingConfig,
+    OptimizationObjective,
+    OptunaSearchConfig,
+    SearchSpaceConfig,
+    StudyDirection,
+)
+
 _logger = logging.getLogger("explorer.nas")
 _DEVICE_RE = re.compile(r"^(cpu|mps|cuda:\d+)$")
 
-StudyDirection: TypeAlias = Literal["minimize", "maximize"]
-SearchSpaceConfig: TypeAlias = dict[str, Any]
-CreateSamplerFn: TypeAlias = Callable[[int], BaseSampler]
-OptimizationObjective: TypeAlias = Callable[
-    [optuna.Trial, SearchSpaceConfig, str], int | float | Sequence[int | float]
-]
-
 
 def _run_optuna_multiprocessing_search(
-    search_space_cfg: SearchSpaceConfig,
-    create_sampler_fn: CreateSamplerFn,
-    optimization_objective: OptimizationObjective,
-    study_name: str,
-    journal_file: str,
-    direction: StudyDirection | None = None,
-    directions: Sequence[StudyDirection] | None = None,
-    n_workers: int = 1,
-    devices: list[str] | None = None,
-    max_search_trials: int | None = None,
-    count_only_completed_trials: bool = False,
-    sampler_checkpoint_dir: Path | None = None,
+    optuna_search_config: OptunaSearchConfig,
+    multiprocessing_config: MultiprocessingConfig,
 ) -> optuna.Study:
-    _validate_directions(direction=direction, directions=directions)
+    _validate_directions(
+        direction=optuna_search_config.direction,
+        directions=optuna_search_config.directions,
+    )
 
-    if devices is None:
-        _logger.warning(
-            "Warning! devices is not specified and is set to cpu as default!"
-        )
-        devices = ["cpu"]
-
-    if sampler_checkpoint_dir is not None:
-        sampler_checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    if multiprocessing_config.sampler_checkpoint_dir is not None:
+        multiprocessing_config.sampler_checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     # multiprocessing works only with journal file or postgres backend
     study = optuna.create_study(
-        direction=direction,
-        directions=directions,
-        study_name=study_name,
-        storage=_create_journal_storage(journal_file),
+        direction=optuna_search_config.direction,
+        directions=optuna_search_config.directions,
+        study_name=optuna_search_config.study_name,
+        storage=_create_journal_storage(multiprocessing_config.journal_file),
         sampler=None,
         load_if_exists=True,
     )
 
     _fail_stale_running_trials(
         study=study,
-        study_name=study_name,
+        study_name=optuna_search_config.study_name,
     )
 
-    if n_workers > 1:
+    if multiprocessing_config.n_workers > 1:
         callbacks = _create_max_trials_callbacks(
-            max_search_trials=max_search_trials,
-            count_only_completed_trials=count_only_completed_trials,
+            max_search_trials=optuna_search_config.max_search_trials,
+            count_only_completed_trials=optuna_search_config.count_only_completed_trials,
         )
 
         _run_worker_pool(
-            study_name=study_name,
-            create_sampler_fn=create_sampler_fn,
-            optimization_objective=optimization_objective,
-            direction=direction,
-            directions=directions,
-            journal_file=journal_file,
-            devices=devices,
-            search_space_cfg=search_space_cfg,
-            n_workers=n_workers,
+            optuna_search_config=optuna_search_config,
+            multiprocessing_config=multiprocessing_config,
             callbacks=callbacks,
-            sampler_checkpoint_dir=sampler_checkpoint_dir,
         )
     else:
         raise ValueError("Set n_workers > 1 with devices for multiprocessing")
@@ -135,41 +116,31 @@ def _fail_stale_running_trials(
 
 
 def _run_worker_pool(
-    study_name: str,
-    create_sampler_fn: CreateSamplerFn,
-    optimization_objective: OptimizationObjective,
-    journal_file: str,
-    devices: list[str],
-    search_space_cfg: SearchSpaceConfig,
-    n_workers: int,
+    optuna_search_config: OptunaSearchConfig,
+    multiprocessing_config: MultiprocessingConfig,
     callbacks: list[Callable],
-    sampler_checkpoint_dir: Path | None,
-    direction: StudyDirection | None = None,
-    directions: Sequence[StudyDirection] | None = None,
 ) -> None:
-    _validate_pickable(obj=optimization_objective, label="optimization objective")
-    _validate_pickable(obj=create_sampler_fn, label="sampler builder")
+    _validate_pickable_by_test_dump(
+        obj=optuna_search_config.optimization_objective, label="optimization objective"
+    )
+    _validate_pickable_by_test_dump(
+        obj=optuna_search_config.create_sampler_fn, label="sampler builder"
+    )
 
     assigned_devices = _assign_workers_to_devices(
-        n_workers=n_workers,
-        devices=devices,
+        n_workers=multiprocessing_config.n_workers,
+        devices=multiprocessing_config.devices,
     )
     # necessary for using cuda with multiprocessing
     ctx = mp.get_context("spawn")
 
-    with ctx.Pool(processes=n_workers) as pool:
+    with ctx.Pool(processes=multiprocessing_config.n_workers) as pool:
         pool.starmap(
             partial(
                 _optimize_objective,
-                search_space_cfg=search_space_cfg,
-                optimization_objective=optimization_objective,
-                study_name=study_name,
-                journal_file=journal_file,
-                create_sampler_fn=create_sampler_fn,
+                optuna_search_config=optuna_search_config,
+                multiprocessing_config=multiprocessing_config,
                 callbacks=callbacks,
-                sampler_checkpoint_dir=sampler_checkpoint_dir,
-                directions=directions,
-                direction=direction,
             ),
             enumerate(assigned_devices),
         )
@@ -178,36 +149,30 @@ def _run_worker_pool(
 def _optimize_objective(
     worker_idx: int,
     device: str,
-    search_space_cfg: SearchSpaceConfig,
-    optimization_objective: OptimizationObjective,
-    study_name: str,
-    journal_file: str,
-    create_sampler_fn: CreateSamplerFn,
-    callbacks: list,
-    sampler_checkpoint_dir: Path | None,
-    direction: StudyDirection | None = None,
-    directions: Sequence[StudyDirection] | None = None,
+    optuna_search_config: OptunaSearchConfig,
+    multiprocessing_config: MultiprocessingConfig,
+    callbacks: list[Callable],
 ):
     sampler = _load_or_build_sampler(
-        create_sampler_fn=create_sampler_fn,
+        create_sampler_fn=optuna_search_config.create_sampler_fn,
         worker_idx=worker_idx,
-        checkpoint_dir=sampler_checkpoint_dir,
+        checkpoint_dir=multiprocessing_config.sampler_checkpoint_dir,
     )
 
     study = optuna.create_study(
-        direction=direction,
-        directions=directions,
-        study_name=study_name,
-        storage=_create_journal_storage(journal_file),
+        direction=optuna_search_config.direction,
+        directions=optuna_search_config.directions,
+        study_name=optuna_search_config.study_name,
+        storage=_create_journal_storage(multiprocessing_config.journal_file),
         sampler=sampler,
         load_if_exists=True,
     )
 
-    if sampler_checkpoint_dir is not None:
+    if multiprocessing_config.sampler_checkpoint_dir is not None:
         callbacks.append(
             _save_sampler_callback(
                 _sampler_checkpoint(
-                    checkpoint_dir=sampler_checkpoint_dir,
+                    checkpoint_dir=multiprocessing_config.sampler_checkpoint_dir,
                     worker_idx=worker_idx,
                 )
             )
@@ -216,8 +181,8 @@ def _optimize_objective(
     study.optimize(
         partial(
             _parallel_objective,
-            optimization_objective=optimization_objective,
-            search_space_cfg=search_space_cfg,
+            optimization_objective=optuna_search_config.optimization_objective,
+            search_space_cfg=optuna_search_config.search_space_cfg,
             device=device,
         ),
         callbacks=callbacks,
@@ -275,7 +240,7 @@ def _save_sampler_callback(checkpoint_path: Path) -> Callable:
     return callback
 
 
-def _validate_pickable(
+def _validate_pickable_by_test_dump(
     obj: Any,
     label: str,
 ) -> None:

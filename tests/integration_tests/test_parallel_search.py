@@ -8,6 +8,10 @@ from elasticai.explorer.hw_nas.estimators import ParamEstimator
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
+from elasticai.explorer.parallel.config import (
+    MultiprocessingConfig,
+    OptunaSearchConfig,
+)
 from elasticai.explorer.parallel.search import (
     run_optuna_search_in_parallel,
     search_in_parallel,
@@ -29,16 +33,22 @@ def standalone_objective(trial, search_space_cfg, device):
 
 def test_optuna_parallel_search_completes(tmp_path):
     journal_file = tmp_path / "journal.log"
-    study = run_optuna_search_in_parallel(
+    optuna_search_config = OptunaSearchConfig(
         search_space_cfg={},
         create_sampler_fn=make_sampler,
         optimization_objective=standalone_objective,
         study_name="standalone",
-        journal_file=str(journal_file),
         direction="maximize",
+        max_search_trials=6,
+    )
+    multiprocessing_config = MultiprocessingConfig(
+        journal_file=str(journal_file),
         n_workers=2,
         devices=["cpu", "cpu"],
-        max_search_trials=6,
+    )
+    study = run_optuna_search_in_parallel(
+        optuna_search_config=optuna_search_config,
+        multiprocessing_config=multiprocessing_config,
     )
 
     assert len(study.trials) >= 6
@@ -47,30 +57,44 @@ def test_optuna_parallel_search_completes(tmp_path):
 
 
 def test_optuna_parallel_search_requires_direction(tmp_path):
+    optuna_search_config = OptunaSearchConfig(
+        search_space_cfg={},
+        create_sampler_fn=make_sampler,
+        optimization_objective=standalone_objective,
+        study_name="x",
+        max_search_trials=6,
+    )
+    multiprocessing_config = MultiprocessingConfig(
+        journal_file=str(tmp_path / "j.log"),
+        n_workers=2,
+        devices=["cpu", "cpu"],
+    )
     with pytest.raises(ValueError, match="Either direction or directions"):
-        run_optuna_search_in_parallel(
-            search_space_cfg={},
-            create_sampler_fn=make_sampler,
-            optimization_objective=standalone_objective,
-            study_name="x",
-            journal_file=str(tmp_path / "j.log"),
-            n_workers=2,
-            devices=["cpu"],
+        _ = run_optuna_search_in_parallel(
+            optuna_search_config=optuna_search_config,
+            multiprocessing_config=multiprocessing_config,
         )
 
 
 def test_optuna_parallel_search_rejects_conflicting_directions(tmp_path):
+    optuna_search_config = OptunaSearchConfig(
+        search_space_cfg={},
+        create_sampler_fn=make_sampler,
+        optimization_objective=standalone_objective,
+        study_name="standalone",
+        direction="maximize",
+        directions=["maximize"],
+        max_search_trials=6,
+    )
+    multiprocessing_config = MultiprocessingConfig(
+        journal_file=str(tmp_path / "j.log"),
+        n_workers=2,
+        devices=["cpu"],
+    )
     with pytest.raises(ValueError, match="Greedy"):
-        run_optuna_search_in_parallel(
-            search_space_cfg={},
-            create_sampler_fn=make_sampler,
-            optimization_objective=standalone_objective,
-            study_name="x",
-            journal_file=str(tmp_path / "j.log"),
-            n_workers=2,
-            devices=["cpu"],
-            direction="maximize",
-            directions=["maximize"],
+        _ = run_optuna_search_in_parallel(
+            optuna_search_config=optuna_search_config,
+            multiprocessing_config=multiprocessing_config,
         )
 
 
