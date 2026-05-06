@@ -68,6 +68,9 @@ To configure the Explorer for your specific setup, create your own OptimizationC
 
 For test deployment and hardware-specific search, create your own HWPlatform with a Generator, Compiler, Host, and HwManager. You can also use the out-of-the-box solutions shown in the examples, or write your own classes using the provided interfaces.
 
+For an example of running the Explorer on an HPC system with SLURM, Apptainer,
+and NVIDIA GPUs, see the [HPC Apptainer example](hpc/README.md).
+
 # Search Space Specification
 To learn how to specify your own search space for a HW-NAS in YAML format or to learn how to extend the supported operations in code
 see the [search space specification](elasticai/explorer/hw_nas/search_space/README.md).
