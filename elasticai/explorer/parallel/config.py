@@ -29,6 +29,6 @@ class OptunaSearchConfig:
 @dataclass(frozen=True, kw_only=True)
 class MultiprocessingConfig:
     journal_file: str
-    n_workers: int = 2
     devices: list[str]
+    n_workers: int = 2
     sampler_checkpoint_dir: Path | None = None
