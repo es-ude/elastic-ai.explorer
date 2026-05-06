@@ -20,7 +20,7 @@ explorer to a local HPC environment.
 Build the image from the project root:
 
 ```bash
-apptainer build hpc/run_container.sif hpc/run_container.def
+apptainer build run_container.sif run_container.def
 ```
 
 The SLURM script expects the image at:
