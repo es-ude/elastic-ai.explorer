@@ -142,10 +142,18 @@ def parse_windowing_params(
             params=windowing_params,
             key="window_ms",
         ),
-        sample_rate_hz=windowing_params["sample_rate_hz"],
     )
 
     return windowing_sample
+
+
+def parse_sample_rate_hz(params: dict) -> float:
+    sample_rate_hz = params["sample_rate_hz"]
+
+    if sample_rate_hz <= 0:
+        raise ValueError("sample_rate_hz must be positive.")
+
+    return sample_rate_hz
 
 
 def sample_preprocessing(
@@ -156,6 +164,8 @@ def sample_preprocessing(
     filtering_params = params.get("filtering")
     downsampling_params = params.get("downsampling")
     normalization_params = params.get("normalization")
+
+    sample_rate_hz = parse_sample_rate_hz(params)
 
     pipeline_order = parse_preprocessing_order(
         trial=trial,
@@ -199,6 +209,7 @@ def sample_preprocessing(
     )
 
     return PreprocessingSample(
+        sample_rate_hz=sample_rate_hz,
         windowing=windowing_sample,
         filtering=filtering_sample,
         downsampling=downsampling_sample,

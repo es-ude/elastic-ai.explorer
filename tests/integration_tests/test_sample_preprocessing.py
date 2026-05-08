@@ -36,7 +36,8 @@ def test_samples_preprocessing_from_yaml_search_space():
     )
 
     assert sample == PreprocessingSample(
-        windowing=WindowingSample(sample_rate_hz=1000.0, window_ms=1000),
+        sample_rate_hz=1000.0,
+        windowing=WindowingSample(window_ms=1000),
         filtering=FilteringSample(low_cut_hz=1.0, high_cut_hz=100.0),
         downsampling=DownsamplingSample(factor=2),
         normalization=NormalizationSample(method="zscore"),

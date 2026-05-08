@@ -19,7 +19,6 @@ VALID_PREPROCESSING_STEPS = (
 @dataclass(frozen=True)
 class WindowingSample:
     window_ms: int
-    sample_rate_hz: float
 
 
 @dataclass(frozen=True)
@@ -41,6 +40,7 @@ class NormalizationSample:
 @dataclass(frozen=True)
 class PreprocessingSample:
     order: tuple[str, ...]
+    sample_rate_hz: float
     windowing: WindowingSample | None = None
     filtering: FilteringSample | None = None
     downsampling: DownsamplingSample | None = None

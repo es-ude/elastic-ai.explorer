@@ -1,4 +1,6 @@
 preprocessing:
+  sample_rate_hz: 1000.0
+
   pipeline:
     order: [
       "windowing",
@@ -11,7 +13,6 @@ preprocessing:
       ]
 
   windowing:
-    sample_rate_hz: 1000.0
     window_ms: [500, 1000, 2000]
 
   filtering:

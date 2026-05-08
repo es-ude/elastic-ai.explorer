@@ -7,11 +7,11 @@ from elasticai.explorer.preprocessing.sample import (
 )
 
 
-def test_uses_constant_window_ms_from_config():
+def test_uses_top_level_sample_rate_for_preprocessing():
     trial = FixedTrial({})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         }
     }
@@ -20,8 +20,8 @@ def test_uses_constant_window_ms_from_config():
         trial=trial,
         params=params,
     )
+    assert sample.sample_rate_hz == 1000.0
     assert sample.windowing == WindowingSample(
-        sample_rate_hz=1000.0,
         window_ms=1000,
     )
 
@@ -29,8 +29,8 @@ def test_uses_constant_window_ms_from_config():
 def test_samples_window_ms_from_categorical_config():
     trial = FixedTrial({"preprocessing/windowing/window_ms": 1000})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": [1000, 2000],
         }
     }
@@ -40,7 +40,6 @@ def test_samples_window_ms_from_categorical_config():
         params=params,
     )
     assert sample.windowing == WindowingSample(
-        sample_rate_hz=1000.0,
         window_ms=1000,
     )
 
@@ -48,8 +47,8 @@ def test_samples_window_ms_from_categorical_config():
 def test_samples_window_ms_from_int_range_config():
     trial = FixedTrial({"preprocessing/windowing/window_ms": 1000})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": {
                 "start": 500,
                 "end": 1500,
@@ -63,7 +62,6 @@ def test_samples_window_ms_from_int_range_config():
         params=params,
     )
     assert sample.windowing == WindowingSample(
-        sample_rate_hz=1000.0,
         window_ms=1000,
     )
 
@@ -76,8 +74,8 @@ def test_samples_filter_params_when_filter_config_exists():
         }
     )
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "filtering": {
@@ -97,8 +95,8 @@ def test_samples_filter_params_when_filter_config_exists():
 def test_does_not_sample_filtering_when_filtering_config_is_missing():
     trial = FixedTrial({})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         }
     }
@@ -112,8 +110,8 @@ def test_does_not_sample_filtering_when_filtering_config_is_missing():
 def test_rejects_filtering_when_low_cut_is_not_below_high_cut():
     trial = FixedTrial({})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "filtering": {
@@ -135,8 +133,8 @@ def test_does_not_sample_filtering_when_filtering_is_not_in_pipeline_order():
         "pipeline": {
             "order": ["windowing"],
         },
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "filtering": {
@@ -165,8 +163,8 @@ def test_samples_filtering_when_filtering_is_in_pipeline_order():
         "pipeline": {
             "order": ["filtering>windowing"],
         },
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "filtering": {
@@ -187,8 +185,8 @@ def test_samples_filtering_when_filtering_is_in_pipeline_order():
 def test_rejects_downsampling_factor_below_one():
     trial = FixedTrial({})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "downsampling": {
@@ -209,8 +207,8 @@ def test_samples_downsampling_factor_when_config_exists():
         }
     )
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "downsampling": {
@@ -224,8 +222,8 @@ def test_samples_downsampling_factor_when_config_exists():
 def test_does_not_sample_downsampling_when_downsampling_config_is_missing():
     trial = FixedTrial({})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         }
     }
@@ -243,8 +241,8 @@ def test_does_not_sample_normalization_when_normalization_is_not_in_pipeline_ord
         "pipeline": {
             "order": ["windowing"],
         },
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "normalization": {
@@ -261,8 +259,8 @@ def test_does_not_sample_normalization_when_normalization_is_not_in_pipeline_ord
 def test_samples_normalization_method_when_normalization_config_exists():
     trial = FixedTrial({"preprocessing/normalization/method": "zscore"})
     params = {
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "normalization": {
@@ -295,8 +293,8 @@ def test_samples_pipeline_order_from_config():
                 "filtering>normalization>downsampling>windowing",
             ]
         },
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
         "normalization": {
@@ -333,8 +331,8 @@ def test_rejects_pipeline_order_with_unconfigured_steps():
                 "filtering>windowing",
             ]
         },
+        "sample_rate_hz": 1000.0,
         "windowing": {
-            "sample_rate_hz": 1000.0,
             "window_ms": 1000,
         },
     }
