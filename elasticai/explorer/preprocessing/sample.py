@@ -1,38 +1,15 @@
-from dataclasses import dataclass
-
 import optuna
 
 from elasticai.explorer.hw_nas.search_space.sample_blocks import parse_search_param
-
-
-@dataclass(frozen=True)
-class WindowingSample:
-    window_ms: int
-    sample_rate_hz: float
-
-
-@dataclass(frozen=True)
-class FilteringSample:
-    low_cut_hz: int | float
-    high_cut_hz: int | float
-
-
-@dataclass(frozen=True)
-class DownsamplingSample:
-    factor: int
-
-
-@dataclass(frozen=True)
-class NormalizationSample:
-    method: str
-
-
-@dataclass(frozen=True)
-class PreprocessingSample:
-    windowing: WindowingSample
-    filtering: FilteringSample | None = None
-    downsampling: DownsamplingSample | None = None
-    normalization: NormalizationSample | None = None
+from elasticai.explorer.preprocessing.types import (
+    DEFAULT_PREPROCESSING_ORDER,
+    VALID_PREPROCESSING_STEPS,
+    DownsamplingSample,
+    FilteringSample,
+    NormalizationSample,
+    PreprocessingSample,
+    WindowingSample,
+)
 
 
 def parse_filtering_params(
@@ -40,17 +17,6 @@ def parse_filtering_params(
     filtering_params: dict | None,
 ) -> FilteringSample | None:
     if filtering_params is None:
-        return None
-
-    enabled = parse_search_param(
-        trial=trial,
-        name="preprocessing/filtering/enabled",
-        params=filtering_params,
-        key="enabled",
-        default_value=True,
-    )
-
-    if not enabled:
         return None
 
     filtering_sample = FilteringSample(
@@ -107,23 +73,67 @@ def parse_normalization_params(
         name="preprocessing/normalization/method",
         params=normalization_params,
         key="method",
-        default_value="none",
     )
-
-    if method == "none":
-        return None
 
     return NormalizationSample(method=method)
 
 
-def sample_preprocessing(
+def _validate_preprocessing_order(
+    order: tuple[str, ...],
+    params: dict,
+) -> tuple[str, ...]:
+    unknown_steps = [step for step in order if step not in VALID_PREPROCESSING_STEPS]
+    if unknown_steps:
+        raise ValueError(f"Unknown preprocessing step(s): {unknown_steps}")
+
+    duplicated_steps = [step for step in order if order.count(step) > 1]
+    if duplicated_steps:
+        raise ValueError(f"Duplicate preprocessing step(s): {duplicated_steps}")
+
+    configured_steps = {key for key in params if key in VALID_PREPROCESSING_STEPS}
+
+    extra_steps = set(order) - configured_steps
+    if extra_steps:
+        raise ValueError(
+            f"Pipeline order contains unconfigured step(s): {sorted(extra_steps)}"
+        )
+
+    return order
+
+
+def _default_processing_order(params: dict) -> tuple[str, ...]:
+    return tuple(step for step in DEFAULT_PREPROCESSING_ORDER if step in params)
+
+
+def parse_preprocessing_order(
     trial: optuna.Trial,
     params: dict,
-) -> PreprocessingSample:
-    windowing_params = params["windowing"]
-    filtering_params = params.get("filtering")
-    downsampling_params = params.get("downsampling")
-    normalization_params = params.get("normalization")
+) -> tuple[str, ...]:
+    pipeline_params = params.get("pipeline")
+
+    if pipeline_params is None:
+        return _default_processing_order(params)
+
+    order = parse_search_param(
+        trial=trial,
+        name="preprocessing/pipeline/order",
+        params=pipeline_params,
+        key="order",
+        default_value=">".join(_default_processing_order(params)),
+    )
+
+    return _validate_preprocessing_order(
+        order=tuple(order.split(">")),
+        params=params,
+    )
+
+
+def parse_windowing_params(
+    trial: optuna.Trial,
+    windowing_params: dict | None,
+) -> WindowingSample | None:
+    if windowing_params is None:
+        return None
 
     windowing_sample = WindowingSample(
         window_ms=parse_search_param(
@@ -135,19 +145,57 @@ def sample_preprocessing(
         sample_rate_hz=windowing_params["sample_rate_hz"],
     )
 
-    filtering_sample = parse_filtering_params(
+    return windowing_sample
+
+
+def sample_preprocessing(
+    trial: optuna.Trial,
+    params: dict,
+) -> PreprocessingSample:
+    windowing_params = params.get("windowing")
+    filtering_params = params.get("filtering")
+    downsampling_params = params.get("downsampling")
+    normalization_params = params.get("normalization")
+
+    pipeline_order = parse_preprocessing_order(
         trial=trial,
-        filtering_params=filtering_params,
+        params=params,
     )
 
-    downsampling_sample = parse_downsampling_params(
-        trial=trial,
-        downsampling_params=downsampling_params,
+    windowing_sample = (
+        parse_windowing_params(
+            trial=trial,
+            windowing_params=windowing_params,
+        )
+        if "windowing" in pipeline_order
+        else None
     )
 
-    normalization_sample = parse_normalization_params(
-        trial=trial,
-        normalization_params=normalization_params,
+    filtering_sample = (
+        parse_filtering_params(
+            trial=trial,
+            filtering_params=filtering_params,
+        )
+        if "filtering" in pipeline_order
+        else None
+    )
+
+    downsampling_sample = (
+        parse_downsampling_params(
+            trial=trial,
+            downsampling_params=downsampling_params,
+        )
+        if "downsampling" in pipeline_order
+        else None
+    )
+
+    normalization_sample = (
+        parse_normalization_params(
+            trial=trial,
+            normalization_params=normalization_params,
+        )
+        if "normalization" in pipeline_order
+        else None
     )
 
     return PreprocessingSample(
@@ -155,4 +203,5 @@ def sample_preprocessing(
         filtering=filtering_sample,
         downsampling=downsampling_sample,
         normalization=normalization_sample,
+        order=pipeline_order,
     )

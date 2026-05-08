@@ -22,11 +22,11 @@ def test_samples_preprocessing_from_yaml_search_space():
     trial = FixedTrial(
         {
             "preprocessing/windowing/window_ms": 1000,
-            "preprocessing/filtering/enabled": True,
             "preprocessing/filtering/low_cut_hz": 1.0,
             "preprocessing/filtering/high_cut_hz": 100.0,
             "preprocessing/downsampling/factor": 2,
             "preprocessing/normalization/method": "zscore",
+            "preprocessing/pipeline/order": "normalization>windowing>filtering>downsampling",
         }
     )
 
@@ -40,4 +40,10 @@ def test_samples_preprocessing_from_yaml_search_space():
         filtering=FilteringSample(low_cut_hz=1.0, high_cut_hz=100.0),
         downsampling=DownsamplingSample(factor=2),
         normalization=NormalizationSample(method="zscore"),
+        order=(
+            "normalization",
+            "windowing",
+            "filtering",
+            "downsampling",
+        ),
     )
