@@ -26,6 +26,23 @@ def test_uses_top_level_sample_rate_for_preprocessing():
     )
 
 
+@pytest.mark.parametrize("sample_rate_hz", [0.0, -1000.0])
+def test_rejects_non_positive_sample_rate(sample_rate_hz):
+    trial = FixedTrial({})
+    params = {
+        "sample_rate_hz": sample_rate_hz,
+        "windowing": {
+            "window_ms": 1000,
+        },
+    }
+
+    with pytest.raises(ValueError, match="sample_rate_hz must be positive."):
+        _ = sample_preprocessing(
+            trial=trial,
+            params=params,
+        )
+
+
 def test_samples_window_ms_from_categorical_config():
     trial = FixedTrial({"preprocessing/windowing/window_ms": 1000})
     params = {
