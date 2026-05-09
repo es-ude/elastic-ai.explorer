@@ -90,7 +90,11 @@ def _validate_preprocessing_order(
     if duplicated_steps:
         raise ValueError(f"Duplicate preprocessing step(s): {duplicated_steps}")
 
-    configured_steps = {key for key in params if key in VALID_PREPROCESSING_STEPS}
+    configured_steps = {
+        key
+        for key, value in params.items()
+        if key in VALID_PREPROCESSING_STEPS and value is not None
+    }
 
     extra_steps = set(order) - configured_steps
     if extra_steps:

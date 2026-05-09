@@ -13,7 +13,7 @@ def test_uses_top_level_sample_rate_for_preprocessing():
         "sample_rate_hz": 1000.0,
         "windowing": {
             "window_ms": 1000,
-        }
+        },
     }
 
     sample = sample_preprocessing(
@@ -49,7 +49,7 @@ def test_samples_window_ms_from_categorical_config():
         "sample_rate_hz": 1000.0,
         "windowing": {
             "window_ms": [1000, 2000],
-        }
+        },
     }
 
     sample = sample_preprocessing(
@@ -71,7 +71,7 @@ def test_samples_window_ms_from_int_range_config():
                 "end": 1500,
                 "step": 250,
             },
-        }
+        },
     }
 
     sample = sample_preprocessing(
@@ -115,7 +115,7 @@ def test_does_not_sample_filtering_when_filtering_config_is_missing():
         "sample_rate_hz": 1000.0,
         "windowing": {
             "window_ms": 1000,
-        }
+        },
     }
     sample = sample_preprocessing(
         trial=trial,
@@ -242,7 +242,7 @@ def test_does_not_sample_downsampling_when_downsampling_config_is_missing():
         "sample_rate_hz": 1000.0,
         "windowing": {
             "window_ms": 1000,
-        }
+        },
     }
 
     sample = sample_preprocessing(
@@ -359,3 +359,15 @@ def test_rejects_pipeline_order_with_unconfigured_steps():
             trial=trial,
             params=params,
         )
+
+
+def test_rejects_pipeline_order_with_none_step_config():
+    trial = FixedTrial({"preprocessing/pipeline/order": "windowing"})
+    params = {
+        "sample_rate_hz": 1000.0,
+        "pipeline": {"order": ["windowing"]},
+        "windowing": None,
+    }
+
+    with pytest.raises(ValueError, match="Pipeline order contains unconfigured step"):
+        _ = sample_preprocessing(trial=trial, params=params)
