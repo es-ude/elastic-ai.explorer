@@ -1,13 +1,13 @@
 from optuna.trial import FixedTrial
 
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.preprocessing.sample import (
+from elasticai.explorer.preprocessing.sample import sample_preprocessing
+from elasticai.explorer.preprocessing.types import (
     DownsamplingSample,
     FilteringSample,
     NormalizationSample,
     PreprocessingSample,
     WindowingSample,
-    sample_preprocessing,
 )
 from settings import ROOT_DIR
 

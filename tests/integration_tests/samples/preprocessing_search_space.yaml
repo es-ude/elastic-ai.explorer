@@ -10,6 +10,7 @@ preprocessing:
       "normalization>windowing>filtering>downsampling",
       "normalization>filtering>downsampling>windowing",
       "filtering>normalization>downsampling>windowing",
+      "downsampling>windowing>normalization",
       ]
 
   windowing:

@@ -30,6 +30,7 @@ class FilteringSample:
 @dataclass(frozen=True)
 class DownsamplingSample:
     factor: int
+    drop_samples: bool = True
 
 
 @dataclass(frozen=True)
