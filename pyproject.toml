@@ -24,6 +24,7 @@ dependencies = [
     "tensorflow==2.20.0",
     "iesude-data",
     "tflite==2.18.0",
+    "denspp-offline",
 ]
 
 # Same as Black.
@@ -48,6 +49,7 @@ default-groups = ["dev"]
 override-dependencies = ["tf-nightly; sys_platform == 'never'",]
 [tool.uv.sources]
 iesude-data = { git = "https://github.com/es-ude/data.git" }
+denspp-offline = { git = "https://github.com/es-ude/denspp.offline.git" }
 
 [tool.black]
 preview = true
