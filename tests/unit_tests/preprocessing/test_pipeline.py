@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from elasticai.explorer.preprocessing.methods import filter_frequencies
 from elasticai.explorer.preprocessing.pipeline import apply_preprocessing_pipeline
 from elasticai.explorer.preprocessing.types import (
     DownsamplingSample,
@@ -148,3 +149,31 @@ def test_applies_filtering_and_preserves_shape():
 
     assert result.shape == signal.shape
     assert np.all(np.isfinite(result))
+
+
+def test_builds_filter_frequencies_for_lowpass():
+    filtering = FilteringSample(
+        band_type="lowpass",
+        high_cut_hz=100.0,
+    )
+
+    assert filter_frequencies(filtering) == [100.0]
+
+
+def test_builds_filter_frequencies_for_highpass():
+    filtering = FilteringSample(
+        band_type="highpass",
+        low_cut_hz=1.0,
+    )
+
+    assert filter_frequencies(filtering) == [1.0]
+
+
+def test_builds_filter_frequencies_for_bandpass():
+    filtering = FilteringSample(
+        band_type="bandpass",
+        low_cut_hz=1.0,
+        high_cut_hz=100.0,
+    )
+
+    assert filter_frequencies(filtering) == [1.0, 100.0]

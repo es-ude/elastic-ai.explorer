@@ -23,8 +23,8 @@ class WindowingSample:
 
 @dataclass(frozen=True)
 class FilteringSample:
-    low_cut_hz: int | float
-    high_cut_hz: int | float
+    low_cut_hz: int | float | None = None
+    high_cut_hz: int | float | None = None
     gain: int = 1
     order: int = 2
     filter_type: str = "iir"

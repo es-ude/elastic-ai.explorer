@@ -94,13 +94,35 @@ def apply_filtering(
             type=filtering.filter_type,
             f_type=filtering.filter_design,
             b_type=filtering.band_type,
-            f_filt=[
-                filtering.low_cut_hz,
-                filtering.high_cut_hz,
-            ],
+            f_filt=filter_frequencies(filtering),
         )
     )
     return dsp_filter.filter(signal)
+
+
+def filter_frequencies(filtering: FilteringSample) -> list[int | float]:
+    match filtering.band_type:
+        case "lowpass":
+            if filtering.high_cut_hz is None:
+                raise ValueError("high_cut_hz is required for lowpass filtering")
+            return [filtering.high_cut_hz]
+        case "highpass":
+            if filtering.low_cut_hz is None:
+                raise ValueError("low_cut_hz is required for highpass filtering")
+            return [filtering.low_cut_hz]
+        case "bandpass" | "bandstop":
+            if filtering.low_cut_hz is None or filtering.high_cut_hz is None:
+                raise ValueError(
+                    "low_cut_hz and high_cut_hz are required for band filtering"
+                )
+            if filtering.low_cut_hz >= filtering.high_cut_hz:
+                raise ValueError("low_cut_hz must be below high_cut_hz")
+            return [
+                filtering.low_cut_hz,
+                filtering.high_cut_hz,
+            ]
+        case _:
+            raise ValueError(f"Unsupported filter band_type: {filtering.band_type}")
 
 
 def apply_normalization(

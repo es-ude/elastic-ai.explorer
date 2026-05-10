@@ -81,19 +81,27 @@ def parse_filtering_params(
     if filtering_params is None:
         return None
 
+    band_type = parse_search_param(
+        trial=trial,
+        name="preprocessing/filtering/candidate",
+        params=filtering_params,
+        key="filter_candidates",
+        default_value="bandpass",
+    )
+    candidate_params = _find_filter_candidate_params(
+        filtering_params=filtering_params,
+        band_type=band_type,
+    )
+    low_cut_hz, high_cut_hz = _parse_filter_cutoffs(
+        trial=trial,
+        candidate_params=candidate_params,
+        band_type=band_type,
+    )
+
     filtering_sample = FilteringSample(
-        low_cut_hz=parse_search_param(
-            trial=trial,
-            name="preprocessing/filtering/low_cut_hz",
-            params=filtering_params,
-            key="low_cut_hz",
-        ),
-        high_cut_hz=parse_search_param(
-            trial=trial,
-            name="preprocessing/filtering/high_cut_hz",
-            params=filtering_params,
-            key="high_cut_hz",
-        ),
+        band_type=band_type,
+        low_cut_hz=low_cut_hz,
+        high_cut_hz=high_cut_hz,
         gain=parse_search_param(
             trial=trial,
             name="preprocessing/filtering/gain",
@@ -122,19 +130,63 @@ def parse_filtering_params(
             key="filter_design",
             default_value="butter",
         ),
-        band_type=parse_search_param(
-            trial=trial,
-            name="preprocessing/filtering/band_type",
-            params=filtering_params,
-            key="band_type",
-            default_value="bandpass",
-        ),
     )
 
-    if filtering_sample.low_cut_hz >= filtering_sample.high_cut_hz:
-        raise ValueError("low_cut_hz must be below high_cut_hz")
-
     return filtering_sample
+
+
+def _find_filter_candidate_params(
+    filtering_params: dict,
+    band_type: str,
+) -> dict:
+    candidate_params = filtering_params.get(band_type)
+    if candidate_params is not None:
+        return candidate_params
+
+    if "filter_candidates" not in filtering_params and band_type == "bandpass":
+        return filtering_params
+
+    raise ValueError(f"Missing config for filter candidate: {band_type}")
+
+
+def _parse_filter_cutoffs(
+    trial: optuna.Trial,
+    candidate_params: dict,
+    band_type: str,
+) -> tuple[int | float | None, int | float | None]:
+    match band_type:
+        case "lowpass":
+            return None, parse_search_param(
+                trial=trial,
+                name="preprocessing/filtering/lowpass/high_cut_hz",
+                params=candidate_params,
+                key="high_cut_hz",
+            )
+        case "highpass":
+            return parse_search_param(
+                trial=trial,
+                name="preprocessing/filtering/highpass/low_cut_hz",
+                params=candidate_params,
+                key="low_cut_hz",
+            ), None
+        case "bandpass" | "bandstop":
+            low_cut_hz = parse_search_param(
+                trial=trial,
+                name=f"preprocessing/filtering/{band_type}/low_cut_hz",
+                params=candidate_params,
+                key="low_cut_hz",
+            )
+            high_cut_hz = parse_search_param(
+                trial=trial,
+                name=f"preprocessing/filtering/{band_type}/high_cut_hz",
+                params=candidate_params,
+                key="high_cut_hz",
+            )
+            if low_cut_hz >= high_cut_hz:
+                raise ValueError("low_cut_hz must be below high_cut_hz")
+            return low_cut_hz, high_cut_hz
+        case _:
+            raise ValueError(f"Unsupported filter candidate: {band_type}")
 
 
 def parse_downsampling_params(

@@ -86,8 +86,9 @@ def test_samples_window_ms_from_int_range_config():
 def test_samples_filter_params_when_filter_config_exists():
     trial = FixedTrial(
         {
-            "preprocessing/filtering/low_cut_hz": 1.0,
-            "preprocessing/filtering/high_cut_hz": 100.0,
+            "preprocessing/filtering/candidate": "bandpass",
+            "preprocessing/filtering/bandpass/low_cut_hz": 1.0,
+            "preprocessing/filtering/bandpass/high_cut_hz": 100.0,
         }
     )
     params = {
@@ -96,8 +97,14 @@ def test_samples_filter_params_when_filter_config_exists():
             "window_ms": 1000,
         },
         "filtering": {
-            "low_cut_hz": [0.5, 1.0],
-            "high_cut_hz": [100.0, 200.0],
+            "filter_candidates": ["lowpass", "bandpass"],
+            "lowpass": {
+                "high_cut_hz": [100.0, 200.0],
+            },
+            "bandpass": {
+                "low_cut_hz": [0.5, 1.0],
+                "high_cut_hz": [100.0, 200.0],
+            },
         },
     }
 
@@ -105,8 +112,65 @@ def test_samples_filter_params_when_filter_config_exists():
         trial=trial,
         params=params,
     )
+    assert sample.filtering.band_type == "bandpass"
     assert sample.filtering.low_cut_hz == 1.0
     assert sample.filtering.high_cut_hz == 100.0
+
+
+def test_samples_lowpass_filter_candidate():
+    trial = FixedTrial(
+        {
+            "preprocessing/filtering/candidate": "lowpass",
+            "preprocessing/filtering/lowpass/high_cut_hz": 100.0,
+        }
+    )
+    params = {
+        "sample_rate_hz": 1000.0,
+        "filtering": {
+            "filter_candidates": ["lowpass", "bandpass"],
+            "lowpass": {
+                "high_cut_hz": [100.0, 200.0],
+            },
+            "bandpass": {
+                "low_cut_hz": [0.5, 1.0],
+                "high_cut_hz": [100.0, 200.0],
+            },
+        },
+    }
+
+    sample = sample_preprocessing(trial=trial, params=params)
+
+    assert sample.filtering.band_type == "lowpass"
+    assert sample.filtering.low_cut_hz is None
+    assert sample.filtering.high_cut_hz == 100.0
+
+
+def test_samples_highpass_filter_candidate():
+    trial = FixedTrial(
+        {
+            "preprocessing/filtering/candidate": "highpass",
+            "preprocessing/filtering/highpass/low_cut_hz": 1.0,
+        }
+    )
+    params = {
+        "sample_rate_hz": 1000.0,
+        "filtering": {
+            "filter_candidates": ["highpass", "bandpass"],
+            "highpass": {
+                "low_cut_hz": [0.5, 1.0],
+            },
+            "bandpass": {
+                "low_cut_hz": [0.5, 1.0],
+                "high_cut_hz": [100.0, 200.0],
+            },
+        },
+    }
+
+    sample = sample_preprocessing(trial=trial, params=params)
+
+    assert sample.filtering.band_type == "highpass"
+    assert sample.filtering.low_cut_hz == 1.0
+    assert sample.filtering.high_cut_hz is None
 
 
 def test_does_not_sample_filtering_when_filtering_config_is_missing():
@@ -132,8 +196,11 @@ def test_rejects_filtering_when_low_cut_is_not_below_high_cut():
             "window_ms": 1000,
         },
         "filtering": {
-            "low_cut_hz": 200.0,
-            "high_cut_hz": 100.0,
+            "filter_candidates": "bandpass",
+            "bandpass": {
+                "low_cut_hz": 200.0,
+                "high_cut_hz": 100.0,
+            },
         },
     }
     with pytest.raises(ValueError, match="low_cut_hz must be below high_cut_hz"):
@@ -155,8 +222,11 @@ def test_does_not_sample_filtering_when_filtering_is_not_in_pipeline_order():
             "window_ms": 1000,
         },
         "filtering": {
-            "low_cut_hz": [0.5, 1.0],
-            "high_cut_hz": [100.0, 200.0],
+            "filter_candidates": ["bandpass"],
+            "bandpass": {
+                "low_cut_hz": [0.5, 1.0],
+                "high_cut_hz": [100.0, 200.0],
+            },
         },
     }
     sample = sample_preprocessing(
@@ -171,8 +241,9 @@ def test_samples_filtering_when_filtering_is_in_pipeline_order():
         {
             "preprocessing/pipeline/order": "filtering>windowing",
             "preprocessing/windowing/window_ms": 1000,
-            "preprocessing/filtering/low_cut_hz": 1.0,
-            "preprocessing/filtering/high_cut_hz": 100.0,
+            "preprocessing/filtering/candidate": "bandpass",
+            "preprocessing/filtering/bandpass/low_cut_hz": 1.0,
+            "preprocessing/filtering/bandpass/high_cut_hz": 100.0,
         }
     )
 
@@ -185,8 +256,11 @@ def test_samples_filtering_when_filtering_is_in_pipeline_order():
             "window_ms": 1000,
         },
         "filtering": {
-            "low_cut_hz": [0.5, 1.0],
-            "high_cut_hz": [100.0, 200.0],
+            "filter_candidates": ["bandpass"],
+            "bandpass": {
+                "low_cut_hz": [0.5, 1.0],
+                "high_cut_hz": [100.0, 200.0],
+            },
         },
     }
 
@@ -195,6 +269,7 @@ def test_samples_filtering_when_filtering_is_in_pipeline_order():
         params=params,
     )
 
+    assert sample.filtering.band_type == "bandpass"
     assert sample.filtering.low_cut_hz == 1.0
     assert sample.filtering.high_cut_hz == 100.0
 
@@ -296,8 +371,9 @@ def test_samples_pipeline_order_from_config():
         {
             "preprocessing/pipeline/order": "normalization>windowing>filtering>downsampling",
             "preprocessing/windowing/window_ms": 1000,
-            "preprocessing/filtering/low_cut_hz": 1.0,
-            "preprocessing/filtering/high_cut_hz": 100.0,
+            "preprocessing/filtering/candidate": "bandpass",
+            "preprocessing/filtering/bandpass/low_cut_hz": 1.0,
+            "preprocessing/filtering/bandpass/high_cut_hz": 100.0,
             "preprocessing/downsampling/factor": 2,
             "preprocessing/normalization/method": "zscore",
         }
@@ -321,8 +397,11 @@ def test_samples_pipeline_order_from_config():
             "factor": [1, 2, 3, 4, 5, 10],
         },
         "filtering": {
-            "low_cut_hz": 1.0,
-            "high_cut_hz": 100.0,
+            "filter_candidates": "bandpass",
+            "bandpass": {
+                "low_cut_hz": 1.0,
+                "high_cut_hz": 100.0,
+            },
         },
     }
 

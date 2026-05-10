@@ -17,13 +17,18 @@ preprocessing:
     window_ms: [500, 1000, 2000]
 
   filtering:
-    low_cut_hz: [0.5, 1.0, 2.0]
-    high_cut_hz: [100.0, 200.0]
+    filter_candidates: ["lowpass", "highpass", "bandpass"]
     gain: [1]
     order: [2, 4]
     filter_type: ["iir"]
     filter_design: ["butter"]
-    band_type: ["bandpass"]
+    lowpass:
+      high_cut_hz: [100.0, 200.0]
+    highpass:
+      low_cut_hz: [0.5, 1.0, 2.0]
+    bandpass:
+      low_cut_hz: [0.5, 1.0, 2.0]
+      high_cut_hz: [100.0, 200.0]
 
   downsampling:
     factor: [1, 2, 4]
