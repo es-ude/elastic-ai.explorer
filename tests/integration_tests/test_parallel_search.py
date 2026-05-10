@@ -1,3 +1,5 @@
+from importlib.resources import as_file, files
+
 import optuna
 import pytest
 from optuna.samplers import RandomSampler
@@ -16,9 +18,14 @@ from elasticai.explorer.parallel.search import (
     run_optuna_search_in_parallel,
     search_in_parallel,
 )
-from settings import ROOT_DIR
 
-SEARCH_SPACE_PATH = ROOT_DIR / "tests/integration_tests/samples/search_space.yml"
+SEARCH_SPACE_RESOURCE = files(__spec__.parent).joinpath("samples/search_space.yml")
+
+
+@pytest.fixture
+def search_space_config():
+    with as_file(SEARCH_SPACE_RESOURCE) as f:
+        return yaml_to_dict(f)
 
 
 def make_sampler(worker_idx: int):
@@ -38,7 +45,7 @@ def test_optuna_parallel_search_completes(tmp_path):
         create_sampler_fn=make_sampler,
         optimization_objective=standalone_objective,
         study_name="standalone",
-        direction="maximize",
+        directions=("maximize",),
         max_search_trials=6,
     )
     multiprocessing_config = MultiprocessingConfig(
@@ -56,57 +63,17 @@ def test_optuna_parallel_search_completes(tmp_path):
     assert len(pids) == 2
 
 
-def test_optuna_parallel_search_requires_direction(tmp_path):
-    optuna_search_config = OptunaSearchConfig(
-        search_space_cfg={},
-        create_sampler_fn=make_sampler,
-        optimization_objective=standalone_objective,
-        study_name="x",
-        max_search_trials=6,
-    )
-    multiprocessing_config = MultiprocessingConfig(
-        journal_file=str(tmp_path / "j.log"),
-        n_workers=2,
-        devices=["cpu", "cpu"],
-    )
-    with pytest.raises(ValueError, match="Either direction or directions"):
-        _ = run_optuna_search_in_parallel(
-            optuna_search_config=optuna_search_config,
-            multiprocessing_config=multiprocessing_config,
-        )
-
-
-def test_optuna_parallel_search_rejects_conflicting_directions(tmp_path):
-    optuna_search_config = OptunaSearchConfig(
-        search_space_cfg={},
-        create_sampler_fn=make_sampler,
-        optimization_objective=standalone_objective,
-        study_name="standalone",
-        direction="maximize",
-        directions=["maximize"],
-        max_search_trials=6,
-    )
-    multiprocessing_config = MultiprocessingConfig(
-        journal_file=str(tmp_path / "j.log"),
-        n_workers=2,
-        devices=["cpu"],
-    )
-    with pytest.raises(ValueError, match="Greedy"):
-        _ = run_optuna_search_in_parallel(
-            optuna_search_config=optuna_search_config,
-            multiprocessing_config=multiprocessing_config,
-        )
-
-
-def test_hw_nas_parallel_search_completes(tmp_path):
-    search_space_cfg = yaml_to_dict(SEARCH_SPACE_PATH)
+def test_hw_nas_parallel_search_completes(
+    tmp_path,
+    search_space_config,
+):
     criteria = OptimizationCriteria()
     criteria.register_objective(estimator=ParamEstimator())
 
     journal_file = tmp_path / "journal.log"
 
     search_in_parallel(
-        search_space_cfg=search_space_cfg,
+        search_space_cfg=search_space_config,
         create_sampler_fn=make_sampler,
         optimization_criteria=criteria,
         hw_nas_parameters=HWNASParameters(6, 3),
@@ -124,8 +91,10 @@ def test_hw_nas_parallel_search_completes(tmp_path):
     assert len(pids) == 2, f"Expected multiple workers, got PIDs: {pids}"
 
 
-def test_hw_nas_parallel_search_with_sampler_checkpointing(tmp_path):
-    search_space_cfg = yaml_to_dict(SEARCH_SPACE_PATH)
+def test_hw_nas_parallel_search_with_sampler_checkpointing(
+    tmp_path,
+    search_space_config,
+):
     criteria = OptimizationCriteria()
     criteria.register_objective(estimator=ParamEstimator())
 
@@ -134,7 +103,7 @@ def test_hw_nas_parallel_search_with_sampler_checkpointing(tmp_path):
 
     # first run: produce sampler checkpoints
     search_in_parallel(
-        search_space_cfg=search_space_cfg,
+        search_space_cfg=search_space_config,
         create_sampler_fn=make_sampler,
         optimization_criteria=criteria,
         hw_nas_parameters=HWNASParameters(4, 2),
@@ -150,7 +119,7 @@ def test_hw_nas_parallel_search_with_sampler_checkpointing(tmp_path):
 
     # second run with same study + same checkpoint dir: workers resume
     search_in_parallel(
-        search_space_cfg=search_space_cfg,
+        search_space_cfg=search_space_config,
         create_sampler_fn=make_sampler,
         optimization_criteria=criteria,
         hw_nas_parameters=HWNASParameters(8, 2),

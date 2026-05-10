@@ -48,7 +48,7 @@ def search_in_parallel(
         create_sampler_fn=create_sampler_fn,
         optimization_objective=optimization_objective,
         study_name=study_name,
-        direction="maximize",
+        directions=("maximize",),
         max_search_trials=hw_nas_parameters.max_search_trials,
         count_only_completed_trials=hw_nas_parameters.count_only_completed_trials,
     )

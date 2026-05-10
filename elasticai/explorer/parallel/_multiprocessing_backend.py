@@ -21,7 +21,6 @@ from elasticai.explorer.parallel.config import (
     OptimizationObjective,
     OptunaSearchConfig,
     SearchSpaceConfig,
-    StudyDirection,
 )
 
 _logger = logging.getLogger("explorer.nas")
@@ -32,17 +31,11 @@ def _run_optuna_multiprocessing_search(
     optuna_search_config: OptunaSearchConfig,
     multiprocessing_config: MultiprocessingConfig,
 ) -> optuna.Study:
-    _validate_directions(
-        direction=optuna_search_config.direction,
-        directions=optuna_search_config.directions,
-    )
-
     if multiprocessing_config.sampler_checkpoint_dir is not None:
         multiprocessing_config.sampler_checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     # multiprocessing works only with journal file or postgres backend
     study = optuna.create_study(
-        direction=optuna_search_config.direction,
         directions=optuna_search_config.directions,
         study_name=optuna_search_config.study_name,
         storage=_create_journal_storage(multiprocessing_config.journal_file),
@@ -69,17 +62,6 @@ def _run_optuna_multiprocessing_search(
     else:
         raise ValueError("Set n_workers > 1 with devices for multiprocessing")
     return study
-
-
-def _validate_directions(
-    direction: StudyDirection | None,
-    directions: Sequence[StudyDirection] | None,
-) -> None:
-    if direction is None and directions is None:
-        raise ValueError("Either direction or directions must be set!")
-
-    if direction is not None and directions is not None:
-        raise ValueError("Greedy! Only set either direction or directions!")
 
 
 def _create_max_trials_callbacks(
@@ -160,7 +142,6 @@ def _optimize_objective(
     )
 
     study = optuna.create_study(
-        direction=optuna_search_config.direction,
         directions=optuna_search_config.directions,
         study_name=optuna_search_config.study_name,
         storage=_create_journal_storage(multiprocessing_config.journal_file),

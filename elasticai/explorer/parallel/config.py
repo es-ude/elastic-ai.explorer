@@ -20,8 +20,7 @@ class OptunaSearchConfig:
     create_sampler_fn: CreateSamplerFn
     optimization_objective: OptimizationObjective
     study_name: str
-    direction: StudyDirection | None = None
-    directions: Sequence[StudyDirection] | None = None
+    directions: tuple[StudyDirection, ...]
     max_search_trials: int | None = None
     count_only_completed_trials: bool = False
 
