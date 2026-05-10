@@ -12,6 +12,68 @@ from elasticai.explorer.preprocessing.types import (
 )
 
 
+def sample_preprocessing(
+    trial: optuna.Trial,
+    params: dict,
+) -> PreprocessingSample:
+    windowing_params = params.get("windowing")
+    filtering_params = params.get("filtering")
+    downsampling_params = params.get("downsampling")
+    normalization_params = params.get("normalization")
+
+    sample_rate_hz = parse_sample_rate_hz(params)
+
+    pipeline_order = parse_preprocessing_order(
+        trial=trial,
+        params=params,
+    )
+
+    windowing_sample = (
+        parse_windowing_params(
+            trial=trial,
+            windowing_params=windowing_params,
+        )
+        if "windowing" in pipeline_order
+        else None
+    )
+
+    filtering_sample = (
+        parse_filtering_params(
+            trial=trial,
+            filtering_params=filtering_params,
+        )
+        if "filtering" in pipeline_order
+        else None
+    )
+
+    downsampling_sample = (
+        parse_downsampling_params(
+            trial=trial,
+            downsampling_params=downsampling_params,
+        )
+        if "downsampling" in pipeline_order
+        else None
+    )
+
+    normalization_sample = (
+        parse_normalization_params(
+            trial=trial,
+            normalization_params=normalization_params,
+        )
+        if "normalization" in pipeline_order
+        else None
+    )
+
+    return PreprocessingSample(
+        sample_rate_hz=sample_rate_hz,
+        windowing=windowing_sample,
+        filtering=filtering_sample,
+        downsampling=downsampling_sample,
+        normalization=normalization_sample,
+        order=pipeline_order,
+    )
+
+
 def parse_filtering_params(
     trial: optuna.Trial,
     filtering_params: dict | None,
@@ -31,6 +93,41 @@ def parse_filtering_params(
             name="preprocessing/filtering/high_cut_hz",
             params=filtering_params,
             key="high_cut_hz",
+        ),
+        gain=parse_search_param(
+            trial=trial,
+            name="preprocessing/filtering/gain",
+            params=filtering_params,
+            key="gain",
+            default_value=1,
+        ),
+        order=parse_search_param(
+            trial=trial,
+            name="preprocessing/filtering/order",
+            params=filtering_params,
+            key="order",
+            default_value=2,
+        ),
+        filter_type=parse_search_param(
+            trial=trial,
+            name="preprocessing/filtering/filter_type",
+            params=filtering_params,
+            key="filter_type",
+            default_value="iir",
+        ),
+        filter_design=parse_search_param(
+            trial=trial,
+            name="preprocessing/filtering/filter_design",
+            params=filtering_params,
+            key="filter_design",
+            default_value="butter",
+        ),
+        band_type=parse_search_param(
+            trial=trial,
+            name="preprocessing/filtering/band_type",
+            params=filtering_params,
+            key="band_type",
+            default_value="bandpass",
         ),
     )
 
@@ -52,13 +149,48 @@ def parse_downsampling_params(
                 name="preprocessing/downsampling/factor",
                 params=downsampling_params,
                 key="factor",
-            )
+            ),
+            drop_samples=parse_search_param(
+                trial=trial,
+                name="preprocessing/downsampling/drop_samples",
+                params=downsampling_params,
+                key="drop_samples",
+                default_value=True,
+            ),
         )
 
         if downsampling_sample.factor < 1:
             raise ValueError("downsampling factor must be at least 1")
 
     return downsampling_sample
+
+
+def parse_windowing_params(
+    trial: optuna.Trial,
+    windowing_params: dict | None,
+) -> WindowingSample | None:
+    if windowing_params is None:
+        return None
+
+    windowing_sample = WindowingSample(
+        window_ms=parse_search_param(
+            trial=trial,
+            name="preprocessing/windowing/window_ms",
+            params=windowing_params,
+            key="window_ms",
+        ),
+    )
+
+    return windowing_sample
+
+
+def parse_sample_rate_hz(params: dict) -> float:
+    sample_rate_hz = params["sample_rate_hz"]
+
+    if sample_rate_hz <= 0:
+        raise ValueError("sample_rate_hz must be positive.")
+
+    return sample_rate_hz
 
 
 def parse_normalization_params(
@@ -129,94 +261,4 @@ def parse_preprocessing_order(
     return _validate_preprocessing_order(
         order=tuple(order.split(">")),
         params=params,
-    )
-
-
-def parse_windowing_params(
-    trial: optuna.Trial,
-    windowing_params: dict | None,
-) -> WindowingSample | None:
-    if windowing_params is None:
-        return None
-
-    windowing_sample = WindowingSample(
-        window_ms=parse_search_param(
-            trial=trial,
-            name="preprocessing/windowing/window_ms",
-            params=windowing_params,
-            key="window_ms",
-        ),
-    )
-
-    return windowing_sample
-
-
-def parse_sample_rate_hz(params: dict) -> float:
-    sample_rate_hz = params["sample_rate_hz"]
-
-    if sample_rate_hz <= 0:
-        raise ValueError("sample_rate_hz must be positive.")
-
-    return sample_rate_hz
-
-
-def sample_preprocessing(
-    trial: optuna.Trial,
-    params: dict,
-) -> PreprocessingSample:
-    windowing_params = params.get("windowing")
-    filtering_params = params.get("filtering")
-    downsampling_params = params.get("downsampling")
-    normalization_params = params.get("normalization")
-
-    sample_rate_hz = parse_sample_rate_hz(params)
-
-    pipeline_order = parse_preprocessing_order(
-        trial=trial,
-        params=params,
-    )
-
-    windowing_sample = (
-        parse_windowing_params(
-            trial=trial,
-            windowing_params=windowing_params,
-        )
-        if "windowing" in pipeline_order
-        else None
-    )
-
-    filtering_sample = (
-        parse_filtering_params(
-            trial=trial,
-            filtering_params=filtering_params,
-        )
-        if "filtering" in pipeline_order
-        else None
-    )
-
-    downsampling_sample = (
-        parse_downsampling_params(
-            trial=trial,
-            downsampling_params=downsampling_params,
-        )
-        if "downsampling" in pipeline_order
-        else None
-    )
-
-    normalization_sample = (
-        parse_normalization_params(
-            trial=trial,
-            normalization_params=normalization_params,
-        )
-        if "normalization" in pipeline_order
-        else None
-    )
-
-    return PreprocessingSample(
-        sample_rate_hz=sample_rate_hz,
-        windowing=windowing_sample,
-        filtering=filtering_sample,
-        downsampling=downsampling_sample,
-        normalization=normalization_sample,
-        order=pipeline_order,
     )

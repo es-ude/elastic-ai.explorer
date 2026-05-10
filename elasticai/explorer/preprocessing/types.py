@@ -25,6 +25,11 @@ class WindowingSample:
 class FilteringSample:
     low_cut_hz: int | float
     high_cut_hz: int | float
+    gain: int = 1
+    order: int = 2
+    filter_type: str = "iir"
+    filter_design: str = "butter"
+    band_type: str = "bandpass"
 
 
 @dataclass(frozen=True)

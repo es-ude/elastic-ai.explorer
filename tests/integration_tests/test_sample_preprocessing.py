@@ -24,7 +24,13 @@ def test_samples_preprocessing_from_yaml_search_space():
             "preprocessing/windowing/window_ms": 1000,
             "preprocessing/filtering/low_cut_hz": 1.0,
             "preprocessing/filtering/high_cut_hz": 100.0,
+            "preprocessing/filtering/gain": 1,
+            "preprocessing/filtering/order": 4,
+            "preprocessing/filtering/filter_type": "iir",
+            "preprocessing/filtering/filter_design": "butter",
+            "preprocessing/filtering/band_type": "bandpass",
             "preprocessing/downsampling/factor": 2,
+            "preprocessing/downsampling/drop_samples": True,
             "preprocessing/normalization/method": "zscore",
             "preprocessing/pipeline/order": "normalization>windowing>filtering>downsampling",
         }
@@ -38,8 +44,19 @@ def test_samples_preprocessing_from_yaml_search_space():
     assert sample == PreprocessingSample(
         sample_rate_hz=1000.0,
         windowing=WindowingSample(window_ms=1000),
-        filtering=FilteringSample(low_cut_hz=1.0, high_cut_hz=100.0),
-        downsampling=DownsamplingSample(factor=2),
+        filtering=FilteringSample(
+            low_cut_hz=1.0,
+            high_cut_hz=100.0,
+            gain=1,
+            order=4,
+            filter_type="iir",
+            filter_design="butter",
+            band_type="bandpass",
+        ),
+        downsampling=DownsamplingSample(
+            factor=2,
+            drop_samples=True,
+        ),
         normalization=NormalizationSample(method="zscore"),
         order=(
             "normalization",

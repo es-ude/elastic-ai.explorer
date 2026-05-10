@@ -18,6 +18,7 @@ def test_samples_and_applies_preprocessing_pipeline_from_yaml_search_space():
         {
             "preprocessing/windowing/window_ms": 1000,
             "preprocessing/downsampling/factor": 2,
+            "preprocessing/downsampling/drop_samples": True,
             "preprocessing/normalization/method": "zscore",
             "preprocessing/pipeline/order": "downsampling>windowing>normalization",
         }

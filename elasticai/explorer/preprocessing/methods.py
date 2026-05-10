@@ -21,31 +21,33 @@ def apply_preprocessing_step(
 ) -> tuple[np.ndarray, float]:
     match step:
         case "windowing":
-            return apply_windowing(
+            result = apply_windowing(
                 signal=signal,
                 timestamps_ms=timestamps_ms,
                 windowing=preprocessing.windowing,
                 sample_rate_hz=sample_rate_hz,
-            ), sample_rate_hz
+            )
         case "filtering":
-            return apply_filtering(
+            result = apply_filtering(
                 signal=signal,
                 filtering=preprocessing.filtering,
                 sample_rate_hz=sample_rate_hz,
-            ), sample_rate_hz
+            )
         case "downsampling":
-            return apply_downsampling(
+            result, sample_rate_hz = apply_downsampling(
                 signal=signal,
                 downsampling=preprocessing.downsampling,
                 sample_rate_hz=sample_rate_hz,
             )
         case "normalization":
-            return apply_normalization(
+            result = apply_normalization(
                 signal=signal,
                 normalization=preprocessing.normalization,
-            ), sample_rate_hz
+            )
         case _:
             raise ValueError("Unknown preprocessing step.")
+
+    return result, sample_rate_hz
 
 
 def apply_windowing(
@@ -86,12 +88,12 @@ def apply_filtering(
 ) -> np.ndarray:
     dsp_filter = Filtering(
         setting=SettingsFilter(
-            gain=1,
+            gain=filtering.gain,
             fs=sample_rate_hz,
-            n_order=2,
-            type="iir",
-            f_type="butter",
-            b_type="bandpass",
+            n_order=filtering.order,
+            type=filtering.filter_type,
+            f_type=filtering.filter_design,
+            b_type=filtering.band_type,
             f_filt=[
                 filtering.low_cut_hz,
                 filtering.high_cut_hz,
