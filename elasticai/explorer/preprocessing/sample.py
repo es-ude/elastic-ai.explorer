@@ -74,6 +74,64 @@ def sample_preprocessing(
     )
 
 
+def parse_preprocessing_order(
+    trial: optuna.Trial,
+    params: dict,
+) -> tuple[str, ...]:
+    pipeline_params = params.get("pipeline")
+
+    if pipeline_params is None:
+        return _default_processing_order(params)
+
+    order = parse_search_param(
+        trial=trial,
+        name="preprocessing/pipeline/order",
+        params=pipeline_params,
+        key="order",
+        default_value=">".join(_default_processing_order(params)),
+    )
+
+    # skip preprocessing
+    if order in (None, "none"):
+        return ()
+
+    return _validate_preprocessing_order(
+        order=tuple(order.split(">")),
+        params=params,
+    )
+
+
+def _default_processing_order(params: dict) -> tuple[str, ...]:
+    return tuple(step for step in DEFAULT_PREPROCESSING_ORDER if step in params)
+
+
+def _validate_preprocessing_order(
+    order: tuple[str, ...],
+    params: dict,
+) -> tuple[str, ...]:
+    unknown_steps = [step for step in order if step not in VALID_PREPROCESSING_STEPS]
+    if unknown_steps:
+        raise ValueError(f"Unknown preprocessing step(s): {unknown_steps}")
+
+    duplicated_steps = [step for step in order if order.count(step) > 1]
+    if duplicated_steps:
+        raise ValueError(f"Duplicate preprocessing step(s): {duplicated_steps}")
+
+    configured_steps = {
+        key
+        for key, value in params.items()
+        if key in VALID_PREPROCESSING_STEPS and value is not None
+    }
+
+    extra_steps = set(order) - configured_steps
+    if extra_steps:
+        raise ValueError(
+            f"Pipeline order contains unconfigured step(s): {sorted(extra_steps)}"
+        )
+
+    return order
+
+
 def parse_filtering_params(
     trial: optuna.Trial,
     filtering_params: dict | None,
@@ -260,57 +318,3 @@ def parse_normalization_params(
     )
 
     return NormalizationSample(method=method)
-
-
-def _validate_preprocessing_order(
-    order: tuple[str, ...],
-    params: dict,
-) -> tuple[str, ...]:
-    unknown_steps = [step for step in order if step not in VALID_PREPROCESSING_STEPS]
-    if unknown_steps:
-        raise ValueError(f"Unknown preprocessing step(s): {unknown_steps}")
-
-    duplicated_steps = [step for step in order if order.count(step) > 1]
-    if duplicated_steps:
-        raise ValueError(f"Duplicate preprocessing step(s): {duplicated_steps}")
-
-    configured_steps = {
-        key
-        for key, value in params.items()
-        if key in VALID_PREPROCESSING_STEPS and value is not None
-    }
-
-    extra_steps = set(order) - configured_steps
-    if extra_steps:
-        raise ValueError(
-            f"Pipeline order contains unconfigured step(s): {sorted(extra_steps)}"
-        )
-
-    return order
-
-
-def _default_processing_order(params: dict) -> tuple[str, ...]:
-    return tuple(step for step in DEFAULT_PREPROCESSING_ORDER if step in params)
-
-
-def parse_preprocessing_order(
-    trial: optuna.Trial,
-    params: dict,
-) -> tuple[str, ...]:
-    pipeline_params = params.get("pipeline")
-
-    if pipeline_params is None:
-        return _default_processing_order(params)
-
-    order = parse_search_param(
-        trial=trial,
-        name="preprocessing/pipeline/order",
-        params=pipeline_params,
-        key="order",
-        default_value=">".join(_default_processing_order(params)),
-    )
-
-    return _validate_preprocessing_order(
-        order=tuple(order.split(">")),
-        params=params,
-    )
