@@ -28,6 +28,13 @@ def sample_preprocessing(
         params=params,
     )
 
+    # no further sampling needed for empty preprocessing pipeline
+    if pipeline_order == ():
+        return PreprocessingSample(
+            order=pipeline_order,
+            sample_rate_hz=sample_rate_hz,
+        )
+
     windowing_sample = (
         parse_windowing_params(
             trial=trial,
@@ -80,6 +87,7 @@ def parse_preprocessing_order(
 ) -> tuple[str, ...]:
     pipeline_params = params.get("pipeline")
 
+    # default case if no pipeline order config is found
     if pipeline_params is None:
         return _default_processing_order(params)
 

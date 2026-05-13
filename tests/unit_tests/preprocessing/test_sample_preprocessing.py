@@ -450,3 +450,53 @@ def test_rejects_pipeline_order_with_none_step_config():
 
     with pytest.raises(ValueError, match="Pipeline order contains unconfigured step"):
         _ = sample_preprocessing(trial=trial, params=params)
+
+
+@pytest.mark.parametrize(
+    "pipeline_order",
+    [None, "none"],
+)
+def test_samples_empty_pipeline_order_from_config(pipeline_order):
+    trial = FixedTrial(
+        {
+            "preprocessing/pipeline/order": pipeline_order,
+        }
+    )
+
+    params = {
+        "pipeline": {
+            "order": [
+                "normalization>windowing>filtering>downsampling",
+                "filtering>normalization>downsampling>windowing",
+                pipeline_order,
+            ]
+        },
+        "sample_rate_hz": 1000.0,
+        "windowing": {
+            "window_ms": 1000,
+        },
+        "normalization": {
+            "method": ["zscore", "minmax"],
+        },
+        "downsampling": {
+            "factor": [1, 2, 3, 4, 5, 10],
+        },
+        "filtering": {
+            "filter_candidates": "bandpass",
+            "bandpass": {
+                "low_cut_hz": 1.0,
+                "high_cut_hz": 100.0,
+            },
+        },
+    }
+
+    sample = sample_preprocessing(
+        trial=trial,
+        params=params,
+    )
+
+    assert sample.order == ()
+    assert sample.windowing is None
+    assert sample.filtering is None
+    assert sample.downsampling is None
+    assert sample.normalization is None
