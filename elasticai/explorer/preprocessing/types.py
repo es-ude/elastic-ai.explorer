@@ -8,12 +8,7 @@ DEFAULT_PREPROCESSING_ORDER = (
 )
 
 
-VALID_PREPROCESSING_STEPS = (
-    "filtering",
-    "downsampling",
-    "normalization",
-    "windowing",
-)
+VALID_PREPROCESSING_STEPS = frozenset(DEFAULT_PREPROCESSING_ORDER)
 
 
 @dataclass(frozen=True)
