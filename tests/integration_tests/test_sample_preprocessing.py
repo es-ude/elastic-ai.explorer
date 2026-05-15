@@ -22,7 +22,7 @@ def test_samples_preprocessing_from_yaml_search_space():
     trial = FixedTrial(
         {
             "preprocessing/windowing/window_ms": 1000,
-            "preprocessing/filtering/candidate": "bandpass",
+            "preprocessing/filtering/filter_candidates": "bandpass",
             "preprocessing/filtering/bandpass/low_cut_hz": 1.0,
             "preprocessing/filtering/bandpass/high_cut_hz": 100.0,
             "preprocessing/filtering/gain": 1,

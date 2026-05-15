@@ -1,8 +1,11 @@
+from typing import Any
+
 import optuna
 
 from elasticai.explorer.hw_nas.search_space.sample_blocks import parse_search_param
 from elasticai.explorer.preprocessing.types import (
     DEFAULT_PREPROCESSING_ORDER,
+    FILTERBAND_CUTOFFS,
     VALID_PREPROCESSING_STEPS,
     DownsamplingSample,
     FilteringSample,
@@ -90,10 +93,9 @@ def parse_preprocessing_order(
     # default case if no pipeline order config is found
     if pipeline_params is None:
         return _default_processing_order(params)
-
-    order = parse_search_param(
+    order = _suggest(
         trial=trial,
-        name="preprocessing/pipeline/order",
+        step="pipeline",
         params=pipeline_params,
         key="order",
         default_value=">".join(_default_processing_order(params)),
@@ -146,10 +148,9 @@ def parse_filtering_params(
 ) -> FilteringSample | None:
     if filtering_params is None:
         return None
-
-    band_type = parse_search_param(
+    band_type = _suggest(
         trial=trial,
-        name="preprocessing/filtering/candidate",
+        step="filtering",
         params=filtering_params,
         key="filter_candidates",
         default_value="bandpass",
@@ -158,7 +159,7 @@ def parse_filtering_params(
         filtering_params=filtering_params,
         band_type=band_type,
     )
-    low_cut_hz, high_cut_hz = _parse_filter_cutoffs(
+    cutoff_kwargs = _parse_filter_cutoffs(
         trial=trial,
         candidate_params=candidate_params,
         band_type=band_type,
@@ -166,32 +167,31 @@ def parse_filtering_params(
 
     filtering_sample = FilteringSample(
         band_type=band_type,
-        low_cut_hz=low_cut_hz,
-        high_cut_hz=high_cut_hz,
-        gain=parse_search_param(
+        **cutoff_kwargs,
+        gain=_suggest(
             trial=trial,
-            name="preprocessing/filtering/gain",
+            step="filtering",
             params=filtering_params,
             key="gain",
             default_value=1,
         ),
-        order=parse_search_param(
+        order=_suggest(
             trial=trial,
-            name="preprocessing/filtering/order",
+            step="filtering",
             params=filtering_params,
             key="order",
             default_value=2,
         ),
-        filter_type=parse_search_param(
+        filter_type=_suggest(
             trial=trial,
-            name="preprocessing/filtering/filter_type",
+            step="filtering",
             params=filtering_params,
             key="filter_type",
             default_value="iir",
         ),
-        filter_design=parse_search_param(
+        filter_design=_suggest(
             trial=trial,
-            name="preprocessing/filtering/filter_design",
+            step="filtering",
             params=filtering_params,
             key="filter_design",
             default_value="butter",
@@ -219,40 +219,21 @@ def _parse_filter_cutoffs(
     trial: optuna.Trial,
     candidate_params: dict,
     band_type: str,
-) -> tuple[int | float | None, int | float | None]:
-    match band_type:
-        case "lowpass":
-            return None, parse_search_param(
-                trial=trial,
-                name="preprocessing/filtering/lowpass/high_cut_hz",
-                params=candidate_params,
-                key="high_cut_hz",
-            )
-        case "highpass":
-            return parse_search_param(
-                trial=trial,
-                name="preprocessing/filtering/highpass/low_cut_hz",
-                params=candidate_params,
-                key="low_cut_hz",
-            ), None
-        case "bandpass" | "bandstop":
-            low_cut_hz = parse_search_param(
-                trial=trial,
-                name=f"preprocessing/filtering/{band_type}/low_cut_hz",
-                params=candidate_params,
-                key="low_cut_hz",
-            )
-            high_cut_hz = parse_search_param(
-                trial=trial,
-                name=f"preprocessing/filtering/{band_type}/high_cut_hz",
-                params=candidate_params,
-                key="high_cut_hz",
-            )
-            if low_cut_hz >= high_cut_hz:
-                raise ValueError("low_cut_hz must be below high_cut_hz")
-            return low_cut_hz, high_cut_hz
-        case _:
-            raise ValueError(f"Unsupported filter candidate: {band_type}")
+) -> dict[str, int | float]:
+    if band_type not in FILTERBAND_CUTOFFS:
+        raise ValueError(f"Unsupported filter candidate: {band_type}")
+
+    parsed = {
+        key: parse_search_param(
+            trial=trial,
+            name=f"preprocessing/filtering/{band_type}/{key}",
+            params=candidate_params,
+            key=key,
+        )
+        for key in FILTERBAND_CUTOFFS[band_type]
+    }
+
+    return parsed
 
 
 def parse_downsampling_params(
@@ -262,15 +243,15 @@ def parse_downsampling_params(
     downsampling_sample = None
     if downsampling_params is not None:
         downsampling_sample = DownsamplingSample(
-            factor=parse_search_param(
+            factor=_suggest(
                 trial=trial,
-                name="preprocessing/downsampling/factor",
+                step="downsampling",
                 params=downsampling_params,
                 key="factor",
             ),
-            drop_samples=parse_search_param(
+            drop_samples=_suggest(
                 trial=trial,
-                name="preprocessing/downsampling/drop_samples",
+                step="downsampling",
                 params=downsampling_params,
                 key="drop_samples",
                 default_value=True,
@@ -291,9 +272,9 @@ def parse_windowing_params(
         return None
 
     windowing_sample = WindowingSample(
-        window_ms=parse_search_param(
+        window_ms=_suggest(
             trial=trial,
-            name="preprocessing/windowing/window_ms",
+            step="windowing",
             params=windowing_params,
             key="window_ms",
         ),
@@ -318,11 +299,23 @@ def parse_normalization_params(
     if normalization_params is None:
         return None
 
-    method = parse_search_param(
-        trial=trial,
-        name="preprocessing/normalization/method",
-        params=normalization_params,
-        key="method",
+    return NormalizationSample(
+        method=_suggest(
+            trial=trial,
+            step="normalization",
+            params=normalization_params,
+            key="method",
+        )
     )
 
-    return NormalizationSample(method=method)
+
+def _suggest(
+    trial: optuna.Trial, step: str, params: dict, key: str, default_value: Any = None
+) -> Any:
+    return parse_search_param(
+        trial=trial,
+        name=f"preprocessing/{step}/{key}",
+        params=params,
+        key=key,
+        default_value=default_value,
+    )

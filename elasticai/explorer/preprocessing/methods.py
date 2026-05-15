@@ -3,6 +3,7 @@ from denspp.offline.data_augmentation import augmentation_downsampling
 from denspp.offline.preprocessing import DataNormalization, Filtering, SettingsFilter
 
 from elasticai.explorer.preprocessing.types import (
+    FILTERBAND_CUTOFFS,
     DownsamplingSample,
     FilteringSample,
     NormalizationSample,
@@ -101,28 +102,7 @@ def apply_filtering(
 
 
 def filter_frequencies(filtering: FilteringSample) -> list[int | float]:
-    match filtering.band_type:
-        case "lowpass":
-            if filtering.high_cut_hz is None:
-                raise ValueError("high_cut_hz is required for lowpass filtering")
-            return [filtering.high_cut_hz]
-        case "highpass":
-            if filtering.low_cut_hz is None:
-                raise ValueError("low_cut_hz is required for highpass filtering")
-            return [filtering.low_cut_hz]
-        case "bandpass" | "bandstop":
-            if filtering.low_cut_hz is None or filtering.high_cut_hz is None:
-                raise ValueError(
-                    "low_cut_hz and high_cut_hz are required for band filtering"
-                )
-            if filtering.low_cut_hz >= filtering.high_cut_hz:
-                raise ValueError("low_cut_hz must be below high_cut_hz")
-            return [
-                filtering.low_cut_hz,
-                filtering.high_cut_hz,
-            ]
-        case _:
-            raise ValueError(f"Unsupported filter band_type: {filtering.band_type}")
+    return [getattr(filtering, key) for key in FILTERBAND_CUTOFFS[filtering.band_type]]
 
 
 def apply_normalization(

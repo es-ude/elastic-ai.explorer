@@ -86,7 +86,7 @@ def test_samples_window_ms_from_int_range_config():
 def test_samples_filter_params_when_filter_config_exists():
     trial = FixedTrial(
         {
-            "preprocessing/filtering/candidate": "bandpass",
+            "preprocessing/filtering/filter_candidates": "bandpass",
             "preprocessing/filtering/bandpass/low_cut_hz": 1.0,
             "preprocessing/filtering/bandpass/high_cut_hz": 100.0,
         }
@@ -120,7 +120,7 @@ def test_samples_filter_params_when_filter_config_exists():
 def test_samples_lowpass_filter_candidate():
     trial = FixedTrial(
         {
-            "preprocessing/filtering/candidate": "lowpass",
+            "preprocessing/filtering/filter_candidates": "lowpass",
             "preprocessing/filtering/lowpass/high_cut_hz": 100.0,
         }
     )
@@ -148,7 +148,7 @@ def test_samples_lowpass_filter_candidate():
 def test_samples_highpass_filter_candidate():
     trial = FixedTrial(
         {
-            "preprocessing/filtering/candidate": "highpass",
+            "preprocessing/filtering/filter_candidates": "highpass",
             "preprocessing/filtering/highpass/low_cut_hz": 1.0,
         }
     )
@@ -241,7 +241,7 @@ def test_samples_filtering_when_filtering_is_in_pipeline_order():
         {
             "preprocessing/pipeline/order": "filtering>windowing",
             "preprocessing/windowing/window_ms": 1000,
-            "preprocessing/filtering/candidate": "bandpass",
+            "preprocessing/filtering/filter_candidates": "bandpass",
             "preprocessing/filtering/bandpass/low_cut_hz": 1.0,
             "preprocessing/filtering/bandpass/high_cut_hz": 100.0,
         }
@@ -371,7 +371,7 @@ def test_samples_pipeline_order_from_config():
         {
             "preprocessing/pipeline/order": "normalization>windowing>filtering>downsampling",
             "preprocessing/windowing/window_ms": 1000,
-            "preprocessing/filtering/candidate": "bandpass",
+            "preprocessing/filtering/filter_candidates": "bandpass",
             "preprocessing/filtering/bandpass/low_cut_hz": 1.0,
             "preprocessing/filtering/bandpass/high_cut_hz": 100.0,
             "preprocessing/downsampling/factor": 2,
