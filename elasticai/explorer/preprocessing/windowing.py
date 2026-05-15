@@ -15,12 +15,11 @@ def _ms_to_sample_idx(
 def _ensure_2d_channels_first(signal: np.ndarray) -> np.ndarray:
     if signal.ndim == 1:
         return signal[np.newaxis, :]
-    elif signal.ndim == 2:
+
+    if signal.ndim == 2:
         return signal
-    else:
-        raise ValueError(
-            "signal must have shape (n_samples, ) or (n_channels, n_samples)"
-        )
+
+    raise ValueError("signal must have shape (n_samples, ) or (n_channels, n_samples)")
 
 
 def cut_windows_by_timestamp(
@@ -42,14 +41,13 @@ def cut_windows_by_timestamp(
     if np.any(timestamps_ms < 0):
         raise ValueError("timestamps_ms must be positive.")
 
-    event_idc = [_ms_to_sample_idx(ms=ms, fs_hz=sample_rate_hz) for ms in timestamps_ms]
+    event_idxs = [
+        _ms_to_sample_idx(ms=ms, fs_hz=sample_rate_hz) for ms in timestamps_ms
+    ]
 
     windows = []
-    for event_idx in event_idc:
-        window_start_idx = event_idx
-        window_stop_idx = window_start_idx + window_size
-
-        window = signal[:, window_start_idx:window_stop_idx]
+    for event_idx in event_idxs:
+        window = signal[:, event_idx : event_idx + window_size]
 
         if window.shape[-1] < window_size:
             need = window_size - window.shape[-1]
