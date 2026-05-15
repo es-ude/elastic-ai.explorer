@@ -15,6 +15,18 @@ from elasticai.explorer.preprocessing.types import (
 )
 
 
+def _suggest(
+    trial: optuna.Trial, step: str, params: dict, key: str, default_value: Any = None
+) -> Any:
+    return parse_search_param(
+        trial=trial,
+        name=f"preprocessing/{step}/{key}",
+        params=params,
+        key=key,
+        default_value=default_value,
+    )
+
+
 def sample_preprocessing(
     trial: optuna.Trial,
     params: dict,
@@ -142,6 +154,25 @@ def _validate_preprocessing_order(
     return order
 
 
+def parse_windowing_params(
+    trial: optuna.Trial,
+    windowing_params: dict | None,
+) -> WindowingSample | None:
+    if windowing_params is None:
+        return None
+
+    windowing_sample = WindowingSample(
+        window_ms=_suggest(
+            trial=trial,
+            step="windowing",
+            params=windowing_params,
+            key="window_ms",
+        ),
+    )
+
+    return windowing_sample
+
+
 def parse_filtering_params(
     trial: optuna.Trial,
     filtering_params: dict | None,
@@ -262,25 +293,6 @@ def parse_downsampling_params(
     return downsampling_sample
 
 
-def parse_windowing_params(
-    trial: optuna.Trial,
-    windowing_params: dict | None,
-) -> WindowingSample | None:
-    if windowing_params is None:
-        return None
-
-    windowing_sample = WindowingSample(
-        window_ms=_suggest(
-            trial=trial,
-            step="windowing",
-            params=windowing_params,
-            key="window_ms",
-        ),
-    )
-
-    return windowing_sample
-
-
 def parse_sample_rate_hz(params: dict) -> float:
     sample_rate_hz = params["sample_rate_hz"]
 
@@ -304,16 +316,4 @@ def parse_normalization_params(
             params=normalization_params,
             key="method",
         )
-    )
-
-
-def _suggest(
-    trial: optuna.Trial, step: str, params: dict, key: str, default_value: Any = None
-) -> Any:
-    return parse_search_param(
-        trial=trial,
-        name=f"preprocessing/{step}/{key}",
-        params=params,
-        key=key,
-        default_value=default_value,
     )
