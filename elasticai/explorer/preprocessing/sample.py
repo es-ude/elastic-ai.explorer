@@ -259,9 +259,6 @@ def parse_downsampling_params(
         ),
     )
 
-    if downsampling_sample.factor < 1:
-        raise ValueError("downsampling factor must be at least 1")
-
     return downsampling_sample
 
 

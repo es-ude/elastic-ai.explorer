@@ -56,6 +56,10 @@ class DownsamplingSample:
     factor: int
     drop_samples: bool = True
 
+    def __post_init__(self) -> None:
+        if self.factor < 1:
+            raise ValueError("downsampling factor must be at least 1")
+
 
 @dataclass(frozen=True)
 class NormalizationSample:
