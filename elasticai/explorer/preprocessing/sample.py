@@ -240,26 +240,27 @@ def parse_downsampling_params(
     trial: optuna.Trial,
     downsampling_params: dict | None,
 ) -> DownsamplingSample | None:
-    downsampling_sample = None
-    if downsampling_params is not None:
-        downsampling_sample = DownsamplingSample(
-            factor=_suggest(
-                trial=trial,
-                step="downsampling",
-                params=downsampling_params,
-                key="factor",
-            ),
-            drop_samples=_suggest(
-                trial=trial,
-                step="downsampling",
-                params=downsampling_params,
-                key="drop_samples",
-                default_value=True,
-            ),
-        )
+    if downsampling_params is None:
+        return None
 
-        if downsampling_sample.factor < 1:
-            raise ValueError("downsampling factor must be at least 1")
+    downsampling_sample = DownsamplingSample(
+        factor=_suggest(
+            trial=trial,
+            step="downsampling",
+            params=downsampling_params,
+            key="factor",
+        ),
+        drop_samples=_suggest(
+            trial=trial,
+            step="downsampling",
+            params=downsampling_params,
+            key="drop_samples",
+            default_value=True,
+        ),
+    )
+
+    if downsampling_sample.factor < 1:
+        raise ValueError("downsampling factor must be at least 1")
 
     return downsampling_sample
 
