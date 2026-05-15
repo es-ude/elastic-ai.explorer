@@ -14,6 +14,9 @@ from elasticai.explorer.preprocessing.types import (
     WindowingSample,
 )
 
+_PIPELINE_SEPARATOR = ">"
+_PIPELINE_DISABLED = "none"
+
 
 def _suggest(
     trial: optuna.Trial, step: str, params: dict, key: str, default_value: Any = None
@@ -105,20 +108,21 @@ def parse_preprocessing_order(
     # default case if no pipeline order config is found
     if pipeline_params is None:
         return _default_processing_order(params)
+
     order = _suggest(
         trial=trial,
         step="pipeline",
         params=pipeline_params,
         key="order",
-        default_value=">".join(_default_processing_order(params)),
+        default_value=_PIPELINE_SEPARATOR.join(_default_processing_order(params)),
     )
 
     # skip preprocessing
-    if order in (None, "none"):
+    if order in (None, _PIPELINE_DISABLED):
         return ()
 
     return _validate_preprocessing_order(
-        order=tuple(order.split(">")),
+        order=tuple(order.split(_PIPELINE_SEPARATOR)),
         params=params,
     )
 
@@ -186,10 +190,11 @@ def parse_filtering_params(
         key="filter_candidates",
         default_value="bandpass",
     )
-    candidate_params = _find_filter_candidate_params(
-        filtering_params=filtering_params,
-        band_type=band_type,
-    )
+
+    candidate_params = filtering_params.get(band_type)
+    if candidate_params is None:
+        raise ValueError(f"Missing config for filter candidate: {band_type}")
+
     cutoff_kwargs = _parse_filter_cutoffs(
         trial=trial,
         candidate_params=candidate_params,
@@ -230,20 +235,6 @@ def parse_filtering_params(
     )
 
     return filtering_sample
-
-
-def _find_filter_candidate_params(
-    filtering_params: dict,
-    band_type: str,
-) -> dict:
-    candidate_params = filtering_params.get(band_type)
-    if candidate_params is not None:
-        return candidate_params
-
-    if "filter_candidates" not in filtering_params and band_type == "bandpass":
-        return filtering_params
-
-    raise ValueError(f"Missing config for filter candidate: {band_type}")
 
 
 def _parse_filter_cutoffs(
