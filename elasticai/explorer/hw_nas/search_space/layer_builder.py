@@ -68,26 +68,64 @@ class ConvLayer(LayerBuilder):
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         return self.build_layer(input_shape, search_parameters)
 
+    def validate_groups(
+        self,
+        in_channels,
+        out_channels,
+        groups,
+    ):
+
+        if in_channels % groups != 0:
+            raise ValueError(
+                f"in_channels={in_channels} must be divisible by groups={groups}"
+            )
+
+        if out_channels % groups != 0:
+            raise ValueError(
+                f"out_channels={out_channels} must be divisible by groups={groups}"
+            )
+
+    def get_out_channels_and_groups(self, input_shape, search_parameters: dict):
+        groups = search_parameters.get("groups", 1)
+        out_channels = search_parameters.get("out_channels", input_shape[0])
+
+        if groups == "depthwise":
+            groups = input_shape[0]
+            out_channels = input_shape[0]
+        self.validate_groups(input_shape[0], out_channels, groups)
+        return out_channels, groups
+
+    def get_padding(self, search_parameters: dict):
+        padding = search_parameters.get("padding", 0)
+        if search_parameters.get("stride", 1) != 1 and padding == "same":
+            padding = 0
+        return padding
+
     def build_layer(self, input_shape, search_parameters: dict):
 
         stride = search_parameters.get("stride", 1)
-        padding = search_parameters.get("padding", 0)
-        if stride != 1 and padding == "same":
-            padding = 0
+
+        out_channels, groups = self.get_out_channels_and_groups(
+            input_shape, search_parameters
+        )
+        padding = self.get_padding(search_parameters)
+
         output_shape = calculate_output_shape(
             input_shape,
             search_parameters["kernel_size"],
             stride,
             padding=padding,
-            out_channels=search_parameters["out_channels"],
+            out_channels=out_channels,
             layer_type=self.layer_type,
         )
+
         conv = self.conv_class(
             input_shape[0],
-            search_parameters["out_channels"],
+            out_channels,
             search_parameters["kernel_size"],
             stride,
             padding=padding,
+            groups=groups,
         )
 
         return conv, output_shape
