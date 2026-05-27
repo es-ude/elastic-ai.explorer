@@ -169,7 +169,6 @@ def test_build_conv1d_model():
     sample = OrderedDict({"1": block_1, "2": block_2, "3": block_3})
     in_dim = [2, 20]
     model = construct_model(sample, in_dim, 1)
-    print(model)
     first_part = [
         nn.Sequential(
             nn.Conv1d(in_dim[0], 16, kernel_size=3, stride=1, padding=0), nn.ReLU()
@@ -178,6 +177,67 @@ def test_build_conv1d_model():
         nn.MaxPool1d(kernel_size=3, stride=1),
         nn.ReLU(),
         nn.BatchNorm1d(24),
+    ]
+    states = model.state_dict()
+    input = torch.rand([16, 2, 20])
+    out = nn.Sequential(*first_part)(input)
+    shape = math.prod(out.shape[-2:])
+    expected = nn.Sequential(
+        *first_part, ToLinearAdapter(), nn.Sequential(nn.Linear(shape, 1), nn.Sigmoid())
+    )
+    print(expected)
+    expected.load_state_dict(states)
+    assert torch.equal(expected(input), model(input)) == True
+
+
+def test_depthwise_separable_conv():
+    block_1 = OrderedDict(
+        [
+            (
+                "layerdw",
+                {
+                    "operation": "conv1d",
+                    "params": {
+                        "kernel_size": 3,
+                        "stride": 2,
+                        "groups": "depthwise",
+                        "activation": "relu",
+                    },
+                },
+            ),
+            (
+                "layerpw",
+                {
+                    "operation": "conv1d",
+                    "params": {
+                        "kernel_size": 1,
+                        "out_channels": 10,
+                        "stride": 1,
+                    },
+                },
+            ),
+        ]
+    )
+
+    block_2 = OrderedDict(
+        [("layer1", {"operation": "linear", "params": {"activation": "sigmoid"}})]
+    )
+    sample = OrderedDict({"1": block_1, "2": block_2})
+    in_dim = [2, 20]
+    model = construct_model(sample, in_dim, 1)
+    first_part = [
+        nn.Sequential(
+            nn.Conv1d(
+                in_dim[0],
+                in_dim[0],
+                kernel_size=3,
+                stride=2,
+                padding=0,
+                groups=in_dim[0],
+            ),
+            nn.ReLU(),
+        ),
+        nn.Conv1d(in_dim[0], 10, kernel_size=1, stride=1, padding=0, groups=1),
     ]
     states = model.state_dict()
     input = torch.rand([16, 2, 20])
