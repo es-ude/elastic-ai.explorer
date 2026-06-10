@@ -77,11 +77,15 @@ def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCrite
     return score
 
 
-def sample_and_create_model(trial, search_space: dict):
+def sample_and_create_model(trial, search_space: dict, input_shape=None):
     search_space_sampler = Sampler(trial)
     try:
+        if input_shape is not None:
+            model_input_shape = input_shape
+        else:
+            model_input_shape = search_space["input"]
         sample = search_space_sampler.construct_sample(search_space)
-        model = construct_model(sample, search_space["input"], search_space["output"])
+        model = construct_model(sample, model_input_shape, search_space["output"])
         return model
 
     except (ShapeValueError, NotImplementedError) as e:
@@ -97,7 +101,6 @@ def objective_wrapper(
     search_space_cfg: dict[str, Any],
     optimization_criteria: OptimizationCriteria,
 ) -> float:
-
     def objective(trial: optuna.Trial) -> float:
         model = sample_and_create_model(trial, search_space_cfg)
         score = _evaluate_constraints(trial, model, optimization_criteria)
@@ -179,7 +182,6 @@ def search(
     ]
 
     for frozen_trial in top_k_frozen_trials:
-
         top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
         top_k_params.append(frozen_trial.params)
         top_k_metrics.append(
