@@ -1,0 +1,40 @@
+Bootstrap: docker
+From: nvidia/cuda:12.3.2-runtime-ubuntu22.04
+
+%files
+    pyproject.toml /app/pyproject.toml
+    uv.lock /app/uv.lock
+    .python-version /app/.python-version
+    elasticai /app/elasticai
+    settings.py /app/settings.py
+    run_smatable_nas.py /app/run_smatable_nas.py
+    smatable_search_space.yaml /app/smatable_search_space.yaml
+
+%post
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        curl ca-certificates git
+    rm -rf /var/lib/apt/lists/*
+
+    curl -LsSf https://astral.sh/uv/install.sh | env \
+        UV_INSTALL_DIR=/usr/local/bin \
+        INSTALLER_NO_MODIFY_PATH=1 \
+        sh
+
+    export UV_PYTHON_INSTALL_DIR=/opt/uv/python
+    export UV_CACHE_DIR=/tmp/uv-cache
+    export UV_PROJECT_ENVIRONMENT=/app/.venv
+
+    cd /app
+    uv python install
+    uv sync --all-groups
+
+%environment
+    export PATH=/usr/local/bin:$PATH
+    export UV_PYTHON_INSTALL_DIR=/opt/uv/python
+    export UV_CACHE_DIR=${UV_CACHE_DIR:-/tmp/uv-cache}
+    export UV_PROJECT_ENVIRONMENT=/app/.venv
+
+%runscript
+    cd /app
+    uv run "$@"

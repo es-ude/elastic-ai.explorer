@@ -37,9 +37,9 @@ dev = [
     "pylint>=3.3.6",
     "pytest>=8.3.5",
     "python-language-server>=0.36.2",
-    "setuptools<63",
-    "wheel<0.38",
-    "pip<23"
+    "setuptools",
+    "wheel",
+    "pip"
 ]
 
 
