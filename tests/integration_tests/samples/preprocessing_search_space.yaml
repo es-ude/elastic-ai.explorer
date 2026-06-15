@@ -1,0 +1,38 @@
+preprocessing:
+  sample_rate_hz: 1000.0
+
+  pipeline:
+    order: [
+      "windowing",
+      "filtering>windowing",
+      "downsampling>windowing",
+      "normalization>windowing",
+      "normalization>windowing>filtering>downsampling",
+      "normalization>filtering>downsampling>windowing",
+      "filtering>normalization>downsampling>windowing",
+      "downsampling>windowing>normalization",
+      ]
+
+  windowing:
+    window_ms: [500, 1000, 2000]
+
+  filtering:
+    filter_candidates: ["lowpass", "highpass", "bandpass"]
+    gain: [1]
+    order: [2, 4]
+    filter_type: ["iir"]
+    filter_design: ["butter"]
+    lowpass:
+      high_cut_hz: [100.0, 200.0]
+    highpass:
+      low_cut_hz: [0.5, 1.0, 2.0]
+    bandpass:
+      low_cut_hz: [0.5, 1.0, 2.0]
+      high_cut_hz: [100.0, 200.0]
+
+  downsampling:
+    factor: [1, 2, 4]
+    drop_samples: [true, false]
+
+  normalization:
+    method: ["zscore", "minmax"]
