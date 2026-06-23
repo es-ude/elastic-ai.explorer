@@ -25,7 +25,6 @@ def register_layer(name: str):
 
 
 class LayerBuilder(ABC):
-
     def build(self, input_shape, search_parameters: dict, output_shape=None):
         activation = search_parameters.get("activation", None)
         if output_shape is None:
@@ -50,7 +49,6 @@ class LayerBuilder(ABC):
 
 @register_layer("linear")
 class LinearLayer(LayerBuilder):
-
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         linear = nn.Linear(input_shape, output_shape)
         return linear, output_shape
@@ -61,7 +59,6 @@ class LinearLayer(LayerBuilder):
 
 
 class ConvLayer(LayerBuilder):
-
     conv_class: type[nn.Module] = None
     layer_type: str = None
 
@@ -74,7 +71,6 @@ class ConvLayer(LayerBuilder):
         out_channels,
         groups,
     ):
-
         if in_channels % groups != 0:
             raise ValueError(
                 f"in_channels={in_channels} must be divisible by groups={groups}"
@@ -102,8 +98,8 @@ class ConvLayer(LayerBuilder):
         return padding
 
     def build_layer(self, input_shape, search_parameters: dict):
-
         stride = search_parameters.get("stride", 1)
+        dilation = search_parameters.get("dilation", 1)
 
         out_channels, groups = self.get_out_channels_and_groups(
             input_shape, search_parameters
@@ -115,6 +111,7 @@ class ConvLayer(LayerBuilder):
             search_parameters["kernel_size"],
             stride,
             padding=padding,
+            dilation=dilation,
             out_channels=out_channels,
             layer_type=self.layer_type,
         )
@@ -126,6 +123,7 @@ class ConvLayer(LayerBuilder):
             stride,
             padding=padding,
             groups=groups,
+            dilation=dilation,
         )
 
         return conv, output_shape

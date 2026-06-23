@@ -154,6 +154,26 @@ DEFAULT_OP_PARAMS = {
 }
 
 
+def test_samples_dilation_from_default_op_params():
+    sp = {
+        "sequence": [{"block": "1", "op_candidates": "conv1d"}],
+        "default_op_params": {
+            "conv1d": {
+                "kernel_size": 3,
+                "stride": 1,
+                "out_channels": 16,
+                "padding": 0,
+                "dilation": [1, 2, 4],
+            }
+        },
+    }
+    params = {"block_1/l0/conv1d/dilation": 4}
+
+    sample = get_sample(params, sp)
+
+    assert sample["1"]["l0"]["params"]["dilation"] == 4
+
+
 # Usecase: composite was used in block. Block repeats the params -> sample composite op once and reuse
 @pytest.mark.parametrize("depth", [3, 5])
 def test_composite_repeat_params_caches_composite(depth):

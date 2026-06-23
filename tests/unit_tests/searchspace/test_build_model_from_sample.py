@@ -132,6 +132,7 @@ def test_build_conv1d_model():
                         "out_channels": 16,
                         "stride": 1,
                         "padding": 0,
+                        "dilation": 2,
                         "activation": "relu",
                     },
                 },
@@ -171,7 +172,10 @@ def test_build_conv1d_model():
     model = construct_model(sample, in_dim, 1)
     first_part = [
         nn.Sequential(
-            nn.Conv1d(in_dim[0], 16, kernel_size=3, stride=1, padding=0), nn.ReLU()
+            nn.Conv1d(
+                in_dim[0], 16, kernel_size=3, stride=1, padding=0, dilation=2
+            ),
+            nn.ReLU(),
         ),
         nn.Conv1d(16, 24, kernel_size=2, stride=2, padding=0),
         nn.MaxPool1d(kernel_size=3, stride=1),
