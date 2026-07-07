@@ -4,6 +4,7 @@ import logging
 from typing import Any, Callable
 from functools import partial
 from enum import Enum
+from torch.nn import Sequential
 
 import optuna
 from optuna.trial import FrozenTrial, TrialState
@@ -17,6 +18,7 @@ from elasticai.explorer.hw_nas.search_space.build_model import (
     ShapeValueError,
 )
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
+from elasticai.explorer.krepo.metric_logger import MetricLogger
 
 logger = logging.getLogger("explorer.nas")
 intermediate_metrics_template = "{metric_name}_intermediates"
@@ -27,6 +29,14 @@ class HWNASParameters:
     max_search_trials: int = 2
     top_n_models: int = 2
     count_only_completed_trials: bool = False
+
+    @property
+    def to_dict(self):
+        return {
+            "max_search_trials": self.max_search_trials,
+            "top_n_models": self.top_n_models,
+            "count_only_completed_trials": self.count_only_completed_trials,
+        }
 
 
 class SearchStrategy(Enum):
@@ -77,12 +87,12 @@ def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCrite
     return score
 
 
-def sample_and_create_model(trial, search_space: dict):
+def sample_and_create_model(trial, search_space: dict) -> tuple[Sequential, dict]:
     search_space_sampler = Sampler(trial)
     try:
         sample = search_space_sampler.construct_sample(search_space)
         model = construct_model(sample, search_space["input"], search_space["output"])
-        return model
+        return model, sample
 
     except (ShapeValueError, NotImplementedError) as e:
         print(traceback.format_exc())
@@ -96,13 +106,19 @@ def objective_wrapper(
     trial: optuna.Trial,
     search_space_cfg: dict[str, Any],
     optimization_criteria: OptimizationCriteria,
+    metric_logger: MetricLogger | None = None,
 ) -> float:
 
     def objective(trial: optuna.Trial) -> float:
         model = sample_and_create_model(trial, search_space_cfg)
         score = _evaluate_constraints(trial, model, optimization_criteria)
+        if metric_logger:
+            metrics_to_log = {**trial.user_attrs, "score": score}
+            metric_logger.log_metrics(
+                metrics_to_log,
+                run_name=f"Trial_{trial.number}"
+            )
         logger.info(f"Trial {trial.number} has a final score of {score:.2f}")
-
         return score
 
     return objective(trial)
@@ -113,6 +129,7 @@ def search(
     search_strategy: SearchStrategy,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
+    metric_logger: MetricLogger | None = None,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
@@ -152,6 +169,8 @@ def search(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
             optimization_criteria=optimization_criteria,
+            metric_logger=metric_logger,
+
         ),
         n_trials=n_trials,
         callbacks=callbacks,
