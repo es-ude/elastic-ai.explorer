@@ -47,12 +47,14 @@ class SearchStrategy(Enum):
 def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
     score = 0.0
     for estimator in optimization_criteria:
-        final_estimate, estimates = estimator.estimate(model)
+        final_estimate = estimator.estimate(model)
         trial.set_user_attr(estimator.metric_name, final_estimate)
-        trial.set_user_attr(
-            intermediate_metrics_template.format(metric_name=estimator.metric_name),
-            estimates,
-        )
+        estimator_metric_history = estimator.get_history()
+        if estimator_metric_history:
+            trial.set_user_attr(
+                intermediate_metrics_template.format(metric_name=estimator.metric_name),
+                estimator_metric_history,
+            )
         hard_constraints = optimization_criteria.get_hard_constraints(estimator)
         for hc in hard_constraints:
             if not hc.comparator(final_estimate, hc.constraint_value):

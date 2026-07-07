@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from logging import Logger
 import logging
 from numbers import Number
@@ -38,18 +38,22 @@ def lstm_flop_jit(inputs: list[Any], outputs: list[Any]) -> Number:
     return flops
 
 
-class Estimator:
+class Estimator(ABC):
     def __init__(self, metric_name, logger_name) -> None:
         self.metric_name: str = metric_name
         self.logger: Logger = logging.getLogger(logger_name)
+        self.metric_history: list[float | int] | None = None
 
     @abstractmethod
-    def estimate(self, model_sample) -> tuple[float | int, list[float | int]]:
+    def estimate(self, model_sample) -> float | int:
         """
         Returns:
-            tuple[float|int, list[float|int]]: The final estimate and list of intermediate values.
+            float | int: The final estimate.
         """
         pass
+
+    def get_history(self) -> list[float | int] | None:
+        return None
 
 
 class FLOPsEstimator(Estimator):
@@ -61,13 +65,13 @@ class FLOPsEstimator(Estimator):
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> float | int:
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
         flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(
             **handlers
         )
 
-        return flops.total(), []
+        return flops.total()
 
 
 class ParamEstimator(Estimator):
@@ -80,9 +84,9 @@ class ParamEstimator(Estimator):
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> float | int:
         param_count = parameter_count(model_sample)[""]
-        return param_count, []
+        return param_count
 
 
 class TrainMetricsEstimator(Estimator):
@@ -101,11 +105,11 @@ class TrainMetricsEstimator(Estimator):
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> float | int:
+        self.metric_history = []
         optimizer = Adam(model_sample.parameters(), lr=1e-3)
         self.trainer.configure_optimizer(optimizer)
 
-        estimate_values = []
         for i in range(self.n_estimation_epochs):
             self.trainer.train_epoch(model_sample, i)
             metric_avg, loss = self.trainer.validate(model_sample)
@@ -125,7 +129,11 @@ class TrainMetricsEstimator(Estimator):
                 )
                 raise err
 
-            estimate_values.append(estimate_value)
+            self.metric_history.append(estimate_value)
+        self.logger.info(f"Estimated {self.metric_name} is: {self.metric_history[-1]:.2f}")
 
-        self.logger.info(f"Estimated {self.metric_name} is: {estimate_values[-1]:.2f}")
-        return estimate_values[-1], estimate_values[:-1]
+        final_metric_value = self.metric_history[-1]
+        return final_metric_value
+
+    def get_history(self) -> list[float | int] | None:
+        return self.metric_history[:-1]
