@@ -25,8 +25,13 @@ ADAPTER_REGISTRY = {
 
 activation_mapping = {
     "relu": nn.ReLU(),
+    "prelu": nn.PReLU(),
+    "leaky_relu": nn.LeakyReLU(),
     "sigmoid": nn.Sigmoid(),
     "identity": nn.Identity(),
+    "silu": nn.SiLU(),
+    "gelu": nn.GELU(),
+    "softmax": nn.Softmax(),
     "tanh": nn.Tanh(),
 }
 
