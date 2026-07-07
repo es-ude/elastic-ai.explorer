@@ -105,13 +105,17 @@ def measure_on_device(
     device: str,
     dataset_spec: DatasetSpecification,
     model_suffix: str = ".pt",
+    top_models_ids: List[str] | None = None,
 ):
 
     metrics_to_measurements = {"accuracy after retrain in %": []}
     for metric, _ in metric_to_source.items():
         metrics_to_measurements.update({metric.value + " on device": []})
 
-    for i, model in enumerate(top_models):
+    if top_models_ids is None:
+        top_models_ids = [None] * len(top_models)
+
+    for i, (model, model_id) in enumerate(zip(top_models, top_models_ids)):
 
         trainer = SupervisedTrainer(
             device=device,
@@ -130,7 +134,7 @@ def measure_on_device(
         explorer.generate_for_hw_platform(model, model_name, dataset_spec)
 
         for metric in metric_to_source.keys():
-            measure = explorer.run_measurement(metric, model_name)
+            measure = explorer.run_measurement(metric, model_name, model_id)
             metrics_to_measurements[metric.value + " on device"].append(
                 measure[metric.value]["value"]
             )
