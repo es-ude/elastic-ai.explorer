@@ -745,6 +745,7 @@ dependencies = [
     { name = "tensorflow" },
     { name = "tflite" },
     { name = "torch" },
+    { name = "torchinfo" },
     { name = "torchvision" },
 ]
 
@@ -777,6 +778,7 @@ requires-dist = [
     { name = "tensorflow", specifier = "==2.20.0" },
     { name = "tflite", specifier = "==2.18.0" },
     { name = "torch", specifier = ">=2.4.0" },
+    { name = "torchinfo", specifier = ">=1.8.0" },
     { name = "torchvision", specifier = "==0.21.0" },
 ]
 
@@ -3484,26 +3486,6 @@ wheels = [
 ]
 
 [[package]]
-name = "tb-nightly"
-version = "2.20.0a20250717"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "absl-py" },
-    { name = "grpcio" },
-    { name = "markdown" },
-    { name = "numpy" },
-    { name = "packaging" },
-    { name = "pillow" },
-    { name = "protobuf" },
-    { name = "setuptools" },
-    { name = "tensorboard-data-server" },
-    { name = "werkzeug" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/a1/eee8c62bc69a9e2751f7f1c6d541f3c9257371979ad49b27822d38d0f364/tb_nightly-2.20.0a20250717-py3-none-any.whl", hash = "sha256:3a2e0a75258baba5ffff993ac8f4a0aae4dc8b382bae42ec2660dc3af73505fc", size = 5525762, upload-time = "2025-07-17T11:13:45.025Z" },
-]
-
-[[package]]
 name = "tensorboard"
 version = "2.20.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3586,7 +3568,7 @@ wheels = [
 
 [[package]]
 name = "tf-nightly"
-version = "2.21.0.dev20251126"
+version = "2.22.0.dev20260706"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
@@ -3606,7 +3588,6 @@ dependencies = [
     { name = "requests" },
     { name = "setuptools" },
     { name = "six" },
-    { name = "tb-nightly" },
     { name = "termcolor" },
     { name = "typing-extensions" },
     { name = "wrapt" },
@@ -3727,6 +3708,15 @@ wheels = [
 [package.optional-dependencies]
 odml = [
     { name = "jax" },
+]
+
+[[package]]
+name = "torchinfo"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/d9/2b811d1c0812e9ef23e6cf2dbe022becbe6c5ab065e33fd80ee05c0cd996/torchinfo-1.8.0.tar.gz", hash = "sha256:72e94b0e9a3e64dc583a8e5b7940b8938a1ac0f033f795457f27e6f4e7afa2e9", size = 25880, upload-time = "2023-05-14T19:23:26.377Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/72/25/973bd6128381951b23cdcd8a9870c6dcfc5606cb864df8eabd82e529f9c1/torchinfo-1.8.0-py3-none-any.whl", hash = "sha256:2e911c2918603f945c26ff21a3a838d12709223dc4ccf243407bce8b6e897b46", size = 23377, upload-time = "2023-05-14T19:23:24.141Z" },
 ]
 
 [[package]]
