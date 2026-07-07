@@ -1,6 +1,7 @@
 import numpy as np
-from denspp.offline.data_augmentation import augmentation_downsampling
-from denspp.offline.preprocessing import DataNormalization, Filtering, SettingsFilter
+from elasticai.preprocessor.data_augmentation import augmentation_downsampling
+from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.normalization import DataNormalization
 
 from elasticai.explorer.preprocessing.types import (
     FILTERBAND_CUTOFFS,
