@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Any
 from torch import nn
+from torchinfo import summary
 
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.optimization_criteria import (
@@ -27,6 +28,8 @@ from elasticai.explorer.utils.logging_utils import (
     dataclass_instance_to_toml,
     opt_crit_registry_to_toml,
 )
+from elasticai.explorer.krepo.metric_logger import MetricLogger
+
 from settings import MAIN_EXPERIMENT_DIR
 
 
@@ -52,6 +55,7 @@ class Explorer:
         self.generator: Optional[Generator] = None
         self.hw_manager: Optional[HWManager] = None
         self.search_space_cfg: Optional[dict] = None
+        self.metric_logger: Optional[MetricLogger] = None
 
         if not experiment_name:
             self.experiment_name: str = f"{datetime.datetime.now():%Y-%m-%d-%H-%M-%S}"
@@ -102,7 +106,7 @@ class Explorer:
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
-    ) -> list[Any]:
+    ) -> tuple[list[Any], list[str]] | None:
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials searching for top %d models. ",
@@ -115,7 +119,20 @@ class Explorer:
                 search_strategy=search_strategy,
                 hw_nas_parameters=hw_nas_parameters,
                 optimization_criteria=optimization_criteria,
+                metric_logger=self.metric_logger,
             )
+            top_models_ids: list[str] = []
+            if self.metric_logger:
+                for rank, (model, parameter_dict, metric_dict) in enumerate(zip(top_models, model_parameters, metrics)):
+                    model_architecture = _get_model_architecture_dict(model)
+                    model_id = self.metric_logger.log_model(
+                        parameter_dict,
+                        model_architecture,
+                        model=model,
+                        run_name=f"Top_Model_{rank + 1}"
+                    )
+                    self.metric_logger.log_metrics(metric_dict, model_id=model_id)
+                    top_models_ids.append(model_id)
         else:
             self.logger.error(
                 "Generate a searchspace before starting the HW-NAS with Explorer.search()!"
@@ -143,7 +160,7 @@ class Explorer:
                 "optimization_criteria.toml",
             )
 
-        return top_models
+        return top_models, top_models_ids
 
     def choose_target_hw(
         self,
@@ -190,12 +207,21 @@ class Explorer:
             self.logger.info(f"Installing program for {metric.name}: {source}")
             self.hw_manager.install_code_on_target(source, metric)
 
-    def run_measurement(self, metric: Metric, model_name: str) -> dict:
+    def run_measurement(self, metric: Metric, model_name: str, model_id: str | None = None) -> dict:
         model_path = self._model_dir / model_name
         if self.hw_manager:
             self.hw_manager.deploy_model(model_path)
             measurement = self.hw_manager.measure_metric(metric, model_path)
             self.logger.info(measurement)
+
+            if self.metric_logger and model_id:
+                self.metric_logger.log_metric(
+                    name=f"{metric.name} ({measurement[metric.name]['unit']})",
+                    value=measurement[metric.name]["value"],
+                    model_id=model_id,
+                    run_name=f"HW_evaluation_Model_{model_name}",
+                )
+
         else:
             self.logger.error(
                 "HwManager is not initialized! First run choose_target_hw(deploy_cfg) and hw_setup_on_target(path_to_testdata), before run_measurement()."
@@ -216,6 +242,9 @@ class Explorer:
             )
             exit(-1)
 
+    def set_metric_logger(self, metric_logger: MetricLogger):
+        self.metric_logger = metric_logger
+
     def _update_experiment_paths(self):
         self._model_dir: Path = self._experiment_dir / "models"
         self._metric_dir: Path = self._experiment_dir / "metrics"
@@ -223,3 +252,18 @@ class Explorer:
         self.logger.info(
             f"Experiment directory changed to {self._experiment_dir} and experiment name to {self._experiment_name}"
         )
+
+
+def _get_model_architecture_dict(model: nn.Module) -> dict:
+    architecture_dict = {}
+    stats = summary(model, verbose=0)
+    for layer in stats.summary_list:
+        layer_name = f"{layer.class_name}_{layer.layer_id}"
+
+        architecture_dict[layer_name] = {
+            "type": layer.class_name,
+            "total_params": layer.num_params,
+            "trainable_params": layer.trainable_params,
+        }
+
+    return architecture_dict
