@@ -14,4 +14,12 @@ def get_path_to_project(new_folder: str = "") -> Path:
         if (current / "pyproject.toml").exists():
             break
         current = current.parent
-    return (current / new_folder).resolve()
+    return (current / new_folder).resolve().absolute()
+
+
+def get_path_to_docker() -> Path:
+    return get_path_to_project("docker")
+
+
+def get_path_to_experiments() -> Path:
+    return get_path_to_project("experiments")

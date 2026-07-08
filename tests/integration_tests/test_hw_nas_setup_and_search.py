@@ -5,6 +5,7 @@ import shutil
 import torch
 
 import operator
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.hw_nas.estimators import (
     FLOPsEstimator,
@@ -27,11 +28,10 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 )
 from torchvision import transforms
 from elasticai.explorer.training.trainer import SupervisedTrainer
-from settings import ROOT_DIR
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 
-SAMPLE_PATH = ROOT_DIR / "tests/samples"
-OUTPUT_PATH = ROOT_DIR / "tests/outputs"
+SAMPLE_PATH = get_path_to_project() / "tests/samples"
+OUTPUT_PATH = get_path_to_project() / "tests/outputs"
 
 
 class TestHWNasSetupAndSearch:
@@ -50,12 +50,10 @@ class TestHWNasSetupAndSearch:
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository)
-        self.RPI5explorer.experiment_dir = Path(
-            ROOT_DIR / "tests/integration_tests/test_experiment"
-        )
+        self.RPI5explorer.experiment_dir = get_path_to_project() / "tests/integration_tests/test_experiment"
         self.model_name = "ts_model_0.pt"
 
-        path_to_dataset = Path(ROOT_DIR / "data/mnist")
+        path_to_dataset = get_path_to_project() / "data/mnist"
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
@@ -83,7 +81,7 @@ class TestHWNasSetupAndSearch:
         self.optimization_criteria.register_objective(estimator=accuracy_estimator)
 
         self.search_space = self.RPI5explorer.generate_search_space(
-            ROOT_DIR / Path("tests/integration_tests/samples/search_space.yml")
+            get_path_to_project() / "tests/integration_tests/samples/search_space.yml"
         )
 
     @pytest.mark.parametrize(

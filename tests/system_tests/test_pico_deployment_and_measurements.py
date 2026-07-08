@@ -21,7 +21,7 @@ from pathlib import Path
 
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
+from elasticai.explorer import get_path_to_project
 from torchvision import transforms
 
 
@@ -33,8 +33,8 @@ class TestPicoDeploymentAndMeasurement:
         compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
-            build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            build_context=get_path_to_project("docker"),
+            path_to_dockerfile=get_path_to_project("docker") / "Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
@@ -48,10 +48,10 @@ class TestPicoDeploymentAndMeasurement:
             )
         )
         self.pico_explorer = Explorer(knowledge_repository)
-        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
+        self.pico_explorer.experiment_dir = get_path_to_project() / Path(
             "tests/system_tests/test_experiment"
         )
-        self.pico_explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
+        self.pico_explorer._model_dir = get_path_to_project() / Path("tests/system_tests/samples")
         self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.model_name = "ts_model_0.tflite"
 
@@ -60,14 +60,14 @@ class TestPicoDeploymentAndMeasurement:
                 "code/pico_crosscompiler/measure_accuracy"
             ),  # test relative path
             Metric.LATENCY: (
-                DOCKER_CONTEXT_DIR / Path("code/pico_crosscompiler/measure_latency")
+                get_path_to_project("docker") / "code/pico_crosscompiler/measure_latency"
             ),  # test absolute path
         }
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        path_to_dataset = ROOT_DIR / "data/mnist"
-        path_to_deployable_dataset = ROOT_DIR / "data/cpp-mnist"
+        path_to_dataset = get_path_to_project() / "data/mnist"
+        path_to_deployable_dataset = get_path_to_project() / "data/cpp-mnist"
 
         setup_mnist_for_cpp(
             root_dir_mnist=path_to_dataset,

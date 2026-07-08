@@ -21,7 +21,7 @@ dependencies = [
     "torch>=2.4.0",
     "pyserial>=3.5",
     "pandas>=2.2.3",
-    "tensorflow>=2.20.0",
+    "tensorflow==2.20.0",
     "iesude-data",
     "tflite==2.18.0",
     "elasticai-preprocessor",

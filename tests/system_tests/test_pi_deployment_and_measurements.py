@@ -1,11 +1,11 @@
 import tomllib
 
 import pytest
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
     RPiHWManager,
     Metric,
 )
@@ -19,7 +19,6 @@ from pathlib import Path
 
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
 
 
 class TestDeploymentAndMeasurement:
@@ -43,10 +42,10 @@ class TestDeploymentAndMeasurement:
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository)
-        self.RPI5explorer.experiment_dir = ROOT_DIR / Path(
+        self.RPI5explorer.experiment_dir = get_path_to_project() / Path(
             "tests/system_tests/test_experiment"
         )
-        self.RPI5explorer._model_dir = ROOT_DIR / Path("tests/system_tests/samples")
+        self.RPI5explorer._model_dir = get_path_to_project() / Path("tests/system_tests/samples")
         self.RPI5explorer.choose_target_hw(
             "rpi5", communication_params=ssh_params, compiler_params=compiler_params
         )
@@ -54,15 +53,15 @@ class TestDeploymentAndMeasurement:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        path_to_dataset = Path(ROOT_DIR / "data/mnist")
-        root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
+        path_to_dataset = get_path_to_project() / "data/mnist"
+        root_dir_cpp_mnist = get_path_to_project() / "data/cpp-mnist"
         setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
         metric_to_source = {
             Metric.ACCURACY: Path(
                 "code/measure_accuracy_mnist.cpp"
             ),  # test relative path
             Metric.LATENCY: (
-                DOCKER_CONTEXT_DIR / Path("code/measure_latency.cpp")
+                get_path_to_project("docker") / Path("code/measure_latency.cpp")
             ),  # test absolute path
         }
         self.RPI5explorer.hw_setup_on_target(

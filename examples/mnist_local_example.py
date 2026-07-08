@@ -14,6 +14,7 @@ from torch import nn, optim
 from torch.utils.data import Subset
 from torchvision import transforms
 
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.estimators import ParamEstimator, TrainMetricsEstimator
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
@@ -21,7 +22,6 @@ from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 from elasticai.explorer.knowledge_repository import KnowledgeRepository
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.training.trainer import SupervisedTrainer, accuracy_fn
-from settings import ROOT_DIR
 
 logger = logging.getLogger("explorer.main")
 
@@ -85,12 +85,12 @@ def build_criteria(
 
 def run_mnist_search(args: argparse.Namespace) -> None:
     logging.config.fileConfig(
-        ROOT_DIR / "logging.conf",
+        get_path_to_project() / "logging.conf",
         disable_existing_loggers=False,
     )
     device = choose_device(args.device)
-    data_dir = ROOT_DIR / args.data_dir
-    search_space = ROOT_DIR / args.search_space
+    data_dir = get_path_to_project() / args.data_dir
+    search_space = get_path_to_project() / args.search_space
     experiment_name = args.experiment_name
 
     dataset_spec = build_dataset_spec(data_dir, args.limit, args.seed)

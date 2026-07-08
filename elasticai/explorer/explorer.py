@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional, Any
 from torch import nn
 
+from elasticai.explorer._helper import get_path_to_experiments
 from elasticai.explorer.hw_nas import hw_nas
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
@@ -27,7 +28,6 @@ from elasticai.explorer.utils.logging_utils import (
     dataclass_instance_to_toml,
     opt_crit_registry_to_toml,
 )
-from settings import MAIN_EXPERIMENT_DIR
 
 
 class Explorer:
@@ -44,7 +44,6 @@ class Explorer:
         Args:
             knowledge_repository
             experiment_name (str, optional): The name of the current experiment. Defaults to timestamp at instantiation.
-              This defines in which directory the results are stored inside MAIN_EXPERIMENT_DIR (from settings.py).
         """
         self.logger = logging.getLogger("explorer")
         self.target_hw_platform: Optional[HWPlatform] = None
@@ -82,7 +81,7 @@ class Explorer:
     def experiment_name(self, value: str):  # type: ignore
         """Setting experiment name updates the experiment paths as well."""
         self._experiment_name: str = value
-        self._experiment_dir: Path = MAIN_EXPERIMENT_DIR / self._experiment_name
+        self._experiment_dir: Path = get_path_to_experiments() / self._experiment_name
         self._update_experiment_paths()
 
     @experiment_dir.setter
@@ -118,7 +117,7 @@ class Explorer:
             )
         else:
             self.logger.error(
-                "Generate a searchspace before starting the HW-NAS with Explorer.search()!"
+                "Generate a search space before starting the HW-NAS with Explorer.search()!"
             )
             exit(-1)
         data_utils.save_list_to_json(

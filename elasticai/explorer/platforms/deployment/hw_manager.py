@@ -7,6 +7,7 @@ from pathlib import Path
 
 import shutil
 import tarfile
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import (
     Host,
@@ -15,7 +16,9 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
 from elasticai.explorer.training.data import DatasetSpecification, RootedDataset
-from settings import DOCKER_CONTEXT_DIR
+
+
+DOCKER_CONTEXT_DIR = get_path_to_project("docker")
 
 
 class Metric(Enum):
