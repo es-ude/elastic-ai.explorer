@@ -19,9 +19,7 @@ class SimpleModel(nn.Module):
 
 @pytest.fixture
 def api(tmp_path):
-    """KnowledgeRepoAPI backed by a local file-based MLflow store."""
     instance = KnowledgeRepoAPI("127.0.0.1", 59999)
-    # Redirect MLflow to a temp directory instead of the SSH tunnel
     tracking_uri = str(tmp_path / "mlruns")
     instance.tracking_uri = tracking_uri
     mlflow.set_tracking_uri(tracking_uri)
