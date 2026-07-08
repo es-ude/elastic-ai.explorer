@@ -5,7 +5,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from elasticai.explorer.krepo import KnowledgeRepoAPI
+from elasticai.explorer.krepo.API import KnowledgeRepoAPI
 
 
 class SimpleModel(nn.Module):

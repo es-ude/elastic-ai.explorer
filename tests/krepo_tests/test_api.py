@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from elasticai.explorer.krepo import KnowledgeRepoAPI
+from elasticai.explorer.krepo.API import KnowledgeRepoAPI
 
 Mocks = namedtuple("Mocks", ["api", "mlflow", "subprocess"])
 
@@ -14,8 +14,8 @@ Mocks = namedtuple("Mocks", ["api", "mlflow", "subprocess"])
 @pytest.fixture
 def mocks():
     """Create a KnowledgeRepoAPI with subprocess and mlflow mocked out."""
-    with patch("krepo.API.subprocess") as mock_sub, \
-         patch("krepo.API.mlflow") as mock_mlflow:
+    with patch("elasticai.explorer.krepo.API.subprocess") as mock_sub, \
+         patch("elasticai.explorer.krepo.API.mlflow") as mock_mlflow:
         instance = KnowledgeRepoAPI("10.0.0.1", 5000)
         yield Mocks(api=instance, mlflow=mock_mlflow, subprocess=mock_sub)
 
@@ -24,6 +24,7 @@ def mocks():
 def mocks_with_experiment(mocks):
     """Mocks with an experiment already set."""
     mocks.mlflow.get_experiment_by_name.return_value = SimpleNamespace(experiment_id="exp-1")
+    mocks.mlflow.set_experiment.return_value = SimpleNamespace(experiment_id="exp-1")
     mocks.api.set_experiment(
         "test-experiment",
         nas_config={"algo": "evo"},
@@ -74,6 +75,7 @@ class TestSetExperiment:
         assert api.hw_platform == "gpu"
 
     def test_raises_when_experiment_not_found(self, mocks):
+        mocks.mlflow.set_experiment.return_value = None
         mocks.mlflow.get_experiment_by_name.return_value = None
         with pytest.raises(RuntimeError, match="Could not find or create experiment"):
             mocks.api.set_experiment("missing", {}, {}, "cpu")
@@ -100,7 +102,7 @@ class TestRunLifecycle:
         mocks_with_run.mlflow.end_run.assert_called()
 
     def test_end_run_noop_when_no_run(self, mocks):
-        mocks.api.end_run()  # should not raise
+        mocks.api.end_run()
         mocks.mlflow.end_run.assert_not_called()
 
     def test_start_run_ends_previous_run(self, mocks_with_experiment):
@@ -142,7 +144,7 @@ class TestLogMetrics:
 
     def test_delegates_to_mlflow(self, mocks_with_run):
         mocks_with_run.api.log_metrics({"loss": 0.5}, step=3)
-        mocks_with_run.mlflow.log_metrics.assert_called_with({"loss": 0.5}, step=3)
+        mocks_with_run.mlflow.log_metrics.assert_called_with({"loss": 0.5}, step=3, model_id=None)
 
 
 class TestLogModel:
@@ -248,7 +250,7 @@ class TestSaveEstimator:
         assert uid == "uid-99"
         m.mlflow.set_tag.assert_any_call("model_type", "estimator")
         m.mlflow.set_tag.assert_any_call("metric", "latency")
-        m.mlflow.log_metrics.assert_called_with({"validation_loss": 0.05}, step=0)
+        m.mlflow.log_metrics.assert_called_with({"validation_loss": 0.05}, step=0, model_id=None)
 
     def test_ends_existing_run_before_saving(self, mocks_with_run):
         m = mocks_with_run
