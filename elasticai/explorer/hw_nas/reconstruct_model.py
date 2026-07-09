@@ -19,7 +19,7 @@ def reconstruct_model_from_json(file2json: Path, file2search: Path) -> nn.Sequen
         data = json.load(f0)[0]
 
     if not file2search.is_file() or not file2search.suffix in [".yaml", ".yml"]:
-        raise FileNotFoundError(f"json file is not available at: {file2search.as_posix()}")
+        raise FileNotFoundError(f"Search space file is not available at: {file2search.as_posix()}")
     with open(file2search.as_posix(), "r", encoding="utf-8") as f1:
         search = yaml.safe_load(f1)
 

@@ -1,4 +1,4 @@
-from explorer._helper import get_path_to_project
+from elasticai.explorer._helper import get_path_to_project
 
 
 def test_get_path_to_project_wo_ref():
