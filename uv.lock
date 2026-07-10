@@ -591,8 +591,8 @@ dependencies = [
 
 [[package]]
 name = "elasticai-preprocessor"
-version = "0.1.1.dev26+g4738c0ab5"
-source = { git = "https://github.com/es-ude/elasticai.preprocessor.git#4738c0ab53d3cbb7f384d79223436494df2dc878" }
+version = "0.1.1"
+source = { git = "https://github.com/es-ude/elasticai.preprocessor.git#06697b914f2a1da3cf614704a50749c2235bdba9" }
 dependencies = [
     { name = "elasticai-creator" },
     { name = "numpy" },
@@ -1024,14 +1024,14 @@ name = "keras-nightly"
 version = "3.16.0.dev2026070804"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "absl-py" },
-    { name = "h5py" },
-    { name = "ml-dtypes" },
-    { name = "namex" },
-    { name = "numpy" },
-    { name = "optree" },
-    { name = "packaging" },
-    { name = "rich" },
+    { name = "absl-py", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "h5py", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "ml-dtypes", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "namex", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "numpy", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "optree", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "packaging", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "rich", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/69/62/9a9348ab6b5f5529dc2d536eccc5095d447baa38e176b84783dfccb0fad8/keras_nightly-3.16.0.dev2026070804.tar.gz", hash = "sha256:6bb8403f7233db526e9959d978ca3fd206eb9eb336a509646465c0fbc49f5584", size = 1332002, upload-time = "2026-07-08T04:53:52.968Z" }
 wheels = [
@@ -2319,26 +2319,26 @@ name = "tf-nightly"
 version = "2.22.0.dev20260706"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "absl-py" },
-    { name = "astunparse" },
-    { name = "flatbuffers" },
-    { name = "gast" },
-    { name = "google-pasta" },
-    { name = "grpcio" },
-    { name = "h5py" },
-    { name = "keras-nightly" },
-    { name = "libclang" },
-    { name = "ml-dtypes" },
-    { name = "numpy" },
-    { name = "opt-einsum" },
-    { name = "packaging" },
-    { name = "protobuf" },
-    { name = "requests" },
-    { name = "setuptools" },
-    { name = "six" },
-    { name = "termcolor" },
-    { name = "typing-extensions" },
-    { name = "wrapt" },
+    { name = "absl-py", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "astunparse", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "flatbuffers", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "gast", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "google-pasta", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "grpcio", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "h5py", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "keras-nightly", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "libclang", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "ml-dtypes", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "numpy", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "opt-einsum", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "packaging", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "protobuf", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "requests", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "setuptools", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "six", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "termcolor", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "typing-extensions", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "wrapt", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
 ]
 
 [[package]]

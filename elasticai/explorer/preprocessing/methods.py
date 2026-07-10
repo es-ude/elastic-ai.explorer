@@ -1,7 +1,7 @@
 import numpy as np
-from elasticai.preprocessor.data_augmentation import augmentation_downsampling
 from elasticai.preprocessor.filter import Filtering, SettingsFilter
-from elasticai.preprocessor.normalization import DataNormalization
+from elasticai.preprocessor.downsampling import augmentation_downsampling
+from elasticai.preprocessor.normalization import DataNormalization, SettingsNormalization
 
 from elasticai.explorer.preprocessing.types import (
     FILTERBAND_CUTOFFS,
@@ -89,7 +89,7 @@ def apply_filtering(
     sample_rate_hz: float,
 ) -> np.ndarray:
     dsp_filter = Filtering(
-        setting=SettingsFilter(
+        settings=SettingsFilter(
             gain=filtering.gain,
             fs=sample_rate_hz,
             n_order=filtering.order,
@@ -99,7 +99,7 @@ def apply_filtering(
             f_filt=filter_frequencies(filtering),
         )
     )
-    return dsp_filter.filter(signal)
+    return dsp_filter.filt(signal)
 
 
 def filter_frequencies(filtering: FilteringSample) -> list[int | float]:
@@ -110,5 +110,10 @@ def apply_normalization(
     signal: np.ndarray,
     normalization: NormalizationSample,
 ) -> np.ndarray:
-    normalizer = DataNormalization(method=normalization.method)
+    normalizer = DataNormalization(
+        settings=SettingsNormalization(
+            method=normalization.method,
+            peak_mode=0
+        )
+    )
     return normalizer.normalize(signal)
