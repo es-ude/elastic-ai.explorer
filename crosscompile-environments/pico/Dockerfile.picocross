@@ -6,13 +6,13 @@ ARG PATH_TO_SOURCE
 ARG SOURCE_NAME
 ARG CROSS_COMPILER_PATH
 
-COPY $PATH_TO_SOURCE/ $PATH_TO_SOURCE/
-COPY $CROSS_COMPILER_PATH/data /code/pico_crosscompiler/data
+COPY $PATH_TO_SOURCE/ /code/${SOURCE_NAME}/
+COPY $CROSS_COMPILER_PATH/data /code/data
 
 RUN mkdir -p /code/build && mkdir -p $BIN_DIR
 WORKDIR /code/build
 
-RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ../pico_crosscompiler 
+RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ..
 RUN make -j$(nproc)
 RUN cp ./${SOURCE_NAME}/${SOURCE_NAME}.uf2 $BIN_DIR/
 
