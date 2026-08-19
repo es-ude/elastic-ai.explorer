@@ -173,7 +173,7 @@ class Explorer:
             measurement_source_path_by_metric:
                 Dictionary of source code paths of the programs used for taking
                 measurements, keyed by the corresponding measured metric.
-                For example: measurement_program_path_by_metric = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
+                For example: measurement_source_path_by_metric = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
             data_spec:
                 Specification of the dataset to install on the target device
                 for on-device measurements.
