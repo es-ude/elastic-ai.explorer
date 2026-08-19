@@ -31,7 +31,7 @@ class TestPicoDeploymentAndMeasurement:
             config = tomllib.load(f)
         serial_params = SerialParams(config["PICO_DEVICE_PATH"])
         compiler_params = CompilerParams(
-            library_path=Path("./code/pico_crosscompiler"),
+            library_path=Path("./code"),
             image_name="picobase",
             build_context=PICO_CROSSCOMPILE_DIR,
             path_to_dockerfile=PICO_CROSSCOMPILE_DIR / "Dockerfile.picobase",
@@ -57,10 +57,10 @@ class TestPicoDeploymentAndMeasurement:
 
         metric_to_source = {
             Metric.ACCURACY: Path(
-                "code/pico_crosscompiler/measure_accuracy"
+                "code/measure_accuracy"
             ),  # test relative path
             Metric.LATENCY: (
-                PICO_CROSSCOMPILE_DIR / Path("code/pico_crosscompiler/measure_latency")
+                PICO_CROSSCOMPILE_DIR / Path("code/measure_latency")
             ),  # test absolute path
         }
         transf = transforms.Compose(

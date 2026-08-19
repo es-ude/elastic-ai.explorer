@@ -30,7 +30,7 @@ class TestPicoGenerateAndCompile:
             config = tomllib.load(f)
         self.serial_params = SerialParams(config["PICO_DEVICE_PATH"])
         self.compiler_params = CompilerParams(
-            library_path=Path("./code/pico_crosscompiler"),
+            library_path=Path("./code"),
             image_name="picobase",
             build_context=PICO_CROSSCOMPILE_DIR,
             path_to_dockerfile=PICO_CROSSCOMPILE_DIR / "Dockerfile.picobase",
@@ -102,7 +102,7 @@ class TestPicoGenerateAndCompile:
         compiler = PicoCompiler(compiler_params=self.compiler_params)
         if not compiler.is_setup():
             compiler.setup()
-        compiler.compile_code(Path("code/pico_crosscompiler/measure_accuracy"))
+        compiler.compile_code(Path("code/measure_accuracy"))
         if not Path(self.path_to_executable).resolve().is_file():
             raise AssertionError(
                 "File does not exist: %s" % str(self.path_to_executable)

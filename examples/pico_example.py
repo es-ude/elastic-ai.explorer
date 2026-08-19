@@ -59,8 +59,8 @@ def search_generate_measure_for_pico(
     )
 
     metric_to_source = {
-        Metric.ACCURACY: Path("code/pico_crosscompiler/measure_accuracy"),
-        Metric.LATENCY: Path("code/pico_crosscompiler/measure_latency"),
+        Metric.ACCURACY: Path("code/measure_accuracy"),
+        Metric.LATENCY: Path("code/measure_latency"),
     }
     explorer.hw_setup_on_target(metric_to_source, dataset_spec)
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         device_path=Path("/media/<username>/RPI-RP2")
     )  # <-- Set the device path and rest only if necessary.
     compiler_params = CompilerParams(
-        library_path=Path("./code/pico_crosscompiler"),
+        library_path=Path("./code"),
         image_name="picobase",
         build_context=PICO_CROSSCOMPILE_DIR,
         path_to_dockerfile=PICO_CROSSCOMPILE_DIR / "Dockerfile.picobase",
