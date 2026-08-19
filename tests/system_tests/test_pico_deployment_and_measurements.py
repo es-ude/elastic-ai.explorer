@@ -21,7 +21,7 @@ from pathlib import Path
 
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
+from settings import PICO_CROSSCOMPILE_DIR, ROOT_DIR
 from torchvision import transforms
 
 
@@ -33,8 +33,8 @@ class TestPicoDeploymentAndMeasurement:
         compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
-            build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            build_context=PICO_CROSSCOMPILE_DIR,
+            path_to_dockerfile=PICO_CROSSCOMPILE_DIR / "Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
@@ -60,7 +60,7 @@ class TestPicoDeploymentAndMeasurement:
                 "code/pico_crosscompiler/measure_accuracy"
             ),  # test relative path
             Metric.LATENCY: (
-                DOCKER_CONTEXT_DIR / Path("code/pico_crosscompiler/measure_latency")
+                PICO_CROSSCOMPILE_DIR / Path("code/pico_crosscompiler/measure_latency")
             ),  # test absolute path
         }
         transf = transforms.Compose(
