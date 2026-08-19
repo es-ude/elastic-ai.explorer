@@ -5,15 +5,15 @@ from pathlib import Path
 
 from python_on_whales import docker
 
-from settings import ROOT_DIR
+from settings import RBPI_CROSSCOMPILE_DIR
 
 
 @dataclass
 class CompilerParams:
     image_name: str = "cross"
     library_path: Path = Path("./code/libtorch")
-    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.pibase"
-    build_context: Path = ROOT_DIR / "docker"
+    path_to_dockerfile: Path = RBPI_CROSSCOMPILE_DIR / "Dockerfile.pibase"
+    build_context: Path = RBPI_CROSSCOMPILE_DIR
 
 
 class Compiler(ABC):
