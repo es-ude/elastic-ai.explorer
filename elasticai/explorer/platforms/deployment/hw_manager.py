@@ -106,6 +106,7 @@ class RPiHWManager(HWManager):
             tar.add(dataset_dir, arcname=dataset_dir.name)
 
         self.target.put_file(archive_name, ".")
+        self.target.run_command("mkdir -p data")
         self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
