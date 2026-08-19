@@ -15,7 +15,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
 from elasticai.explorer.training.data import DatasetSpecification, RootedDataset
-from settings import DOCKER_CONTEXT_DIR
+from settings import RBPI_CROSSCOMPILE_DIR, PICO_CROSSCOMPILE_DIR
 
 
 class Metric(Enum):
@@ -60,8 +60,8 @@ class RPiHWManager(HWManager):
         super().__init__(target, compiler)
 
     def install_code_on_target(self, source: Path, metric: Metric):
-        if source.is_relative_to(DOCKER_CONTEXT_DIR):
-            relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        if source.is_relative_to(RBPI_CROSSCOMPILE_DIR):
+            relative_path = Path("/" + str(source.relative_to(RBPI_CROSSCOMPILE_DIR)))
         else:
             relative_path = Path("/" + str(source))
         path_to_executable = self.compiler.compile_code(relative_path)
@@ -146,14 +146,14 @@ class PicoHWManager(HWManager):
         super().__init__(target, compiler)
 
     def install_code_on_target(self, source: Path, metric: Metric):
-        if source.is_relative_to(DOCKER_CONTEXT_DIR):
-            relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
+        if source.is_relative_to(PICO_CROSSCOMPILE_DIR):
+            relative_path = Path("/" + str(source.relative_to(PICO_CROSSCOMPILE_DIR)))
         else:
             relative_path = Path("/" + str(source))
         self._register_metric_to_source(metric, relative_path)
 
     def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
-        target_dir = DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data"
+        target_dir = PICO_CROSSCOMPILE_DIR / "code/data"
         if not dataset_spec.deployable_dataset_path:
             raise ValueError(
                 "For deployment on Pico the DatasetSpecification must have deployable_dataset_path set."
@@ -169,7 +169,7 @@ class PicoHWManager(HWManager):
         if not source:
             self.logger.error(f"No source code registered for Metric: {metric}")
             exit(-1)
-        path_to_resolver = Path(str(DOCKER_CONTEXT_DIR) + f"{source}/resolver_ops.h")
+        path_to_resolver = Path(str(PICO_CROSSCOMPILE_DIR) + f"{source}/resolver_ops.h")
         tflite_to_resolver.generate_resolver_h(
             path_to_model,
             path_to_resolver,
@@ -190,7 +190,7 @@ class PicoHWManager(HWManager):
     def deploy_model(self, path_to_model: Path):
         shutil.copyfile(
             path_to_model.parent / (path_to_model.stem + ".cpp"),
-            DOCKER_CONTEXT_DIR / "code/pico_crosscompiler/data/model.cpp",
+            PICO_CROSSCOMPILE_DIR / "code/data/model.cpp",
         )
 
     def _parse_measurement(self, result: str) -> dict:
