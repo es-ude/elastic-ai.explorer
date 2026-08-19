@@ -18,7 +18,7 @@ from examples.example_helpers import (
     setup_example_optimization_criteria,
 )
 
-from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
+from settings import PICO_CROSSCOMPILE_DIR, ROOT_DIR
 
 logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
@@ -88,8 +88,8 @@ if __name__ == "__main__":
     compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
         image_name="picobase",
-        build_context=DOCKER_CONTEXT_DIR,
-        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+        build_context=PICO_CROSSCOMPILE_DIR,
+        path_to_dockerfile=PICO_CROSSCOMPILE_DIR / "Dockerfile.picobase",
     )  # <-- Configure this only if necessary.
 
     knowledge_repo = setup_knowledge_repository()
