@@ -50,7 +50,7 @@ Follow the steps in the Docker documentation: [How do I use Docker SDKs with Doc
 ## Set up your Raspberry Pi 4/5 for Deployment
 To use the Explorer to deploy models on your Raspberry Pi, we recommend using Bookworm 64-Bit as an OS. You also need to enable ssh connections on your RPi and make one initial connection between your host PC and the RPi. Make sure to add you public SSH key to the Raspberry Pi under `~/.ssh/authorized_keys`.
 
-Then install libtorch on your Pi under `/code/libtorch` directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be `docker/code/libtorch`) in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
+Then install libtorch on your Pi under `/code/libtorch` directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be `crosscompile-environments/rbpi/code/libtorch`) in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
 
 Ensure a `data` directory exists on the Raspberry Pi user's home directory.
 
