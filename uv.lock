@@ -508,7 +508,19 @@ wheels = [
 ]
 
 [[package]]
-name = "elastic-ai-explorer"
+name = "elasticai-creator"
+version = "0.68.0"
+source = { git = "https://github.com/es-ude/elastic-ai.creator.git?branch=main#0960c907f4ba34957c9c4fa512b202907d8ddf5b" }
+dependencies = [
+    { name = "cocotb" },
+    { name = "numpy" },
+    { name = "pytest" },
+    { name = "tomlkit" },
+    { name = "torch" },
+]
+
+[[package]]
+name = "elasticai-explorer"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -576,18 +588,6 @@ dev = [
     { name = "wheel", specifier = ">=0.38" },
 ]
 pico = [{ name = "ai-edge-torch", specifier = "==0.5.0" }]
-
-[[package]]
-name = "elasticai-creator"
-version = "0.68.0"
-source = { git = "https://github.com/es-ude/elastic-ai.creator.git?branch=main#0960c907f4ba34957c9c4fa512b202907d8ddf5b" }
-dependencies = [
-    { name = "cocotb" },
-    { name = "numpy" },
-    { name = "pytest" },
-    { name = "tomlkit" },
-    { name = "torch" },
-]
 
 [[package]]
 name = "elasticai-preprocessor"

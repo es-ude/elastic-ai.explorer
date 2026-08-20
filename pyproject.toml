@@ -1,5 +1,5 @@
 [project]
-name = "elastic-ai.explorer"
+name = "elasticai.explorer"
 version = "0.1.0"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
 authors = [{ name = "Department Intelligent Embedded Systems - University of Duisburg Essen" }]
