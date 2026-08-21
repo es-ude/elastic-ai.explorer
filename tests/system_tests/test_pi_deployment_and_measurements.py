@@ -71,7 +71,7 @@ class TestDeploymentAndMeasurement:
                     path_to_dataset,
                     transform=transf,
                 ),
-                deployable_dataset_path=root_dir_cpp_mnist,
+                deployable_dataset_path=path_to_dataset,
             ),
         )
 
