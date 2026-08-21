@@ -63,16 +63,13 @@ class RPICompiler(Compiler):
 
     def _is_libtorch_available(self) -> bool:
         libtorch_dir = (self.context_path / self.libtorch_path).resolve()
-        if not libtorch_dir.exists():
-            return False
-        real_contents = [e for e in libtorch_dir.iterdir() if not e.name.startswith("._")]
-        return bool(real_contents)
+        return libtorch_dir.is_dir() and any(libtorch_dir.iterdir())
 
     def _ensure_libtorch(self) -> None:
         if self._is_libtorch_available():
             return
         if self.pi_model is None:
-            self.logger.warning(f"libtorch not found in build context ({self.context_path / self.libtorch_path}) and no pi_model set in CompilerParams",)
+            self.logger.warning(f"libtorch not found in build context ({self.context_path / self.libtorch_path}) and no pi_model set in CompilerParams")
             return
         setup_docker_libtorch(PiModel(self.pi_model))
 
