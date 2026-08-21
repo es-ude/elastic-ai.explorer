@@ -63,10 +63,8 @@ class RPiHWManager(HWManager):
 
     def _pi_has_libtorch(self) -> bool:
         try:
-            result = self.target.run_command(
-                "test -d /code/libtorch && find /code/libtorch -mindepth 1 -maxdepth 1 | grep -q . && echo yes || echo no"
-            )
-            return result.strip() == "yes"
+            result = self.target.run_command("ls -A /code/libtorch 2>/dev/null")
+            return bool(result.strip())
         except Exception:
             return False
 
@@ -76,7 +74,7 @@ class RPiHWManager(HWManager):
         if not isinstance(self.compiler, RPICompiler) or self.compiler.pi_model is None:
             self.logger.warning("libtorch not found on Pi and no pi_model set in CompilerParams")
             return
-
+            
         install_libtorch_on_pi(self.target, PiModel(self.compiler.pi_model))
 
     def install_code_on_target(self, source: Path, metric: Metric):
@@ -90,7 +88,6 @@ class RPiHWManager(HWManager):
         self.target.put_file(path_to_executable, ".")
 
     def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
-
         if dataset_spec.deployable_dataset_path:
             dataset_dir = dataset_spec.deployable_dataset_path
         elif isinstance(dataset_spec.dataset, RootedDataset):
