@@ -72,12 +72,8 @@ class RPICompiler(Compiler):
         if self._is_libtorch_available():
             return
         if self.pi_model is None:
-            self.logger.warning(
-                f"libtorch not found in build context ({self.context_path / self.libtorch_path}) and no pi_model set in CompilerParams",
-            )
+            self.logger.warning(f"libtorch not found in build context ({self.context_path / self.libtorch_path}) and no pi_model set in CompilerParams",)
             return
-
-        self.logger.info("libtorch not found — downloading for %s...", self.pi_model)
         setup_docker_libtorch(PiModel(self.pi_model))
 
     def compile_code(self, source: Path) -> Path:
