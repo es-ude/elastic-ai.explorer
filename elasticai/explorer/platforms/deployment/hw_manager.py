@@ -7,7 +7,9 @@ from pathlib import Path
 
 import shutil
 import tarfile
-from elasticai.explorer.platforms.deployment.compiler import Compiler
+
+from elasticai.explorer.platforms.deployment.compiler import Compiler, RPICompiler
+from elasticai.explorer.platforms.deployment.libtorch_installer import PiModel, install_libtorch_on_pi
 from elasticai.explorer.platforms.deployment.device_communication import (
     Host,
     PicoHost,
@@ -59,7 +61,24 @@ class RPiHWManager(HWManager):
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
+    def _pi_has_libtorch(self) -> bool:
+        try:
+            result = self.target.run_command("ls -A /code/libtorch 2>/dev/null")
+            return bool(result.strip())
+        except Exception:
+            return False
+
+    def _ensure_libtorch_on_pi(self) -> None:
+        if self._pi_has_libtorch():
+            return
+        if not isinstance(self.compiler, RPICompiler) or self.compiler.pi_model is None:
+            self.logger.warning("libtorch not found on Pi and no pi_model set in CompilerParams")
+            return
+            
+        install_libtorch_on_pi(self.target, PiModel(self.compiler.pi_model))
+
     def install_code_on_target(self, source: Path, metric: Metric):
+        self._ensure_libtorch_on_pi()
         if source.is_relative_to(DOCKER_CONTEXT_DIR):
             relative_path = Path("/" + str(source.relative_to(DOCKER_CONTEXT_DIR)))
         else:
@@ -69,7 +88,6 @@ class RPiHWManager(HWManager):
         self.target.put_file(path_to_executable, ".")
 
     def install_dataset_on_target(self, dataset_spec: DatasetSpecification):
-
         if dataset_spec.deployable_dataset_path:
             dataset_dir = dataset_spec.deployable_dataset_path
         elif isinstance(dataset_spec.dataset, RootedDataset):
@@ -85,6 +103,7 @@ class RPiHWManager(HWManager):
             tar.add(dataset_dir, arcname=dataset_dir.name)
 
         self.target.put_file(archive_name, ".")
+        self.target.run_command("mkdir -p data")
         self.target.run_command(f"tar -xzf {archive_name.name} -C data")
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
