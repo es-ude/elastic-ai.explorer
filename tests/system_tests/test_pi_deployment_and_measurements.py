@@ -5,7 +5,6 @@ from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
     RPiHWManager,
     Metric,
 )
@@ -19,7 +18,7 @@ from pathlib import Path
 
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from settings import RBPI_CROSSCOMPILE_DIR, ROOT_DIR
 
 
 class TestDeploymentAndMeasurement:
@@ -62,7 +61,7 @@ class TestDeploymentAndMeasurement:
                 "code/measure_accuracy_mnist.cpp"
             ),  # test relative path
             Metric.LATENCY: (
-                DOCKER_CONTEXT_DIR / Path("code/measure_latency.cpp")
+                RBPI_CROSSCOMPILE_DIR / Path("code/measure_latency.cpp")
             ),  # test absolute path
         }
         self.RPI5explorer.hw_setup_on_target(
@@ -72,7 +71,7 @@ class TestDeploymentAndMeasurement:
                     path_to_dataset,
                     transform=transf,
                 ),
-                deployable_dataset_path=root_dir_cpp_mnist,
+                deployable_dataset_path=path_to_dataset,
             ),
         )
 

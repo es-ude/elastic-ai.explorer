@@ -1,8 +1,8 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PICO_SDK_PATH=/code/pico_crosscompiler/third_party/pico-sdk
-ENV TFLITE_PATH=/code/pico_crosscompiler/third_party/pico-tflmicro
+ENV PICO_SDK_PATH=/code/third_party/pico-sdk
+ENV TFLITE_PATH=/code/third_party/pico-tflmicro
 ENV BIN_DIR=/tmp/bin
 
 
@@ -19,15 +19,15 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ${CROSS_COMPILER_PATH} /code/pico_crosscompiler
+COPY ${CROSS_COMPILER_PATH} /code
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/model.cpp
+RUN cat <<'EOF' > /code/data/model.cpp
 #include <model.h>
 const unsigned char model_tflite[] = {1};
 const unsigned int model_tflite_len = 1;
 EOF
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_features.h
+RUN cat <<'EOF' > /code/data/mnist_features.h
 #ifndef MNIST_FEATURES_H
 #define MNIST_TEST_FEATURES_H
 const float mnist_images[1][1] = {
@@ -36,7 +36,7 @@ const float mnist_images[1][1] = {
 #endif
 EOF
 
-RUN cat <<'EOF' > /code/pico_crosscompiler/data/mnist_labels.h
+RUN cat <<'EOF' > /code/data/mnist_labels.h
 #ifndef MNIST_LABELS_H
 #define MNIST_LABELS_H
 const int mnist_labels[1] = {7};
@@ -54,5 +54,5 @@ RUN git clone -b main https://github.com/raspberrypi/pico-tflmicro.git $TFLITE_P
 
 RUN mkdir -p /code/build && mkdir -p $BIN_DIR
 WORKDIR /code/build
-RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ../pico_crosscompiler
+RUN cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ..
 RUN make -j$(nproc)

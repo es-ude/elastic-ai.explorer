@@ -1,4 +1,5 @@
 import os
+import tomllib
 from pathlib import Path
 
 from elasticai.explorer.explorer import Explorer
@@ -12,7 +13,6 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     SerialParams,
 )
 from elasticai.explorer.platforms.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
     PicoHWManager,
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
@@ -20,19 +20,20 @@ from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
+from settings import PICO_CROSSCOMPILE_DIR, ROOT_DIR
 from tests.integration_tests.samples import sample_MLP
-from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 
 
 class TestPicoGenerateAndCompile:
     def setup_method(self):
-        self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
+        with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
+            config = tomllib.load(f)
+        self.serial_params = SerialParams(config["PICO_DEVICE_PATH"])
         self.compiler_params = CompilerParams(
-            library_path=Path("./code/pico_crosscompiler"),
+            library_path=Path("./code"),
             image_name="picobase",
-            build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            build_context=PICO_CROSSCOMPILE_DIR,
+            path_to_dockerfile=PICO_CROSSCOMPILE_DIR / "Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
@@ -95,13 +96,13 @@ class TestPicoGenerateAndCompile:
 
         expected_name_of_executable = "measure_accuracy.uf2"
         self.path_to_executable = (
-            DOCKER_CONTEXT_DIR / "bin" / expected_name_of_executable
+            PICO_CROSSCOMPILE_DIR / "bin" / expected_name_of_executable
         )
 
         compiler = PicoCompiler(compiler_params=self.compiler_params)
         if not compiler.is_setup():
             compiler.setup()
-        compiler.compile_code(Path("code/pico_crosscompiler/measure_accuracy"))
+        compiler.compile_code(Path("code/measure_accuracy"))
         if not Path(self.path_to_executable).resolve().is_file():
             raise AssertionError(
                 "File does not exist: %s" % str(self.path_to_executable)
