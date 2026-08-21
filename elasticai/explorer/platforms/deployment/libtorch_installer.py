@@ -34,6 +34,9 @@ def _raw_extract(archive_path: Path, dest: Path) -> None:
     elif archive_path.name.endswith(".zip"):
         with zipfile.ZipFile(archive_path) as zf:
             zf.extractall(dest)
+            top_dir = dest / 'libtorch-v2.6.0-rpi5-bookworm'
+            shutil.move(top_dir / 'libtorch', dest)
+            top_dir.rmdir()
     else:
         raise ValueError(f"Unsupported format: {archive_path.name}")
 
@@ -64,8 +67,10 @@ def _download_archive(archive_name: str) -> Path:
 def _pi_install_command(archive_name: str) -> str:
     if archive_name.endswith(".zip"):
         extract = f'python3 -m zipfile -e ~/{archive_name} "$TMP"'
+        src = f'"$TMP/libtorch-v2.6.0-rpi5-bookworm/libtorch"'
     else:
         extract = f'tar xzf ~/{archive_name} -C "$TMP"'
+        src = '"$TMP/libtorch"'
 
     return (
         "set -e && "
@@ -73,7 +78,7 @@ def _pi_install_command(archive_name: str) -> str:
         f"{extract} && "
         "sudo rm -rf /code/libtorch && "
         "sudo mkdir -p /code && "
-        'sudo mv "$TMP/libtorch" /code/libtorch && '
+        f'sudo mv {src} /code/libtorch && '
         f'rm -rf "$TMP" ~/{archive_name}'
     )
 
