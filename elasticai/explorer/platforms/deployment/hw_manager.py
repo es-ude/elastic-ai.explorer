@@ -80,12 +80,12 @@ class RPiHWManager(HWManager):
             )
             self.logger.error(error)
             raise error
+
         archive_name = dataset_dir.with_suffix(".tar.gz")
         with tarfile.open(archive_name, "w:gz") as tar:
             tar.add(dataset_dir, arcname=dataset_dir.name)
-
         self.target.put_file(archive_name, ".")
-        self.target.run_command(f"tar -xzf {archive_name.name} -C data")
+        self.target.run_command(f"mkdir -p data && tar -xzf {archive_name.name} -C data")
 
     def measure_metric(self, metric: Metric, path_to_model: Path) -> dict:
         source = self._metric_to_source.get(metric)
