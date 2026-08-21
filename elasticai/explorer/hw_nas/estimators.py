@@ -91,6 +91,7 @@ class TrainMetricsEstimator(Estimator):
         trainer: Trainer,
         metric_name: str = "loss",
         n_estimation_epochs: int = 3,
+        learning_rate: float = 1e-3,
     ) -> None:
 
         super().__init__(
@@ -98,14 +99,16 @@ class TrainMetricsEstimator(Estimator):
         )
         self.trainer = trainer
         self.n_estimation_epochs = n_estimation_epochs
+        self.learning_rate = learning_rate
 
     def estimate(
         self, model_sample: torch.nn.Module
     ) -> tuple[float | int, list[float | int]]:
-        optimizer = Adam(model_sample.parameters(), lr=1e-3)
+        optimizer = Adam(model_sample.parameters(), lr=self.learning_rate)
         self.trainer.configure_optimizer(optimizer)
 
         estimate_values = []
+        model_sample.to(self.trainer.device)
         for i in range(self.n_estimation_epochs):
             self.trainer.train_epoch(model_sample, i)
             metric_avg, loss = self.trainer.validate(model_sample)
