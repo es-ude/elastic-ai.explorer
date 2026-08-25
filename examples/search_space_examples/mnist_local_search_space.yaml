@@ -14,7 +14,7 @@ sequence:
       depth: [1, 2]
     linear:
       width: [32, 64, 128]
-      activation: ["relu", "Sigmoid"]
+      activation: ["relu", "sigmoid"]
   - block: "3"
     op_candidates: "linear"
 
