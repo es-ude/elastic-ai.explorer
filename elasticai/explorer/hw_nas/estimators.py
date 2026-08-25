@@ -61,13 +61,13 @@ class FLOPsEstimator(Estimator):
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> tuple[float | int, list[float | int], list[dict]]:
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
         flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(
             **handlers
         )
 
-        return flops.total(), []
+        return flops.total(), [], []
 
 
 class ParamEstimator(Estimator):
@@ -80,9 +80,9 @@ class ParamEstimator(Estimator):
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> tuple[float | int, list[float | int], list[dict]]:
         param_count = parameter_count(model_sample)[""]
-        return param_count, []
+        return param_count, [], []
 
 
 class TrainMetricsEstimator(Estimator):
@@ -103,11 +103,12 @@ class TrainMetricsEstimator(Estimator):
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> tuple[float | int, list[float | int], list[dict]]:
         optimizer = Adam(model_sample.parameters(), lr=self.learning_rate)
         self.trainer.configure_optimizer(optimizer)
 
         estimate_values = []
+        metric_values = []
         model_sample.to(self.trainer.device)
         for i in range(self.n_estimation_epochs):
             self.trainer.train_epoch(model_sample, i)
@@ -129,6 +130,7 @@ class TrainMetricsEstimator(Estimator):
                 raise err
 
             estimate_values.append(estimate_value)
+            metric_values.append(metric_avg)
 
         self.logger.info(f"Estimated {self.metric_name} is: {estimate_values[-1]:.2f}")
-        return estimate_values[-1], estimate_values[:-1]
+        return estimate_values[-1], estimate_values, metric_values

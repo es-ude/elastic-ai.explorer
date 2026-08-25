@@ -110,7 +110,7 @@ class Trainer(ABC):
 
 def accuracy_fn(output, target):
     pred = output.argmax(dim=1)
-    correct = pred.eq(target).sum().item()
+    correct = pred.eq(target).sum()
     return correct, target.size(0)
 
 
@@ -126,7 +126,7 @@ class SupervisedTrainer(Trainer):
         super().__init__(device, dataset_spec, loss_fn, batch_size, extra_metrics)
         self.logger = logging.getLogger("explorer.SupervisedTrainer")
 
-    def train_epoch(self, model: nn.Module, epoch: int):
+    def train_epoch(self, model: nn.Module, epoch: int) -> None:
         """Trains model for only one epoch.
 
         Args:
@@ -145,6 +145,7 @@ class SupervisedTrainer(Trainer):
             loss = self.loss_fn(output, target)
             loss.backward()
             self.optimizer.step()
+
             if batch_idx % 10 == 0:
                 self.logger.debug(
                     "Train Epoch: %d [%d/%d (%.0f%%)]\tLoss: %.6f",
@@ -159,8 +160,8 @@ class SupervisedTrainer(Trainer):
         self, model: nn.Module, data_loader: DataLoader, description="Validation"
     ):
         model.eval()
-        total_loss = 0
-        total = 0
+        total_loss = 0.0
+        total_samples = 0
         metric_totals = {name: 0.0 for name in self.extra_metrics}
         metric_counts = {name: 0 for name in self.extra_metrics}
         metric_avg = {name: 0.0 for name in self.extra_metrics}
@@ -172,12 +173,14 @@ class SupervisedTrainer(Trainer):
 
                 loss = self.loss_fn(output, target)
                 total_loss += loss.item() * data.size(0)
+                total_samples += target.size(0)
                 for name, metric_fn in self.extra_metrics.items():
                     val, count = metric_fn(output, target)
-                    metric_totals[name] += val
+                    metric_totals[name] += val.item()
                     metric_counts[name] += count
-                total += target.size(0)
-        avg_loss = total_loss / total
+
+        avg_loss = total_loss / total_samples
+        self.logger.info(f"{description} set: Loss: {avg_loss:.4f}")
 
         for name, metric_total, metric_count in zip(
             metric_totals.keys(), metric_totals.values(), metric_counts.values()
@@ -186,7 +189,6 @@ class SupervisedTrainer(Trainer):
             self.logger.info(
                 f"{description} set: {name}: {metric_total}/{metric_count} ({metric_avg[name]:.4f}%)"
             )
-        self.logger.info(f"{description} set: Loss: {avg_loss:.4f}")
         return metric_avg, avg_loss
 
     def validate(self, model: nn.Module):
@@ -197,7 +199,6 @@ class SupervisedTrainer(Trainer):
 
 
 class ReconstructionAutoencoderTrainer(Trainer):
-
     def __init__(
         self,
         device: str,
