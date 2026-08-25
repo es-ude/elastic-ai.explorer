@@ -23,7 +23,7 @@ from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 
 class TestDeploymentAndMeasurement:
     def setup_class(self):
-        with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
+        with open("./tests/system_tests/example_system_test_settings.toml", "rb") as f:
             config = tomllib.load(f)
 
         ssh_params = SSHParams(

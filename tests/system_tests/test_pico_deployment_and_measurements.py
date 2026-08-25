@@ -27,7 +27,7 @@ from torchvision import transforms
 
 class TestPicoDeploymentAndMeasurement:
     def setup_class(self):
-        with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
+        with open("./tests/system_tests/example_system_test_settings.toml", "rb") as f:
             config = tomllib.load(f)
         serial_params = SerialParams(config["PICO_DEVICE_PATH"])
         compiler_params = CompilerParams(

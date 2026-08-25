@@ -21,11 +21,11 @@ from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from tests.integration_tests.samples import sample_MLP
-from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 
 
 class TestPicoGenerateAndCompile:
     def setup_method(self):
+        from tests.system_tests import PICO_DEVICE_PATH
         self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
         self.compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),

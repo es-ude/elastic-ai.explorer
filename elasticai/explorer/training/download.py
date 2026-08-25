@@ -69,5 +69,7 @@ class DownloadableSciebo(Downloadable):
 
     def _download(self):
         get_file_from_sciebo(
-            str(self.download_path), str(self.file_path_on_fileshare), self.file_type
+            path_to_save=str(self.download_path),
+            file_path_in_sciebo=str(self.file_path_on_fileshare),
+            file_type=self.file_type
         )
