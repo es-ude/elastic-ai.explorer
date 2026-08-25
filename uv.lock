@@ -558,7 +558,7 @@ pico = [
 
 [package.metadata]
 requires-dist = [
-    { name = "elasticai-preprocessor", git = "https://github.com/es-ude/elasticai.preprocessor.git" },
+    { name = "elasticai-preprocessor", git = "https://github.com/es-ude/elasticai.preprocessor.git?branch=main" },
     { name = "fabric", specifier = ">=3.2.2" },
     { name = "fvcore", specifier = ">=0.1.5.post20221221" },
     { name = "iesude-data", git = "https://github.com/es-ude/data.git" },
@@ -591,8 +591,8 @@ pico = [{ name = "ai-edge-torch", specifier = "==0.5.0" }]
 
 [[package]]
 name = "elasticai-preprocessor"
-version = "0.1.1"
-source = { git = "https://github.com/es-ude/elasticai.preprocessor.git#06697b914f2a1da3cf614704a50749c2235bdba9" }
+version = "0.1.4.dev14+g186a109cc"
+source = { git = "https://github.com/es-ude/elasticai.preprocessor.git?branch=main#186a109cc594f5e4677487c73467d059880d580f" }
 dependencies = [
     { name = "elasticai-creator" },
     { name = "numpy" },

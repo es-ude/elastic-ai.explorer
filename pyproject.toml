@@ -51,7 +51,7 @@ prerelease = "allow"
 
 [tool.uv.sources]
 iesude-data = { git = "https://github.com/es-ude/data.git" }
-elasticai-preprocessor = { git = "https://github.com/es-ude/elasticai.preprocessor.git" }
+elasticai-preprocessor = { git = "https://github.com/es-ude/elasticai.preprocessor.git", branch = "main" }
 
 
 [build-system]
