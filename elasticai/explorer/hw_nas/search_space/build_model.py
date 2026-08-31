@@ -1,7 +1,5 @@
 from collections import OrderedDict
 from typing import Sequence
-
-
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.layer_builder import LAYER_REGISTRY

@@ -68,6 +68,7 @@ class Trainer(ABC):
         best_val_loss = float("inf")
         patience_counter = 0
         best_model_state = model.state_dict()
+        model.to(device=self.device)
 
         for epoch in range(epochs):
             self.logger.info(f"Epoch {epoch + 1}/{epochs}")
@@ -96,12 +97,10 @@ class Trainer(ABC):
 
     @abstractmethod
     def validate(self, model: nn.Module) -> tuple[dict, float]:
-
         pass
 
     @abstractmethod
     def test(self, model: nn.Module) -> tuple[dict, float]:
-
         pass
 
     @abstractmethod
@@ -111,7 +110,7 @@ class Trainer(ABC):
 
 def accuracy_fn(output, target):
     pred = output.argmax(dim=1)
-    correct = pred.eq(target).sum().item()
+    correct = pred.eq(target).sum()
     return correct, target.size(0)
 
 
@@ -127,57 +126,61 @@ class SupervisedTrainer(Trainer):
         super().__init__(device, dataset_spec, loss_fn, batch_size, extra_metrics)
         self.logger = logging.getLogger("explorer.SupervisedTrainer")
 
-    def train_epoch(self, model: nn.Module, epoch: int):
+    def train_epoch(self, model: nn.Module, epoch: int) -> None:
         """Trains model for only one epoch.
 
         Args:
             model: The NN-Model to test.
             epoch: Current epoch number.
         """
-        model.to(device=self.device)
         model.train(True)
+        dataset_len = len(self.train_loader.dataset)
+
         for batch_idx, (data, target) in enumerate(self.train_loader):
-            data, target = data.to(self.device), target.to(self.device)
-            #        target = target.unsqueeze(1)
-            self.optimizer.zero_grad()
+            data = data.to(self.device, non_blocking=True)
+            target = target.to(self.device, non_blocking=True)
+            self.optimizer.zero_grad(set_to_none=True)
+
             output = model(data)
             loss = self.loss_fn(output, target)
             loss.backward()
             self.optimizer.step()
+
             if batch_idx % 10 == 0:
                 self.logger.debug(
-                    "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                        epoch,
-                        batch_idx * len(data),
-                        len(self.train_loader.dataset),  # type: ignore
-                        100.0 * batch_idx / len(self.train_loader),
-                        loss.item(),
-                    )
+                    "Train Epoch: %d [%d/%d (%.0f%%)]\tLoss: %.6f",
+                    epoch,
+                    batch_idx * len(data),
+                    dataset_len,
+                    100.0 * batch_idx / len(self.train_loader),
+                    loss.item(),
                 )
 
     def evaluate(
         self, model: nn.Module, data_loader: DataLoader, description="Validation"
     ):
-        model.to(device=self.device)
         model.eval()
-        total_loss = 0
-        total = 0
+        total_loss = 0.0
+        total_samples = 0
         metric_totals = {name: 0.0 for name in self.extra_metrics}
         metric_counts = {name: 0 for name in self.extra_metrics}
         metric_avg = {name: 0.0 for name in self.extra_metrics}
         with torch.no_grad():
             for data, target in data_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                #  target = target.unsqueeze(1)
+                data = data.to(self.device, non_blocking=True)
+                target = target.to(self.device, non_blocking=True)
                 output = model(data)
+
                 loss = self.loss_fn(output, target)
                 total_loss += loss.item() * data.size(0)
+                total_samples += target.size(0)
                 for name, metric_fn in self.extra_metrics.items():
                     val, count = metric_fn(output, target)
-                    metric_totals[name] += val
+                    metric_totals[name] += val.item()
                     metric_counts[name] += count
-                total += target.size(0)
-        avg_loss = total_loss / total
+
+        avg_loss = total_loss / total_samples
+        self.logger.info(f"{description} set: Loss: {avg_loss:.4f}")
 
         for name, metric_total, metric_count in zip(
             metric_totals.keys(), metric_totals.values(), metric_counts.values()
@@ -186,7 +189,6 @@ class SupervisedTrainer(Trainer):
             self.logger.info(
                 f"{description} set: {name}: {metric_total}/{metric_count} ({metric_avg[name]:.4f}%)"
             )
-        self.logger.info(f"{description} set: Loss: {avg_loss:.4f}")
         return metric_avg, avg_loss
 
     def validate(self, model: nn.Module):
@@ -197,7 +199,6 @@ class SupervisedTrainer(Trainer):
 
 
 class ReconstructionAutoencoderTrainer(Trainer):
-
     def __init__(
         self,
         device: str,
@@ -214,16 +215,17 @@ class ReconstructionAutoencoderTrainer(Trainer):
         self.logger = logging.getLogger("explorer.AutoencoderTrainer")
 
     def train_epoch(self, model: nn.Module, epoch: int):
-        model.to(device=self.device)
         model.train()
         train_loss = 0
 
         for data in self.train_loader:
             data = data.to(torch.float32)
-            data = data.to(self.device)
-            self.optimizer.zero_grad()
+            data = data.to(self.device, non_blocking=True)
+
+            self.optimizer.zero_grad(set_to_none=True)
             reconstructed = model(data)
             loss = self.loss_fn(reconstructed, data)
+
             loss.backward()
             self.optimizer.step()
             train_loss += loss.item()
@@ -231,12 +233,11 @@ class ReconstructionAutoencoderTrainer(Trainer):
         self.logger.debug("Train Epoch: {}\tLoss: {:.6f}".format(epoch, train_loss))
 
     def evaluate(self, model: nn.Module, data_loader: DataLoader, description):
-        model.to(device=self.device)
         model.eval()
         total_loss = 0
         with torch.no_grad():
             for batch in data_loader:
-                batch = batch.to(self.device)
+                batch = batch.to(self.device, non_blocking=True)
                 reconstructed = model(batch)
                 loss = self.loss_fn(reconstructed, batch)
                 total_loss += loss.item()

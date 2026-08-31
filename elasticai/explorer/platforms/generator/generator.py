@@ -9,22 +9,18 @@ import numpy
 import torch
 from torch import nn
 from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
-from torch._export import capture_pre_autograd_graph
-
-from ai_edge_torch import convert, to_channel_last_io
-from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_config
-from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
-from ai_edge_torch.quantize.quant_config import QuantConfig
+# from torch._export import capture_pre_autograd_graph
+from torch.export import export_for_training
 
 
 class Generator(ABC):
     @abstractmethod
     def generate(
-        self,
-        model: nn.Module,
-        path: Path,
-        input_sample: torch.Tensor,
-        quantization: Literal["full_precision"] = "full_precision",
+            self,
+            model: nn.Module,
+            path: Path,
+            input_sample: torch.Tensor,
+            quantization: Literal["full_precision"] = "full_precision",
     ) -> Any:
         pass
 
@@ -36,11 +32,11 @@ class RPiGenerator(Generator):
         )
 
     def generate(
-        self,
-        model: nn.Module,
-        path: Path,
-        input_sample: torch.Tensor | None = None,
-        quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
+            self,
+            model: nn.Module,
+            path: Path,
+            input_sample: torch.Tensor | None = None,
+            quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
         if quantization == "int8":
             raise NotImplementedError("int8-Quantization is currently not supported.")
@@ -69,10 +65,10 @@ class PicoGenerator(Generator):
 
     def _validate(self, torch_output, edge_output):
         if numpy.allclose(
-            torch_output.detach().numpy(),
-            edge_output,
-            atol=1e-2,
-            rtol=1e-2,
+                torch_output.detach().numpy(),
+                edge_output,
+                atol=1e-2,
+                rtol=1e-2,
         ):
             self.logger.info(
                 "Inference result with Pytorch and TfLite was within tolerance"
@@ -81,11 +77,17 @@ class PicoGenerator(Generator):
             self.logger.warning("Something wrong with Pytorch --> TfLite")
 
     def _quantize(self, model: nn.Module, sample_input: tuple[Any]):
+        from ai_edge_torch import convert, to_channel_last_io
+        from ai_edge_torch.quantize.pt2e_quantizer import get_symmetric_quantization_config
+        from ai_edge_torch.quantize.pt2e_quantizer import PT2EQuantizer
+        from ai_edge_torch.quantize.quant_config import QuantConfig
+
         pt2e_quantizer = PT2EQuantizer().set_global(
             get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
         )
 
-        pt2e_torch_model = capture_pre_autograd_graph(model, sample_input)
+        pt2e_torch_model = export_for_training(model, sample_input).module()
+        # pt2e_torch_model = capture_pre_autograd_graph(model, sample_input)
         pt2e_torch_model = prepare_pt2e(pt2e_torch_model, pt2e_quantizer)  # type:ignore
 
         # Prepare model by running one inference.
@@ -128,12 +130,14 @@ class PicoGenerator(Generator):
             )
 
     def generate(
-        self,
-        model: nn.Module,
-        path: Path,
-        input_sample: torch.Tensor,
-        quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
+            self,
+            model: nn.Module,
+            path: Path,
+            input_sample: torch.Tensor,
+            quantization: Literal["int8"] | Literal["full_precision"] = "full_precision",
     ):
+        from ai_edge_torch import convert, to_channel_last_io
+
         self.logger.info("Generate torchscript model from %s", model)
         input_sample_nchw = input_sample.unsqueeze(1)
         input_tuple_nchw = (input_sample_nchw,)
@@ -151,7 +155,7 @@ class PicoGenerator(Generator):
             self.logger.warning(
                 "Int8 quantization is supported but cannot be tested and deployed with current version of the Explorer."
             )
-            
+
         edge_output = edge_model(*sample_tflite_input)
         self._validate(torch_output, edge_output)
         edge_model.export(str(path.with_suffix(".tflite")))

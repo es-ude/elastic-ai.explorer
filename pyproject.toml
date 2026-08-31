@@ -1,12 +1,13 @@
 [project]
-name = "elastic-ai.explorer"
+name = "elasticai.explorer"
 version = "0.1.0"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
-authors = [{ name = "Department Intelligent Embedded Systems - University Duisburg Essen" }]
+authors = [{ name = "Department Intelligent Embedded Systems - University of Duisburg Essen" }]
 readme = "README.md"
-license = "LICENSE"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = "<3.14, >=3.12"
 
-requires-python = ">=3.12"
 dependencies = [
     "fabric>=3.2.2",
     "fvcore>=0.1.5.post20221221",
@@ -16,20 +17,16 @@ dependencies = [
     "plotly>=6.0.1",
     "python-on-whales>=0.75.1",
     "scipy>=1.16.1",
-    "torchvision==0.21.0",
+    "torchvision>=0.21.0",
     "torch>=2.4.0",
-    "ai-edge-torch==0.5.0",
     "pyserial>=3.5",
     "pandas>=2.2.3",
     "tensorflow==2.20.0",
     "iesude-data",
     "tflite==2.18.0",
-    "denspp-offline",
+    "elasticai-preprocessor",
 ]
 
-# Same as Black.
-line-length = 88
-indent-width = 4
 
 [dependency-groups]
 dev = [
@@ -37,26 +34,60 @@ dev = [
     "pylint>=3.3.6",
     "pytest>=8.3.5",
     "python-language-server>=0.36.2",
-    "setuptools",
-    "wheel",
-    "pip"
+    "setuptools<63",
+    "wheel>=0.38",
+    "pip>=23",
+    "build>=1.5.0",
 ]
-
-
+pico = [
+    "ai-edge-torch==0.5.0",
+]
 
 [tool.uv]
 default-groups = ["dev"]
 override-dependencies = ["tf-nightly; sys_platform == 'never'",]
+prerelease = "allow"
+
+
 [tool.uv.sources]
 iesude-data = { git = "https://github.com/es-ude/data.git" }
-denspp-offline = { git = "https://github.com/es-ude/denspp.offline.git" }
+elasticai-preprocessor = { git = "https://github.com/es-ude/elasticai.preprocessor.git", branch = "main" }
+
+
+[build-system]
+requires = ["hatchling", "wheel"]
+build-backend = "hatchling.build"
+
+
+[tool.hatch.build.targets.sdist]
+where = ["."]
+include = ["elasticai", "docker"]
+exclude = [
+  ".venv",
+  "examples",
+  "tests",
+  "**/*_test.py"
+]
+namespaces = false
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["elasticai", "docker"]
+exclude = [
+  ".venv",
+  "examples",
+  "tests",
+  "**/*_test.py"
+]
+only-packages = true
+
 
 [tool.black]
 preview = true
 line-length = 88
 
-[tool.pytest.ini_options]
 
+[tool.pytest.ini_options]
 pythonpath = [
   "."
 ]
@@ -76,9 +107,9 @@ addopts = [
 ]
 
 
-
 [tool.pylint]
+line-length = 88
+indent-width = 4
 max-line-length = 88
 accept-no-raise-doc = "False"
 disable="C0115, C0116, C0114, E0015, W0621" #disable missing docstring messages as they incourage adding noise comments
-

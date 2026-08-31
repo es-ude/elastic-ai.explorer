@@ -37,12 +37,22 @@ class SearchStrategy(Enum):
 def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
     score = 0.0
     for estimator in optimization_criteria:
-        final_estimate, estimates = estimator.estimate(model)
+        final_estimate, estimates, metrics = estimator.estimate(model)
         trial.set_user_attr(estimator.metric_name, final_estimate)
         trial.set_user_attr(
             intermediate_metrics_template.format(metric_name=estimator.metric_name),
             estimates,
         )
+
+        if metrics:
+            keys_available = list(metrics[0].keys())
+            for key in keys_available:
+                trial.set_user_attr(key, metrics[-1][key])
+                trial.set_user_attr(
+                    intermediate_metrics_template.format(metric_name=key),
+                    [val[key] for val in metrics],
+                )
+
         hard_constraints = optimization_criteria.get_hard_constraints(estimator)
         for hc in hard_constraints:
             if not hc.comparator(final_estimate, hc.constraint_value):
@@ -167,9 +177,14 @@ def collect_top_k_results(
     top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
+
     metric_names = [
         estimator.metric_name for estimator in optimization_criteria.get_estimators()
     ]
+    if hasattr(optimization_criteria.get_estimators(), "trainer"):
+        metric_names.extend(
+            key for estimator in optimization_criteria.get_estimators() for key in list(estimator.trainer.extra_metrics.keys())
+        )
 
     for frozen_trial in top_k_frozen_trials:
         top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))

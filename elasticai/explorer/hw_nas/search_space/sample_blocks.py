@@ -2,13 +2,10 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from enum import Enum
 import optuna
-import yaml
 from optuna.samplers import RandomSampler
 from yaml.error import YAMLError
 
-from elasticai.explorer.hw_nas.search_space.build_model import construct_model
 from elasticai.explorer.hw_nas.search_space.registry import COMPOSITE_REGISTRY
-from settings import ROOT_DIR
 
 
 class RepeatType(Enum):

@@ -5,15 +5,15 @@ from pathlib import Path
 
 from python_on_whales import docker
 
-from settings import ROOT_DIR
+from elasticai.explorer import get_path_to_project
 
 
 @dataclass
 class CompilerParams:
     image_name: str = "cross"
     library_path: Path = Path("./code/libtorch")
-    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.pibase"
-    build_context: Path = ROOT_DIR / "docker"
+    path_to_dockerfile: Path = get_path_to_project() / "docker" / "Dockerfile.pibase"
+    build_context: Path = get_path_to_project() / "docker"
 
 
 class Compiler(ABC):

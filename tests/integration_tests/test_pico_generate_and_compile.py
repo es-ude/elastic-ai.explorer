@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import (
@@ -12,7 +13,6 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     SerialParams,
 )
 from elasticai.explorer.platforms.deployment.hw_manager import (
-    DOCKER_CONTEXT_DIR,
     PicoHWManager,
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
@@ -20,19 +20,18 @@ from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from torchvision import transforms
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
-from settings import ROOT_DIR
 from tests.integration_tests.samples import sample_MLP
-from tests.system_tests.system_test_settings import PICO_DEVICE_PATH
 
 
 class TestPicoGenerateAndCompile:
     def setup_method(self):
+        from tests.system_tests import PICO_DEVICE_PATH
         self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
         self.compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
-            build_context=DOCKER_CONTEXT_DIR,
-            path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+            build_context=get_path_to_project("docker"),
+            path_to_dockerfile=get_path_to_project("docker") / "Dockerfile.picobase",
         )  # <-- Configure this only if necessary.
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
@@ -46,7 +45,7 @@ class TestPicoGenerateAndCompile:
             )
         )
         self.pico_explorer = Explorer(knowledge_repository)
-        self.pico_explorer.experiment_dir = ROOT_DIR / Path(
+        self.pico_explorer.experiment_dir = get_path_to_project() / Path(
             "tests/integration_tests/test_experiment"
         )
         self.model_name = "model"
@@ -57,8 +56,8 @@ class TestPicoGenerateAndCompile:
         transf = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
-        path_to_dataset = ROOT_DIR / "data/mnist"
-        path_to_deployable_dataset = ROOT_DIR / "data/cpp-mnist"
+        path_to_dataset = get_path_to_project() / "data/mnist"
+        path_to_deployable_dataset = get_path_to_project() / "data/cpp-mnist"
 
         setup_mnist_for_cpp(
             root_dir_mnist=path_to_dataset,
@@ -68,7 +67,7 @@ class TestPicoGenerateAndCompile:
 
         self.dataset_spec = DatasetSpecification(
             dataset=MNISTWrapper(
-                Path(ROOT_DIR / "data/mnist"),
+                Path(get_path_to_project() / "data/mnist"),
                 transform=transforms.Compose(
                     [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
                 ),
@@ -95,7 +94,7 @@ class TestPicoGenerateAndCompile:
 
         expected_name_of_executable = "measure_accuracy.uf2"
         self.path_to_executable = (
-            DOCKER_CONTEXT_DIR / "bin" / expected_name_of_executable
+            get_path_to_project("docker") / "bin" / expected_name_of_executable
         )
 
         compiler = PicoCompiler(compiler_params=self.compiler_params)
