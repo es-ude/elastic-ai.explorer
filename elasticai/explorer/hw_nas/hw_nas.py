@@ -183,7 +183,9 @@ def collect_top_k_results(
     ]
     if hasattr(optimization_criteria.get_estimators(), "trainer"):
         metric_names.extend(
-            key for estimator in optimization_criteria.get_estimators() for key in list(estimator.trainer.extra_metrics.keys())
+            key
+            for estimator in optimization_criteria.get_estimators()
+            for key in list(estimator.trainer.extra_metrics.keys())
         )
 
     for frozen_trial in top_k_frozen_trials:

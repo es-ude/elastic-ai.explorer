@@ -12,13 +12,14 @@ from elasticai.explorer.platforms.deployment.hw_manager import (
     Metric,
     PicoHWManager,
 )
-from elasticai.explorer.platforms.generator.generator import PicoGenerator
+
 from elasticai.explorer.platforms.deployment.device_communication import (
     PicoHost,
     SerialParams,
 )
 from pathlib import Path
 
+from elasticai.explorer.platforms.generator.litert_generator import LitertGenerator
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from elasticai.explorer import get_path_to_project
@@ -41,7 +42,7 @@ class TestPicoDeploymentAndMeasurement:
             HWPlatform(
                 "pico",
                 "Pico with RP2040 MCU and 2MB control memory",
-                PicoGenerator,
+                LitertGenerator,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,
@@ -51,7 +52,9 @@ class TestPicoDeploymentAndMeasurement:
         self.pico_explorer.experiment_dir = get_path_to_project() / Path(
             "tests/system_tests/test_experiment"
         )
-        self.pico_explorer._model_dir = get_path_to_project() / Path("tests/system_tests/samples")
+        self.pico_explorer._model_dir = get_path_to_project() / Path(
+            "tests/system_tests/samples"
+        )
         self.pico_explorer.choose_target_hw("pico", compiler_params, serial_params)
         self.model_name = "ts_model_0.tflite"
 
@@ -60,7 +63,8 @@ class TestPicoDeploymentAndMeasurement:
                 "code/pico_crosscompiler/measure_accuracy"
             ),  # test relative path
             Metric.LATENCY: (
-                get_path_to_project("docker") / "code/pico_crosscompiler/measure_latency"
+                get_path_to_project("docker")
+                / "code/pico_crosscompiler/measure_latency"
             ),  # test absolute path
         }
         transf = transforms.Compose(

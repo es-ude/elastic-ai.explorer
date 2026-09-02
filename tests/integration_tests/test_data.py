@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Callable, Optional, Union
 import pandas as pd
+import pytest
 from torch import optim
 
 from elasticai.explorer.training.data import (
@@ -14,6 +15,45 @@ from elasticai.explorer.training.trainer import SupervisedTrainer
 
 from tests.integration_tests.samples.sample_MLP import SampleMLP
 from iesude.data.archives import PlainFile
+import pytest
+
+
+@pytest.fixture
+def test_dataset_path(tmp_path):
+    csv_content = """A,B,labels_test
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+7,8,1
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+9,8,4
+"""
+
+    csv_path = tmp_path / "test_dataset.csv"
+    csv_path.write_text(csv_content)
+
+    return csv_path
 
 
 class TimeSeriesDatasetExample(MultivariateTimeseriesDataset, DownloadableSciebo):
@@ -45,26 +85,26 @@ class TimeSeriesDatasetExample(MultivariateTimeseriesDataset, DownloadableSciebo
 
 
 class TestData:
-    def setup_class(self):
-        self.sample_dir = Path("tests/integration_tests/samples")
-        os.makedirs(self.sample_dir, exist_ok=True)
+    # def setup_class(self):
+    #     self.sample_dir = Path("tests/integration_tests/samples")
+    #     os.makedirs(self.sample_dir, exist_ok=True)
 
-    def test_dataset(self):
-        dataset = TimeSeriesDatasetExample(root=self.sample_dir / "test_dataset.csv")
+    def test_dataset(self, test_dataset_path):
+        dataset = TimeSeriesDatasetExample(root=test_dataset_path)
         assert len(dataset) == 27
 
-    def test_dataset_with_mlp_trainer(self):
+    def test_dataset_with_mlp_trainer(self, test_dataset_path):
         dataset_spec = DatasetSpecification(
-            dataset=TimeSeriesDatasetExample(root=self.sample_dir / "test_dataset.csv"),
-            deployable_dataset_path=self.sample_dir / "test_dataset.csv",
+            dataset=TimeSeriesDatasetExample(root=test_dataset_path),
+            deployable_dataset_path=test_dataset_path,
             train_val_test_ratio=[0.6, 0.2, 0.2],
         )
         model = SampleMLP(2)
-
+        print(model)
         mlp_trainer = SupervisedTrainer(
             device="cpu",
             dataset_spec=dataset_spec,
-            batch_size=2,
+            batch_size=5,
         )
         mlp_trainer.configure_optimizer(optim.Adam(model.parameters(), lr=1e-3)),
         mlp_trainer.train(model, epochs=2)
@@ -72,9 +112,3 @@ class TestData:
         metrics, loss = mlp_trainer.validate(model)
         assert metrics["accuracy"] >= 0
         assert loss >= 0
-
-    def teardown_method(self):
-        try:
-            os.remove(self.sample_dir / "test_dataset.csv")
-        except:
-            pass

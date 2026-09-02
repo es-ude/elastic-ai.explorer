@@ -18,13 +18,14 @@ dependencies = [
     "python-on-whales>=0.75.1",
     "scipy>=1.16.1",
     "torchvision>=0.21.0",
-    "torch>=2.4.0",
+    "torch>=2.13.0",
     "pyserial>=3.5",
     "pandas>=2.2.3",
     "tensorflow==2.20.0",
     "iesude-data",
     "tflite==2.18.0",
     "elasticai-preprocessor",
+    "litert-torch>=0.9.4",
 ]
 
 
@@ -34,14 +35,15 @@ dev = [
     "pylint>=3.3.6",
     "pytest>=8.3.5",
     "python-language-server>=0.36.2",
-    "setuptools<63",
+   # "setuptools<63",
+    "setuptools>=77",
     "wheel>=0.38",
     "pip>=23",
     "build>=1.5.0",
 ]
-pico = [
-    "ai-edge-torch==0.5.0",
-]
+#pico = [
+#    "ai-edge-torch==0.5.0",
+#]
 
 [tool.uv]
 default-groups = ["dev"]

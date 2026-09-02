@@ -14,7 +14,7 @@ class SampleMLP(nn.Module):
 
     def forward(self, x):
         x = x.to(torch.float32)
-        x = x.view(-1, self.input_dim)
+        #    x = x.view(-1, self.input_dim)
         x = functional.relu(self.fc1(x))
         x = self.dropout(x)
         x = functional.relu(self.fc2(x))

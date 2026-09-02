@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+import pytest
+
 from elasticai.explorer import get_path_to_project
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -16,17 +18,25 @@ from elasticai.explorer.platforms.deployment.hw_manager import (
     PicoHWManager,
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
-from elasticai.explorer.platforms.generator.generator import PicoGenerator
 from torchvision import transforms
+
+from elasticai.explorer.platforms.generator.litert_generator import LitertGenerator
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from tests.integration_tests.samples import sample_MLP
+import tomllib
 
 
 class TestPicoGenerateAndCompile:
-    def setup_method(self):
-        from tests.system_tests import PICO_DEVICE_PATH
-        self.serial_params = SerialParams(device_path=PICO_DEVICE_PATH)
+    @pytest.fixture(autouse=True)
+    def setup_method(self, tmp_path):
+        with open(
+            get_path_to_project()
+            / Path("tests/system_tests/system_test_settings.toml"),
+            "rb",
+        ) as f:
+            data = tomllib.load(f)
+        self.serial_params = SerialParams(device_path=data["PICO_DEVICE_PATH"])
         self.compiler_params = CompilerParams(
             library_path=Path("./code/pico_crosscompiler"),
             image_name="picobase",
@@ -38,16 +48,14 @@ class TestPicoGenerateAndCompile:
             HWPlatform(
                 "pico",
                 "Pico mit RP2040",
-                PicoGenerator,
+                LitertGenerator,
                 PicoHWManager,
                 PicoHost,
                 PicoCompiler,
             )
         )
         self.pico_explorer = Explorer(knowledge_repository)
-        self.pico_explorer.experiment_dir = get_path_to_project() / Path(
-            "tests/integration_tests/test_experiment"
-        )
+        self.pico_explorer.experiment_dir = tmp_path / "experiment"
         self.model_name = "model"
 
         self.pico_explorer.choose_target_hw(
@@ -120,25 +128,25 @@ class TestPicoGenerateAndCompile:
             os.path.exists(self.pico_explorer.experiment_dir / "resolver_ops.h") == True
         )
 
-    def teardown_method(self):
-
-        try:
-            os.remove(
-                self.pico_explorer.model_dir / (self.model_name + ".tflite"),
-            )
-        except:
-            pass
-
-        try:
-            os.remove(self.pico_explorer.model_dir / (self.model_name + ".cpp"))
-        except:
-            pass
-
-        try:
-            os.remove(self.path_to_executable)
-        except:
-            pass
-        try:
-            os.remove(self.pico_explorer.experiment_dir / "resolver_ops.h")
-        except:
-            pass
+    # def teardown_method(self):
+    #
+    #     try:
+    #         os.remove(
+    #             self.pico_explorer.model_dir / (self.model_name + ".tflite"),
+    #         )
+    #     except:
+    #         pass
+    #
+    #     try:
+    #         os.remove(self.pico_explorer.model_dir / (self.model_name + ".cpp"))
+    #     except:
+    #         pass
+    #
+    #     try:
+    #         os.remove(self.path_to_executable)
+    #     except:
+    #         pass
+    #     try:
+    #         os.remove(self.pico_explorer.experiment_dir / "resolver_ops.h")
+    #     except:
+    #         pass

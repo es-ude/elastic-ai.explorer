@@ -45,7 +45,9 @@ class TestDeploymentAndMeasurement:
         self.RPI5explorer.experiment_dir = get_path_to_project() / Path(
             "tests/system_tests/test_experiment"
         )
-        self.RPI5explorer._model_dir = get_path_to_project() / Path("tests/system_tests/samples")
+        self.RPI5explorer._model_dir = get_path_to_project() / Path(
+            "tests/system_tests/samples"
+        )
         self.RPI5explorer.choose_target_hw(
             "rpi5", communication_params=ssh_params, compiler_params=compiler_params
         )

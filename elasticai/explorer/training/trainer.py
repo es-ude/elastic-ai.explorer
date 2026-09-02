@@ -134,13 +134,13 @@ class SupervisedTrainer(Trainer):
             epoch: Current epoch number.
         """
         model.train(True)
-        dataset_len = len(self.train_loader.dataset)
 
+        dataset_len = len(self.train_loader.dataset)
         for batch_idx, (data, target) in enumerate(self.train_loader):
             data = data.to(self.device, non_blocking=True)
             target = target.to(self.device, non_blocking=True)
-            self.optimizer.zero_grad(set_to_none=True)
 
+            self.optimizer.zero_grad(set_to_none=True)
             output = model(data)
             loss = self.loss_fn(output, target)
             loss.backward()

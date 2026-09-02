@@ -36,7 +36,8 @@ OUTPUT_PATH = get_path_to_project() / "tests/outputs"
 class TestHWNasSetupAndSearch:
     """Integration test of the Explorer HW-NAS pipeline without a target device."""
 
-    def setup_class(self):
+    @pytest.fixture(autouse=True)
+    def setup_class(self, tmp_path):
         knowledge_repository = KnowledgeRepository()
         knowledge_repository.register_hw_platform(
             HWPlatform(
@@ -49,7 +50,7 @@ class TestHWNasSetupAndSearch:
             )
         )
         self.RPI5explorer = Explorer(knowledge_repository)
-        self.RPI5explorer.experiment_dir = get_path_to_project() / "tests/integration_tests/test_experiment"
+        self.RPI5explorer.experiment_dir = tmp_path
         self.model_name = "ts_model_0.pt"
 
         path_to_dataset = get_path_to_project() / "data/mnist"
@@ -125,6 +126,3 @@ class TestHWNasSetupAndSearch:
             type(torch.jit.load(self.RPI5explorer.model_dir / self.model_name))
             == torch.jit._script.RecursiveScriptModule  # type: ignore
         )
-
-    def teardown_class(self):
-        shutil.rmtree(self.RPI5explorer.experiment_dir, ignore_errors=True)
