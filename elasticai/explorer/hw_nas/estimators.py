@@ -1,13 +1,14 @@
+import logging
 from abc import abstractmethod
 from logging import Logger
-import logging
 from numbers import Number
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import torch
-from fvcore.nn.jit_handles import get_shape
 from fvcore.nn import FlopCountAnalysis, parameter_count
+from fvcore.nn.jit_handles import get_shape
 from torch.optim.adam import Adam
+
 from elasticai.explorer.training.trainer import Trainer
 
 
@@ -54,18 +55,14 @@ class Estimator:
 
 class FLOPsEstimator(Estimator):
     def __init__(self, data_sample: torch.Tensor):
-        super().__init__(
-            metric_name="flops_estimate", logger_name="explorer.FlopsEstimator"
-        )
+        super().__init__(metric_name="flops_estimate", logger_name="explorer.FlopsEstimator")
         self.data_sample = data_sample
 
     def estimate(
         self, model_sample: torch.nn.Module
     ) -> tuple[float | int, list[float | int], list[dict]]:
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
-        flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(
-            **handlers
-        )
+        flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(**handlers)
 
         return flops.total(), [], []
 
@@ -94,9 +91,7 @@ class TrainMetricsEstimator(Estimator):
         learning_rate: float = 1e-3,
     ) -> None:
 
-        super().__init__(
-            metric_name=metric_name, logger_name="explorer.TrainingEstimator"
-        )
+        super().__init__(metric_name=metric_name, logger_name="explorer.TrainingEstimator")
         self.trainer = trainer
         self.n_estimation_epochs = n_estimation_epochs
         self.learning_rate = learning_rate
@@ -120,9 +115,7 @@ class TrainMetricsEstimator(Estimator):
                 estimate_value = metric_avg.get(self.metric_name)
 
             if not estimate_value:
-                err = TypeError(
-                    f"Trainer Type does not support {self.metric_name} estimation."
-                )
+                err = TypeError(f"Trainer Type does not support {self.metric_name} estimation.")
                 self.logger.error(
                     "%s",
                     err,

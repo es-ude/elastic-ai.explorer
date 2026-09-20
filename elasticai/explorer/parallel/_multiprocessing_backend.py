@@ -3,7 +3,7 @@ import multiprocessing as mp
 import os
 import pickle
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -102,12 +102,8 @@ def _run_worker_pool(
     multiprocessing_config: MultiprocessingConfig,
     callbacks: list[Callable],
 ) -> None:
-    _ensure_pickable(
-        obj=optuna_search_config.optimization_objective, label="optimization objective"
-    )
-    _ensure_pickable(
-        obj=optuna_search_config.create_sampler_fn, label="sampler builder"
-    )
+    _ensure_pickable(obj=optuna_search_config.optimization_objective, label="optimization objective")
+    _ensure_pickable(obj=optuna_search_config.create_sampler_fn, label="sampler builder")
 
     assigned_devices = _assign_workers_to_devices(
         n_workers=multiprocessing_config.n_workers,
@@ -205,9 +201,7 @@ def _load_or_build_sampler(
     # loaded sampler state from pickle file
     if sampler_checkpoint.exists():
         with open(sampler_checkpoint, "rb") as f:
-            _logger.info(
-                f"Worker {worker_idx} resuming sampler from {sampler_checkpoint}"
-            )
+            _logger.info(f"Worker {worker_idx} resuming sampler from {sampler_checkpoint}")
             return pickle.load(f)
 
     return create_sampler_fn(worker_idx)

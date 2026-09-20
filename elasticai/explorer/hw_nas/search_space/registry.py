@@ -1,10 +1,10 @@
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.layer_adapter import (
+    Conv2dToLinearAdapter,
     Conv2dToLSTMAdapter,
     LinearToConv2dAdapter,
     LinearToLstmAdapter,
-    Conv2dToLinearAdapter,
     LSTMNoSequenceAdapter,
     LSTMToConv2dAdapter,
     ToLinearAdapter,

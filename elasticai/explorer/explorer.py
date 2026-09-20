@@ -1,21 +1,22 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any, Optional
+
 from torch import nn
 
 from elasticai.explorer._helper import get_path_to_experiments
 from elasticai.explorer.hw_nas import hw_nas
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
-from elasticai.explorer.knowledge_repository import KnowledgeRepository, HWPlatform
+from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams
 from elasticai.explorer.platforms.deployment.device_communication import (
-    SSHParams,
     SerialParams,
+    SSHParams,
 )
 from elasticai.explorer.platforms.deployment.hw_manager import (
     HWManager,
@@ -58,7 +59,7 @@ class Explorer:
             self.experiment_name: str = experiment_name
 
     @property
-    def experiment_name(self):  # type: ignore
+    def experiment_name(self):
         return self._experiment_name
 
     @property
@@ -78,7 +79,7 @@ class Explorer:
         return self._plot_dir
 
     @experiment_name.setter
-    def experiment_name(self, value: str):  # type: ignore
+    def experiment_name(self, value: str):
         """Setting experiment name updates the experiment paths as well."""
         self._experiment_name: str = value
         self._experiment_dir: Path = get_path_to_experiments() / self._experiment_name
@@ -123,9 +124,7 @@ class Explorer:
         data_utils.save_list_to_json(
             model_parameters, path_to_dir=self._model_dir, filename="models.json"
         )
-        data_utils.save_list_to_json(
-            metrics, path_to_dir=self._metric_dir, filename="metrics.json"
-        )
+        data_utils.save_list_to_json(metrics, path_to_dir=self._metric_dir, filename="metrics.json")
 
         if dump_configuration:
             data_utils.save_to_toml(
@@ -150,9 +149,7 @@ class Explorer:
         compiler_params: CompilerParams,
         communication_params: SSHParams | SerialParams,
     ):
-        self.target_hw_platform = self.knowledge_repository.fetch_hw_info(
-            target_platform_name
-        )
+        self.target_hw_platform = self.knowledge_repository.fetch_hw_info(target_platform_name)
         self.generator = self.target_hw_platform.model_generator()
         self.hw_manager = self.target_hw_platform.platform_manager(
             self.target_hw_platform.communication_protocol(communication_params),

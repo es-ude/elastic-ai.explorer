@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pandas as pd
 
 from elasticai.explorer import get_path_to_project
@@ -8,7 +9,7 @@ from elasticai.explorer.utils.visualize import plot_parallel_coordinates
 
 
 def build_search_space_measurements_file(
-    metric_to_measurements:dict,
+    metric_to_measurements: dict,
     metrics_path: Path,
     model_parameter_path: Path,
     csv_path: Path,
@@ -22,7 +23,6 @@ def build_search_space_measurements_file(
     data_merged = dataframe2.merge(dataframe, left_index=True, right_index=True)
 
     for metric, measurements in metric_to_measurements.items():
-
         data_merged[metric] = measurements
 
     data_merged.to_csv(csv_path)

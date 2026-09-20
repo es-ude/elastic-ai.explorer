@@ -100,7 +100,6 @@ def test_build_conv2d_model():
     sample = OrderedDict({"1": block_1, "2": block_2, "3": block_3})
 
     model = construct_model(sample, [16, 30, 20], 1)
-    print(model)
     first_part = [
         nn.Sequential(nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=0), nn.ReLU()),
         nn.Conv2d(16, 24, kernel_size=2, stride=2, padding=0),
@@ -115,7 +114,6 @@ def test_build_conv2d_model():
     expected = nn.Sequential(
         *first_part, ToLinearAdapter(), nn.Sequential(nn.Linear(shape, 1), nn.Sigmoid())
     )
-    print(expected)
     expected.load_state_dict(states)
     assert torch.equal(expected(input), model(input)) == True
 
@@ -185,7 +183,6 @@ def test_build_conv1d_model():
     expected = nn.Sequential(
         *first_part, ToLinearAdapter(), nn.Sequential(nn.Linear(shape, 1), nn.Sigmoid())
     )
-    print(expected)
     expected.load_state_dict(states)
     assert torch.equal(expected(input), model(input)) == True
 
@@ -246,7 +243,6 @@ def test_depthwise_separable_conv():
     expected = nn.Sequential(
         *first_part, ToLinearAdapter(), nn.Sequential(nn.Linear(shape, 1), nn.Sigmoid())
     )
-    print(expected)
     expected.load_state_dict(states)
     assert torch.equal(expected(input), model(input)) == True
 
@@ -286,10 +282,8 @@ def test_build_lstm_model():
     # sequence_length, num_features
     in_dim = [2000, 2]
     model = construct_model(sample, in_dim, 1)
-    print(model)
     states = model.state_dict()
     input = torch.rand([16, 2000, 2])
-    print(input[0])
     expected = nn.Sequential(
         SimpleLSTM(
             in_dim[-1],
@@ -312,7 +306,6 @@ def test_build_lstm_model():
         LSTMNoSequenceAdapter(),
         nn.Sequential(nn.Linear(64, 1), nn.Sigmoid()),
     )
-    print(expected)
     expected.load_state_dict(states)
 
     assert torch.equal(model(input), expected(input)) == True

@@ -1,6 +1,6 @@
 import numpy as np
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
 from elasticai.preprocessor.downsampling import augmentation_downsampling
+from elasticai.preprocessor.filter import Filtering, SettingsFilter
 from elasticai.preprocessor.normalization import DataNormalization, SettingsNormalization
 
 from elasticai.explorer.preprocessing.types import (
@@ -111,9 +111,6 @@ def apply_normalization(
     normalization: NormalizationSample,
 ) -> np.ndarray:
     normalizer = DataNormalization(
-        settings=SettingsNormalization(
-            method=normalization.method,
-            peak_mode=0
-        )
+        settings=SettingsNormalization(method=normalization.method, peak_mode=0)
     )
     return normalizer.normalize(signal)

@@ -1,15 +1,16 @@
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from typing import Any, Callable
+
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, random_split
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader, random_split
+
 from elasticai.explorer.training.data import DatasetSpecification
 
 
 class Trainer(ABC):
-
     def __init__(
         self,
         device: str,
@@ -31,15 +32,9 @@ class Trainer(ABC):
             generator=torch.Generator().manual_seed(dataset_spec.split_seed),
         )
 
-        self.train_loader = DataLoader(
-            train_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
-        )
-        self.val_loader = DataLoader(
-            val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
-        )
-        self.test_loader = DataLoader(
-            test_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle
-        )
+        self.train_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle)
+        self.val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle)
+        self.test_loader = DataLoader(test_subset, batch_size=batch_size, shuffle=dataset_spec.shuffle)
 
     def configure_optimizer(self, optimizer: Optimizer):
         self.optimizer = optimizer
@@ -74,7 +69,7 @@ class Trainer(ABC):
             self.logger.info(f"Epoch {epoch + 1}/{epochs}")
             self.train_epoch(model=model, epoch=epoch)
             _, val_loss = self.validate(model=model)
-            if val_loss == None:
+            if val_loss is None:
                 raise ValueError("Trainer.validate() does not return Validation Loss")
 
             if val_loss < best_val_loss - min_delta:
@@ -83,9 +78,7 @@ class Trainer(ABC):
                 best_model_state = model.state_dict()
             else:
                 patience_counter += 1
-                self.logger.info(
-                    f"No improvement. Patience: {patience_counter}/{patience}"
-                )
+                self.logger.info(f"No improvement. Patience: {patience_counter}/{patience}")
 
             if early_stopping and patience_counter >= patience:
                 self.logger.info("Early stopping triggered.")
@@ -156,9 +149,7 @@ class SupervisedTrainer(Trainer):
                     loss.item(),
                 )
 
-    def evaluate(
-        self, model: nn.Module, data_loader: DataLoader, description="Validation"
-    ):
+    def evaluate(self, model: nn.Module, data_loader: DataLoader, description="Validation"):
         model.eval()
         total_loss = 0.0
         total_samples = 0

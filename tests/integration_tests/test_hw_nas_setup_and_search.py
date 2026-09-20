@@ -83,6 +83,7 @@ class TestHWNasSetupAndSearch:
             get_path_to_project() / "tests/integration_tests/samples/search_space.yml"
         )
 
+    @pytest.mark.slow
     @pytest.mark.parametrize(
         ("search_strategy", "with_hardconstraints", "expected"),
         [
@@ -109,6 +110,7 @@ class TestHWNasSetupAndSearch:
         )
         assert len(top_k_models) == expected
 
+    @pytest.mark.hardware
     def test_generate_for_hw_platform(self):
         self.RPI5explorer.choose_target_hw(
             "rpi5",

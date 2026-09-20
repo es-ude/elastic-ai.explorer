@@ -1,14 +1,13 @@
-from abc import ABC, abstractmethod
-
 import logging
 import os
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Type, Union
 
+import owncloud
 from iesude.data import DataSet
 from iesude.data.archives import PlainFile
 from iesude.data.extractable import ExtractableFn
-import owncloud
 
 logger = logging.getLogger("explorer.download")
 
@@ -24,9 +23,7 @@ def get_file_from_sciebo(
     file_path_in_sciebo: str,
     file_type: ExtractableFn,
 ):
-    if os.path.isfile(path_to_save) or (
-        os.path.isdir(path_to_save) and os.listdir(path_to_save)
-    ):
+    if os.path.isfile(path_to_save) or (os.path.isdir(path_to_save) and os.listdir(path_to_save)):
         return
 
     timeout = 0
@@ -71,5 +68,5 @@ class DownloadableSciebo(Downloadable):
         get_file_from_sciebo(
             path_to_save=str(self.download_path),
             file_path_in_sciebo=str(self.file_path_on_fileshare),
-            file_type=self.file_type
+            file_type=self.file_type,
         )

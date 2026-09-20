@@ -1,8 +1,8 @@
 import logging
-
-from elasticai.explorer.hw_nas.estimators import Estimator
 from dataclasses import dataclass
 from typing import Callable
+
+from elasticai.explorer.hw_nas.estimators import Estimator
 
 logger = logging.getLogger("explorer.constraints")
 Comparator = Callable[[float, float], bool]
@@ -37,32 +37,18 @@ class OptimizationCriteria:
         ] = {}
 
     def get_hard_constraints(self, estimator: Estimator) -> list[_HardConstraint]:
-        return [
-            (c)
-            for c in self._optimization_criteria[estimator]
-            if isinstance(c, _HardConstraint)
-        ]
+        return [(c) for c in self._optimization_criteria[estimator] if isinstance(c, _HardConstraint)]
 
     def get_soft_constraints(self, estimator: Estimator) -> list[_SoftConstraint]:
-        return [
-            (c)
-            for c in self._optimization_criteria[estimator]
-            if isinstance(c, _SoftConstraint)
-        ]
+        return [(c) for c in self._optimization_criteria[estimator] if isinstance(c, _SoftConstraint)]
 
     def get_objectives(self, estimator: Estimator) -> list[_Objective]:
-        return [
-            (c)
-            for c in self._optimization_criteria[estimator]
-            if isinstance(c, _Objective)
-        ]
+        return [(c) for c in self._optimization_criteria[estimator] if isinstance(c, _Objective)]
 
     def get_estimators(self) -> list[Estimator]:
         return list(self._optimization_criteria.keys())
 
-    def get_criteria(
-        self, estimator: Estimator
-    ) -> list[_Objective | _HardConstraint | _SoftConstraint]:
+    def get_criteria(self, estimator: Estimator) -> list[_Objective | _HardConstraint | _SoftConstraint]:
         return self._optimization_criteria[estimator]
 
     def register_objective(
@@ -71,14 +57,12 @@ class OptimizationCriteria:
         transform: Transform | None = None,
         weight: float = 1.0,
     ):
-        if not (estimator in self._optimization_criteria):
+        if estimator not in self._optimization_criteria:
             self._optimization_criteria[estimator] = []
         self._optimization_criteria[estimator].append(_Objective(transform, weight))
 
-    def register_hard_constraint(
-        self, estimator: Estimator, operator: Comparator, value: float
-    ):
-        if not (estimator in self._optimization_criteria):
+    def register_hard_constraint(self, estimator: Estimator, operator: Comparator, value: float):
+        if estimator not in self._optimization_criteria:
             self._optimization_criteria[estimator] = []
 
         self._optimization_criteria[estimator].append(_HardConstraint(operator, value))
@@ -97,7 +81,7 @@ class OptimizationCriteria:
         if(comparator(estimate, boundary_value)):
             penalty_value += weight * penalty_fn(transform(estimate), boundary_value)
         """
-        if not (estimator in self._optimization_criteria):
+        if estimator not in self._optimization_criteria:
             self._optimization_criteria[estimator] = []
 
         self._optimization_criteria[estimator].append(

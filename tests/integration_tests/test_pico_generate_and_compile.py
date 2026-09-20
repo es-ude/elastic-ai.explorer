@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import pytest
 
 from elasticai.explorer import get_path_to_project
 from elasticai.explorer.explorer import Explorer
@@ -23,6 +24,7 @@ from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
 from tests.integration_tests.samples import sample_MLP
 
 
+@pytest.mark.hardware
 class TestPicoGenerateAndCompile:
     def setup_method(self):
         from tests.system_tests import PICO_DEVICE_PATH

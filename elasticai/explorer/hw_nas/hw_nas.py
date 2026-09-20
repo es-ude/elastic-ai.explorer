@@ -100,9 +100,7 @@ def sample_and_create_model(trial, search_space: dict, input_shape=None):
 
     except (ShapeValueError, NotImplementedError) as e:
         print(traceback.format_exc())
-        logger.warning(
-            f"Failed to construct model due to exception: {e}. Pruning trial."
-        )
+        logger.warning(f"Failed to construct model due to exception: {e}. Pruning trial.")
         raise optuna.TrialPruned()
 
 
@@ -143,15 +141,11 @@ def create_trial_callbacks(
     if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
         callbacks = [
-            MaxTrialsCallback(
-                hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,)
-            )
+            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,))
         ]
     else:
         n_trials = hw_nas_parameters.max_search_trials
-        callbacks = [
-            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)
-        ]
+        callbacks = [MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)]
 
     return n_trials, callbacks
 
@@ -178,12 +172,12 @@ def collect_top_k_results(
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
 
-    metric_names = [
-        estimator.metric_name for estimator in optimization_criteria.get_estimators()
-    ]
+    metric_names = [estimator.metric_name for estimator in optimization_criteria.get_estimators()]
     if hasattr(optimization_criteria.get_estimators(), "trainer"):
         metric_names.extend(
-            key for estimator in optimization_criteria.get_estimators() for key in list(estimator.trainer.extra_metrics.keys())
+            key
+            for estimator in optimization_criteria.get_estimators()
+            for key in list(estimator.trainer.extra_metrics.keys())
         )
 
     for frozen_trial in top_k_frozen_trials:
@@ -195,13 +189,9 @@ def collect_top_k_results(
             }
         )
         for metric_name in metric_names:
-            intermediates_key = intermediate_metrics_template.format(
-                metric_name=metric_name
-            )
+            intermediates_key = intermediate_metrics_template.format(metric_name=metric_name)
             top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
-            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
-                intermediates_key
-            ]
+            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[intermediates_key]
     return top_k_models, top_k_params, top_k_metrics
 
 
