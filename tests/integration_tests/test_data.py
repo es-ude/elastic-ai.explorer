@@ -8,7 +8,6 @@ from elasticai.explorer.training.data import (
     DatasetSpecification,
     MultivariateTimeseriesDataset,
 )
-import torch
 
 from elasticai.explorer.training.download import DownloadableSciebo
 from elasticai.explorer.training.trainer import SupervisedTrainer

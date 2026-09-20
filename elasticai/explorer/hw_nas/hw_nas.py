@@ -37,12 +37,22 @@ class SearchStrategy(Enum):
 def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
     score = 0.0
     for estimator in optimization_criteria:
-        final_estimate, estimates = estimator.estimate(model)
+        final_estimate, estimates, metrics = estimator.estimate(model)
         trial.set_user_attr(estimator.metric_name, final_estimate)
         trial.set_user_attr(
             intermediate_metrics_template.format(metric_name=estimator.metric_name),
             estimates,
         )
+
+        if metrics:
+            keys_available = list(metrics[0].keys())
+            for key in keys_available:
+                trial.set_user_attr(key, metrics[-1][key])
+                trial.set_user_attr(
+                    intermediate_metrics_template.format(metric_name=key),
+                    [val[key] for val in metrics],
+                )
+
         hard_constraints = optimization_criteria.get_hard_constraints(estimator)
         for hc in hard_constraints:
             if not hc.comparator(final_estimate, hc.constraint_value):
@@ -90,9 +100,7 @@ def sample_and_create_model(trial, search_space: dict, input_shape=None):
 
     except (ShapeValueError, NotImplementedError) as e:
         print(traceback.format_exc())
-        logger.warning(
-            f"Failed to construct model due to exception: {e}. Pruning trial."
-        )
+        logger.warning(f"Failed to construct model due to exception: {e}. Pruning trial.")
         raise optuna.TrialPruned()
 
 
@@ -133,15 +141,11 @@ def create_trial_callbacks(
     if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
         callbacks = [
-            MaxTrialsCallback(
-                hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,)
-            )
+            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,))
         ]
     else:
         n_trials = hw_nas_parameters.max_search_trials
-        callbacks = [
-            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)
-        ]
+        callbacks = [MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)]
 
     return n_trials, callbacks
 
@@ -167,9 +171,14 @@ def collect_top_k_results(
     top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
-    metric_names = [
-        estimator.metric_name for estimator in optimization_criteria.get_estimators()
-    ]
+
+    metric_names = [estimator.metric_name for estimator in optimization_criteria.get_estimators()]
+    if hasattr(optimization_criteria.get_estimators(), "trainer"):
+        metric_names.extend(
+            key
+            for estimator in optimization_criteria.get_estimators()
+            for key in list(estimator.trainer.extra_metrics.keys())
+        )
 
     for frozen_trial in top_k_frozen_trials:
         top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
@@ -180,13 +189,9 @@ def collect_top_k_results(
             }
         )
         for metric_name in metric_names:
-            intermediates_key = intermediate_metrics_template.format(
-                metric_name=metric_name
-            )
+            intermediates_key = intermediate_metrics_template.format(metric_name=metric_name)
             top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
-            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
-                intermediates_key
-            ]
+            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[intermediates_key]
     return top_k_models, top_k_params, top_k_metrics
 
 

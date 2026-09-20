@@ -1,14 +1,11 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from enum import Enum
-import optuna
-import yaml
-from optuna.samplers import RandomSampler
+from typing import Any
+
 from yaml.error import YAMLError
 
-from elasticai.explorer.hw_nas.search_space.build_model import construct_model
 from elasticai.explorer.hw_nas.search_space.registry import COMPOSITE_REGISTRY
-from settings import ROOT_DIR
 
 
 class RepeatType(Enum):
@@ -39,8 +36,8 @@ def parse_search_param(
     name: str,
     params: dict,
     key: str,
-    default_value: any = None,
-) -> any:
+    default_value: Any = None,
+) -> Any:
     if key not in params:
         if default_value is not None:
             return default_value
@@ -52,15 +49,11 @@ def parse_search_param(
 
     if isinstance(param, dict) and "start" in param and "end" in param:
         if isinstance(param["start"], int):
-            return trial.suggest_int(
-                name, param["start"], param["end"], step=param.get("step", 1)
-            )
+            return trial.suggest_int(name, param["start"], param["end"], step=param.get("step", 1))
         elif isinstance(param["start"], float):
             step = param.get("step", None)
             if step is not None:
-                return trial.suggest_float(
-                    name, param["start"], param["end"], step=step
-                )
+                return trial.suggest_float(name, param["start"], param["end"], step=step)
             else:
                 return trial.suggest_float(name, param["start"], param["end"], log=True)
 
@@ -135,9 +128,7 @@ class Sampler:
 
 
 class LayerContext:
-    def __init__(
-        self, block_id, layer_idx, depth, last_block=False, last_model_layer=False
-    ):
+    def __init__(self, block_id, layer_idx, depth, last_block=False, last_model_layer=False):
         self.block_id = block_id
         self.layer_idx = layer_idx
         self.depth = depth
@@ -164,7 +155,7 @@ class Block:
         self.factory = factory
         self.depth = parse_search_param(
             sampler.trial,
-            sampler.scoped(f"depth"),
+            sampler.scoped("depth"),
             depth_cfg,
             "depth",
             default_value=1,
@@ -203,31 +194,26 @@ class Block:
                 if self.repeat_block:
                     if cache_key not in self.sampler.block_cache:
                         composite_sampler = layer_sampler.child(op)
-                        self.sampler.block_cache[cache_key] = (
-                            composite_sampler.construct_sample(
-                                composite_space,
-                            )
+                        self.sampler.block_cache[cache_key] = composite_sampler.construct_sample(
+                            composite_space,
                         )
                     composite_sample = self.sampler.block_cache[cache_key]
 
                 elif self.repeat_params:
                     if cache_key not in self.sampler.composite_cache:
                         composite_sampler = layer_sampler.child(op)
-                        self.sampler.composite_cache[cache_key] = (
-                            composite_sampler.construct_sample(composite_space)
+                        self.sampler.composite_cache[cache_key] = composite_sampler.construct_sample(
+                            composite_space
                         )
                     composite_sample = self.sampler.composite_cache[cache_key]
                 else:
                     composite_sampler = layer_sampler.child(op)
-                    composite_sample = composite_sampler.construct_sample(
-                        composite_space
-                    )
+                    composite_sample = composite_sampler.construct_sample(composite_space)
 
                 for cb, layers in composite_sample.items():
                     for k, v in layers.items():
                         self.sampled_layers[f"{layer_scope}/{cb}/{k}"] = v
             else:
-
                 params = self.factory.sampleParams(layer_sampler, op, ctx)
                 self.sampled_layers[layer_scope] = {
                     "operation": op,
@@ -265,7 +251,7 @@ class VaryOp(OpCandidates):
         self.op_cfg = op_cfg
 
     def sample(self, sampler: Sampler):
-        name = sampler.scoped(f"operation")
+        name = sampler.scoped("operation")
         op = parse_search_param(
             sampler.trial,
             name,
@@ -304,11 +290,7 @@ class RepeatParams(ParamCandidates):
         if op not in self.cache:
             params = {}
             for p, cfg in self.find_params(op).items():
-                if (
-                    layer_ctx.is_last_layer
-                    and layer_ctx.is_last_block
-                    and op in FORCED_PARAMS
-                ):
+                if layer_ctx.is_last_layer and layer_ctx.is_last_block and op in FORCED_PARAMS:
                     if p in FORCED_PARAMS[op]:
                         continue
                 params[p] = parse_search_param(
@@ -325,11 +307,7 @@ class VaryParams(ParamCandidates):
     def sample(self, sampler: Sampler, op: str, layer_ctx: LayerContext) -> dict:
         params = {}
         for p in self.find_params(op):
-            if (
-                layer_ctx.is_last_layer
-                and layer_ctx.is_last_block
-                and op in FORCED_PARAMS
-            ):
+            if layer_ctx.is_last_layer and layer_ctx.is_last_block and op in FORCED_PARAMS:
                 if p in FORCED_PARAMS[op]:
                     continue
             params[p] = parse_search_param(

@@ -41,9 +41,7 @@ def cut_windows_by_timestamp(
     if np.any(timestamps_ms < 0):
         raise ValueError("timestamps_ms must be positive.")
 
-    event_idxs = [
-        _ms_to_sample_idx(ms=ms, fs_hz=sample_rate_hz) for ms in timestamps_ms
-    ]
+    event_idxs = [_ms_to_sample_idx(ms=ms, fs_hz=sample_rate_hz) for ms in timestamps_ms]
 
     windows = []
     for event_idx in event_idxs:

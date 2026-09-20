@@ -1,13 +1,13 @@
+import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
-import logging
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
+
 import numpy as np
 import pandas as pd
-
-from torchvision.datasets import MNIST
 from torch.utils.data import Dataset
+from torchvision.datasets import MNIST
 
 logger = logging.getLogger("explorer.data")
 

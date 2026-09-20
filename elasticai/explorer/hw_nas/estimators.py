@@ -1,13 +1,14 @@
+import logging
 from abc import abstractmethod
 from logging import Logger
-import logging
 from numbers import Number
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import torch
-from fvcore.nn.jit_handles import get_shape
 from fvcore.nn import FlopCountAnalysis, parameter_count
+from fvcore.nn.jit_handles import get_shape
 from torch.optim.adam import Adam
+
 from elasticai.explorer.training.trainer import Trainer
 
 
@@ -54,20 +55,16 @@ class Estimator:
 
 class FLOPsEstimator(Estimator):
     def __init__(self, data_sample: torch.Tensor):
-        super().__init__(
-            metric_name="flops_estimate", logger_name="explorer.FlopsEstimator"
-        )
+        super().__init__(metric_name="flops_estimate", logger_name="explorer.FlopsEstimator")
         self.data_sample = data_sample
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> tuple[float | int, list[float | int], list[dict]]:
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
-        flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(
-            **handlers
-        )
+        flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(**handlers)
 
-        return flops.total(), []
+        return flops.total(), [], []
 
 
 class ParamEstimator(Estimator):
@@ -80,9 +77,9 @@ class ParamEstimator(Estimator):
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    ) -> tuple[float | int, list[float | int], list[dict]]:
         param_count = parameter_count(model_sample)[""]
-        return param_count, []
+        return param_count, [], []
 
 
 class TrainMetricsEstimator(Estimator):
@@ -91,21 +88,23 @@ class TrainMetricsEstimator(Estimator):
         trainer: Trainer,
         metric_name: str = "loss",
         n_estimation_epochs: int = 3,
+        learning_rate: float = 1e-3,
     ) -> None:
 
-        super().__init__(
-            metric_name=metric_name, logger_name="explorer.TrainingEstimator"
-        )
+        super().__init__(metric_name=metric_name, logger_name="explorer.TrainingEstimator")
         self.trainer = trainer
         self.n_estimation_epochs = n_estimation_epochs
+        self.learning_rate = learning_rate
 
     def estimate(
         self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
-        optimizer = Adam(model_sample.parameters(), lr=1e-3)
+    ) -> tuple[float | int, list[float | int], list[dict]]:
+        optimizer = Adam(model_sample.parameters(), lr=self.learning_rate)
         self.trainer.configure_optimizer(optimizer)
 
         estimate_values = []
+        metric_values = []
+        model_sample.to(self.trainer.device)
         for i in range(self.n_estimation_epochs):
             self.trainer.train_epoch(model_sample, i)
             metric_avg, loss = self.trainer.validate(model_sample)
@@ -116,9 +115,7 @@ class TrainMetricsEstimator(Estimator):
                 estimate_value = metric_avg.get(self.metric_name)
 
             if not estimate_value:
-                err = TypeError(
-                    f"Trainer Type does not support {self.metric_name} estimation."
-                )
+                err = TypeError(f"Trainer Type does not support {self.metric_name} estimation.")
                 self.logger.error(
                     "%s",
                     err,
@@ -126,6 +123,7 @@ class TrainMetricsEstimator(Estimator):
                 raise err
 
             estimate_values.append(estimate_value)
+            metric_values.append(metric_avg)
 
         self.logger.info(f"Estimated {self.metric_name} is: {estimate_values[-1]:.2f}")
-        return estimate_values[-1], estimate_values[:-1]
+        return estimate_values[-1], estimate_values, metric_values

@@ -1,15 +1,14 @@
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.training.download import get_file_from_sciebo
 
 from iesude.data.archives import Zip, PlainFile
 import shutil
 import os
 
-from settings import ROOT_DIR
-
 
 class TestSciebo:
     def setup_class(self):
-        self.save_dir = str(ROOT_DIR / "tests/system_tests/samples/data")
+        self.save_dir = str(get_path_to_project() / "tests/system_tests/samples/data")
         
     def test_sciebo_download(self):
 
