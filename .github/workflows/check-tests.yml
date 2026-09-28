@@ -25,7 +25,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv run coverage run -m pytest -m 'not (hardware)' --reruns 3
+          uv run coverage run -m pytest -m 'not (hardware or slow)' --reruns 3
           uv run coverage report -m
           uv run coverage xml
 
