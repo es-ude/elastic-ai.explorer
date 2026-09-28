@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from logging import Logger
 from numbers import Number
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from fvcore.nn import FlopCountAnalysis, parameter_count
@@ -12,14 +12,22 @@ from torch.optim.adam import Adam
 from elasticai.explorer.training.trainer import Trainer
 
 
-def get_values(vals: list[Any]) -> Optional[list[Any]]:
-    return [v.toIValue() for v in vals]
-
-
 def lstm_flop_jit(inputs: list[Any], outputs: list[Any]) -> Number:
-    num_timesteps, batch_size, feature_width = get_shape(inputs[0])
-    *_, proj_size = get_shape(outputs[1])
-    *_, hidden_size = get_shape(outputs[2])
+    def shape_of(x: Any) -> list[int]:
+        shape = get_shape(x)
+        if shape is None:
+            raise ValueError(f"{x!r} has no known shape")
+        return shape
+
+    num_timesteps, batch_size, feature_width = shape_of(inputs[0])
+    *_, proj_size = shape_of(outputs[1])
+    *_, hidden_size = shape_of(outputs[2])
+
+    def get_values(vals: list[Any]) -> list[Any]:
+        values = [v.toIValue() for v in vals]
+        if any(v is None for v in values):
+            raise ValueError("Could not determine all values")
+        return values
 
     *_, _, num_layers, _, _, bidirectional, batch_first = get_values(inputs)
     num_directions = 2 if bidirectional else 1
