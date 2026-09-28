@@ -1,4 +1,5 @@
 from dataclasses import asdict, is_dataclass
+
 from elasticai.explorer.hw_nas.optimization_criteria import OptimizationCriteria
 
 
@@ -32,9 +33,7 @@ def opt_crit_registry_to_toml(reg: OptimizationCriteria) -> str:
         est_key = getattr(est, "__name__", repr(est))
         chunks.append(f"{est_key}:")
         for entry in reg.get_criteria(est):
-            block = dataclass_instance_to_toml(
-                entry, name=entry.__class__.__name__, indent=4
-            )
+            block = dataclass_instance_to_toml(entry, name=entry.__class__.__name__, indent=4)
             chunks.append(block)
 
     return "\n".join(chunks)

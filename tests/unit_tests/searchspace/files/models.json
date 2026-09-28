@@ -1,0 +1,13 @@
+[
+  {
+    "block_1/depth": 2,
+    "block_1/l0/conv-act-pool/block_conv_act_pool_1/l0/conv2d/kernel_size": 5,
+    "block_1/l0/conv-act-pool/block_conv_act_pool_1/l0/conv2d/out_channels": 32,
+    "block_1/l0/conv-act-pool/block_conv_act_pool_1/l0/conv2d/padding": "same",
+    "block_1/l0/conv-act-pool/block_conv_act_pool_4/l0/maxpool/kernel_size": 3,
+    "block_1/l0/conv-act-pool/block_conv_act_pool_4/l0/maxpool/stride": 3,
+    "block_2/depth": 1,
+    "block_2/l0/linear/width": 16,
+    "block_2/l0/linear/activation": "relu"
+  }
+]

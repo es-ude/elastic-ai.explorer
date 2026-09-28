@@ -119,7 +119,6 @@ def test_repeat_params(depth):
         "block_1/l0/linear/width": 32,
     }
     sample = get_sample(params, search_space_with_repeat_params)
-    print(sample)
     assert (len(sample) == 1) and (len(sample["1"]) == depth)
     assert sample["1"][f"l0"]["operation"] == "linear"
     if depth == 1:
@@ -260,7 +259,6 @@ def test_composite_vary_all_samples_independently(depth):
     }
 
     result = get_sample(params, sp)["1"]
-    print(result)
     # every layer's sub-blocks must be present regardless of caching behaviour
     for i in range(depth):
         assert f"l{i}/conv_act_pool_1/l0" in result

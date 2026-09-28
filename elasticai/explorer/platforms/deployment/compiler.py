@@ -1,19 +1,19 @@
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import logging
 from pathlib import Path
 
 from python_on_whales import docker
 
-from settings import ROOT_DIR
+from elasticai.explorer import get_path_to_project
 
 
 @dataclass
 class CompilerParams:
     image_name: str = "cross"
     library_path: Path = Path("./code/libtorch")
-    path_to_dockerfile: Path = ROOT_DIR / "docker" / "Dockerfile.pibase"
-    build_context: Path = ROOT_DIR / "docker"
+    path_to_dockerfile: Path = get_path_to_project() / "docker" / "Dockerfile.pibase"
+    build_context: Path = get_path_to_project() / "docker"
 
 
 class Compiler(ABC):
@@ -50,9 +50,7 @@ class RPICompiler(Compiler):
     # todo: docker image in docker_registry
     def setup(self) -> None:
         self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
-        docker.build(
-            self.context_path, file=self.path_to_dockerfile, tags=self.image_name
-        )
+        docker.build(self.context_path, file=self.path_to_dockerfile, tags=self.image_name)
         self.logger.debug("Crosscompiler available now.")
 
     def compile_code(self, source: Path) -> Path:
@@ -68,14 +66,11 @@ class RPICompiler(Compiler):
             },
         )
         path_to_executable = self.context_path / "bin" / source.stem
-        self.logger.info(
-            "Compilation finished. Program available in %s", path_to_executable
-        )
+        self.logger.info("Compilation finished. Program available in %s", path_to_executable)
         return path_to_executable
 
 
 class PicoCompiler(Compiler):
-
     def __init__(self, compiler_params: CompilerParams):
         self.logger = logging.getLogger("PicoCompiler")
         self.context_path: Path = Path(compiler_params.build_context)
@@ -90,7 +85,7 @@ class PicoCompiler(Compiler):
         return bool(docker.images(self.image_name))
 
     def setup(self) -> None:
-        
+
         docker.build(
             context_path=self.context_path,
             tags=self.image_name,

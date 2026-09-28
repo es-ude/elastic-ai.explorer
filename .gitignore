@@ -10,6 +10,11 @@ __pycache__/
 /data/
 docker/bin
 /docker/code/libtorch
+docs/apidocsconf.py
+contribution.md
+index.md
+make.bat
+Makefile
 .DS_Store
 
 
@@ -172,6 +177,8 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.devenv
+docs/apidocs
 env/
 venv/
 ENV/

@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 
 
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.explorer import Explorer
 
@@ -17,9 +18,9 @@ from examples.example_helpers import (
     setup_mnist,
     setup_example_optimization_criteria,
 )
-from settings import ROOT_DIR
 
-logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
+
+logging.config.fileConfig(get_path_to_project() / "logging.conf", disable_existing_loggers=False)
 
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
@@ -38,7 +39,7 @@ def search_generate_measure_for_pi(
     explorer.choose_target_hw(rpi_type, compiler_params, ssh_params)
     explorer.generate_search_space(search_space_path)
 
-    path_to_test_data = ROOT_DIR / Path("data/mnist")
+    path_to_test_data = get_path_to_project() / Path("data/mnist")
     dataset_spec = setup_mnist(path_to_test_data)
     criteria_reg = setup_example_optimization_criteria(dataset_spec, device)
 
@@ -74,9 +75,7 @@ if __name__ == "__main__":
     knowledge_repo = setup_knowledge_repository()
     explorer = Explorer(knowledge_repo)
 
-    search_space = Path(
-        ROOT_DIR / "examples/search_space_examples/pi_search_space.yaml"
-    )
+    search_space = get_path_to_project() / "examples/search_space_examples/pi_search_space.yaml"
 
     search_generate_measure_for_pi(
         explorer=explorer,

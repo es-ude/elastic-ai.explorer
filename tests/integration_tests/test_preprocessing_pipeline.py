@@ -1,13 +1,14 @@
 import numpy as np
 from optuna.trial import FixedTrial
 
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 from elasticai.explorer.preprocessing.pipeline import apply_preprocessing_pipeline
 from elasticai.explorer.preprocessing.sample import sample_preprocessing
-from settings import ROOT_DIR
+
 
 PREPROCESSING_SEARCH_SPACE_FILE = (
-    ROOT_DIR / "tests/integration_tests/samples/preprocessing_search_space.yaml"
+    get_path_to_project() / "tests/integration_tests/samples/preprocessing_search_space.yaml"
 )
 
 
