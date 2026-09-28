@@ -26,9 +26,7 @@ class Generator(ABC):
 
 class RPiGenerator(Generator):
     def __init__(self):
-        self.logger = logging.getLogger(
-            "explorer.platforms.generator.generator.PIGenerator"
-        )
+        self.logger = logging.getLogger("explorer.platforms.generator.generator.PIGenerator")
 
     def generate(
         self,
@@ -68,9 +66,7 @@ class PicoGenerator(Generator):
             atol=1e-2,
             rtol=1e-2,
         ):
-            self.logger.info(
-                "Inference result with Pytorch and TfLite was within tolerance"
-            )
+            self.logger.info("Inference result with Pytorch and TfLite was within tolerance")
         else:
             self.logger.warning("Something wrong with Pytorch --> TfLite")
 
@@ -81,8 +77,8 @@ class PicoGenerator(Generator):
             get_symmetric_quantization_config,
         )
         from ai_edge_torch.quantize.quant_config import QuantConfig
-        from torch.export import export_for_training
         from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
+        from torch.export import export_for_training
 
         pt2e_quantizer = PT2EQuantizer().set_global(
             get_symmetric_quantization_config(is_per_channel=False, is_dynamic=False)
@@ -108,28 +104,18 @@ class PicoGenerator(Generator):
         return pt2e_drq_model, torch_output
 
     def _model_to_cpp(self, tflite_model_path: Path):
-        process = subprocess.run(
-            ["xxd", "-i", str(tflite_model_path)], capture_output=True
-        )
-        output_lines: list[str] = process.stdout.decode("utf8").splitlines(
-            keepends=True
-        )
+        process = subprocess.run(["xxd", "-i", str(tflite_model_path)], capture_output=True)
+        output_lines: list[str] = process.stdout.decode("utf8").splitlines(keepends=True)
 
         output_path = tflite_model_path.parent / tflite_model_path.stem
 
         with open(output_path.with_suffix(".cpp"), "w") as out_file:
             out_file.writelines("#include <model.h>\n")
             out_file.writelines(
-                (
-                    "const unsigned char model_tflite[] = {"
-                    if line.startswith("unsigned char")
-                    else line
-                )
+                ("const unsigned char model_tflite[] = {" if line.startswith("unsigned char") else line)
                 for line in output_lines[:-1]
             )
-            out_file.writelines(
-                f"const unsigned int model_tflite_len = {output_lines[-1].split()[-1]}"
-            )
+            out_file.writelines(f"const unsigned int model_tflite_len = {output_lines[-1].split()[-1]}")
 
     def generate(
         self,
