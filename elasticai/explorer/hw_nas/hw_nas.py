@@ -1,8 +1,9 @@
 import logging
-import traceback
+import os
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
+from pathlib import Path
 from typing import Any, Callable
 
 import optuna
@@ -16,6 +17,7 @@ from elasticai.explorer.hw_nas.search_space.build_model import (
     ShapeValueError,
     construct_model,
 )
+from elasticai.explorer.hw_nas.search_space.exhaustive_sampler import ExhaustiveGridSampler
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
 logger = logging.getLogger("explorer.nas")
@@ -35,6 +37,11 @@ class SearchStrategy(Enum):
     EVOLUTIONARY_SEARCH = "evolution"
 
 
+class SearchOptimization(Enum):
+    MINIMIZE = "minimize"
+    MAXIMIZE = "maximize"
+
+
 def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
     score = 0.0
     for estimator in optimization_criteria:
@@ -45,6 +52,9 @@ def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCrite
             estimates,
         )
 
+        if estimator.metric_name in {"parameter_count_estimate"}:
+            value = max(int(round(final_estimate)), 1)
+            trial.suggest_int(estimator.metric_name, value, value, log=False)
         if metrics:
             keys_available = list(metrics[0].keys())
             for key in keys_available:
@@ -100,7 +110,6 @@ def sample_and_create_model(trial, search_space: dict, input_shape=None):
         return model
 
     except (ShapeValueError, NotImplementedError) as e:
-        print(traceback.format_exc())
         logger.warning(f"Failed to construct model due to exception: {e}. Pruning trial.")
         raise optuna.TrialPruned()
 
@@ -119,27 +128,61 @@ def objective_wrapper(
     return objective(trial)
 
 
+def count_configurations(search_space_cfg: dict, limit: int | None = None) -> tuple[int, int]:
+    previous_opt = optuna.logging.get_verbosity()
+    previous_exp = logging.getLogger("explorer.nas").level
+    logging.getLogger("explorer.nas").setLevel(logging.ERROR)
+    optuna.logging.set_verbosity(optuna.logging.ERROR)
+    try:
+        study = optuna.create_study(sampler=ExhaustiveGridSampler(shuffle=False))
+        callbacks = []
+        if limit is not None:
+            callbacks.append(optuna.study.MaxTrialsCallback(limit, states=None))
+
+        def objective_wrapper_nonopt(
+            trial: optuna.Trial,
+            search_space_cfg: dict[str, Any],
+        ) -> float:
+            def objective(trial: optuna.Trial) -> float:
+                sample_and_create_model(trial, search_space_cfg)
+                return 0.0
+
+            return objective(trial)
+
+        study.optimize(
+            func=partial(
+                objective_wrapper_nonopt,
+                search_space_cfg=search_space_cfg,
+            ),
+            n_trials=None,
+            callbacks=callbacks,
+        )
+    except:
+        pass
+    finally:
+        optuna.logging.set_verbosity(previous_opt)
+        logging.getLogger("explorer.nas").setLevel(previous_exp)
+
+    valid = sum(t.state == TrialState.COMPLETE for t in study.trials)
+    return len(study.trials), valid
+
+
 def create_sampler(
     search_strategy: SearchStrategy,
+    seed: int | None = None,
 ) -> optuna.samplers.BaseSampler:
     match search_strategy:
         case SearchStrategy.GRID_SEARCH:
-            raise NotImplementedError
-            # return optuna.samplers.GridSampler(search_space=search_space)
+            return ExhaustiveGridSampler(seed=seed)
         case SearchStrategy.RANDOM_SEARCH:
-            return optuna.samplers.RandomSampler()
+            return optuna.samplers.RandomSampler(seed=seed)
         case SearchStrategy.EVOLUTIONARY_SEARCH:
-            return optuna.samplers.NSGAIISampler(
-                population_size=20,
-                mutation_prob=0.1,
-            )
+            return optuna.samplers.NSGAIISampler(population_size=20, mutation_prob=0.1, seed=seed)
         case _:
             raise NotImplementedError(f"Unknown search strategy {search_strategy}")
 
 
-def create_trial_callbacks(
-    hw_nas_parameters: HWNASParameters,
-) -> tuple[int | None, list]:
+def create_trial_callbacks(hw_nas_parameters: HWNASParameters) -> tuple[int | None, list]:
     if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
         callbacks = [
@@ -198,19 +241,31 @@ def collect_top_k_results(
 
 
 def search(
+    path2study: Path,
     search_space_cfg: dict,
     search_strategy: SearchStrategy,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
+    seed: int | None = None,
+    direction: SearchOptimization = SearchOptimization.MAXIMIZE,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
     Returns: top-models, model-parameters, metrics
     """
-    sampler = create_sampler(search_strategy=search_strategy)
+    path2study.mkdir(parents=True, exist_ok=True)
+    if (path2study / "results.db").exists():
+        os.remove(path2study / "results.db")
+
+    sampler = create_sampler(search_strategy=search_strategy, seed=seed)
     study = optuna.create_study(
+        study_name="run",
+        storage=f"sqlite:////{path2study.resolve()}/results.db",
         sampler=sampler,
-        direction="maximize",
+        direction=direction.value,
+        load_if_exists=True,
     )
+    study.set_user_attr("search_space_cfg", search_space_cfg)
+
     n_trials, callbacks = create_trial_callbacks(hw_nas_parameters=hw_nas_parameters)
     study.optimize(
         func=partial(
