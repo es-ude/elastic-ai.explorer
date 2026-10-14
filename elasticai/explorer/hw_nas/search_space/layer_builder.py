@@ -1,11 +1,11 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 
 from torch import nn as nn
 
 from elasticai.explorer.hw_nas.search_space.architecture_components import (
-    SimpleLSTM,
     GaussianDropout,
     RepeatVector,
+    SimpleLSTM,
     TimeDistributed,
 )
 from elasticai.explorer.hw_nas.search_space.registry import activation_mapping
@@ -25,15 +25,12 @@ def register_layer(name: str):
 
 
 class LayerBuilder(ABC):
-
     def build(self, input_shape, search_parameters: dict, output_shape=None):
         activation = search_parameters.get("activation", None)
         if output_shape is None:
             layer, shape = self.build_layer(input_shape, search_parameters)
         else:
-            layer, shape = self.get_last_layer(
-                input_shape, search_parameters, output_shape
-            )
+            layer, shape = self.get_last_layer(input_shape, search_parameters, output_shape)
 
         if activation is not None:
             return nn.Sequential(layer, activation_mapping[activation]), shape
@@ -50,7 +47,6 @@ class LayerBuilder(ABC):
 
 @register_layer("linear")
 class LinearLayer(LayerBuilder):
-
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         linear = nn.Linear(input_shape, output_shape)
         return linear, output_shape
@@ -61,7 +57,6 @@ class LinearLayer(LayerBuilder):
 
 
 class ConvLayer(LayerBuilder):
-
     conv_class: type[nn.Module] = None
     layer_type: str = None
 
@@ -76,14 +71,10 @@ class ConvLayer(LayerBuilder):
     ):
 
         if in_channels % groups != 0:
-            raise ValueError(
-                f"in_channels={in_channels} must be divisible by groups={groups}"
-            )
+            raise ValueError(f"in_channels={in_channels} must be divisible by groups={groups}")
 
         if out_channels % groups != 0:
-            raise ValueError(
-                f"out_channels={out_channels} must be divisible by groups={groups}"
-            )
+            raise ValueError(f"out_channels={out_channels} must be divisible by groups={groups}")
 
     def get_out_channels_and_groups(self, input_shape, search_parameters: dict):
         groups = search_parameters.get("groups", 1)
@@ -105,9 +96,7 @@ class ConvLayer(LayerBuilder):
 
         stride = search_parameters.get("stride", 1)
 
-        out_channels, groups = self.get_out_channels_and_groups(
-            input_shape, search_parameters
-        )
+        out_channels, groups = self.get_out_channels_and_groups(input_shape, search_parameters)
         padding = self.get_padding(search_parameters)
 
         output_shape = calculate_output_shape(
@@ -149,9 +138,7 @@ class Conv1dLayer(ConvLayer):
 
 @register_layer("lstm")
 class LSTMLayer(LayerBuilder):
-    def create_layer(
-        self, input_shape, hidden_size, bidirectional, search_parameters: dict
-    ):
+    def create_layer(self, input_shape, hidden_size, bidirectional, search_parameters: dict):
         lstm = SimpleLSTM(
             input_shape[-1],
             hidden_size=hidden_size,
@@ -171,9 +158,7 @@ class LSTMLayer(LayerBuilder):
     def build_layer(self, input_shape, search_parameters: dict):
         bidirectional: bool = search_parameters.get("bidirectional", False)
         hidden_size = search_parameters["hidden_size"]
-        return self.create_layer(
-            input_shape, hidden_size, bidirectional, search_parameters
-        )
+        return self.create_layer(input_shape, hidden_size, bidirectional, search_parameters)
 
     def get_last_layer(self, input_shape, search_parameters: dict, output_shape):
         bidirectional: bool = search_parameters.get("bidirectional", False)
@@ -184,9 +169,7 @@ class LSTMLayer(LayerBuilder):
             else:
                 hidden_size = output_shape / 2
 
-        return self.create_layer(
-            input_shape, hidden_size, bidirectional, search_parameters
-        )
+        return self.create_layer(input_shape, hidden_size, bidirectional, search_parameters)
 
 
 class PoolLayer(LayerBuilder):
@@ -199,13 +182,9 @@ class PoolLayer(LayerBuilder):
         ndim = 2 if len(input_shape) == 3 else 1
         layer_cls = self.layer_map.get(f"{ndim}d", None)
         if layer_cls is None:
-            raise ValueError(
-                f"No matching class for {ndim}D in {self.__class__.__name__}"
-            )
+            raise ValueError(f"No matching class for {ndim}D in {self.__class__.__name__}")
 
-        pool = layer_cls(
-            **{k: search_parameters.get(k, v) for k, v in self.param_keys.items()}
-        )
+        pool = layer_cls(**{k: search_parameters.get(k, v) for k, v in self.param_keys.items()})
 
         shape = calculate_output_shape(
             input_shape,
@@ -238,9 +217,7 @@ class AvgPoolLayer(PoolLayer):
 @register_layer("batch_norm")
 class BatchNormLayer(LayerBuilder):
     def build_layer(self, input_shape, search_parameters: dict):
-        num_features = (
-            input_shape[0] if isinstance(input_shape, (list, tuple)) else input_shape
-        )
+        num_features = input_shape[0] if isinstance(input_shape, (list, tuple)) else input_shape
         if isinstance(input_shape, int):
             layer_cls = nn.BatchNorm1d
         elif len(input_shape) == 3:

@@ -38,6 +38,7 @@ def standalone_objective(trial, search_space_cfg, device):
     return -(x**2 + y**2)  # maximize → optimum near (0, 0)
 
 
+@pytest.mark.slow
 def test_optuna_parallel_search_completes(tmp_path):
     journal_file = tmp_path / "journal.log"
     optuna_search_config = OptunaSearchConfig(
@@ -63,6 +64,7 @@ def test_optuna_parallel_search_completes(tmp_path):
     assert len(pids) == 2
 
 
+@pytest.mark.slow
 def test_hw_nas_parallel_search_completes(
     tmp_path,
     search_space_config,
@@ -91,6 +93,7 @@ def test_hw_nas_parallel_search_completes(
     assert len(pids) == 2, f"Expected multiple workers, got PIDs: {pids}"
 
 
+@pytest.mark.slow
 def test_hw_nas_parallel_search_with_sampler_checkpointing(
     tmp_path,
     search_space_config,

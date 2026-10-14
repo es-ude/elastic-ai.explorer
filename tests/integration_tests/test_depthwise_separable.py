@@ -1,15 +1,13 @@
-from pathlib import Path
-
 from optuna.trial import FixedTrial
 
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.hw_nas.hw_nas import sample_and_create_model
 from elasticai.explorer.hw_nas.search_space.utils import yaml_to_dict
 
 
 def test_depthwise_separable_composite():
-    search_space_cfg = yaml_to_dict(
-        Path("integration_tests/samples/depthwise_separable_sp.yaml")
-    )
+    path2yaml = get_path_to_project("tests/integration_tests/samples/depthwise_separable_sp.yaml")
+    search_space_cfg = yaml_to_dict(path2yaml)
     trial = FixedTrial(
         {
             "block_1/l0/depthwise-separable/block_dw/l0/conv2d/kernel_size": 3,

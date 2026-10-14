@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -73,7 +74,6 @@ class Metrics:
 
 
 class BarPlotVisualizer:
-
     def __init__(self, metrics: Metrics, plot_dir: Path):
         self.data: list[list[list[float]]] = metrics.structured_est_metrics
         self.labels: list[str] = metrics.structured_samples

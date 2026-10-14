@@ -1,84 +1,162 @@
 [project]
-name = "elastic-ai.explorer"
-version = "0.1.0"
+name = "elasticai.explorer"
 description = "HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms"
-authors = [{ name = "Department Intelligent Embedded Systems - University Duisburg Essen" }]
 readme = "README.md"
-license = "LICENSE"
-
-requires-python = ">=3.12"
+requires-python = "<3.14, >=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Department Intelligent Embedded Systems - University of Duisburg Essen" }]
 dependencies = [
-    "fabric>=3.2.2",
-    "fvcore>=0.1.5.post20221221",
-    "matplotlib>=3.10.1",
-    "optuna>=4.4.0",
-    "pandas>=2.3.1",
-    "plotly>=6.0.1",
-    "python-on-whales>=0.75.1",
-    "scipy>=1.16.1",
-    "torchvision==0.21.0",
-    "torch>=2.4.0",
-    "ai-edge-torch==0.5.0",
-    "pyserial>=3.5",
-    "pandas>=2.2.3",
-    "tensorflow==2.20.0",
-    "iesude-data",
-    "tflite==2.18.0",
-    "denspp-offline",
+  "elasticai-preprocessor",
+  "fabric>=3.2.2",
+  "fvcore>=0.1.5.post20221221",
+  "iesude-data",
+  "matplotlib>=3.10.1",
+  "optuna>=4.4.0",
+  "pandas>=2.3.1",
+  "plotly>=6.0.1",
+  "pyserial>=3.5",
+  "python-on-whales>=0.75.1",
+  "scipy>=1.16.1",
+  "tensorflow==2.20.0",
+  "tflite==2.18.0",
+  "torch>=2.4.0",
+  "torchvision>=0.21.0",
 ]
-
-# Same as Black.
-line-length = 88
-indent-width = 4
+dynamic = ["version"]
 
 [dependency-groups]
 dev = [
-    "black>=25.1.0",
-    "pylint>=3.3.6",
-    "pytest>=8.3.5",
-    "python-language-server>=0.36.2",
-    "setuptools",
-    "wheel",
-    "pip"
+  "black>=25.1.0",
+  "build>=1.5.0",
+  "coverage>=7.16.1",
+  "pip>=23",
+  "pip-audit>=2.10.1",
+  "pylint>=3.3.6",
+  "python-language-server>=0.36.2",
+  "setuptools<63",
+  "wheel>=0.38",
+]
+docs = [
+  "myst-parser>=4.0.0",
+  "pydata-sphinx-theme>=0.16.1",
+  "sphinx>=8.1.3",
+  "sphinx-autobuild>=2025.8.25",
+  "sphinx-autodoc2>=0.5.0",
+  "sphinx-copybutton>=0.5.2",
+  "sphinx-design>=0.6.1",
+  "sphinx-prompt>=1.9.0",
+  "sphinx-togglebutton>=0.3.2",
+  "sphinxcontrib-mermaid>=1.0.0",
+  "sphinxext-opengraph>=0.9.1",
+]
+lint = [
+  "ruff>=0.16.8",
+  "tach>=0.35.1",
+  "tombi>=1.5.5",
+  "ty>=0.0.82",
+]
+pico = [
+  "ai-edge-torch==0.5.0",
+]
+test = [
+  "pytest>=9.1.1",
+  "pytest-rerunfailures>=16.7",
 ]
 
+[build-system]
+requires = ["hatch-vcs", "hatchling", "wheel"]
+build-backend = "hatchling.build"
 
-
-[tool.uv]
-default-groups = ["dev"]
-override-dependencies = ["tf-nightly; sys_platform == 'never'",]
-[tool.uv.sources]
-iesude-data = { git = "https://github.com/es-ude/data.git" }
-denspp-offline = { git = "https://github.com/es-ude/denspp.offline.git" }
-
-[tool.black]
-preview = true
-line-length = 88
-
-[tool.pytest.ini_options]
-
-pythonpath = [
-  "."
-]
-minversion = "6.0"
-markers = [
-  "simulation: possibly slow running integration tests including hw simulation",
-  "hardware: slow system tests using the hardware deployment on real targets"
-]
-testpaths = [
-    "elasticai",
-    "tests",
-]
-python_files = ["*_test.py", "test_*.py"]
-addopts = [
-    "--import-mode=importlib",
-    "-s"
+[tool.coverage.run]
+source = ["elasticai"]
+relative_files = true
+omit = [
+  "**/*_test.py",
+  "**/utils.py",
+  "**/__init__.py",
 ]
 
+[tool.coverage.report]
+exclude_lines = [
+  "raise",
+  "case _:",
+  "pragma",
+  "continue",
+]
 
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+where = ["."]
+include = ["elasticai", "docker"]
+exclude = [".venv", "examples", "tests", "**/*_test.py"]
+namespaces = false
+
+[tool.hatch.build.targets.wheel]
+packages = ["elasticai", "docker"]
+exclude = [".venv", "examples", "tests", "**/*_test.py"]
+only-packages = true
 
 [tool.pylint]
+line-length = 88
+indent-width = 4
 max-line-length = 88
 accept-no-raise-doc = "False"
-disable="C0115, C0116, C0114, E0015, W0621" #disable missing docstring messages as they incourage adding noise comments
+disable = "C0115, C0116, C0114, E0015, W0621"
 
+[tool.pytest]
+addopts = ["--import-mode=importlib", "-s"]
+markers = ["hardware: slow system tests using the hardware deployment on real targets", "slow: possibly slow running integration tests including hw simulation or search space"]
+minversion = "9.0"
+python_files = ["*_test.py", "test_*.py"]
+pythonpath = ["."]
+testpaths = ["tests/*"]
+
+[tool.ruff]
+include = [
+  "pyproject.toml",
+  "elasticai/**/*.py",
+]
+exclude = [".venv", "build*", "equi_checker", "plugins_c", "example"]
+# Same as Black.
+line-length = 106
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["D101", "D102", "E721", "E722", "E731", "E741"]
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ty.src]
+include = ["elasticai"]
+exclude = [
+  "elasticai/**/*_test.py",
+  "elasticai/**/adc.py",
+]
+
+[tool.uv]
+default-groups = ["dev", "docs", "lint", "test"]
+override-dependencies = [
+  "tf-nightly; sys_platform == 'never'",
+]
+prerelease = "allow"
+
+[tool.uv.sources]
+iesude-data = { git = "https://github.com/es-ude/data.git" }
+elasticai-preprocessor = { git = "https://github.com/es-ude/elasticai.preprocessor.git", branch = "main" }
