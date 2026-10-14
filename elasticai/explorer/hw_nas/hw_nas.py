@@ -30,6 +30,7 @@ class HWNASParameters:
 
 
 class SearchStrategy(Enum):
+    GRID_SEARCH = "grid"
     RANDOM_SEARCH = "random"
     EVOLUTIONARY_SEARCH = "evolution"
 
@@ -113,7 +114,6 @@ def objective_wrapper(
         model = sample_and_create_model(trial, search_space_cfg)
         score = _evaluate_constraints(trial, model, optimization_criteria)
         logger.info(f"Trial {trial.number} has a final score of {score:.2f}")
-
         return score
 
     return objective(trial)
@@ -123,16 +123,18 @@ def create_sampler(
     search_strategy: SearchStrategy,
 ) -> optuna.samplers.BaseSampler:
     match search_strategy:
+        case SearchStrategy.GRID_SEARCH:
+            raise NotImplementedError
+            # return optuna.samplers.GridSampler(search_space=search_space)
         case SearchStrategy.RANDOM_SEARCH:
-            sampler = optuna.samplers.RandomSampler()
+            return optuna.samplers.RandomSampler()
         case SearchStrategy.EVOLUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(
+            return optuna.samplers.NSGAIISampler(
                 population_size=20,
                 mutation_prob=0.1,
             )
         case _:
-            sampler = optuna.samplers.RandomSampler()
-    return sampler
+            raise NotImplementedError(f"Unknown search strategy {search_strategy}")
 
 
 def create_trial_callbacks(
@@ -204,18 +206,14 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-
     sampler = create_sampler(search_strategy=search_strategy)
-
     study = optuna.create_study(
         sampler=sampler,
         direction="maximize",
     )
-
     n_trials, callbacks = create_trial_callbacks(hw_nas_parameters=hw_nas_parameters)
-
     study.optimize(
-        partial(
+        func=partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
             optimization_criteria=optimization_criteria,
@@ -225,7 +223,6 @@ def search(
         show_progress_bar=True,
         gc_after_trial=True,
     )
-
     top_k_models, top_k_params, top_k_metrics = collect_top_k_results(
         study=study,
         hw_nas_parameters=hw_nas_parameters,

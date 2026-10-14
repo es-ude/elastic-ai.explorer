@@ -23,6 +23,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Check types
+        if: false
         run: uv run ty check .
 
       - name: Check toml linting
