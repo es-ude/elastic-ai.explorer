@@ -258,7 +258,7 @@ def search(
 
     sampler = create_sampler(search_strategy=search_strategy, seed=seed)
     study = optuna.create_study(
-        study_name="run",
+        study_name=f"{path2study.name}",
         storage=f"sqlite:////{path2study.resolve()}/results.db",
         sampler=sampler,
         direction=direction.value,

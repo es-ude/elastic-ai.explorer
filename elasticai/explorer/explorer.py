@@ -97,6 +97,11 @@ class Explorer:
         self.search_space_cfg = yaml_to_dict(path_to_searchspace)
         self.logger.info("Generated search space:\n %s", self.search_space_cfg)
 
+    @property
+    def get_number_configurations(self) -> int:
+        """Returning the number of possible configurations from the search space"""
+        return hw_nas.count_configurations(self.search_space_cfg)[0]
+
     def search(
         self,
         search_strategy: SearchStrategy = SearchStrategy.RANDOM_SEARCH,
