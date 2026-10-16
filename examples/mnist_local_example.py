@@ -104,7 +104,7 @@ def run_mnist_search(args: argparse.Namespace) -> None:
     explorer = Explorer(KnowledgeRepository(), experiment_name=experiment_name)
     explorer.generate_search_space(search_space)
     top_models = explorer.search(
-        search_strategy=SearchStrategy.RANDOM_SEARCH,
+        search_strategy=SearchStrategy.GRID_SEARCH,
         optimization_criteria=criteria,
         hw_nas_parameters=HWNASParameters(
             max_search_trials=args.trials,
@@ -136,6 +136,7 @@ def run_mnist_search(args: argparse.Namespace) -> None:
     logger.info("Test accuracy: %.4f", test_metrics["accuracy"])
     logger.info("Saved model to %s", model_path)
     logger.info("Experiment output: %s", explorer.experiment_dir)
+    explorer.open_dashboard()
 
 
 def parse_args() -> argparse.Namespace:

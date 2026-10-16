@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 from pathlib import Path
 from typing import Any, Optional
 
@@ -96,25 +97,41 @@ class Explorer:
         self.search_space_cfg = yaml_to_dict(path_to_searchspace)
         self.logger.info("Generated search space:\n %s", self.search_space_cfg)
 
+    @property
+    def get_number_configurations(self) -> int:
+        """Returning the number of possible configurations from the search space"""
+        return hw_nas.count_configurations(self.search_space_cfg)[0]
+
     def search(
         self,
         search_strategy: SearchStrategy = SearchStrategy.RANDOM_SEARCH,
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
+        seed: int | None = None,
+        direction: hw_nas.SearchOptimization = hw_nas.SearchOptimization.MAXIMIZE,
     ) -> list[Any]:
 
+        max_trials = hw_nas.count_configurations(self.search_space_cfg)
+        if search_strategy == SearchStrategy.GRID_SEARCH:
+            hw_nas_parameters.max_search_trials = max_trials[0]
+
         self.logger.info(
-            "Start Hardware NAS with %d number of trials searching for top %d models. ",
+            "Start Hardware NAS with %d number of trials (total: %d, valid: %d) searching for top %d models. ",
             hw_nas_parameters.max_search_trials,
+            max_trials[0],
+            max_trials[1],
             hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
+                path2study=self._experiment_dir,
                 search_space_cfg=self.search_space_cfg,
                 search_strategy=search_strategy,
-                hw_nas_parameters=hw_nas_parameters,
                 optimization_criteria=optimization_criteria,
+                hw_nas_parameters=hw_nas_parameters,
+                seed=seed,
+                direction=direction,
             )
         else:
             self.logger.error(
@@ -142,6 +159,15 @@ class Explorer:
             )
 
         return top_models
+
+    def open_dashboard(self):
+        if (self._experiment_dir / "results.db").exists():
+            self.logger.info(
+                "\n\n=================================\nOpening optuna dashboard ...\n=================================\n"
+            )
+            os.system(f"optuna-dashboard sqlite:////{self._experiment_dir}/results.db")
+        else:
+            self.logger.error("No study results are available")
 
     def choose_target_hw(
         self,
