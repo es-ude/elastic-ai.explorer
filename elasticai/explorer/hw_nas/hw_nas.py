@@ -31,12 +31,6 @@ class HWNASParameters:
     count_only_completed_trials: bool = False
 
 
-class SearchStrategy(Enum):
-    GRID_SEARCH = "grid"
-    RANDOM_SEARCH = "random"
-    EVOLUTIONARY_SEARCH = "evolution"
-
-
 class SearchOptimization(Enum):
     MINIMIZE = "minimize"
     MAXIMIZE = "maximize"
@@ -167,21 +161,6 @@ def count_configurations(search_space_cfg: dict, limit: int | None = None) -> tu
     return len(study.trials), valid
 
 
-def create_sampler(
-    search_strategy: SearchStrategy,
-    seed: int | None = None,
-) -> optuna.samplers.BaseSampler:
-    match search_strategy:
-        case SearchStrategy.GRID_SEARCH:
-            return ExhaustiveGridSampler(seed=seed)
-        case SearchStrategy.RANDOM_SEARCH:
-            return optuna.samplers.RandomSampler(seed=seed)
-        case SearchStrategy.EVOLUTIONARY_SEARCH:
-            return optuna.samplers.NSGAIISampler(population_size=20, mutation_prob=0.1, seed=seed)
-        case _:
-            raise NotImplementedError(f"Unknown search strategy {search_strategy}")
-
-
 def create_trial_callbacks(hw_nas_parameters: HWNASParameters) -> tuple[int | None, list]:
     if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
@@ -243,10 +222,9 @@ def collect_top_k_results(
 def search(
     path2study: Path,
     search_space_cfg: dict,
-    search_strategy: SearchStrategy,
     optimization_criteria: OptimizationCriteria,
     hw_nas_parameters: HWNASParameters,
-    seed: int | None = None,
+    sampler: optuna.samplers.BaseSampler,
     direction: SearchOptimization = SearchOptimization.MAXIMIZE,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
     """
@@ -256,7 +234,6 @@ def search(
     if (path2study / "results.db").exists():
         os.remove(path2study / "results.db")
 
-    sampler = create_sampler(search_strategy=search_strategy, seed=seed)
     study = optuna.create_study(
         study_name=f"{path2study.name}",
         storage=f"sqlite:////{path2study.resolve()}/results.db",
