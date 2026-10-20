@@ -1,13 +1,15 @@
 import datetime
 import logging
+import os
 from pathlib import Path
 from typing import Any, Optional
 
+import optuna.samplers
 from torch import nn
 
 from elasticai.explorer._helper import get_path_to_experiments
 from elasticai.explorer.hw_nas import hw_nas
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
@@ -96,25 +98,37 @@ class Explorer:
         self.search_space_cfg = yaml_to_dict(path_to_searchspace)
         self.logger.info("Generated search space:\n %s", self.search_space_cfg)
 
+    @property
+    def get_number_configurations(self) -> int:
+        """Returning the number of possible configurations from the search space"""
+        return hw_nas.count_configurations(self.search_space_cfg)[0]
+
     def search(
         self,
-        search_strategy: SearchStrategy = SearchStrategy.RANDOM_SEARCH,
+        sampler: optuna.samplers.BaseSampler,
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
+        direction: hw_nas.SearchOptimization = hw_nas.SearchOptimization.MAXIMIZE,
     ) -> list[Any]:
 
+        max_trials = hw_nas.count_configurations(self.search_space_cfg)
+
         self.logger.info(
-            "Start Hardware NAS with %d number of trials searching for top %d models. ",
+            "Start Hardware NAS with %d number of trials (total: %d, valid: %d) searching for top %d models. ",
             hw_nas_parameters.max_search_trials,
+            max_trials[0],
+            max_trials[1],
             hw_nas_parameters.top_n_models,
         )
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
+                path2study=self._experiment_dir,
+                sampler=sampler,
                 search_space_cfg=self.search_space_cfg,
-                search_strategy=search_strategy,
-                hw_nas_parameters=hw_nas_parameters,
                 optimization_criteria=optimization_criteria,
+                hw_nas_parameters=hw_nas_parameters,
+                direction=direction,
             )
         else:
             self.logger.error(
@@ -130,7 +144,7 @@ class Explorer:
             data_utils.save_to_toml(
                 dataclass_instance_to_toml(
                     hw_nas_parameters,
-                    additional_info={"search_strategy": search_strategy.value},
+                    additional_info={},
                 ),
                 self._experiment_dir,
                 "hw_nas_params.toml",
@@ -142,6 +156,15 @@ class Explorer:
             )
 
         return top_models
+
+    def open_dashboard(self):
+        if (self._experiment_dir / "results.db").exists():
+            self.logger.info(
+                "\n\n=================================\nOpening optuna dashboard ...\n=================================\n"
+            )
+            os.system(f"optuna-dashboard sqlite:////{self._experiment_dir}/results.db")
+        else:
+            self.logger.error("No study results are available")
 
     def choose_target_hw(
         self,
