@@ -4,11 +4,12 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
+import optuna.samplers
 from torch import nn
 
 from elasticai.explorer._helper import get_path_to_experiments
 from elasticai.explorer.hw_nas import hw_nas
-from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
+from elasticai.explorer.hw_nas.hw_nas import HWNASParameters
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
@@ -104,17 +105,14 @@ class Explorer:
 
     def search(
         self,
-        search_strategy: SearchStrategy = SearchStrategy.RANDOM_SEARCH,
+        sampler: optuna.samplers.BaseSampler,
         optimization_criteria: OptimizationCriteria = OptimizationCriteria(),
         hw_nas_parameters: HWNASParameters = HWNASParameters(),
         dump_configuration: bool = True,
-        seed: int | None = None,
         direction: hw_nas.SearchOptimization = hw_nas.SearchOptimization.MAXIMIZE,
     ) -> list[Any]:
 
         max_trials = hw_nas.count_configurations(self.search_space_cfg)
-        if search_strategy == SearchStrategy.GRID_SEARCH:
-            hw_nas_parameters.max_search_trials = max_trials[0]
 
         self.logger.info(
             "Start Hardware NAS with %d number of trials (total: %d, valid: %d) searching for top %d models. ",
@@ -126,11 +124,10 @@ class Explorer:
         if self.search_space_cfg:
             top_models, model_parameters, metrics = hw_nas.search(
                 path2study=self._experiment_dir,
+                sampler=sampler,
                 search_space_cfg=self.search_space_cfg,
-                search_strategy=search_strategy,
                 optimization_criteria=optimization_criteria,
                 hw_nas_parameters=hw_nas_parameters,
-                seed=seed,
                 direction=direction,
             )
         else:
@@ -147,7 +144,7 @@ class Explorer:
             data_utils.save_to_toml(
                 dataclass_instance_to_toml(
                     hw_nas_parameters,
-                    additional_info={"search_strategy": search_strategy.value},
+                    additional_info={},
                 ),
                 self._experiment_dir,
                 "hw_nas_params.toml",

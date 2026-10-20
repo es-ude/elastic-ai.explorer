@@ -4,6 +4,5 @@ from ._helper import get_path_to_project as get_path_to_project
 from .explorer import Explorer as Explorer
 from .hw_nas.hw_nas import HWNASParameters as HWNASParameters
 from .hw_nas.hw_nas import SearchOptimization as SearchOptimization
-from .hw_nas.hw_nas import SearchStrategy as SearchStrategy
 from .hw_nas.optimization_criteria import OptimizationCriteria as OptimizationCriteria
 from .knowledge_repository import KnowledgeRepository as KnowledgeRepository
