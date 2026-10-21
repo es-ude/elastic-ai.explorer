@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from torchvision.transforms import transforms
 
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.hw_nas import HWNASParameters, SearchStrategy
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams
@@ -18,9 +19,8 @@ from examples.example_helpers import (
     setup_example_optimization_criteria,
 )
 
-from settings import DOCKER_CONTEXT_DIR, ROOT_DIR
 
-logging.config.fileConfig(ROOT_DIR / "logging.conf", disable_existing_loggers=False)
+logging.config.fileConfig(get_path_to_project() / "logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger("explorer.main")
 device = str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
@@ -40,8 +40,8 @@ def search_generate_measure_for_pico(
     transf = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    path_to_dataset = ROOT_DIR / Path("data/mnist")
-    root_dir_cpp_mnist = ROOT_DIR / Path("data/cpp-mnist")
+    path_to_dataset = get_path_to_project() / Path("data/mnist")
+    root_dir_cpp_mnist = get_path_to_project() / Path("data/cpp-mnist")
     setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
 
     dataset_spec = DatasetSpecification(
@@ -88,8 +88,8 @@ if __name__ == "__main__":
     compiler_params = CompilerParams(
         library_path=Path("./code/pico_crosscompiler"),
         image_name="picobase",
-        build_context=DOCKER_CONTEXT_DIR,
-        path_to_dockerfile=ROOT_DIR / "docker/Dockerfile.picobase",
+        build_context=get_path_to_project("docker"),
+        path_to_dockerfile=get_path_to_project("docker") / "Dockerfile.picobase",
     )  # <-- Configure this only if necessary.
 
     knowledge_repo = setup_knowledge_repository()

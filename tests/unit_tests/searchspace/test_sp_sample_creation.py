@@ -119,7 +119,6 @@ def test_repeat_params(depth):
         "block_1/l0/linear/width": 32,
     }
     sample = get_sample(params, search_space_with_repeat_params)
-    print(sample)
     assert (len(sample) == 1) and (len(sample["1"]) == depth)
     assert sample["1"][f"l0"]["operation"] == "linear"
     if depth == 1:
@@ -152,6 +151,26 @@ DEFAULT_OP_PARAMS = {
     "batch_norm": {},
     "activation": {"op": ["relu", "sigmoid"]},
 }
+
+
+def test_samples_dilation_from_default_op_params():
+    sp = {
+        "sequence": [{"block": "1", "op_candidates": "conv1d"}],
+        "default_op_params": {
+            "conv1d": {
+                "kernel_size": 3,
+                "stride": 1,
+                "out_channels": 16,
+                "padding": 0,
+                "dilation": [1, 2, 4],
+            }
+        },
+    }
+    params = {"block_1/l0/conv1d/dilation": 4}
+
+    sample = get_sample(params, sp)
+
+    assert sample["1"]["l0"]["params"]["dilation"] == 4
 
 
 # Usecase: composite was used in block. Block repeats the params -> sample composite op once and reuse
@@ -260,7 +279,6 @@ def test_composite_vary_all_samples_independently(depth):
     }
 
     result = get_sample(params, sp)["1"]
-    print(result)
     # every layer's sub-blocks must be present regardless of caching behaviour
     for i in range(depth):
         assert f"l{i}/conv_act_pool_1/l0" in result

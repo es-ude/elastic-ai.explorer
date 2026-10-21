@@ -1,20 +1,20 @@
+import logging
 import traceback
 from dataclasses import dataclass
-import logging
-from typing import Any, Callable
-from functools import partial
 from enum import Enum
+from functools import partial
+from typing import Any, Callable
 
 import optuna
-from optuna.trial import FrozenTrial, TrialState
 from optuna.study import MaxTrialsCallback
+from optuna.trial import FrozenTrial, TrialState
 
 from elasticai.explorer.hw_nas.optimization_criteria import (
     OptimizationCriteria,
 )
 from elasticai.explorer.hw_nas.search_space.build_model import (
-    construct_model,
     ShapeValueError,
+    construct_model,
 )
 from elasticai.explorer.hw_nas.search_space.sample_blocks import Sampler
 
@@ -30,6 +30,7 @@ class HWNASParameters:
 
 
 class SearchStrategy(Enum):
+    GRID_SEARCH = "grid"
     RANDOM_SEARCH = "random"
     EVOLUTIONARY_SEARCH = "evolution"
 
@@ -37,12 +38,22 @@ class SearchStrategy(Enum):
 def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
     score = 0.0
     for estimator in optimization_criteria:
-        final_estimate, estimates = estimator.estimate(model)
+        final_estimate, estimates, metrics = estimator.estimate(model)
         trial.set_user_attr(estimator.metric_name, final_estimate)
         trial.set_user_attr(
             intermediate_metrics_template.format(metric_name=estimator.metric_name),
             estimates,
         )
+
+        if metrics:
+            keys_available = list(metrics[0].keys())
+            for key in keys_available:
+                trial.set_user_attr(key, metrics[-1][key])
+                trial.set_user_attr(
+                    intermediate_metrics_template.format(metric_name=key),
+                    [val[key] for val in metrics],
+                )
+
         hard_constraints = optimization_criteria.get_hard_constraints(estimator)
         for hc in hard_constraints:
             if not hc.comparator(final_estimate, hc.constraint_value):
@@ -77,18 +88,20 @@ def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCrite
     return score
 
 
-def sample_and_create_model(trial, search_space: dict):
+def sample_and_create_model(trial, search_space: dict, input_shape=None):
     search_space_sampler = Sampler(trial)
     try:
+        if input_shape is not None:
+            model_input_shape = input_shape
+        else:
+            model_input_shape = search_space["input"]
         sample = search_space_sampler.construct_sample(search_space)
-        model = construct_model(sample, search_space["input"], search_space["output"])
+        model = construct_model(sample, model_input_shape, search_space["output"])
         return model
 
     except (ShapeValueError, NotImplementedError) as e:
         print(traceback.format_exc())
-        logger.warning(
-            f"Failed to construct model due to exception: {e}. Pruning trial."
-        )
+        logger.warning(f"Failed to construct model due to exception: {e}. Pruning trial.")
         raise optuna.TrialPruned()
 
 
@@ -97,15 +110,91 @@ def objective_wrapper(
     search_space_cfg: dict[str, Any],
     optimization_criteria: OptimizationCriteria,
 ) -> float:
-
     def objective(trial: optuna.Trial) -> float:
         model = sample_and_create_model(trial, search_space_cfg)
         score = _evaluate_constraints(trial, model, optimization_criteria)
         logger.info(f"Trial {trial.number} has a final score of {score:.2f}")
-
         return score
 
     return objective(trial)
+
+
+def create_sampler(
+    search_strategy: SearchStrategy,
+) -> optuna.samplers.BaseSampler:
+    match search_strategy:
+        case SearchStrategy.GRID_SEARCH:
+            raise NotImplementedError
+            # return optuna.samplers.GridSampler(search_space=search_space)
+        case SearchStrategy.RANDOM_SEARCH:
+            return optuna.samplers.RandomSampler()
+        case SearchStrategy.EVOLUTIONARY_SEARCH:
+            return optuna.samplers.NSGAIISampler(
+                population_size=20,
+                mutation_prob=0.1,
+            )
+        case _:
+            raise NotImplementedError(f"Unknown search strategy {search_strategy}")
+
+
+def create_trial_callbacks(
+    hw_nas_parameters: HWNASParameters,
+) -> tuple[int | None, list]:
+    if hw_nas_parameters.count_only_completed_trials:
+        n_trials = None
+        callbacks = [
+            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,))
+        ]
+    else:
+        n_trials = hw_nas_parameters.max_search_trials
+        callbacks = [MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)]
+
+    return n_trials, callbacks
+
+
+def collect_top_k_results(
+    study: optuna.Study,
+    hw_nas_parameters: HWNASParameters,
+    optimization_criteria: OptimizationCriteria,
+    search_space_cfg: dict,
+) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
+    test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
+    trial_score: Callable[[FrozenTrial], float] = lambda trial: (
+        trial.value if trial.value is not None else float("-inf")
+    )
+    test_results.sort(key=trial_score, reverse=True)
+
+    top_k_frozen_trials = test_results[: hw_nas_parameters.top_n_models]
+
+    if len(top_k_frozen_trials) == 0:
+        logger.warning("No models found in the search space.")
+        return [], [], []
+
+    top_k_models: list[Any] = []
+    top_k_params: list[dict[str, Any]] = []
+    top_k_metrics: list[dict] = []
+
+    metric_names = [estimator.metric_name for estimator in optimization_criteria.get_estimators()]
+    if hasattr(optimization_criteria.get_estimators(), "trainer"):
+        metric_names.extend(
+            key
+            for estimator in optimization_criteria.get_estimators()
+            for key in list(estimator.trainer.extra_metrics.keys())
+        )
+
+    for frozen_trial in top_k_frozen_trials:
+        top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
+        top_k_params.append(frozen_trial.params)
+        top_k_metrics.append(
+            {
+                "score": trial_score(frozen_trial),
+            }
+        )
+        for metric_name in metric_names:
+            intermediates_key = intermediate_metrics_template.format(metric_name=metric_name)
+            top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
+            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[intermediates_key]
+    return top_k_models, top_k_params, top_k_metrics
 
 
 def search(
@@ -117,38 +206,14 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-
-    match search_strategy:
-        case SearchStrategy.RANDOM_SEARCH:
-            sampler = optuna.samplers.RandomSampler()
-        case SearchStrategy.EVOLUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(
-                population_size=20,
-                mutation_prob=0.1,
-            )
-        case _:
-            sampler = optuna.samplers.RandomSampler()
-
+    sampler = create_sampler(search_strategy=search_strategy)
     study = optuna.create_study(
         sampler=sampler,
         direction="maximize",
     )
-
-    if hw_nas_parameters.count_only_completed_trials:
-        n_trials = None
-        callbacks = [
-            MaxTrialsCallback(
-                hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,)
-            )
-        ]
-    else:
-        n_trials = hw_nas_parameters.max_search_trials
-        callbacks = [
-            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)
-        ]
-
+    n_trials, callbacks = create_trial_callbacks(hw_nas_parameters=hw_nas_parameters)
     study.optimize(
-        partial(
+        func=partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
             optimization_criteria=optimization_criteria,
@@ -158,41 +223,10 @@ def search(
         show_progress_bar=True,
         gc_after_trial=True,
     )
-
-    test_results = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
-    eval: Callable[[FrozenTrial], float] = lambda trial: (
-        trial.value if trial.value is not None else float("-inf")
+    top_k_models, top_k_params, top_k_metrics = collect_top_k_results(
+        study=study,
+        hw_nas_parameters=hw_nas_parameters,
+        optimization_criteria=optimization_criteria,
+        search_space_cfg=search_space_cfg,
     )
-    test_results.sort(key=eval, reverse=True)
-
-    top_k_frozen_trials = test_results[: hw_nas_parameters.top_n_models]
-
-    if len(top_k_frozen_trials) == 0:
-        logger.warning("No models found in the search space.")
-        return [], [], []
-
-    top_k_models: list[Any] = []
-    top_k_params: list[dict[str, Any]] = []
-    top_k_metrics: list[dict] = []
-    metric_names = [
-        estimator.metric_name for estimator in optimization_criteria.get_estimators()
-    ]
-
-    for frozen_trial in top_k_frozen_trials:
-
-        top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
-        top_k_params.append(frozen_trial.params)
-        top_k_metrics.append(
-            {
-                "score": eval(frozen_trial),
-            }
-        )
-        for metric_name in metric_names:
-            intermediates_key = intermediate_metrics_template.format(
-                metric_name=metric_name
-            )
-            top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
-            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
-                intermediates_key
-            ]
     return top_k_models, top_k_params, top_k_metrics

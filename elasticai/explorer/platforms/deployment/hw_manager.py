@@ -1,12 +1,13 @@
 import json
 import logging
 import os
+import shutil
+import tarfile
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
-import shutil
-import tarfile
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.platforms.deployment.compiler import Compiler
 from elasticai.explorer.platforms.deployment.device_communication import (
     Host,
@@ -15,7 +16,8 @@ from elasticai.explorer.platforms.deployment.device_communication import (
 )
 from elasticai.explorer.platforms.generator import tflite_to_resolver
 from elasticai.explorer.training.data import DatasetSpecification, RootedDataset
-from settings import DOCKER_CONTEXT_DIR
+
+DOCKER_CONTEXT_DIR = get_path_to_project("docker")
 
 
 class Metric(Enum):
@@ -50,12 +52,9 @@ class HWManager(ABC):
 
 
 class RPiHWManager(HWManager):
-
     def __init__(self, target: RPiHost, compiler: Compiler):
 
-        self.logger = logging.getLogger(
-            "explorer.platforms.deployment.manager.RPIHWManager"
-        )
+        self.logger = logging.getLogger("explorer.platforms.deployment.manager.RPIHWManager")
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
@@ -136,12 +135,9 @@ class CommandBuilder:
 
 
 class PicoHWManager(HWManager):
-
     def __init__(self, target: PicoHost, compiler: Compiler):
 
-        self.logger = logging.getLogger(
-            "explorer.platforms.deployment.manager.PicoHWManager"
-        )
+        self.logger = logging.getLogger("explorer.platforms.deployment.manager.PicoHWManager")
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)
 
@@ -180,9 +176,7 @@ class PicoHWManager(HWManager):
         if self.measurements:
             measurement = self._parse_measurement(self.measurements)
         else:
-            return self._parse_measurement(
-                '{"' + metric.value + '": { "value": -1, "unit": "Error"}}'
-            )
+            return self._parse_measurement('{"' + metric.value + '": { "value": -1, "unit": "Error"}}')
 
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement

@@ -1,0 +1,26 @@
+input: [3, 28, 28]
+output: 10
+sequence:
+  - block: "1"
+    op_candidates: "depthwise-separable"
+  - block:  "2"
+    op_candidates:  "linear"
+    linear:
+      width: 32
+      activation: "sigmoid"
+
+composites:
+  depthwise-separable:
+    sequence:
+      - block: "dw"
+        op_candidates: "conv2d"
+        conv2d:
+          kernel_size: [3, 4]
+          stride: [1,2 ]
+          groups: "depthwise"
+      - block: "pw"
+        op_candidates: "conv2d"
+        conv2d:
+          kernel_size: 1
+          stride: 1
+          out_channels: 10
