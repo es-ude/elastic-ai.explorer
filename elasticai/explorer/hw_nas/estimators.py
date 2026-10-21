@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from logging import Logger
 from numbers import Number
 from pathlib import Path
@@ -110,9 +110,7 @@ class LatencyEstimator(Estimator):
         self.model_output_path = model_output_path
         self.data_sample = data_sample
 
-    def estimate(
-        self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int]]:
+    def estimate(self, model_sample: torch.nn.Module) -> tuple[float | int, list[float | int]]:
         self.generator.generate(model_sample, self.model_output_path, self.data_sample)
         self.hw_manager.deploy_model(self.model_output_path)
         result = self.hw_manager.measure_metric(Metric.LATENCY, self.model_output_path)
