@@ -1,27 +1,27 @@
 import tomllib
+from pathlib import Path
 
 import pytest
 import torch
+from torchvision.transforms import transforms
+
 from elasticai.explorer import get_path_to_project, get_path_to_docker
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.estimators import LatencyEstimator
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
+from elasticai.explorer.platforms.deployment.device_communication import (
+    RPiHost,
+    SSHParams,
+)
 from elasticai.explorer.platforms.deployment.hw_manager import (
     RPiHWManager,
     Metric,
 )
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
-from elasticai.explorer.platforms.deployment.device_communication import (
-    RPiHost,
-    SSHParams,
-)
-from tests.integration_tests.samples.sample_MLP import SampleMLP
-from torchvision.transforms import transforms
-from pathlib import Path
-
 from elasticai.explorer.training import data
 from elasticai.explorer.utils.data_utils import setup_mnist_for_cpp
+from tests.integration_tests.samples.sample_MLP import SampleMLP
 
 
 class TestDeploymentAndMeasurement:
