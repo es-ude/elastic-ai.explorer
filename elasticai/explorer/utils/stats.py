@@ -1,5 +1,6 @@
-from scipy.stats import kendalltau
 from typing import Any
+
+from scipy.stats import kendalltau
 
 
 def compute_kendall(list_x: list[Any], list_y: list[Any]) -> Any:

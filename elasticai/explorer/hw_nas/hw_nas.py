@@ -30,6 +30,7 @@ class HWNASParameters:
 
 
 class SearchStrategy(Enum):
+    GRID_SEARCH = "grid"
     RANDOM_SEARCH = "random"
     EVOLUTIONARY_SEARCH = "evolution"
 
@@ -39,12 +40,23 @@ def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCrite
     for estimator in optimization_criteria:
         final_estimate = estimator.estimate(model)
         trial.set_user_attr(estimator.metric_name, final_estimate)
-        estimator_metric_history = estimator.get_history()
-        if estimator_metric_history:
-            trial.set_user_attr(
-                intermediate_metrics_template.format(metric_name=estimator.metric_name),
-                estimator_metric_history,
-            )
+
+        metric_history = estimator.get_metric_history()
+        trial.set_user_attr(
+            intermediate_metrics_template.format(metric_name=estimator.metric_name),
+            metric_history,
+        )
+
+        extra_metrics_history = estimator.get_extra_metrics_history()
+        if extra_metrics_history:
+            keys_available = list(extra_metrics_history[0].keys())
+            for key in keys_available:
+                trial.set_user_attr(key, extra_metrics_history[-1][key])
+                trial.set_user_attr(
+                    intermediate_metrics_template.format(metric_name=key),
+                    [val[key] for val in extra_metrics_history],
+                )
+
         hard_constraints = optimization_criteria.get_hard_constraints(estimator)
         for hc in hard_constraints:
             if not hc.comparator(final_estimate, hc.constraint_value):
@@ -92,9 +104,7 @@ def sample_and_create_model(trial, search_space: dict, input_shape=None):
 
     except (ShapeValueError, NotImplementedError) as e:
         print(traceback.format_exc())
-        logger.warning(
-            f"Failed to construct model due to exception: {e}. Pruning trial."
-        )
+        logger.warning(f"Failed to construct model due to exception: {e}. Pruning trial.")
         raise optuna.TrialPruned()
 
 
@@ -107,7 +117,6 @@ def objective_wrapper(
         model = sample_and_create_model(trial, search_space_cfg)
         score = _evaluate_constraints(trial, model, optimization_criteria)
         logger.info(f"Trial {trial.number} has a final score of {score:.2f}")
-
         return score
 
     return objective(trial)
@@ -117,16 +126,18 @@ def create_sampler(
     search_strategy: SearchStrategy,
 ) -> optuna.samplers.BaseSampler:
     match search_strategy:
+        case SearchStrategy.GRID_SEARCH:
+            raise NotImplementedError
+            # return optuna.samplers.GridSampler(search_space=search_space)
         case SearchStrategy.RANDOM_SEARCH:
-            sampler = optuna.samplers.RandomSampler()
+            return optuna.samplers.RandomSampler()
         case SearchStrategy.EVOLUTIONARY_SEARCH:
-            sampler = optuna.samplers.NSGAIISampler(
+            return optuna.samplers.NSGAIISampler(
                 population_size=20,
                 mutation_prob=0.1,
             )
         case _:
-            sampler = optuna.samplers.RandomSampler()
-    return sampler
+            raise NotImplementedError(f"Unknown search strategy {search_strategy}")
 
 
 def create_trial_callbacks(
@@ -135,15 +146,11 @@ def create_trial_callbacks(
     if hw_nas_parameters.count_only_completed_trials:
         n_trials = None
         callbacks = [
-            MaxTrialsCallback(
-                hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,)
-            )
+            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=(TrialState.COMPLETE,))
         ]
     else:
         n_trials = hw_nas_parameters.max_search_trials
-        callbacks = [
-            MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)
-        ]
+        callbacks = [MaxTrialsCallback(hw_nas_parameters.max_search_trials, states=None)]
 
     return n_trials, callbacks
 
@@ -169,9 +176,14 @@ def collect_top_k_results(
     top_k_models: list[Any] = []
     top_k_params: list[dict[str, Any]] = []
     top_k_metrics: list[dict] = []
-    metric_names = [
-        estimator.metric_name for estimator in optimization_criteria.get_estimators()
-    ]
+
+    metric_names = [estimator.metric_name for estimator in optimization_criteria.get_estimators()]
+    if hasattr(optimization_criteria.get_estimators(), "trainer"):
+        metric_names.extend(
+            key
+            for estimator in optimization_criteria.get_estimators()
+            for key in list(estimator.trainer.extra_metrics.keys())
+        )
 
     for frozen_trial in top_k_frozen_trials:
         top_k_models.append(sample_and_create_model(frozen_trial, search_space_cfg))
@@ -182,13 +194,9 @@ def collect_top_k_results(
             }
         )
         for metric_name in metric_names:
-            intermediates_key = intermediate_metrics_template.format(
-                metric_name=metric_name
-            )
+            intermediates_key = intermediate_metrics_template.format(metric_name=metric_name)
             top_k_metrics[-1][metric_name] = frozen_trial.user_attrs[metric_name]
-            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[
-                intermediates_key
-            ]
+            top_k_metrics[-1][intermediates_key] = frozen_trial.user_attrs[intermediates_key]
     return top_k_models, top_k_params, top_k_metrics
 
 
@@ -201,18 +209,14 @@ def search(
     """
     Returns: top-models, model-parameters, metrics
     """
-
     sampler = create_sampler(search_strategy=search_strategy)
-
     study = optuna.create_study(
         sampler=sampler,
         direction="maximize",
     )
-
     n_trials, callbacks = create_trial_callbacks(hw_nas_parameters=hw_nas_parameters)
-
     study.optimize(
-        partial(
+        func=partial(
             objective_wrapper,
             search_space_cfg=search_space_cfg,
             optimization_criteria=optimization_criteria,
@@ -222,7 +226,6 @@ def search(
         show_progress_bar=True,
         gc_after_trial=True,
     )
-
     top_k_models, top_k_params, top_k_metrics = collect_top_k_results(
         study=study,
         hw_nas_parameters=hw_nas_parameters,

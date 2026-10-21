@@ -1,10 +1,10 @@
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.platforms.deployment.hw_manager import (
     CommandBuilder,
     RPiHWManager,
-    DOCKER_CONTEXT_DIR,
     Metric,
 )
 
@@ -27,7 +27,7 @@ class TestPiHWManager:
         attr = {"run_command.return_value": output}
         target.configure_mock(**attr)
         self.hwmanager = RPiHWManager(target, compiler)
-        path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_latency"
+        path: Path = get_path_to_project("docker") / "bin" / "measure_latency"
         self.hwmanager._register_metric_to_source(
             Metric.LATENCY, Path("measure_latency")
         )
@@ -48,7 +48,7 @@ class TestPiHWManager:
         self.hwmanager._register_metric_to_source(
             Metric.ACCURACY, Path("measure_accuracy")
         )
-        path: Path = Path(str(DOCKER_CONTEXT_DIR)) / "bin" / "measure_accuracy"
+        path: Path = get_path_to_project("docker")/ "bin" / "measure_accuracy"
         metric = Metric.ACCURACY
         result = self.hwmanager.measure_metric(metric, path_to_model=path)
         assert expected == result

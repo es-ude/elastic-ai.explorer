@@ -1,13 +1,13 @@
-from tflite.Model import Model
-import tflite
 from pathlib import Path
+
+import tflite
+from tflite.Model import Model
 
 # Mapping from TFLite builtin op name -> MicroMutableOpResolver method
 OP_TO_RESOLVER = {
     "ADD": "AddAdd",
     "RELU": "AddRelu",
     "FULLY_CONNECTED": "AddFullyConnected",
-    "RESHAPE": "AddReshape",
     "DEPTHWISE_CONV_2D": "AddDepthwiseConv2D",
     "TRANSPOSE": "AddTranspose",
     "CONV_2D": "AddConv2D",
@@ -43,7 +43,7 @@ OP_TO_RESOLVER = {
     "CAST": "AddCast",
     "FLOOR": "AddFloor",
     "CEIL": "AddCeil",
-    "BROADCAST_TO": "AddBroadcastTo"
+    "BROADCAST_TO": "AddBroadcastTo",
 }
 
 

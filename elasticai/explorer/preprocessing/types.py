@@ -42,9 +42,7 @@ class FilteringSample:
         missing = [key for key in required if getattr(self, key) is None]
 
         if missing:
-            raise ValueError(
-                f"{','.join(missing)} is required for {self.band_type} filtering"
-            )
+            raise ValueError(f"{','.join(missing)} is required for {self.band_type} filtering")
 
         if "low_cut_hz" in required and "high_cut_hz" in required:
             if self.low_cut_hz >= self.high_cut_hz:
