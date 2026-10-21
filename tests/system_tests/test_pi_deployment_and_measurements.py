@@ -5,7 +5,7 @@ import pytest
 import torch
 from torchvision.transforms import transforms
 
-from elasticai.explorer import get_path_to_project, get_path_to_docker
+from elasticai.explorer import get_path_to_docker, get_path_to_project
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.estimators import LatencyEstimator
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -15,8 +15,8 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     SSHParams,
 )
 from elasticai.explorer.platforms.deployment.hw_manager import (
-    RPiHWManager,
     Metric,
+    RPiHWManager,
 )
 from elasticai.explorer.platforms.generator.generator import RPiGenerator
 from elasticai.explorer.training import data
@@ -53,16 +53,12 @@ class TestDeploymentAndMeasurement:
             "rpi5", communication_params=ssh_params, compiler_params=compiler_params
         )
         self.model_name = "ts_model_0.pt"
-        transf = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
+        transf = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
         path_to_dataset = get_path_to_project() / "data/mnist"
         root_dir_cpp_mnist = get_path_to_project() / "data/cpp-mnist"
         setup_mnist_for_cpp(path_to_dataset, root_dir_cpp_mnist, transf)
         metric_to_source = {
-            Metric.ACCURACY: Path(
-                "code/measure_accuracy_mnist.cpp"
-            ),  # test relative path
+            Metric.ACCURACY: Path("code/measure_accuracy_mnist.cpp"),  # test relative path
             Metric.LATENCY: (
                 get_path_to_project("docker") / Path("code/measure_latency.cpp")
             ),  # test absolute path
@@ -82,9 +78,9 @@ class TestDeploymentAndMeasurement:
     def test_pi_accuracy_measurement(self):
         assert (
             type(
-                self.RPI5explorer.run_measurement(
-                    Metric.ACCURACY, model_name=self.model_name
-                )["Accuracy"]["value"]
+                self.RPI5explorer.run_measurement(Metric.ACCURACY, model_name=self.model_name)[
+                    "Accuracy"
+                ]["value"]
             )
             == float
         )
@@ -107,9 +103,7 @@ class TestLatencyEstimator:
         with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
             config = tomllib.load(f)
 
-        ssh_params = SSHParams(
-            hostname=config["RPI_HOSTNAME"], username=config["RPI_USERNAME"]
-        )
+        ssh_params = SSHParams(hostname=config["RPI_HOSTNAME"], username=config["RPI_USERNAME"])
         compiler_params = CompilerParams()
 
         host = RPiHost(ssh_params)
