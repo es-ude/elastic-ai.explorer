@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from logging import Logger
 from numbers import Number
 from pathlib import Path
@@ -50,7 +50,7 @@ def lstm_flop_jit(inputs: list[Any], outputs: list[Any]) -> Number:
     return flops
 
 
-class Estimator:
+class Estimator(ABC):
     def __init__(self, metric_name, logger_name) -> None:
         self.metric_name: str = metric_name
         self.logger: Logger = logging.getLogger(logger_name)
