@@ -118,7 +118,7 @@ class TestLatencyEstimator:
         self.generator = RPiGenerator()
 
         self.hw_manager.install_code_on_target(
-            get_path_to_project() / "code/measure_latency.cpp",
+            get_path_to_docker() / "code/measure_latency.cpp",
             Metric.LATENCY,
         )
 
