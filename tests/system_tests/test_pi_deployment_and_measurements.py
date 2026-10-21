@@ -2,7 +2,7 @@ import tomllib
 
 import pytest
 import torch
-from elasticai.explorer import get_path_to_project
+from elasticai.explorer import get_path_to_project, get_path_to_docker
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.estimators import LatencyEstimator
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
@@ -118,11 +118,11 @@ class TestLatencyEstimator:
         self.generator = RPiGenerator()
 
         self.hw_manager.install_code_on_target(
-            DOCKER_CONTEXT_DIR / "code/measure_latency.cpp",
+            get_path_to_docker() / "code/measure_latency.cpp",
             Metric.LATENCY,
         )
 
-        self.model_output_path = ROOT_DIR / "tests/system_tests/samples/test_model.pt"
+        self.model_output_path = get_path_to_project() / "tests/system_tests/samples/test_model.pt"
         self.data_sample = torch.ones(1, 1, 28, 28)
 
     @pytest.mark.hardware
