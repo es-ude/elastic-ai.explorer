@@ -1,7 +1,6 @@
 import logging
 from abc import abstractmethod
 from logging import Logger
-import logging
 from numbers import Number
 from pathlib import Path
 from typing import Any
@@ -10,6 +9,7 @@ import torch
 from fvcore.nn import FlopCountAnalysis, parameter_count
 from fvcore.nn.jit_handles import get_shape
 from torch.optim.adam import Adam
+
 from elasticai.explorer.platforms.deployment.hw_manager import HWManager, Metric
 from elasticai.explorer.platforms.generator.generator import Generator
 from elasticai.explorer.training.trainer import Trainer
