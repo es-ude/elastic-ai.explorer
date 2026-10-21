@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from logging import Logger
 from numbers import Number
 from typing import Any
