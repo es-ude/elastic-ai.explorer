@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from logging import Logger
 from numbers import Number
 from typing import Any
@@ -47,18 +47,24 @@ def lstm_flop_jit(inputs: list[Any], outputs: list[Any]) -> Number:
     return flops
 
 
-class Estimator:
+class Estimator(ABC):
     def __init__(self, metric_name, logger_name) -> None:
         self.metric_name: str = metric_name
         self.logger: Logger = logging.getLogger(logger_name)
 
     @abstractmethod
-    def estimate(self, model_sample) -> tuple[float | int, list[float | int]]:
+    def estimate(self, model_sample) -> float | int:
         """
         Returns:
-            tuple[float|int, list[float|int]]: The final estimate and list of intermediate values.
+            float | int: The final estimate.
         """
         pass
+
+    def get_metric_history(self) -> list[float | int] | None:
+        return None
+
+    def get_extra_metrics_history(self) -> list[dict[str, float | int]] | None:
+        return None
 
 
 class FLOPsEstimator(Estimator):
@@ -66,13 +72,11 @@ class FLOPsEstimator(Estimator):
         super().__init__(metric_name="flops_estimate", logger_name="explorer.FlopsEstimator")
         self.data_sample = data_sample
 
-    def estimate(
-        self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int], list[dict]]:
+    def estimate(self, model_sample: torch.nn.Module) -> float | int:
         handlers = {"aten::sigmoid": None, "aten::lstm": lstm_flop_jit}
         flops = FlopCountAnalysis(model_sample, self.data_sample).set_op_handle(**handlers)
 
-        return flops.total(), [], []
+        return flops.total()
 
 
 class ParamEstimator(Estimator):
@@ -83,11 +87,8 @@ class ParamEstimator(Estimator):
         )
         self.logger: Logger = logging.getLogger()
 
-    def estimate(
-        self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int], list[dict]]:
-        param_count = parameter_count(model_sample)[""]
-        return param_count, [], []
+    def estimate(self, model_sample: torch.nn.Module) -> float | int:
+        return parameter_count(model_sample)[""]
 
 
 class TrainMetricsEstimator(Estimator):
@@ -103,24 +104,25 @@ class TrainMetricsEstimator(Estimator):
         self.trainer = trainer
         self.n_estimation_epochs = n_estimation_epochs
         self.learning_rate = learning_rate
+        self.metric_history: list[float | int] | None = None
+        self.extra_metrics_history: list[dict[str, float | int]] | None = None
 
-    def estimate(
-        self, model_sample: torch.nn.Module
-    ) -> tuple[float | int, list[float | int], list[dict]]:
+    def estimate(self, model_sample: torch.nn.Module) -> float | int:
+        self.metric_history = []
+        self.extra_metrics_history = []
+
         optimizer = Adam(model_sample.parameters(), lr=self.learning_rate)
         self.trainer.configure_optimizer(optimizer)
-
-        estimate_values = []
-        metric_values = []
         model_sample.to(self.trainer.device)
+
         for i in range(self.n_estimation_epochs):
             self.trainer.train_epoch(model_sample, i)
-            metric_avg, loss = self.trainer.validate(model_sample)
+            metrics_dict, loss = self.trainer.validate(model_sample)
 
             if self.metric_name == "loss":
                 estimate_value = loss
             else:
-                estimate_value = metric_avg.get(self.metric_name)
+                estimate_value = metrics_dict.get(self.metric_name)
 
             if not estimate_value:
                 err = TypeError(f"Trainer Type does not support {self.metric_name} estimation.")
@@ -130,8 +132,14 @@ class TrainMetricsEstimator(Estimator):
                 )
                 raise err
 
-            estimate_values.append(estimate_value)
-            metric_values.append(metric_avg)
+            self.metric_history.append(estimate_value)
+            self.extra_metrics_history.append(metrics_dict)
 
-        self.logger.info(f"Estimated {self.metric_name} is: {estimate_values[-1]:.2f}")
-        return estimate_values[-1], estimate_values, metric_values
+        self.logger.info(f"Estimated {self.metric_name} is: {self.metric_history[-1]:.2f}")
+        return self.metric_history[-1]
+
+    def get_metric_history(self) -> list[float | int] | None:
+        return self.metric_history
+
+    def get_extra_metrics_history(self) -> list[dict[str, float | int]] | None:
+        return self.extra_metrics_history

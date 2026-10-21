@@ -38,20 +38,23 @@ class SearchStrategy(Enum):
 def _evaluate_constraints(trial, model, optimization_criteria: OptimizationCriteria):
     score = 0.0
     for estimator in optimization_criteria:
-        final_estimate, estimates, metrics = estimator.estimate(model)
+        final_estimate = estimator.estimate(model)
         trial.set_user_attr(estimator.metric_name, final_estimate)
+
+        metric_history = estimator.get_metric_history()
         trial.set_user_attr(
             intermediate_metrics_template.format(metric_name=estimator.metric_name),
-            estimates,
+            metric_history,
         )
 
-        if metrics:
-            keys_available = list(metrics[0].keys())
+        extra_metrics_history = estimator.get_extra_metrics_history()
+        if extra_metrics_history:
+            keys_available = list(extra_metrics_history[0].keys())
             for key in keys_available:
-                trial.set_user_attr(key, metrics[-1][key])
+                trial.set_user_attr(key, extra_metrics_history[-1][key])
                 trial.set_user_attr(
                     intermediate_metrics_template.format(metric_name=key),
-                    [val[key] for val in metrics],
+                    [val[key] for val in extra_metrics_history],
                 )
 
         hard_constraints = optimization_criteria.get_hard_constraints(estimator)
