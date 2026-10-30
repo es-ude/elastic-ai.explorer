@@ -9,27 +9,19 @@ sequence:
       depth: [1, 2, 3]
   - block: "2"
     op_candidates: "linear"
-    type_repeat:
-      type: "repeat_op"
-      depth: [1, 2]
-    linear:
-      width: [32, 64, 128]
-      activation: ["relu", "sigmoid"]
-  - block: "3"
-    op_candidates: "linear"
 
 default_op_params:
   conv2d:
-    kernel_size: [3, 5]
-    stride: 1
-    out_channels: [6, 16, 32]
+    kernel_size: [3, 4]
+    stride: [1, 2]
+    out_channels: [8, 32]
     padding: ["same"]
   batch_norm:
   activation:
-    op: "relu"
+    op: ["relu", "leaky_relu"]
   maxpool:
-    kernel_size: 2
-    stride: 2
+    kernel_size: [2, 3]
+    stride: [1, 2]
 
 composites:
   conv-act-pool:

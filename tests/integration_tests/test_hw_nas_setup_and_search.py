@@ -1,4 +1,6 @@
 import os
+
+import optuna.samplers
 import pytest
 import shutil
 import torch
@@ -13,7 +15,6 @@ from elasticai.explorer.hw_nas.estimators import (
 )
 from elasticai.explorer.hw_nas.hw_nas import (
     HWNASParameters,
-    SearchStrategy,
 )
 from elasticai.explorer.training.data import DatasetSpecification, MNISTWrapper
 from elasticai.explorer.explorer import Explorer
@@ -25,6 +26,7 @@ from elasticai.explorer.platforms.deployment.device_communication import (
     RPiHost,
     SSHParams,
 )
+from optuna.samplers import RandomSampler, NSGAIISampler
 from torchvision import transforms
 from elasticai.explorer.training.trainer import SupervisedTrainer
 from tests.integration_tests.samples.sample_MLP import SampleMLP
@@ -85,14 +87,14 @@ class TestHWNasSetupAndSearch:
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
-        ("search_strategy", "with_hardconstraints", "expected"),
+        ("sampler", "with_hardconstraints", "expected"),
         [
-            (SearchStrategy.RANDOM_SEARCH, False, 2),
-            (SearchStrategy.EVOLUTIONARY_SEARCH, False, 2),
-            (SearchStrategy.RANDOM_SEARCH, True, 0),
+            (RandomSampler(seed=None), False, 2),
+            (NSGAIISampler(population_size=20, mutation_prob=0.1, seed=None), False, 2),
+            (RandomSampler(seed=None), True, 0),
         ],
     )
-    def test_search(self, search_strategy, with_hardconstraints, expected):
+    def test_search(self, sampler: optuna.samplers.BaseSampler, with_hardconstraints: bool, expected: int):
         if with_hardconstraints:
             data_sample = torch.randn(
                 (1, 1, 28, 28), dtype=torch.float32, device=self.device
@@ -104,8 +106,8 @@ class TestHWNasSetupAndSearch:
                 estimator=ParamEstimator(), operator=operator.lt, value=0
             )
         top_k_models = self.RPI5explorer.search(
+            sampler=sampler,
             optimization_criteria=self.optimization_criteria,
-            search_strategy=search_strategy,
             hw_nas_parameters=HWNASParameters(2, 2),
         )
         assert len(top_k_models) == expected
