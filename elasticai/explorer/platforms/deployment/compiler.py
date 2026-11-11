@@ -2,10 +2,12 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 from python_on_whales import docker
 
 from elasticai.explorer import get_path_to_project
+from elasticai.explorer.platforms.deployment.libtorch_installer import PiModel, setup_docker_libtorch
 
 
 @dataclass
@@ -14,6 +16,7 @@ class CompilerParams:
     library_path: Path = Path("./code/libtorch")
     path_to_dockerfile: Path = get_path_to_project() / "docker" / "Dockerfile.picross"
     build_context: Path = get_path_to_project() / "docker"
+    pi_model: Optional[str] = None
 
 
 class Compiler(ABC):
@@ -41,8 +44,10 @@ class RPICompiler(Compiler):
         self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
         self.context_path: Path = Path(compiler_params.build_context)
         self.libtorch_path: Path = Path(compiler_params.library_path)
+        self.pi_model: Optional[str] = compiler_params.pi_model
         if not self.is_setup():
             self.setup()
+        self._ensure_libtorch()
 
     def is_setup(self) -> bool:
         return bool(docker.images(self.image_name))
@@ -52,6 +57,18 @@ class RPICompiler(Compiler):
         self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
         docker.build(self.context_path, file=self.path_to_dockerfile, tags=self.image_name)
         self.logger.debug("Crosscompiler available now.")
+
+    def _is_libtorch_available(self) -> bool:
+        libtorch_dir = (self.context_path / self.libtorch_path).resolve()
+        return libtorch_dir.is_dir() and any(libtorch_dir.iterdir())
+
+    def _ensure_libtorch(self) -> None:
+        if self._is_libtorch_available():
+            return
+        if self.pi_model is None:
+            self.logger.warning(f"libtorch not found in build context ({self.context_path / self.libtorch_path}) and no pi_model set in CompilerParams")
+            return
+        setup_docker_libtorch(PiModel(self.pi_model))
 
     def compile_code(self, source: Path) -> Path:
         docker.build(
