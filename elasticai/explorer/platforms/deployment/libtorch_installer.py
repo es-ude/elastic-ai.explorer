@@ -8,8 +8,8 @@ from pathlib import Path
 
 import owncloud
 
+from elasticai.explorer import get_path_to_docker
 from elasticai.explorer.platforms.deployment.device_communication import Host, RPiHost, SSHParams
-from settings import DOCKER_CONTEXT_DIR
 
 LIBTORCH_SCIEBO_URL = "https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb"
 
@@ -67,7 +67,7 @@ def _download_archive(archive_name: str) -> Path:
 def _pi_install_command(archive_name: str) -> str:
     if archive_name.endswith(".zip"):
         extract = f'python3 -m zipfile -e ~/{archive_name} "$TMP"'
-        src = f'"$TMP/libtorch-v2.6.0-rpi5-bookworm/libtorch"'
+        src = '"$TMP/libtorch-v2.6.0-rpi5-bookworm/libtorch"'
     else:
         extract = f'tar xzf ~/{archive_name} -C "$TMP"'
         src = '"$TMP/libtorch"'
@@ -95,7 +95,7 @@ def download_libtorch(pi_model: PiModel, target_dir: Path) -> None:
 
 
 def setup_docker_libtorch(pi_model: PiModel) -> Path:
-    target = DOCKER_CONTEXT_DIR / "code" / "libtorch"
+    target = get_path_to_docker() / "code" / "libtorch"
     download_libtorch(pi_model, target)
     return target
 
