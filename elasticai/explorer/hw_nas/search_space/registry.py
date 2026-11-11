@@ -1,10 +1,10 @@
 from torch import nn
 
 from elasticai.explorer.hw_nas.search_space.layer_adapter import (
+    Conv2dToLinearAdapter,
     Conv2dToLSTMAdapter,
     LinearToConv2dAdapter,
     LinearToLstmAdapter,
-    Conv2dToLinearAdapter,
     LSTMNoSequenceAdapter,
     LSTMToConv2dAdapter,
     ToLinearAdapter,
@@ -25,8 +25,15 @@ ADAPTER_REGISTRY = {
 
 activation_mapping = {
     "relu": nn.ReLU(),
+    "prelu": nn.PReLU(),
+    "leaky_relu": nn.LeakyReLU(),
+    "hardtanh": nn.Hardtanh(),
     "sigmoid": nn.Sigmoid(),
+    "hardsigmoid": nn.Hardsigmoid(),
     "identity": nn.Identity(),
+    "silu": nn.SiLU(),
+    "gelu": nn.GELU(),
+    "softmax": nn.Softmax(),
     "tanh": nn.Tanh(),
 }
 

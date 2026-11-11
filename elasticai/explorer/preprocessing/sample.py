@@ -18,9 +18,7 @@ _PIPELINE_SEPARATOR = ">"
 _PIPELINE_DISABLED = "none"
 
 
-def _suggest(
-    trial: optuna.Trial, step: str, params: dict, key: str, default_value: Any = None
-) -> Any:
+def _suggest(trial: optuna.Trial, step: str, params: dict, key: str, default_value: Any = None) -> Any:
     return parse_search_param(
         trial=trial,
         name=f"preprocessing/{step}/{key}",
@@ -144,16 +142,12 @@ def _validate_preprocessing_order(
         raise ValueError(f"Duplicate preprocessing step(s): {duplicated_steps}")
 
     configured_steps = {
-        key
-        for key, value in params.items()
-        if key in VALID_PREPROCESSING_STEPS and value is not None
+        key for key, value in params.items() if key in VALID_PREPROCESSING_STEPS and value is not None
     }
 
     extra_steps = set(order) - configured_steps
     if extra_steps:
-        raise ValueError(
-            f"Pipeline order contains unconfigured step(s): {sorted(extra_steps)}"
-        )
+        raise ValueError(f"Pipeline order contains unconfigured step(s): {sorted(extra_steps)}")
 
     return order
 

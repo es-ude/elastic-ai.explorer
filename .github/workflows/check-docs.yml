@@ -1,0 +1,30 @@
+name: Check building docs
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-docs:
+    if: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo shallowly
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup uv
+        uses: ./.github/actions/setup-uv
+
+      - name: Build documentation
+        run: |
+          export LC_ALL=C
+          uv run sphinx-build -b singlehtml docs build/docs

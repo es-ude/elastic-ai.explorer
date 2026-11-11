@@ -1,14 +1,14 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import logging
 import os
-from pathlib import Path
 import shutil
-from socket import error as socket_error
 import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from pathlib import Path
+from socket import error as socket_error
 
-from fabric import Connection
 import serial
+from fabric import Connection
 from paramiko.ssh_exception import AuthenticationException
 
 
@@ -47,9 +47,7 @@ class RPiHost(Host):
     def __init__(self, params: SSHParams):
         self.hostname = params.hostname
         self.username = params.username
-        self.logger = logging.getLogger(
-            "explorer.platforms.deployment.device_communication.Host"
-        )
+        self.logger = logging.getLogger("explorer.platforms.deployment.device_communication.Host")
 
     def _get_connection(self):
         return Connection(host=self.hostname, user=self.username)
@@ -68,8 +66,9 @@ class RPiHost(Host):
 
         if result.failed:
             raise SSHException(
-                "The command `{0}` on host {1} failed with the error: "
-                "{2}".format(command, self.hostname, str(result.stderr))
+                "The command `{0}` on host {1} failed with the error: {2}".format(
+                    command, self.hostname, str(result.stderr)
+                )
             )
         return result.stdout
 
@@ -84,8 +83,7 @@ class RPiHost(Host):
 
     def _raise_authentication_err(self, exc):
         raise SSHException(
-            "SSH: could not connect to {host} "
-            "(username: {user}): {exc}".format(
+            "SSH: could not connect to {host} (username: {user}): {exc}".format(
                 host=self.hostname, user=self.username, exc=exc
             )
         )
@@ -95,9 +93,7 @@ class PicoHost(Host):
     def __init__(self, params: SerialParams):
         self.BAUD_RATE = params.baud_rate
         self.host_name = params.device_path
-        self.logger = logging.getLogger(
-            "explorer.platforms.deployment.device_communication.PicoHost"
-        )
+        self.logger = logging.getLogger("explorer.platforms.deployment.device_communication.PicoHost")
         self.serial_port = params.serial_port
         self.timeout_s = 40
 

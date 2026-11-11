@@ -79,16 +79,12 @@ class LSTMNoSequenceAdapter(nn.Module):
 
 class LSTMToConv2dAdapter(nn.Module):
     def __init__(self):
-        raise AdapterNotImplementedError(
-            "LSTM to to Conv2d adapter is not implemented. "
-        )
+        raise AdapterNotImplementedError("LSTM to to Conv2d adapter is not implemented. ")
 
 
 class LinearToConv2dAdapter(nn.Module):
     def __init__(self):
-        raise AdapterNotImplementedError(
-            "Linear layer to Conv2d adapter is not implemented. "
-        )
+        raise AdapterNotImplementedError("Linear layer to Conv2d adapter is not implemented. ")
 
 
 class AdapterNotImplementedError(NotImplementedError):

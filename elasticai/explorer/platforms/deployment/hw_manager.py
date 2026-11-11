@@ -1,23 +1,24 @@
 import json
 import logging
 import os
+import shutil
+import tarfile
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 
-import shutil
-import tarfile
-
+from elasticai.explorer import get_path_to_project
 from elasticai.explorer.platforms.deployment.compiler import Compiler, RPICompiler
-from elasticai.explorer.platforms.deployment.libtorch_installer import PiModel, install_libtorch_on_pi
 from elasticai.explorer.platforms.deployment.device_communication import (
     Host,
     PicoHost,
     RPiHost,
 )
+from elasticai.explorer.platforms.deployment.libtorch_installer import PiModel, install_libtorch_on_pi
 from elasticai.explorer.platforms.generator import tflite_to_resolver
 from elasticai.explorer.training.data import DatasetSpecification, RootedDataset
-from settings import DOCKER_CONTEXT_DIR
+
+DOCKER_CONTEXT_DIR = get_path_to_project("docker")
 
 
 class Metric(Enum):
@@ -52,12 +53,9 @@ class HWManager(ABC):
 
 
 class RPiHWManager(HWManager):
-
     def __init__(self, target: RPiHost, compiler: Compiler):
 
-        self.logger = logging.getLogger(
-            "explorer.platforms.deployment.manager.RPIHWManager"
-        )
+        self.logger = logging.getLogger("explorer.platforms.deployment.manager.RPIHWManager")
         self.logger.info("Initializing PI Hardware Manager...")
         super().__init__(target, compiler)
 
@@ -74,7 +72,7 @@ class RPiHWManager(HWManager):
         if not isinstance(self.compiler, RPICompiler) or self.compiler.pi_model is None:
             self.logger.warning("libtorch not found on Pi and no pi_model set in CompilerParams")
             return
-            
+
         install_libtorch_on_pi(self.target, PiModel(self.compiler.pi_model))
 
     def install_code_on_target(self, source: Path, metric: Metric):
@@ -132,10 +130,12 @@ class RPiHWManager(HWManager):
         self.logger.info("Put model %s on target", path_to_model)
         self.target.put_file(path_to_model, ".")
 
-    def _parse_measurement(self, result: str) -> dict:
+    @staticmethod
+    def _parse_measurement(result: str) -> dict:
         return json.loads(result)
 
-    def build_command(self, name_of_executable: str, arguments: list[str]):
+    @staticmethod
+    def build_command(name_of_executable: str, arguments: list[str]):
         builder = CommandBuilder(name_of_executable)
         for argument in arguments:
             builder.add_argument(argument)
@@ -155,12 +155,9 @@ class CommandBuilder:
 
 
 class PicoHWManager(HWManager):
-
     def __init__(self, target: PicoHost, compiler: Compiler):
 
-        self.logger = logging.getLogger(
-            "explorer.platforms.deployment.manager.PicoHWManager"
-        )
+        self.logger = logging.getLogger("explorer.platforms.deployment.manager.PicoHWManager")
         self.logger.info("Initializing Pico Hardware Manager...")
         super().__init__(target, compiler)
 
@@ -199,9 +196,7 @@ class PicoHWManager(HWManager):
         if self.measurements:
             measurement = self._parse_measurement(self.measurements)
         else:
-            return self._parse_measurement(
-                '{"' + metric.value + '": { "value": -1, "unit": "Error"}}'
-            )
+            return self._parse_measurement('{"' + metric.value + '": { "value": -1, "unit": "Error"}}')
 
         self.logger.debug("Measurement on device: %s ", measurement)
         return measurement

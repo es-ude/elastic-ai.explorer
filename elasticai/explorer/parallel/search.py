@@ -40,9 +40,7 @@ def search_in_parallel(
     n_workers: int = 2,
     sampler_checkpoint_dir: Path | None = None,
 ) -> tuple[list[Any], list[dict[str, Any]], list[Any]]:
-    optimization_objective = partial(
-        objective_on_device, criteria=optimization_criteria
-    )
+    optimization_objective = partial(objective_on_device, criteria=optimization_criteria)
     optuna_search_config = OptunaSearchConfig(
         search_space_cfg=search_space_cfg,
         create_sampler_fn=create_sampler_fn,
@@ -89,9 +87,7 @@ def is_duplicated_trial(trial: optuna.Trial) -> bool:
         TrialState.RUNNING,
         TrialState.COMPLETE,
     )
-    trials_to_consider = trial.study.get_trials(
-        deepcopy=False, states=states_to_consider
-    )
+    trials_to_consider = trial.study.get_trials(deepcopy=False, states=states_to_consider)
 
     for t in trials_to_consider:
         if t.number == trial.number:

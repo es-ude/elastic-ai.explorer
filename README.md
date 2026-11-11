@@ -1,4 +1,4 @@
-# Elastic-Ai.Explorer
+# elasticAI.explorer
 HW-NAS-based toolbox for optimizing DNN architectures for different target HW platforms, automated deployment and testing.
 Currently supported are the **Raspberry Pi 4/5** and the **Raspberry Pi Pico**. 
 

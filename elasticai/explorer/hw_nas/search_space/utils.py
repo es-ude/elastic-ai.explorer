@@ -1,10 +1,9 @@
+import copy
 import math
 from pathlib import Path
+from typing import Literal, Sequence
 
 import yaml
-
-import copy
-from typing import Sequence, Literal
 
 
 def _to_tuple(value, dims: int) -> tuple[int, ...]:
@@ -12,7 +11,6 @@ def _to_tuple(value, dims: int) -> tuple[int, ...]:
     if isinstance(value, Sequence):
         return tuple(value)
     return (value,) * dims
-
 
 
 def _conv_output_dim(in_dim, kernel, stride, padding, dilation):
@@ -24,17 +22,15 @@ def calculate_output_shape(
     shape: Sequence[int],
     kernel_size: int | Sequence[int],
     stride: int | Sequence[int],
-    padding: int | Sequence[int] | Literal["same"]= 0,
+    padding: int | Sequence[int] | Literal["same"] = 0,
     dilation: int | Sequence[int] = 1,
     out_channels: int | None = None,
     layer_type: str = "conv2d",
 ):
 
-    assert layer_type in {"conv1d", "conv2d", "pool1d", "pool2d"}, \
-        f"Invalid layer type: {layer_type}"
+    assert layer_type in {"conv1d", "conv2d", "pool1d", "pool2d"}, f"Invalid layer type: {layer_type}"
 
     dims = 1 if "1d" in layer_type else 2
-
 
     kernel_size = _to_tuple(kernel_size, dims)
     stride = _to_tuple(stride, dims)
@@ -48,10 +44,7 @@ def calculate_output_shape(
     spatial_in = shape[-dims:]
 
     if padding == "same":
-        new_spatial = [
-            math.ceil(i / s)
-            for i, s in zip(spatial_in, stride)
-        ]
+        new_spatial = [math.ceil(i / s) for i, s in zip(spatial_in, stride)]
 
     else:
         padding = _to_tuple(padding, dims)
@@ -62,6 +55,7 @@ def calculate_output_shape(
 
     new_shape[-dims:] = new_spatial
     return new_shape
+
 
 def yaml_to_dict(file_path: Path) -> dict:
 
