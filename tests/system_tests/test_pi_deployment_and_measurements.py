@@ -9,6 +9,7 @@ from elasticai.explorer import get_path_to_docker, get_path_to_project
 from elasticai.explorer.explorer import Explorer
 from elasticai.explorer.hw_nas.estimators import LatencyEstimator
 from elasticai.explorer.knowledge_repository import HWPlatform, KnowledgeRepository
+from elasticai.explorer.platforms import PlatformID
 from elasticai.explorer.platforms.deployment.compiler import CompilerParams, RPICompiler
 from elasticai.explorer.platforms.deployment.device_communication import (
     RPiHost,
@@ -26,7 +27,7 @@ from tests.integration_tests.samples.sample_MLP import SampleMLP
 
 class TestDeploymentAndMeasurement:
     def setup_class(self):
-        with open("./tests/system_tests/example_system_test_settings.toml", "rb") as f:
+        with open("./tests/system_tests/system_test_settings.toml", "rb") as f:
             config = tomllib.load(f)
 
         ssh_params = SSHParams(
@@ -107,7 +108,7 @@ class TestLatencyEstimator:
         compiler_params = CompilerParams()
 
         host = RPiHost(ssh_params)
-        compiler = RPICompiler(compiler_params)
+        compiler = RPICompiler(compiler_params, target_platform=PlatformID.RPI5)
         self.hw_manager = RPiHWManager(host, compiler)
         self.generator = RPiGenerator()
 

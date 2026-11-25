@@ -31,11 +31,11 @@ If you don't need dev dependencies add:
  To compile for deployment on hardware you need to install:
 
 ### Either:
-- Docker-Desktop (https://docs.docker.com/desktop/)
+- [Docker-Desktop](https://docs.docker.com/desktop/)
 
 ### Or:
-- The Docker Engine (https://docs.docker.com/engine/install/)
-- And the Docker-Buildx-Plugin (https://github.com/docker/buildx)
+- The [Docker Engine](https://docs.docker.com/engine/install/)
+- With the [Docker-Buildx-Plugin](https://github.com/docker/buildx)
 
 >First Deployment with Docker for each platform is slow because the necessary Docker-Images have to be created, after that the Docker-Images can be reused and deployment is much faster. 
 
@@ -50,9 +50,14 @@ Follow the steps in the Docker documentation: [How do I use Docker SDKs with Doc
 ## Set up your Raspberry Pi 4/5 for Deployment
 To use the Explorer to deploy models on your Raspberry Pi, we recommend using Bookworm 64-Bit as an OS. You also need to enable ssh connections on your RPi and make one initial connection between your host PC and the RPi. Make sure to add you public SSH key to the Raspberry Pi under `~/.ssh/authorized_keys`.
 
-Then install libtorch on your Pi under `/code/libtorch` directly at the root of your system, add this libtorch version also under the same path relative to the docker build context (this should be `docker/code/libtorch`) in the elastic-ai.Explorer. You can find precompiled versions of libtorch for Bookworm on RPi4 and RPi5 here (https://uni-duisburg-essen.sciebo.de/s/9aiYf5Y2NABtdQb).
+libtorch is required both on the Pi (`/code/libtorch`) and in the docker build context on your host (`docker/code/libtorch`). The correct version will be downloaded automatically if you set the `id` on your `HWPlatform` to `PlatformID.RPI4` or `PlatformID.RPI5`.
 
-Ensure a `data` directory exists on the Raspberry Pi user's home directory.
+Precompiled libtorch builds for Bookworm on RPi4/RPi5 are hosted on the elasticAI.explorer's [GitHub Release Assets Page](https://github.com/es-ude/elastic-ai.explorer/releases).
+
+You can also trigger the automatic install ahead of time via the CLI:
+```
+python -m elasticai.explorer.platforms.deployment.libtorch_installer {rpi4|rpi5} [--docker] [--pi-host HOST] [--pi-user USER]
+```
 
 After this you can use the System Tests by creating your own system_test_settings.toml as shown in example_system_test_settings.toml in the system test folder. Similarly, you can use the example (pi_example.py) by adding your RPi's credentials to the SSHParams. 
 
@@ -69,8 +74,8 @@ To configure the Explorer for your specific setup, create your own OptimizationC
 For test deployment and hardware-specific search, create your own HWPlatform with a Generator, Compiler, Host, and HwManager. You can also use the out-of-the-box solutions shown in the examples, or write your own classes using the provided interfaces.
 
 For an example of running the Explorer on an HPC system with SLURM, Apptainer,
-and NVIDIA GPUs, see the [HPC Apptainer example](hpc/README.md).
+and NVIDIA GPUs, see the [HPC Apptainer Example](hpc/README.md).
 
 # Search Space Specification
 To learn how to specify your own search space for a HW-NAS in YAML format or to learn how to extend the supported operations in code
-see the [search space specification](elasticai/explorer/hw_nas/search_space/README.md).
+see the [Search Space Specification](elasticai/explorer/hw_nas/search_space/README.md).
