@@ -176,7 +176,7 @@ class Explorer:
         self.generator = self.target_hw_platform.model_generator()
         self.hw_manager = self.target_hw_platform.platform_manager(
             self.target_hw_platform.communication_protocol(communication_params),
-            self.target_hw_platform.compiler(compiler_params),
+            self.target_hw_platform.compiler(compiler_params, self.target_hw_platform.id),
         )
         self.logger.info(
             "Configure chosen Target Hardware Platform. Name: %s, HW PLatform:\n%s",
@@ -185,14 +185,17 @@ class Explorer:
         )
 
     def hw_setup_on_target(
-        self, metric_to_source: dict[Metric, Path], data_spec: data.DatasetSpecification
+        self, measurement_source_path_by_metric: dict[Metric, Path], data_spec: data.DatasetSpecification
     ):
         """
         Args:
-            path_to_testdata: Path to testdata. Format depends on the HWManager implementation. This is not here anymore
-            metric_to_source: Dictionary mapping Metric to source code Path inside the docker context. this doesn't explain anything
-              E.g.: metric_to_source = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
-              :param data_spec: this is missing
+            measurement_source_path_by_metric:
+                Dictionary of source code paths of the programs used for taking
+                measurements, keyed by the corresponding measured metric.
+                For example: measurement_source_path_by_metric = {Metric.ACCURACY: Path("/path/to/measure_accuracy.cpp")}
+            data_spec:
+                Specification of the dataset to install on the target device
+                for on-device measurements.
 
         """
         self.logger.info("Setup Hardware target for experiments.")
@@ -205,7 +208,7 @@ class Explorer:
 
         self.hw_manager.install_dataset_on_target(data_spec)
 
-        for metric, source in metric_to_source.items():
+        for metric, source in measurement_source_path_by_metric.items():
             self.logger.info(f"Installing program for {metric.name}: {source}")
             self.hw_manager.install_code_on_target(source, metric)
 

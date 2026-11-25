@@ -6,6 +6,8 @@ from pathlib import Path
 from python_on_whales import docker
 
 from elasticai.explorer import get_path_to_project
+from elasticai.explorer.platforms import PlatformID
+from elasticai.explorer.platforms.deployment.libtorch_installer import install_libtorch
 
 
 @dataclass
@@ -18,7 +20,7 @@ class CompilerParams:
 
 class Compiler(ABC):
     @abstractmethod
-    def __init__(self, compiler_params: CompilerParams):
+    def __init__(self, compiler_params: CompilerParams, target_platform: PlatformID):
         pass
 
     @abstractmethod
@@ -35,7 +37,8 @@ class Compiler(ABC):
 
 
 class RPICompiler(Compiler):
-    def __init__(self, compiler_params: CompilerParams):
+    def __init__(self, compiler_params: CompilerParams, target_platform: PlatformID):
+        self.target_platform: PlatformID = target_platform
         self.logger = logging.getLogger("RPICompiler")
         self.image_name: str = compiler_params.image_name  # "cross"
         self.path_to_dockerfile: Path = Path(compiler_params.path_to_dockerfile)
@@ -43,6 +46,7 @@ class RPICompiler(Compiler):
         self.libtorch_path: Path = Path(compiler_params.library_path)
         if not self.is_setup():
             self.setup()
+        self._ensure_libtorch()
 
     def is_setup(self) -> bool:
         return bool(docker.images(self.image_name))
@@ -52,6 +56,16 @@ class RPICompiler(Compiler):
         self.logger.info("Crosscompiler has not been Setup. Setup Crosscompiler...")
         docker.build(self.context_path, file=self.path_to_dockerfile, tags=self.image_name)
         self.logger.debug("Crosscompiler available now.")
+
+    def _is_libtorch_available(self) -> bool:
+        libtorch_dir = (self.context_path / self.libtorch_path).resolve()
+        return libtorch_dir.is_dir() and any(libtorch_dir.iterdir())
+
+    def _ensure_libtorch(self) -> None:
+        if self._is_libtorch_available():
+            return
+
+        install_libtorch(self.target_platform, install_locally=True)
 
     def compile_code(self, source: Path) -> Path:
         docker.build(
@@ -71,7 +85,7 @@ class RPICompiler(Compiler):
 
 
 class PicoCompiler(Compiler):
-    def __init__(self, compiler_params: CompilerParams):
+    def __init__(self, compiler_params: CompilerParams, target_platform: PlatformID = PlatformID.PICO):
         self.logger = logging.getLogger("PicoCompiler")
         self.context_path: Path = Path(compiler_params.build_context)
         self.image_name: str = compiler_params.image_name
