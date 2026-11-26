@@ -9,14 +9,6 @@ sequence:
       depth: [1, 2, 3, 4]
   - block: "2"
     op_candidates: "linear"
-    type_repeat:
-      type: "repeat_op"
-      depth: [1, 2]
-    linear:
-      width: [16, 32, 64, 128]
-      activation: ["relu", "tanh", "identity"]
-  - block: "3"
-    op_candidates: "linear"
 
 default_op_params:
   conv2d:
